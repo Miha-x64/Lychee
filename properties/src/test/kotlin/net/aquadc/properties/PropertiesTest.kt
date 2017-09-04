@@ -6,8 +6,8 @@ import org.junit.Test
 class PropertiesTest {
 
     @Test fun testImmutableProps() {
-        val prop = immutablePropertyOf("hello")
-        assertEquals("hello", prop.value)
+        val prop by immutablePropertyOf("hello")
+        assertEquals("hello", prop)
     }
 
     @Test fun testMutableProps() {
