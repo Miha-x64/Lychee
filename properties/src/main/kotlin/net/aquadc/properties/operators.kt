@@ -1,8 +1,7 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties
 
-inline fun <T, R> Property<T>.map(noinline transform: (T) -> R): Property<R> =
-        MappedProperty<T, R>(this, transform)
+import net.aquadc.properties.internal.ConcurrentBiMappedCachedProperty
 
 inline fun <T> Property<T>.readOnlyView() = map { it }
 

@@ -1,5 +1,6 @@
-package net.aquadc.properties
+package net.aquadc.properties.internal
 
+import net.aquadc.properties.MutableProperty
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 

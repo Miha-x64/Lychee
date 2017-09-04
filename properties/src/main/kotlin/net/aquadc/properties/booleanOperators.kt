@@ -1,6 +1,8 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties
 
+import net.aquadc.properties.internal.ConcurrentBiMappedCachedProperty
+
 inline fun Property<Boolean>.not() =
         map { !it }
 
