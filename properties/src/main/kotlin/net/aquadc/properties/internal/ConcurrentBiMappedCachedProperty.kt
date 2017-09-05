@@ -21,13 +21,8 @@ class ConcurrentBiMappedCachedProperty<A, B, out T>(
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
 
     private fun recalculate(newA: A, newB: B) {
-        var old: T
-        var new: T
-        do {
-            old = valueReference.get()
-            new = transform(newA, newB)
-        } while (!valueReference.compareAndSet(old, new))
-
+        val new = transform(newA, newB)
+        val old = valueReference.getAndSet(new)
         listeners.forEach { it(old, new) }
     }
 

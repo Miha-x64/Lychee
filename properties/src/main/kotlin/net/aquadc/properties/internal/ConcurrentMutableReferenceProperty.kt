@@ -12,11 +12,7 @@ class ConcurrentMutableReferenceProperty<T>(
     override var value: T
         get() = valueReference.get()
         set(new) {
-            var old: T
-            do {
-                old = valueReference.get()
-            } while (!valueReference.compareAndSet(old, new))
-
+            val old: T = valueReference.getAndSet(new)
             listeners.forEach { it(old, new) }
         }
 
