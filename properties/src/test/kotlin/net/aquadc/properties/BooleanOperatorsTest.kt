@@ -54,4 +54,24 @@ class BooleanOperatorsTest {
         assertEquals(true, and)
     }
 
+    @Test fun xorTest() {
+        val p0 = mutablePropertyOf(true)
+        val p1 = mutablePropertyOf(true)
+
+        val and by p0 xor p1
+        assertEquals(false, and)
+
+        p0.value = false
+        assertEquals(true, and)
+
+        p1.value = false
+        assertEquals(false, and)
+
+        p0.value = true
+        assertEquals(true, and)
+
+        p1.value = true
+        assertEquals(false, and)
+    }
+
 }

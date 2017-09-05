@@ -11,3 +11,6 @@ inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolea
 
 inline infix fun Property<Boolean>.or(that: Property<Boolean>): Property<Boolean> =
         ConcurrentBiMappedCachedProperty(this, that, { a, b -> a || b })
+
+inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolean> =
+        ConcurrentBiMappedCachedProperty(this, that, { a, b -> a xor b })
