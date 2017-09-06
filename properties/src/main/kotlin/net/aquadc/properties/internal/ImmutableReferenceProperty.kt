@@ -13,4 +13,10 @@ class ImmutableReferenceProperty<out T>(
 
     override fun <R> map(transform: (T) -> R): Property<R> = immutablePropertyOf(transform(value))
 
+    /**
+     * Maps [that], but passes [value] instead of [this], because value may not change
+     */
+    override fun <U, R> mapWith(that: Property<U>, transform: (T, U) -> R): Property<R> =
+            MappedProperty(that, { transform(value, it) })
+
 }
