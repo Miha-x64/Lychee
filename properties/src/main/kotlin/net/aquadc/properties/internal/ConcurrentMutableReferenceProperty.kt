@@ -18,6 +18,8 @@ class ConcurrentMutableReferenceProperty<T>(
             }
         }
 
+    override val mayChange: Boolean get() = true
+
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {

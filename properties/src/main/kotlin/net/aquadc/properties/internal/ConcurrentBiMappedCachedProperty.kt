@@ -10,6 +10,15 @@ class ConcurrentBiMappedCachedProperty<A, B, out T>(
         private val transform: (A, B) -> T
 ): Property<T> {
 
+    init {
+        if (a is ImmutableReferenceProperty)
+            throw IllegalArgumentException("immutable property $a should not be mapped")
+        if (b is ImmutableReferenceProperty)
+            throw IllegalArgumentException("immutable property $b should not be mapped")
+    }
+
+    override val mayChange: Boolean get() = true
+
     private val valueReference = AtomicReference<T>(transform(a.value, b.value))
     init {
         a.addChangeListener { _, new -> recalculate(new, b.value) }

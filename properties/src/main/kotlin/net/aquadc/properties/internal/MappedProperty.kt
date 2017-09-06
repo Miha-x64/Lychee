@@ -8,6 +8,11 @@ class MappedProperty<O, out T>(
         private val transform: (O) -> T
 ) : Property<T> {
 
+    init {
+        if (original is ImmutableReferenceProperty)
+            throw IllegalArgumentException("immutable property $original should not be mapped")
+    }
+
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
 
     init {
@@ -22,6 +27,8 @@ class MappedProperty<O, out T>(
 
     override val value: T
         get() = transform(original.value)
+
+    override val mayChange: Boolean get() = true
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.add(onChange)
