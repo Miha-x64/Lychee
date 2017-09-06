@@ -23,7 +23,9 @@ class ConcurrentBiMappedCachedProperty<A, B, out T>(
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = valueReference.getAndSet(new)
-        listeners.forEach { it(old, new) }
+        if (new !== old) {
+            listeners.forEach { it(old, new) }
+        }
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {

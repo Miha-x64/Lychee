@@ -12,7 +12,11 @@ class MappedProperty<O, out T>(
 
     init {
         original.addChangeListener { old, new ->
-            listeners.forEach { it(transform(old), transform(new)) }
+            val tOld = transform(old)
+            val tNew = transform(new)
+            if (tOld !== tNew) {
+                listeners.forEach { it(transform(old), transform(new)) }
+            }
         }
     }
 

@@ -13,7 +13,9 @@ class ConcurrentMutableReferenceProperty<T>(
         get() = valueReference.get()
         set(new) {
             val old: T = valueReference.getAndSet(new)
-            listeners.forEach { it(old, new) }
+            if (new !== old) {
+                listeners.forEach { it(old, new) }
+            }
         }
 
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
