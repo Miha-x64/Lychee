@@ -19,7 +19,12 @@ class BindingTest {
         sample.value = "unbound"
         assertEquals("hey", mutable.value)
 
+        var new: String? = null
+        sample.value = "just bound"
+        mutable.addChangeListener { _, n -> new = n }
         mutable.bind(sample)
+        assertEquals("just bound", new)
+
         sample.value = "rebound"
         assertEquals("rebound", mutable.value)
 

@@ -30,12 +30,11 @@ class ConcurrentMutableReferenceProperty<T>(
     override val mayChange: Boolean get() = true
 
     override fun bind(sample: Property<T>) {
+        value = sample.value
         if (sample.mayChange) {
             val old = this.sample.getAndSet(sample)
             old?.removeChangeListener(onChangeInternal)
             sample.addChangeListener(onChangeInternal)
-        } else {
-            value = sample.value
         }
     }
 
