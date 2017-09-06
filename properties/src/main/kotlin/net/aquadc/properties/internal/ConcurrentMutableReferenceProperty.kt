@@ -13,33 +13,33 @@ class ConcurrentMutableReferenceProperty<T>(
     override var value: T
         get() {
             val sample = sample.get()
-            return if (sample == null) valueReference.get() else sample.first.value
+            return if (sample == null) valueReference.get() else sample.value
         }
         set(new) {
             val old: T = valueReference.getAndSet(new)
 
             // if bound, unbind
             val oldSample = sample.getAndSet(null)
-            oldSample?.first?.removeChangeListener(oldSample.second)
+            oldSample?.removeChangeListener(onChangeInternal)
 
             onChangeInternal(old, new)
         }
 
-    private val sample = AtomicReference<Pair<Property<T>, (T, T) -> Unit>?>(null)
+    private val sample = AtomicReference<Property<T>?>(null)
 
     override val mayChange: Boolean get() = true
 
     override fun bind(sample: Property<T>) {
         if (sample.mayChange) {
-            // attempt to reuse previous listener
-            val listener = this.sample.get()?.second ?: this::onChangeInternal
-            this.sample.set(Pair(sample, listener))
-            sample.addChangeListener(listener)
+            val old = this.sample.getAndSet(sample)
+            old?.removeChangeListener(onChangeInternal)
+            sample.addChangeListener(onChangeInternal)
         } else {
             value = sample.value
         }
     }
 
+    private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
     private fun onChangeInternal(old: T, new: T) {
         if (new !== old) {
             listeners.forEach { it(old, new) }
