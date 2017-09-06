@@ -2,48 +2,48 @@ package net.aquadc.properties.android.sample
 
 import android.app.Activity
 import android.os.Bundle
-import android.widget.Button
-import net.aquadc.properties.Property
-import net.aquadc.properties.allValues
-import net.aquadc.properties.android.enabledProperty
-import net.aquadc.properties.android.textProperty
+import net.aquadc.properties.android.bindEnabledTo
+import net.aquadc.properties.android.bindTextTo
+import net.aquadc.properties.android.bindToText
+import net.aquadc.properties.mutablePropertyOf
 import org.jetbrains.anko.*
 
-class MainActivity : Activity() {
+class MainActivity : Activity(), MainPresenter.View {
 
-    private lateinit var nameProp: Property<String>
-    private lateinit var surnameProp: Property<String>
-    private lateinit var submitView: Button
+    override val nameProp = mutablePropertyOf("")
+    override val surnameProp = mutablePropertyOf("")
+
+    override val buttonEnabledProp = mutablePropertyOf(false)
+    override val buttonTextProp = mutablePropertyOf("")
+
+    private lateinit var presenter: MainPresenter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         verticalLayout {
-
             padding = dip(16)
 
             editText {
                 id = 1
                 hint = "Name"
-                nameProp = textProperty()
+                bindToText(nameProp)
             }
 
             editText {
                 id = 2
                 hint = "Surname"
-                surnameProp = textProperty()
+                bindToText(surnameProp)
             }
 
-            submitView = button {
-                enabledProperty().bind(listOf(nameProp, surnameProp).allValues { it.isNotEmpty() })
-                textProperty().bind(nameProp.mapWith(surnameProp) { name, surname ->
-                    if (name.isEmpty() || surname.isEmpty()) "Fill in the form to register"
-                    else "Register as $name $surname"
-                })
+            button {
+                bindEnabledTo(buttonEnabledProp)
+                bindTextTo(buttonTextProp)
             }
 
         }
 
+        presenter = MainPresenter(this)
     }
 
 }

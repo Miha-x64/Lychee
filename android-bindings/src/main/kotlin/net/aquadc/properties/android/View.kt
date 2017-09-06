@@ -1,11 +1,9 @@
 package net.aquadc.properties.android
 
 import android.view.View
-import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.mutablePropertyOf
+import net.aquadc.properties.Property
 
-fun View.enabledProperty(): MutableProperty<Boolean> {
-    val prop = mutablePropertyOf(isEnabled)
-    prop.addChangeListener { _, new -> isEnabled = new }
-    return prop
+fun View.bindEnabledTo(enabledProperty: Property<Boolean>) {
+    isEnabled = enabledProperty.value
+    enabledProperty.addChangeListener { _, new -> isEnabled = new }
 }

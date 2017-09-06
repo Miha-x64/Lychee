@@ -4,26 +4,44 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.TextView
 import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.mutablePropertyOf
+import net.aquadc.properties.Property
 
-fun TextView.textProperty(): MutableProperty<String> {
-    val prop = mutablePropertyOf(text.toString())
+fun TextView.bindTextTo(textProperty: Property<CharSequence>) {
+    text = textProperty.value
+    textProperty.addChangeListener { _, new -> text = new }
+}
+
+fun TextView.bindToText(textProperty: MutableProperty<String>) {
+    textProperty.value = text.toString()
+    addTextChangedListener(object : SimpleTextWatcher() {
+        override fun afterTextChanged(s: Editable) {
+            textProperty.value = s.toString()
+        }
+    })
+}
+
+fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
+    textProperty.value = text.toString()
     var mutatingFromWatcher = false
     var mutatingFromChangeListener = false
-    addTextChangedListener(object : TextWatcher {
-        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+    addTextChangedListener(object : SimpleTextWatcher() {
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
             mutatingFromWatcher = true
         }
-        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
         override fun afterTextChanged(s: Editable) {
-            if (!mutatingFromChangeListener) prop.value = s.toString()
+            if (!mutatingFromChangeListener) textProperty.value = s.toString()
             mutatingFromWatcher = false
         }
     })
-    prop.addChangeListener { _, new ->
+    textProperty.addChangeListener { _, new ->
         mutatingFromChangeListener = true
         if (!mutatingFromWatcher) text = new
         mutatingFromChangeListener = false
     }
-    return prop
+}
+
+open class SimpleTextWatcher : TextWatcher {
+    override fun afterTextChanged(s: Editable) = Unit
+    override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) = Unit
+    override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) = Unit
 }
