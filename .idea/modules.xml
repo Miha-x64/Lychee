@@ -2,8 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/android-bindings/android-bindings.iml" filepath="$PROJECT_DIR$/android-bindings/android-bindings.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android-sample/android-sample.iml" filepath="$PROJECT_DIR$/android-sample/android-sample.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/properties/properties.iml" filepath="$PROJECT_DIR$/.idea/modules/properties/properties.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/reactive-properties.iml" filepath="$PROJECT_DIR$/.idea/modules/reactive-properties.iml" />
+      <module fileurl="file://$PROJECT_DIR$/reactive-properties.iml" filepath="$PROJECT_DIR$/reactive-properties.iml" />
     </modules>
   </component>
 </project>
