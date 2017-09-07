@@ -1,7 +1,7 @@
 package net.aquadc.properties
 
+import net.aquadc.properties.internal.ConcurrentMappedReferenceProperty
 import net.aquadc.properties.internal.ImmutableReferenceProperty
-import net.aquadc.properties.internal.MappedProperty
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,11 +22,11 @@ class OptimizationTest {
 
         val mapped0 = prop0.mapWith(prop1) { a, b -> "$b $a" }
         assertEquals("hey yo", mapped0.value)
-        assertTrue(mapped0 is MappedProperty<*, *>)
+        assertTrue(mapped0 is ConcurrentMappedReferenceProperty<*, *>)
 
         val mapped1 = prop1.mapWith(prop0) { a, b -> "$a $b" }
         assertEquals("hey yo", mapped1.value)
-        assertTrue("mapped1 is ${mapped1.javaClass}", mapped1 is MappedProperty<*, *>)
+        assertTrue("mapped1 is ${mapped1.javaClass}", mapped1 is ConcurrentMappedReferenceProperty<*, *>)
     }
 
     @Test fun immutablePropMapWithImmutableReturnsImmutable() {

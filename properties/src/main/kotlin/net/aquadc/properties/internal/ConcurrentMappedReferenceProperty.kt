@@ -3,7 +3,7 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
 
-class MappedProperty<O, out T>(
+class ConcurrentMappedReferenceProperty<O, out T>(
         private val original: Property<O>,
         private val transform: (O) -> T
 ) : Property<T> {

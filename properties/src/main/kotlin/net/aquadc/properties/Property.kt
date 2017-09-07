@@ -1,7 +1,7 @@
 package net.aquadc.properties
 
 import net.aquadc.properties.internal.ConcurrentBiMappedCachedReferenceProperty
-import net.aquadc.properties.internal.MappedProperty
+import net.aquadc.properties.internal.ConcurrentMappedReferenceProperty
 
 interface Property<out T> {
 
@@ -12,7 +12,7 @@ interface Property<out T> {
     fun removeChangeListener(onChange: (old: T, new: T) -> Unit)
 
     fun <R> map(transform: (T) -> R): Property<R> =
-            MappedProperty<T, R>(this, transform)
+            ConcurrentMappedReferenceProperty<T, R>(this, transform)
 
     fun <U, R> mapWith(that: Property<U>, transform: (T, U) -> R): Property<R> = if (that.mayChange) {
         ConcurrentBiMappedCachedReferenceProperty(this, that, transform)
