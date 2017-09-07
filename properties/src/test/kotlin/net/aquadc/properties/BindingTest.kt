@@ -9,7 +9,7 @@ class BindingTest {
         val mutable = mutablePropertyOf("hello")
         val sample = mutablePropertyOf("world")
 
-        mutable.bind(sample)
+        mutable.bindTo(sample)
         assertEquals("world", mutable.value)
 
         sample.value = "goodbye"
@@ -22,14 +22,14 @@ class BindingTest {
         var new: String? = null
         sample.value = "just bound"
         mutable.addChangeListener { _, n -> new = n }
-        mutable.bind(sample)
+        mutable.bindTo(sample)
         assertEquals("just bound", new)
 
         sample.value = "rebound"
         assertEquals("rebound", mutable.value)
 
         val newSample = mutablePropertyOf("another")
-        mutable.bind(newSample)
+        mutable.bindTo(newSample)
         assertEquals("another", mutable.value)
 
         sample.value = "bound to another"
@@ -46,7 +46,7 @@ class BindingTest {
         val mutable = mutablePropertyOf("hello")
         val immutable = immutablePropertyOf("world")
 
-        mutable.bind(immutable)
+        mutable.bindTo(immutable)
         assertEquals("world", mutable.value)
 
         mutable.value = "hey"
