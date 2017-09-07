@@ -5,7 +5,7 @@ import android.os.Bundle
 import net.aquadc.properties.android.bindEnabledTo
 import net.aquadc.properties.android.bindTextBidirectionally
 import net.aquadc.properties.android.bindTextTo
-import net.aquadc.properties.mutablePropertyOf
+import net.aquadc.properties.android.mutablePropertyOf
 import org.jetbrains.anko.*
 
 class MainActivity : Activity(), MainPresenter.View {

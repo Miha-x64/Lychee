@@ -1,6 +1,7 @@
 package net.aquadc.properties.android.sample
 
 import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.map
 import net.aquadc.properties.mapValueList
 import net.aquadc.properties.not
 
