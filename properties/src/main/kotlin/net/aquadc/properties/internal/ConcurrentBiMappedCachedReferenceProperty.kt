@@ -4,7 +4,7 @@ import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 
-class ConcurrentBiMappedCachedProperty<A, B, out T>(
+class ConcurrentBiMappedCachedReferenceProperty<A, B, out T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
