@@ -1,11 +1,11 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties
 
-import net.aquadc.properties.internal.ConcurrentMultiMappedCachedProperty
+import net.aquadc.properties.internal.ConcurrentMultiMappedCachedReferenceProperty
 
 
 inline fun <T, R> Iterable<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
-        ConcurrentMultiMappedCachedProperty(this, transform)
+        ConcurrentMultiMappedCachedReferenceProperty(this, transform)
 
 inline fun <T, R> Iterable<Property<T>>.foldValues(initial: R, crossinline operation: (acc: R, T) -> R): Property<R> =
         mapValueList {

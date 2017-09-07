@@ -4,7 +4,7 @@ import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 
-class ConcurrentMultiMappedCachedProperty<A, out T>(
+class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
 ): Property<T> {
