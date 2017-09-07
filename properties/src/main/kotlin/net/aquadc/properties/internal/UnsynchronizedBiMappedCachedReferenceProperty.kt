@@ -1,10 +1,8 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
 
-class ConcurrentBiMappedCachedReferenceProperty<A, B, T>(
+class UnsynchronizedBiMappedCachedReferenceProperty<A, B, T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
@@ -17,32 +15,48 @@ class ConcurrentBiMappedCachedReferenceProperty<A, B, T>(
             throw IllegalArgumentException("immutable property $b should not be mapped")
     }
 
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
+    private val thread = Thread.currentThread()
 
-    private val valueReference = AtomicReference<T>(transform(a.value, b.value))
+    override val mayChange: Boolean get() {
+        checkThread(thread)
+        return true
+    }
+
+    override val isConcurrent: Boolean get() {
+        checkThread(thread)
+        return false
+    }
+
+    override var value = transform(a.value, b.value)
+        get() {
+            checkThread(thread)
+            return field
+        }
+        private set
+
     init {
         a.addChangeListener { _, new -> recalculate(new, b.value) }
         b.addChangeListener { _, new -> recalculate(a.value, new) }
     }
 
-    override val value: T get() = valueReference.get()
-
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
+    private val listeners = ArrayList<(T, T) -> Unit>()
 
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
-        val old = valueReference.getAndSet(new) // WTF? Why I can call getAndSet with out variance?!
+        val old = value
+        value = new
         if (new !== old) {
             listeners.forEach { it(old, new) }
         }
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.add(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.remove(onChange)
     }
 

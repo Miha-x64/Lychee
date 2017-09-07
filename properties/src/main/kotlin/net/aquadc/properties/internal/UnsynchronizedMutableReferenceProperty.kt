@@ -2,42 +2,56 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
 
-class ConcurrentMutableReferenceProperty<T>(
+class UnsynchronizedMutableReferenceProperty<T>(
         value: T
 ) : MutableProperty<T> {
 
-    private val valueReference = AtomicReference<T>(value)
+    private val thread = Thread.currentThread()
+
+    var _value: T = value
     override var value: T
         get() {
-            val sample = sample.get()
-            return if (sample == null) valueReference.get() else sample.value
+            checkThread(thread)
+            val sample = sample
+            return if (sample == null) _value else sample.value
         }
         set(new) {
-            val old: T = valueReference.getAndSet(new)
+            checkThread(thread)
+            val old = _value
+            _value = new
 
             // if bound, unbind
-            val oldSample = sample.getAndSet(null)
+            val oldSample = sample
             oldSample?.removeChangeListener(onChangeInternal)
+            sample = null
 
             onChangeInternal(old, new)
         }
 
-    private val sample = AtomicReference<Property<T>?>(null)
+    private var sample: Property<T>? = null
 
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
+    override val mayChange: Boolean get() {
+        checkThread(thread)
+        return true
+    }
+
+    override val isConcurrent: Boolean get() {
+        checkThread(thread)
+        return false
+    }
 
     override fun bindTo(sample: Property<T>) {
+        checkThread(thread)
         val newSample = if (sample.mayChange) sample else null
-        val oldSample = this.sample.getAndSet(newSample)
+        val oldSample = this.sample
+        this.sample = newSample
         oldSample?.removeChangeListener(onChangeInternal)
         newSample?.addChangeListener(onChangeInternal)
 
+        val old = _value
         val new = sample.value
-        val old = valueReference.getAndSet(new)
+        _value = new
         onChangeInternal(old, new)
     }
 
@@ -48,13 +62,15 @@ class ConcurrentMutableReferenceProperty<T>(
         }
     }
 
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
+    private val listeners = ArrayList<(T, T) -> Unit>()
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.add(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.remove(onChange)
     }
 

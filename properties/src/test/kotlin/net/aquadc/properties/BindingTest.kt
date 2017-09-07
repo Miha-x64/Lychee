@@ -5,9 +5,11 @@ import org.junit.Test
 
 class BindingTest {
 
-    @Test fun binding() {
-        val mutable = mutablePropertyOf("hello")
-        val sample = mutablePropertyOf("world")
+    @Test fun concBinding() = binding(true)
+    @Test fun unsBinding() = binding(false)
+    private fun binding(concurrent: Boolean) {
+        val mutable = mutablePropertyOf("hello", concurrent)
+        val sample = mutablePropertyOf("world", concurrent)
 
         mutable.bindTo(sample)
         assertEquals("world", mutable.value)
@@ -28,7 +30,7 @@ class BindingTest {
         sample.value = "rebound"
         assertEquals("rebound", mutable.value)
 
-        val newSample = mutablePropertyOf("another")
+        val newSample = mutablePropertyOf("another", concurrent)
         mutable.bindTo(newSample)
         assertEquals("another", mutable.value)
 
@@ -39,11 +41,13 @@ class BindingTest {
         assertEquals("bound to this", mutable.value)
     }
 
+    @Test fun concBindingToImmutable() = bindingToImmutable(true)
+    @Test fun unsBindingToImmutable() = bindingToImmutable(false)
     /**
      * Same as previous one, but immutable property binding implementation differs
      */
-    @Test fun bindingToImmutable() {
-        val mutable = mutablePropertyOf("hello")
+    private fun bindingToImmutable(concurrent: Boolean) {
+        val mutable = mutablePropertyOf("hello", concurrent)
         val immutable = immutablePropertyOf("world")
 
         mutable.bindTo(immutable)

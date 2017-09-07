@@ -2,10 +2,12 @@
 package net.aquadc.properties
 
 import net.aquadc.properties.internal.ConcurrentMultiMappedCachedReferenceProperty
+import net.aquadc.properties.internal.UnsynchronizedMultiMappedCachedReferenceProperty
 
 
 inline fun <T, R> Iterable<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
-        ConcurrentMultiMappedCachedReferenceProperty(this, transform)
+        if (all { it.isConcurrent }) ConcurrentMultiMappedCachedReferenceProperty(this, transform)
+        else UnsynchronizedMultiMappedCachedReferenceProperty(this, transform)
 
 inline fun <T, R> Iterable<Property<T>>.foldValues(initial: R, crossinline operation: (acc: R, T) -> R): Property<R> =
         mapValueList {

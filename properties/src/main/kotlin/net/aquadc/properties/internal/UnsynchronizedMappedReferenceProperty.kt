@@ -1,19 +1,20 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
 
-class ConcurrentMappedReferenceProperty<O, out T>(
+class UnsynchronizedMappedReferenceProperty<O, out T>(
         private val original: Property<O>,
         private val transform: (O) -> T
 ) : Property<T> {
+
+    private val thread = Thread.currentThread()
 
     init {
         if (original is ImmutableReferenceProperty)
             throw IllegalArgumentException("immutable property $original should not be mapped")
     }
 
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
+    private val listeners = ArrayList<(T, T) -> Unit>()
 
     init {
         original.addChangeListener { old, new ->
@@ -25,17 +26,28 @@ class ConcurrentMappedReferenceProperty<O, out T>(
         }
     }
 
-    override val value: T
-        get() = transform(original.value)
+    override val value: T get() {
+        checkThread(thread)
+        return transform(original.value)
+    }
 
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
+    override val mayChange: Boolean get() {
+        checkThread(thread)
+        return true
+    }
+
+    override val isConcurrent: Boolean get() {
+        checkThread(thread)
+        return false
+    }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.add(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.remove(onChange)
     }
 

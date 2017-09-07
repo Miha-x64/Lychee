@@ -5,13 +5,15 @@ import org.junit.Test
 
 class PropertiesTest {
 
-    @Test fun testImmutableProps() {
+    @Test fun immutableProps() {
         val prop by immutablePropertyOf("hello")
         assertEquals("hello", prop)
     }
 
-    @Test fun testMutableProps() {
-        val prop = mutablePropertyOf("hello")
+    @Test fun concMutableProps() = mutableProps(true)
+    @Test fun unsMutableProps() = mutableProps(false)
+    private fun mutableProps(concurrent: Boolean) {
+        val prop = mutablePropertyOf("hello", concurrent)
         assertEquals("hello", prop.value)
 
         var old: String? = null
@@ -36,8 +38,10 @@ class PropertiesTest {
         assertEquals("buzz", prop.value)
     }
 
-    @Test fun mappedProp() {
-        val prop = mutablePropertyOf(1)
+    @Test fun concMappedProp() = mappedProp(true)
+    @Test fun unsMappedProp() = mappedProp(false)
+    private fun mappedProp(concurrent: Boolean) {
+        val prop = mutablePropertyOf(1, concurrent)
         val mapped = prop.map { 10 * it }
         assertEquals(10, mapped.value)
 
@@ -53,9 +57,11 @@ class PropertiesTest {
         assertEquals(-20, new)
     }
 
-    @Test fun biMappedProperty() {
-        val prop0 = mutablePropertyOf("a")
-        val prop1 = mutablePropertyOf("b")
+    @Test fun concBiMappedProperty() = biMappedProperty(true)
+    @Test fun unsBiMappedProperty() = biMappedProperty(false)
+    private fun biMappedProperty(concurrent: Boolean) {
+        val prop0 = mutablePropertyOf("a", concurrent)
+        val prop1 = mutablePropertyOf("b", concurrent)
         val biMapped = prop0.mapWith(prop1) { a, b -> "$a $b" }
         assertEquals("a b", biMapped.value)
 

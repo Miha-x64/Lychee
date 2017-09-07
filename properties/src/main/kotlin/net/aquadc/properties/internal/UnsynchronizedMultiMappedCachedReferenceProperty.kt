@@ -1,19 +1,25 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
 
-class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
+class UnsynchronizedMultiMappedCachedReferenceProperty<A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
 ): Property<T> {
 
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
+    private val thread = Thread.currentThread()
+
+    override val mayChange: Boolean get() {
+        checkThread(thread)
+        return true
+    }
+    override val isConcurrent: Boolean get() {
+        checkThread(thread)
+        return false
+    }
 
     // hm... I could use Array instead of List here for performance reasons
-    private val valueReference: AtomicReference<Pair<List<A>, T>>
+    private var _value: Pair<List<A>, T>
     init {
         properties.forEachIndexed { i, prop ->
             if (prop.mayChange) {
@@ -22,26 +28,22 @@ class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
         }
 
         val values = properties.map { it.value }
-        valueReference = AtomicReference(Pair(values, transform(values)))
+        _value = Pair(values, transform(values))
     }
 
-    override val value: T get() = valueReference.get().second
+    override val value: T get() {
+        checkThread(thread)
+        return _value.second
+    }
 
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
+    private val listeners = ArrayList<(T, T) -> Unit>()
 
     private fun set(index: Int, value: A) {
-        var old: Pair<List<A>, T>
-        var new: Pair<List<A>, T>
-
-
-        do {
-            old = valueReference.get()
-
-            val values = old.first
-            val changed = values.mapIndexed { i, v -> if (i == index) value else v }
-            val transformed = transform(changed)
-            new = Pair(changed, transformed)
-        } while (!valueReference.compareAndSet(old, new))
+        val old = _value
+        val values = old.first
+        val changed = values.mapIndexed { i, v -> if (i == index) value else v }
+        val new = Pair(changed, transform(changed))
+        _value = new
 
         if (new.second !== old.second) {
             val ov = old.second
@@ -51,10 +53,12 @@ class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.add(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
+        checkThread(thread)
         listeners.remove(onChange)
     }
 

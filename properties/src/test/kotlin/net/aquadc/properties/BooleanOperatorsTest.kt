@@ -5,8 +5,10 @@ import org.junit.Test
 
 class BooleanOperatorsTest {
 
-    @Test fun notTest() {
-        val prop = mutablePropertyOf(true)
+    @Test fun concNot() = not(true)
+    @Test fun unsNot() = not(false)
+    private fun not(concurrent: Boolean) {
+        val prop = mutablePropertyOf(true, concurrent)
         val notProp by prop.not()
         assertEquals(false, notProp)
 
@@ -14,9 +16,11 @@ class BooleanOperatorsTest {
         assertEquals(true, notProp)
     }
 
-    @Test fun andTest() {
-        val p0 = mutablePropertyOf(true)
-        val p1 = mutablePropertyOf(true)
+    @Test fun concAnd() = and(true)
+    @Test fun unsAnd() = and(false)
+    private fun and(concurrent: Boolean) {
+        val p0 = mutablePropertyOf(true, concurrent)
+        val p1 = mutablePropertyOf(true, concurrent)
 
         val and by p0 and p1
         assertEquals(true, and)
@@ -34,9 +38,11 @@ class BooleanOperatorsTest {
         assertEquals(true, and)
     }
 
-    @Test fun orTest() {
-        val p0 = mutablePropertyOf(true)
-        val p1 = mutablePropertyOf(true)
+    @Test fun concOr() = or(true)
+    @Test fun unsOr() = or(false)
+    private fun or(concurrent: Boolean) {
+        val p0 = mutablePropertyOf(true, concurrent)
+        val p1 = mutablePropertyOf(true, concurrent)
 
         val and by p0 or p1
         assertEquals(true, and)
@@ -54,9 +60,11 @@ class BooleanOperatorsTest {
         assertEquals(true, and)
     }
 
-    @Test fun xorTest() {
-        val p0 = mutablePropertyOf(true)
-        val p1 = mutablePropertyOf(true)
+    @Test fun concXor() = xor(true)
+    @Test fun unsXor() = xor(false)
+    private fun xor(concurrent: Boolean) {
+        val p0 = mutablePropertyOf(true, concurrent)
+        val p1 = mutablePropertyOf(true, concurrent)
 
         val and by p0 xor p1
         assertEquals(false, and)
