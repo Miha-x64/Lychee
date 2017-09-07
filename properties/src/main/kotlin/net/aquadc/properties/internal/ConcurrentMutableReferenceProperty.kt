@@ -30,12 +30,14 @@ class ConcurrentMutableReferenceProperty<T>(
     override val mayChange: Boolean get() = true
 
     override fun bindTo(sample: Property<T>) {
-        value = sample.value
-        if (sample.mayChange) {
-            val old = this.sample.getAndSet(sample)
-            old?.removeChangeListener(onChangeInternal)
-            sample.addChangeListener(onChangeInternal)
-        }
+        val newSample = if (sample.mayChange) sample else null
+        val oldSample = this.sample.getAndSet(newSample)
+        oldSample?.removeChangeListener(onChangeInternal)
+        newSample?.addChangeListener(onChangeInternal)
+
+        val new = sample.value
+        val old = valueReference.getAndSet(new)
+        onChangeInternal(old, new)
     }
 
     private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
