@@ -5,22 +5,17 @@ import android.os.Bundle
 import net.aquadc.properties.android.bindEnabledTo
 import net.aquadc.properties.android.bindTextBidirectionally
 import net.aquadc.properties.android.bindTextTo
-import net.aquadc.properties.android.mutablePropertyOf
 import org.jetbrains.anko.*
 
-class MainActivity : Activity(), MainPresenter.View {
-
-    override val emailProp = mutablePropertyOf("")
-    override val nameProp = mutablePropertyOf("")
-    override val surnameProp = mutablePropertyOf("")
-
-    override val buttonEnabledProp = mutablePropertyOf(false)
-    override val buttonTextProp = mutablePropertyOf("")
+class MainActivity : Activity() {
 
     private lateinit var presenter: MainPresenter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        presenter = MainPresenter((application as App).userProp)
+        val uiBridge = presenter.ui
 
         verticalLayout {
             padding = dip(16)
@@ -28,30 +23,30 @@ class MainActivity : Activity(), MainPresenter.View {
             editText {
                 id = 1
                 hint = "Email"
-                bindTextBidirectionally(emailProp)
-            }
-
-            editText {
-                id = 1
-                hint = "Name"
-                bindTextBidirectionally(nameProp)
+                bindTextBidirectionally(uiBridge.emailProp)
             }
 
             editText {
                 id = 2
+                hint = "Name"
+                bindTextBidirectionally(uiBridge.nameProp)
+            }
+
+            editText {
+                id = 3
                 hint = "Surname"
-                bindTextBidirectionally(surnameProp)
+                bindTextBidirectionally(uiBridge.surnameProp)
             }
 
             button {
-                bindEnabledTo(buttonEnabledProp)
-                bindTextTo(buttonTextProp)
+                bindEnabledTo(uiBridge.buttonEnabledProp)
+                bindTextTo(uiBridge.buttonTextProp)
                 setOnClickListener { presenter.saveButtonClicked() }
             }
 
         }
 
-        presenter = MainPresenter(this, (application as App).userProp)
+        presenter.viewCreated()
     }
 
 }
