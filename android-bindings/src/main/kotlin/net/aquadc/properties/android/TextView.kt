@@ -21,7 +21,7 @@ fun TextView.bindToText(textProperty: MutableProperty<String>) {
 }
 
 fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
-    textProperty.value = text.toString()
+    text = textProperty.value
     var mutatingFromWatcher = false
     var mutatingFromChangeListener = false
     addTextChangedListener(object : SimpleTextWatcher() {
