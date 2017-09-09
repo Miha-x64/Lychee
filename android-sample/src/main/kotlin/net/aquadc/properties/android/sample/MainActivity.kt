@@ -49,8 +49,6 @@ class MainActivity : Activity() {
             }
 
         }
-
-        presenter.viewCreated()
     }
 
 }

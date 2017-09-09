@@ -29,15 +29,13 @@ class MainPresenter(
         val usersEqualProp = listOf(userProp, ui.emailProp, ui.nameProp, ui.surnameProp)
                 .mapValueList { _ -> userProp.value.equals(editedUser) }
 
-        ui.buttonEnabledProp.bindTo(!usersEqualProp)
-        ui.buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
-    }
-
-    fun viewCreated() {
         val currentUser = userProp.value
         ui.emailProp.value = currentUser.email
         ui.nameProp.value = currentUser.name
         ui.surnameProp.value = currentUser.surname
+
+        ui.buttonEnabledProp.bindTo(!usersEqualProp)
+        ui.buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
     }
 
     fun saveButtonClicked() {
