@@ -1,2 +1,5 @@
 rootProject.name = 'reactive-properties'
 include ':properties', ':android-bindings', ':android-sample'
+include 'fx-sample'
+include 'logic-sample'
+

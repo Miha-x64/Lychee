@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.sample
+package net.aquadc.properties.sample.logic
 
 import net.aquadc.properties.Property
 import net.aquadc.properties.getValue
@@ -48,3 +48,9 @@ class OnScreenUser(
 
     fun snapshot() = InMemoryUser(email, name, surname)
 }
+
+val defaultUser = InMemoryUser(
+        email = "john@riseup.net",
+        name = "John",
+        surname = "Smith"
+)

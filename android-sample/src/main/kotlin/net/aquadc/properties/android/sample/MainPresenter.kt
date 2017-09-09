@@ -1,6 +1,8 @@
 package net.aquadc.properties.android.sample
 
 import net.aquadc.properties.*
+import net.aquadc.properties.sample.logic.InMemoryUser
+import net.aquadc.properties.sample.logic.OnScreenUser
 
 class MainPresenter(
         private val userProp: MutableProperty<InMemoryUser>

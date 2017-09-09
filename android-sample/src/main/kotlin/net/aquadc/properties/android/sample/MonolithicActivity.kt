@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import net.aquadc.properties.android.SimpleTextWatcher
+import net.aquadc.properties.sample.logic.InMemoryUser
 import org.jetbrains.anko.*
 
 class MonolithicActivity : Activity() {
@@ -58,22 +59,21 @@ class MonolithicActivity : Activity() {
     }
 
     private fun textChanged() {
-        val onScreen = InMemoryUser(
-                email = emailInput.text.toString(),
-                name = nameInput.text.toString(),
-                surname = surnameInput.text.toString())
-
-        val usersEqual = onScreen == app.userProp.value
+        val usersEqual = gatherUser() == app.userProp.value
 
         saveButton.isEnabled = !usersEqual
         saveButton.text = if (usersEqual) "Nothing changed" else "Save changes"
     }
 
     private fun saveButtonClicked() {
-        app.userProp.value =
-                InMemoryUser(emailInput.text.toString(), nameInput.text.toString(), surnameInput.text.toString())
+        app.userProp.value = gatherUser()
         textChanged()
     }
+
+    private fun gatherUser() = InMemoryUser(
+            email = emailInput.text.toString(),
+            name = nameInput.text.toString(),
+            surname = surnameInput.text.toString())
 
 }
 
