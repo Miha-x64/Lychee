@@ -5,6 +5,7 @@ import android.os.Bundle
 import net.aquadc.properties.android.bindEnabledTo
 import net.aquadc.properties.android.bindTextBidirectionally
 import net.aquadc.properties.android.bindTextTo
+import net.aquadc.properties.sample.logic.MainPresenter
 import org.jetbrains.anko.*
 
 class MainActivity : Activity() {

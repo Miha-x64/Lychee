@@ -1,7 +1,5 @@
 
 buildscript {
-    ext.kotlin_version = '1.2-M2'
-
     repositories {
         maven { url 'http://dl.bintray.com/kotlin/kotlin-eap-1.2' }
         mavenCentral()
@@ -21,6 +19,7 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
     compile 'com.jfoenix:jfoenix:1.4.0'
+    compile project(':fx-bindings')
     compile project(':logic-sample')
 }
 

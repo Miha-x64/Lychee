@@ -13,7 +13,7 @@ class FxNativeSample : Application() {
 
     override fun start(stage: Stage) {
         val presenter = Presenter(userProp)
-        stage.scene = Scene(view(presenter), 400.0, 300.0)
+        stage.scene = Scene(nativeView(presenter), 400.0, 300.0)
         stage.show()
     }
 
