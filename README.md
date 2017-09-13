@@ -58,10 +58,6 @@ class MainActivity : Activity() {
                 setOnClickListener { presenter.saveButtonClicked() }
             }
 
-            button("Show Monolithic Activity") {
-                setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
-            }
-
         }
     }
 
