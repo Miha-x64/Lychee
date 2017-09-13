@@ -86,7 +86,6 @@ fun viewWithOurProps(presenter: MainPresenter) = VBox(10.0).apply {
         textProperty().bindBidirectionally(uiBridge.surnameProp)
     })
     children.add(JFXButton("Press me, hey, you!").apply {
-        styleClass.add("button-raised")
         disableProperty().bindTo(!uiBridge.buttonEnabledProp)
         textProperty().bindTo(uiBridge.buttonTextProp)
         setOnAction { presenter.saveButtonClicked() }

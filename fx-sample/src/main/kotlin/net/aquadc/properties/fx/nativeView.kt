@@ -22,7 +22,6 @@ fun nativeView(presenter: Presenter) = VBox(10.0).apply {
         textProperty().bindBidirectional(presenter.surnameProp)
     })
     children.add(JFXButton("Press me, hey, you!").apply {
-        styleClass.add("button-raised")
         disableProperty().bind(!presenter.buttonEnabledProp)
         textProperty().bind(presenter.buttonTextProp)
         setOnAction { presenter.saveButtonClicked() }
