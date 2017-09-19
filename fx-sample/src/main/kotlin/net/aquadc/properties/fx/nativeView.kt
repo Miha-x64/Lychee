@@ -13,14 +13,17 @@ fun nativeView(presenter: Presenter) = VBox(10.0).apply {
         promptText = "Email"
         textProperty().bindBidirectional(presenter.emailProp)
     })
+
     children.add(JFXTextField().apply {
         promptText = "Name"
         textProperty().bindBidirectional(presenter.nameProp)
     })
+
     children.add(JFXTextField().apply {
         promptText = "Surname"
         textProperty().bindBidirectional(presenter.surnameProp)
     })
+
     children.add(JFXButton("Press me, hey, you!").apply {
         disableProperty().bind(!presenter.buttonEnabledProp)
         textProperty().bind(presenter.buttonTextProp)

@@ -7,7 +7,7 @@ import android.text.TextWatcher
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import net.aquadc.properties.android.SimpleTextWatcher
+import net.aquadc.properties.android.simple.SimpleTextWatcher
 import net.aquadc.properties.sample.logic.InMemoryUser
 import org.jetbrains.anko.*
 

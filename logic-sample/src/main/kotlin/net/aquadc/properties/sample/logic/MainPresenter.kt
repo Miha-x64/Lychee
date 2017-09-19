@@ -12,6 +12,7 @@ class MainPresenter(
         val nameProp = unsynchronizedMutablePropertyOf("")
         val surnameProp = unsynchronizedMutablePropertyOf("")
 
+        val emailValidProp = unsynchronizedMutablePropertyOf(false)
         val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)
         val buttonTextProp = unsynchronizedMutablePropertyOf("")
     }
@@ -32,7 +33,8 @@ class MainPresenter(
         ui.nameProp.value = currentUser.name
         ui.surnameProp.value = currentUser.surname
 
-        ui.buttonEnabledProp.bindTo(!usersEqualProp)
+        ui.emailValidProp.bindTo(ui.emailProp.map { it.contains("@") })
+        ui.buttonEnabledProp.bindTo(usersEqualProp.mapWith(ui.emailValidProp) { equal, valid -> !equal && valid })
         ui.buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
     }
 
