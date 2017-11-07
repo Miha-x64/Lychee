@@ -1,6 +1,9 @@
 # reactive-properties
 
 Lightweight properties implementation.
+
+[Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
+
 Sample:
 
 ```kt
