@@ -1,6 +1,10 @@
 rootProject.name = 'reactive-properties'
-include ':properties', ':android-bindings', ':android-sample'
-include 'fx-sample'
-include 'logic-sample'
-include 'fx-bindings'
+include ':properties'
+include ':logic-sample'
 
+include ':fx-sample'
+include ':fx-bindings'
+
+// comment out the following to disable Android modules and work normally with Java modules
+include ':android-bindings'
+include ':android-sample'

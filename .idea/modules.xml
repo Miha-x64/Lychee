@@ -4,11 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/android-bindings/android-bindings.iml" filepath="$PROJECT_DIR$/android-bindings/android-bindings.iml" />
       <module fileurl="file://$PROJECT_DIR$/android-sample/android-sample.iml" filepath="$PROJECT_DIR$/android-sample/android-sample.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/fx-bindings.iml" filepath="$PROJECT_DIR$/.idea/modules/fx-bindings.iml" />
-      <module fileurl="file://$PROJECT_DIR$/fx-sample/fx-sample.iml" filepath="$PROJECT_DIR$/fx-sample/fx-sample.iml" />
-      <module fileurl="file://$PROJECT_DIR$/logic-sample/logic-sample.iml" filepath="$PROJECT_DIR$/logic-sample/logic-sample.iml" />
-      <module fileurl="file://$PROJECT_DIR$/properties/properties.iml" filepath="$PROJECT_DIR$/properties/properties.iml" />
-      <module fileurl="file://$PROJECT_DIR$/reactive-properties.iml" filepath="$PROJECT_DIR$/reactive-properties.iml" />
     </modules>
   </component>
 </project>
