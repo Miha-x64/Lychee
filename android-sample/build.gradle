@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.getkeepsafe.dexcount'
 
 android {
     compileSdkVersion 25
@@ -17,7 +18,7 @@ android {
     }
     buildTypes {
         debug {
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles 'proguard-rules.pro'
         }
     }
@@ -45,4 +46,6 @@ dependencies {
     implementation 'org.jetbrains.anko:anko-sdk21:0.10.1'
     implementation project(':android-bindings')
     implementation project(':logic-sample')
+
+    implementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
 }

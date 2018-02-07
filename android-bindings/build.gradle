@@ -6,7 +6,7 @@ android {
     buildToolsVersion '27.0.2'
 
     defaultConfig {
-        minSdkVersion 9
+        minSdkVersion 12 // View.OnAttachStateChangeListener is since 12
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"

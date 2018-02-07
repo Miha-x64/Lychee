@@ -2,13 +2,14 @@ package net.aquadc.properties.android.sample
 
 import android.app.Activity
 import android.os.Bundle
-import net.aquadc.properties.android.bindEnabledTo
-import net.aquadc.properties.android.bindErrorMessageTo
-import net.aquadc.properties.android.bindTextBidirectionally
-import net.aquadc.properties.android.bindTextTo
+import net.aquadc.properties.android.bindings.bindEnabledTo
+import net.aquadc.properties.android.bindings.bindErrorMessageTo
+import net.aquadc.properties.android.bindings.bindTextBidirectionally
+import net.aquadc.properties.android.bindings.bindTextTo
 import net.aquadc.properties.map
 import net.aquadc.properties.sample.logic.MainPresenter
 import org.jetbrains.anko.*
+
 
 class MainActivity : Activity() {
 
