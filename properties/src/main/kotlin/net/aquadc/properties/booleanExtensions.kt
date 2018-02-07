@@ -17,13 +17,13 @@ inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolea
 
 inline fun MutableProperty<Boolean>.set() { value = true }
 
-inline fun MutableProperty<Boolean>.reset() { value = false }
+inline fun MutableProperty<Boolean>.clear() { value = false }
 
 /**
  * Every time property becomes set (`true`),
  * it will be unset (`false`) and [action] will be performed.
  */
-inline fun MutableProperty<Boolean>.takeEachAnd(crossinline action: () -> Unit) =
+inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit) =
         addChangeListener { wasSet, isSet ->
             if (!wasSet && isSet) {
                 value = false
