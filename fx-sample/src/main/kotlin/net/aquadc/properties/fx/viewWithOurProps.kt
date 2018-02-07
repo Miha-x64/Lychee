@@ -6,38 +6,36 @@ import javafx.geometry.Insets
 import javafx.scene.control.Label
 import javafx.scene.layout.VBox
 import net.aquadc.properties.not
-import net.aquadc.properties.sample.logic.MainPresenter
+import net.aquadc.properties.sample.logic.MainVm
 
-fun viewWithOurProps(presenter: MainPresenter) = VBox(10.0).apply {
+fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
 
     padding = Insets(10.0, 10.0, 10.0, 10.0)
 
-    val uiBridge = presenter.ui
-
     children.add(JFXTextField().apply {
         promptText = "Email"
-        textProperty().bindBidirectionally(uiBridge.emailProp)
+        textProperty().bindBidirectionally(vm.emailProp)
     })
 
     children.add(Label().apply {
         text = "E-mail is invalid"
-        bindVisibilityHardlyTo(!uiBridge.emailValidProp)
+        bindVisibilityHardlyTo(!vm.emailValidProp)
     })
 
     children.add(JFXTextField().apply {
         promptText = "Name"
-        textProperty().bindBidirectionally(uiBridge.nameProp)
+        textProperty().bindBidirectionally(vm.nameProp)
     })
 
     children.add(JFXTextField().apply {
         promptText = "Surname"
-        textProperty().bindBidirectionally(uiBridge.surnameProp)
+        textProperty().bindBidirectionally(vm.surnameProp)
     })
 
     children.add(JFXButton("Press me, hey, you!").apply {
-        disableProperty().bindTo(!uiBridge.buttonEnabledProp)
-        textProperty().bindTo(uiBridge.buttonTextProp)
-        setOnAction { presenter.saveButtonClicked() }
+        disableProperty().bindTo(!vm.buttonEnabledProp)
+        textProperty().bindTo(vm.buttonTextProp)
+        setOnAction { vm.saveButtonClicked() }
     })
 
 }
