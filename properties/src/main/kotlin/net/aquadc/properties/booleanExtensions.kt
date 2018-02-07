@@ -3,7 +3,7 @@ package net.aquadc.properties
 
 
 inline operator fun Property<Boolean>.not() =
-        map { !it }
+        map(Not)
 
 inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolean> =
         mapWith(that, And)
@@ -19,9 +19,24 @@ inline fun MutableProperty<Boolean>.set() { value = true }
 
 inline fun MutableProperty<Boolean>.reset() { value = false }
 
+/**
+ * Every time property becomes set (`true`),
+ * it will be unset (`false`) and [action] will be performed.
+ */
+inline fun MutableProperty<Boolean>.takeEachAnd(crossinline action: () -> Unit) =
+        addChangeListener { wasSet, isSet ->
+            if (!wasSet && isSet) {
+                value = false
+                action()
+            }
+        }
+
 
 // if we'd just use lambdas, they'd be copied into call-site
 
+@PublishedApi internal object Not : (Boolean) -> Boolean {
+    override fun invoke(p1: Boolean): Boolean = !p1
+}
 @PublishedApi internal object And : (Boolean, Boolean) -> Boolean {
     override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 && p2
 }
