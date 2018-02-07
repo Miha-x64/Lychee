@@ -2,6 +2,11 @@ package net.aquadc.properties.sample.logic
 
 import net.aquadc.properties.*
 
+/**
+ * This ViewModel can be used both in Android and on JVM.
+ * In ansroid-sample it is used in Android Activity,
+ * and in fx-sample it is in JavaFX view.
+ */
 class MainVm(
         private val userProp: MutableProperty<InMemoryUser>
 ) {
@@ -29,10 +34,8 @@ class MainVm(
         emailValidProp.bindTo(emailProp.map { it.contains("@") })
         buttonEnabledProp.bindTo(usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid })
         buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
-    }
 
-    fun saveButtonClicked() {
-        userProp.value = editedUser.snapshot()
+        buttonClickedProp.takeEachAnd { userProp.value = editedUser.snapshot() }
     }
 
 }

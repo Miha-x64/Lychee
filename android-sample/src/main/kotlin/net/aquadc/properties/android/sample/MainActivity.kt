@@ -2,15 +2,14 @@ package net.aquadc.properties.android.sample
 
 import android.app.Activity
 import android.os.Bundle
-import net.aquadc.properties.android.bindings.bindEnabledTo
-import net.aquadc.properties.android.bindings.bindErrorMessageTo
-import net.aquadc.properties.android.bindings.bindTextBidirectionally
-import net.aquadc.properties.android.bindings.bindTextTo
+import net.aquadc.properties.android.bindings.*
 import net.aquadc.properties.map
 import net.aquadc.properties.sample.logic.MainVm
 import org.jetbrains.anko.*
 
-
+/**
+ * Sample MVVm view for Android.
+ */
 class MainActivity : Activity() {
 
     private lateinit var vm: MainVm
@@ -45,7 +44,7 @@ class MainActivity : Activity() {
             button {
                 bindEnabledTo(vm.buttonEnabledProp)
                 bindTextTo(vm.buttonTextProp)
-                setOnClickListener { vm.saveButtonClicked() }
+                setWhenClicked(vm.buttonClickedProp)
             }
 
             view().lparams(weight = 1f)
