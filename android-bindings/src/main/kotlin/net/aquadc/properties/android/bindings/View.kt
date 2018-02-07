@@ -4,6 +4,7 @@ import android.annotation.TargetApi
 import android.view.View
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.set
 
 
 fun View.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>) =
@@ -18,6 +19,10 @@ fun View.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>) =
 
 fun View.bindEnabledTo(enabledProperty: Property<Boolean>) =
         bindViewTo(enabledProperty, ::setEnabled)
+
+
+fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>) =
+        setOnClickListener { clickedProperty.set() }
 
 @TargetApi(19)
 fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean>) {
