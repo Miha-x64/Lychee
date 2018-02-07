@@ -1,6 +1,6 @@
 # reactive-properties
 
-Lightweight properties implementation.
+Lightweight properties (subjects) implementation.
 
 [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
 
@@ -24,44 +24,38 @@ assertEquals(false, (!tru).value)
 Anko layout for Android:
 
 ```kt
-class MainActivity : Activity() {
+verticalLayout {
+    padding = dip(16)
 
-    private lateinit var presenter: MainPresenter
+    editText {
+        id = 1
+        hint = "Email"
+        bindTextBidirectionally(vm.emailProp)
+        bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
+    }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    editText {
+        id = 2
+        hint = "Name"
+        bindTextBidirectionally(vm.nameProp)
+    }
 
-        presenter = MainPresenter(app.userProp)
-        val uiBridge = presenter.ui
+    editText {
+        id = 3
+        hint = "Surname"
+        bindTextBidirectionally(vm.surnameProp)
+    }
 
-        verticalLayout {
-            padding = dip(16)
+    button {
+        bindEnabledTo(vm.buttonEnabledProp)
+        bindTextTo(vm.buttonTextProp)
+        setWhenClicked(vm.buttonClickedProp)
+    }
 
-            editText {
-                id = 1
-                hint = "Email"
-                bindTextBidirectionally(uiBridge.emailProp)
-            }
+    view().lparams(weight = 1f)
 
-            editText {
-                id = 2
-                hint = "Name"
-                bindTextBidirectionally(uiBridge.nameProp)
-            }
-
-            editText {
-                id = 3
-                hint = "Surname"
-                bindTextBidirectionally(uiBridge.surnameProp)
-            }
-
-            button {
-                bindEnabledTo(uiBridge.buttonEnabledProp)
-                bindTextTo(uiBridge.buttonTextProp)
-                setOnClickListener { presenter.saveButtonClicked() }
-            }
-
-        }
+    button("Show Monolithic Activity") {
+        setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
     }
 
 }
@@ -70,72 +64,59 @@ class MainActivity : Activity() {
 JavaFx layout (using JFoenix):
 
 ```kt
-fun viewWithOurProps(presenter: MainPresenter) = VBox(10.0).apply {
+children.add(JFXTextField().apply {
+    promptText = "Email"
+    textProperty().bindBidirectionally(vm.emailProp)
+})
 
-    padding = Insets(10.0, 10.0, 10.0, 10.0)
+children.add(Label().apply {
+    text = "E-mail is invalid"
+    bindVisibilityHardlyTo(!vm.emailValidProp)
+})
 
-    val uiBridge = presenter.ui
+children.add(JFXTextField().apply {
+    promptText = "Name"
+    textProperty().bindBidirectionally(vm.nameProp)
+})
 
-    children.add(JFXTextField().apply {
-        promptText = "Email"
-        textProperty().bindBidirectionally(uiBridge.emailProp)
-    })
-    children.add(JFXTextField().apply {
-        promptText = "Name"
-        textProperty().bindBidirectionally(uiBridge.nameProp)
-    })
-    children.add(JFXTextField().apply {
-        promptText = "Surname"
-        textProperty().bindBidirectionally(uiBridge.surnameProp)
-    })
-    children.add(JFXButton("Press me, hey, you!").apply {
-        disableProperty().bindTo(!uiBridge.buttonEnabledProp)
-        textProperty().bindTo(uiBridge.buttonTextProp)
-        setOnAction { presenter.saveButtonClicked() }
-    })
+children.add(JFXTextField().apply {
+    promptText = "Surname"
+    textProperty().bindBidirectionally(vm.surnameProp)
+})
 
-}
+children.add(JFXButton("Press me, hey, you!").apply {
+    disableProperty().bindTo(!vm.buttonEnabledProp)
+    textProperty().bindTo(vm.buttonTextProp)
+    setOnAction { vm.buttonClickedProp.set() }
+})
 ```
 
-Common presenter:
+Common ViewModel:
 
 ```kt
-class MainPresenter(
-        private val userProp: MutableProperty<InMemoryUser>
-) {
+val emailProp = unsynchronizedMutablePropertyOf(userProp.value.email)
+val nameProp = unsynchronizedMutablePropertyOf(userProp.value.name)
+val surnameProp = unsynchronizedMutablePropertyOf(userProp.value.surname)
+val buttonClickedProp = unsynchronizedMutablePropertyOf(false)
 
-    class Ui {
-        val emailProp = unsynchronizedMutablePropertyOf("")
-        val nameProp = unsynchronizedMutablePropertyOf("")
-        val surnameProp = unsynchronizedMutablePropertyOf("")
+val emailValidProp = unsynchronizedMutablePropertyOf(false)
+val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)
+val buttonTextProp = unsynchronizedMutablePropertyOf("")
 
-        val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)
-        val buttonTextProp = unsynchronizedMutablePropertyOf("")
-    }
+private val editedUser = OnScreenUser(
+        emailProp = emailProp,
+        nameProp = nameProp,
+        surnameProp = surnameProp
+)
 
-    val ui = Ui()
+init {
+    val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
+            .mapValueList { _ -> userProp.value.equals(editedUser) }
 
-    private val editedUser = OnScreenUser(
-            emailProp = ui.emailProp,
-            nameProp = ui.nameProp,
-            surnameProp = ui.surnameProp)
+    emailValidProp.bindTo(emailProp.map { it.contains("@") })
+    buttonEnabledProp.bindTo(usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid })
+    buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
 
-    init {
-        val usersEqualProp = listOf(userProp, ui.emailProp, ui.nameProp, ui.surnameProp)
-                .mapValueList { _ -> userProp.value.equals(editedUser) }
-
-        val currentUser = userProp.value
-        ui.emailProp.value = currentUser.email
-        ui.nameProp.value = currentUser.name
-        ui.surnameProp.value = currentUser.surname
-
-        ui.buttonEnabledProp.bindTo(!usersEqualProp)
-        ui.buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
-    }
-
-    fun saveButtonClicked() {
-        userProp.value = editedUser.snapshot()
-    }
-
+    buttonClickedProp.takeEachAnd { userProp.value = editedUser.snapshot() }
 }
 ```
