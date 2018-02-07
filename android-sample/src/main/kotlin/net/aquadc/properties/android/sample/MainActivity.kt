@@ -7,19 +7,18 @@ import net.aquadc.properties.android.bindings.bindErrorMessageTo
 import net.aquadc.properties.android.bindings.bindTextBidirectionally
 import net.aquadc.properties.android.bindings.bindTextTo
 import net.aquadc.properties.map
-import net.aquadc.properties.sample.logic.MainPresenter
+import net.aquadc.properties.sample.logic.MainVm
 import org.jetbrains.anko.*
 
 
 class MainActivity : Activity() {
 
-    private lateinit var presenter: MainPresenter
+    private lateinit var vm: MainVm
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        presenter = MainPresenter(app.userProp)
-        val uiBridge = presenter.ui
+        vm = MainVm(app.userProp)
 
         verticalLayout {
             padding = dip(16)
@@ -27,26 +26,26 @@ class MainActivity : Activity() {
             editText {
                 id = 1
                 hint = "Email"
-                bindTextBidirectionally(uiBridge.emailProp)
-                bindErrorMessageTo(uiBridge.emailValidProp.map { if (it) null else "E-mail is invalid" })
+                bindTextBidirectionally(vm.emailProp)
+                bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
             }
 
             editText {
                 id = 2
                 hint = "Name"
-                bindTextBidirectionally(uiBridge.nameProp)
+                bindTextBidirectionally(vm.nameProp)
             }
 
             editText {
                 id = 3
                 hint = "Surname"
-                bindTextBidirectionally(uiBridge.surnameProp)
+                bindTextBidirectionally(vm.surnameProp)
             }
 
             button {
-                bindEnabledTo(uiBridge.buttonEnabledProp)
-                bindTextTo(uiBridge.buttonTextProp)
-                setOnClickListener { presenter.saveButtonClicked() }
+                bindEnabledTo(vm.buttonEnabledProp)
+                bindTextTo(vm.buttonTextProp)
+                setOnClickListener { vm.saveButtonClicked() }
             }
 
             view().lparams(weight = 1f)
