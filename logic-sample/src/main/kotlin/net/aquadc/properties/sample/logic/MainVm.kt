@@ -1,21 +1,30 @@
 package net.aquadc.properties.sample.logic
 
 import net.aquadc.properties.*
+import net.aquadc.properties.persistence.PersistableProperties
+import net.aquadc.properties.persistence.PropertyIo
+import net.aquadc.properties.persistence.x
 
 /**
  * This ViewModel can be used both in Android and on JVM.
- * In ansroid-sample it is used in Android Activity,
+ * In android-sample it is used in Android Activity,
  * and in fx-sample it is in JavaFX view.
  */
 class MainVm(
         private val userProp: MutableProperty<InMemoryUser>
-) {
+) : PersistableProperties {
 
     // todo: find a shorter way to create single-threaded properties
     val emailProp = unsynchronizedMutablePropertyOf(userProp.value.email)
     val nameProp = unsynchronizedMutablePropertyOf(userProp.value.name)
     val surnameProp = unsynchronizedMutablePropertyOf(userProp.value.surname)
     val buttonClickedProp = unsynchronizedMutablePropertyOf(false)
+
+    override fun saveOrRestore(d: PropertyIo) {
+        d x emailProp
+        d x nameProp
+        d x surnameProp
+    }
 
     val emailValidProp = unsynchronizedMutablePropertyOf(false)
     val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)

@@ -2,6 +2,7 @@ package net.aquadc.properties.android.sample
 
 import android.app.Activity
 import android.os.Bundle
+import net.aquadc.properties.android.ParcelPropertiesMemento
 import net.aquadc.properties.android.bindings.*
 import net.aquadc.properties.map
 import net.aquadc.properties.sample.logic.MainVm
@@ -17,26 +18,27 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        vm = MainVm(app.userProp)
+        // create or restore ViewModel
+        vm = (lastNonConfigurationInstance as MainVm?) ?: MainVm(app.userProp)
+
+        // restore ViewModel's state in case of process death
+        savedInstanceState?.getParcelable<ParcelPropertiesMemento>("vm")?.restoreTo(vm)
 
         verticalLayout {
             padding = dip(16)
 
             editText {
-                id = 1
                 hint = "Email"
                 bindTextBidirectionally(vm.emailProp)
                 bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
             }
 
             editText {
-                id = 2
                 hint = "Name"
                 bindTextBidirectionally(vm.nameProp)
             }
 
             editText {
-                id = 3
                 hint = "Surname"
                 bindTextBidirectionally(vm.surnameProp)
             }
@@ -55,5 +57,12 @@ class MainActivity : Activity() {
 
         }
     }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable("vm", ParcelPropertiesMemento(vm))
+    }
+
+    override fun onRetainNonConfigurationInstance(): Any? = vm
 
 }
