@@ -3,41 +3,44 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+
 
 class ConcurrentMutableReferenceProperty<T>(
         value: T
 ) : MutableProperty<T> {
 
-    private val valueReference = AtomicReference<T>(value)
+    @Volatile @Suppress("UNUSED")
+    private var valueRef: T = value
     override var value: T
         get() {
-            val sample = sample.get()
-            return if (sample == null) valueReference.get() else sample.value
+            val sample = sampleUpdater<T>().get(this)
+            return if (sample == null) valueUpdater<T>().get(this) else sample.value
         }
         set(new) {
-            val old: T = valueReference.getAndSet(new)
+            val old: T = valueUpdater<T>().getAndSet(this, new)
 
             // if bound, unbind
-            val oldSample = sample.getAndSet(null)
+            val oldSample = sampleUpdater<T>().getAndSet(this, null)
             oldSample?.removeChangeListener(onChangeInternal)
 
             onChangeInternal(old, new)
         }
 
-    private val sample = AtomicReference<Property<T>?>(null)
+    @Volatile @Suppress("UNUSED")
+    private var sample: Property<T>? = null
 
     override val mayChange: Boolean get() = true
     override val isConcurrent: Boolean get() = true
 
     override fun bindTo(sample: Property<T>) {
         val newSample = if (sample.mayChange) sample else null
-        val oldSample = this.sample.getAndSet(newSample)
+        val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
         oldSample?.removeChangeListener(onChangeInternal)
         newSample?.addChangeListener(onChangeInternal)
 
         val new = sample.value
-        val old = valueReference.getAndSet(new)
+        val old = valueUpdater<T>().getAndSet(this, new)
         onChangeInternal(old, new)
     }
 
@@ -56,6 +59,19 @@ class ConcurrentMutableReferenceProperty<T>(
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.remove(onChange)
+    }
+
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
+    private companion object {
+        val ValueUpdater: AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<*>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcurrentMutableReferenceProperty::class.java, Any::class.java, "valueRef")
+        val SampleUpdater: AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<*>, Property<*>?> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcurrentMutableReferenceProperty::class.java, Property::class.java, "sample")
+
+        inline fun <T> valueUpdater() =
+                ValueUpdater as AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<T>, T>
+        inline fun <T> sampleUpdater() =
+                SampleUpdater as AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<T>, Property<T>>
     }
 
 }
