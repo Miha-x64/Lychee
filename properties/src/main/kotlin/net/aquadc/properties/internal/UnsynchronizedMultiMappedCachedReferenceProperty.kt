@@ -2,7 +2,8 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 
-class UnsynchronizedMultiMappedCachedReferenceProperty<A, out T>(
+
+class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
 ): Property<T> {

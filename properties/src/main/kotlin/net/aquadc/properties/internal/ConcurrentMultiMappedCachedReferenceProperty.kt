@@ -2,9 +2,10 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
-class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
+
+class ConcurrentMultiMappedCachedReferenceProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
 ): Property<T> {
@@ -12,8 +13,8 @@ class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
     override val mayChange: Boolean get() = true
     override val isConcurrent: Boolean get() = true
 
-    // hm... I could use Array instead of List here for performance reasons
-    private val valueReference: AtomicReference<Pair<List<A>, T>>
+    @Volatile @Suppress("UNUSED")
+    private var valueRef: Pair<List<A>, T>
     init {
         properties.forEachIndexed { i, prop ->
             if (prop.mayChange) {
@@ -22,10 +23,11 @@ class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
         }
 
         val values = properties.map { it.value }
-        valueReference = AtomicReference(Pair(values, transform(values)))
+        valueRef = values to transform(values)
     }
 
-    override val value: T get() = valueReference.get().second
+    override val value: T
+        get() = valueUpdater<A, T>().get(this).second
 
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
 
@@ -35,13 +37,13 @@ class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
 
 
         do {
-            old = valueReference.get()
+            old = valueUpdater<A, T>().get(this)
 
             val values = old.first
             val changed = values.mapIndexed { i, v -> if (i == index) value else v }
             val transformed = transform(changed)
             new = Pair(changed, transformed)
-        } while (!valueReference.compareAndSet(old, new))
+        } while (!valueUpdater<A, T>().compareAndSet(this, old, new))
 
         if (new.second !== old.second) {
             val ov = old.second
@@ -56,6 +58,15 @@ class ConcurrentMultiMappedCachedReferenceProperty<A, out T>(
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.remove(onChange)
+    }
+
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+    private companion object {
+        val ValueUpdater: AtomicReferenceFieldUpdater<ConcurrentMultiMappedCachedReferenceProperty<*, *>, Pair<*, *>> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcurrentMultiMappedCachedReferenceProperty::class.java, Pair::class.java, "valueRef")
+
+        inline fun <A, T> valueUpdater() =
+                ValueUpdater as AtomicReferenceFieldUpdater<ConcurrentMultiMappedCachedReferenceProperty<A, T>, Pair<List<A>, T>>
     }
 
 }

@@ -3,23 +3,24 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 
+
 class UnsynchronizedMutableReferenceProperty<T>(
         value: T
 ) : MutableProperty<T> {
 
     private val thread = Thread.currentThread()
 
-    var _value: T = value
+    var valueRef: T = value
     override var value: T
         get() {
             checkThread(thread)
             val sample = sample
-            return if (sample == null) _value else sample.value
+            return if (sample == null) valueRef else sample.value
         }
         set(new) {
             checkThread(thread)
-            val old = _value
-            _value = new
+            val old = valueRef
+            valueRef = new
 
             // if bound, unbind
             val oldSample = sample
@@ -49,9 +50,9 @@ class UnsynchronizedMutableReferenceProperty<T>(
         oldSample?.removeChangeListener(onChangeInternal)
         newSample?.addChangeListener(onChangeInternal)
 
-        val old = _value
+        val old = valueRef
         val new = sample.value
-        _value = new
+        valueRef = new
         onChangeInternal(old, new)
     }
 

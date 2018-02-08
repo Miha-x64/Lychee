@@ -131,4 +131,18 @@ class BulkTest {
         assertFalse(any.value)
     }
 
+    @Test fun concSubscription() = subscription(true)
+    @Test fun unsSubscription() = subscription(false)
+    private fun subscription(concurrent: Boolean) {
+        val prop0 = mutablePropertyOf(0, concurrent)
+        val prop1 = mutablePropertyOf(1, concurrent)
+        val prop2 = mutablePropertyOf(2, concurrent)
+        val sum = listOf(prop0, prop1, prop2).foldValues(0) { acc, value -> acc + value }
+
+        assertEquals(3, sum.value)
+
+        prop0.value = 10
+        assertEquals(13, sum.value)
+    }
+
 }
