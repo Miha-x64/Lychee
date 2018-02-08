@@ -2,9 +2,10 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
-class ConcurrentBiMappedCachedReferenceProperty<A, B, T>(
+
+internal class ConcurrentBiMappedCachedReferenceProperty<in A, in B, out T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
@@ -20,19 +21,21 @@ class ConcurrentBiMappedCachedReferenceProperty<A, B, T>(
     override val mayChange: Boolean get() = true
     override val isConcurrent: Boolean get() = true
 
-    private val valueReference = AtomicReference<T>(transform(a.value, b.value))
+    @Volatile @Suppress("UNUSED")
+    private var valueRef = transform(a.value, b.value)
     init {
         a.addChangeListener { _, new -> recalculate(new, b.value) }
         b.addChangeListener { _, new -> recalculate(a.value, new) }
     }
 
-    override val value: T get() = valueReference.get()
+    override val value: T
+        get() = valueUpdater<T>().get(this)
 
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
 
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
-        val old = valueReference.getAndSet(new) // WTF? Why I can call getAndSet with out variance?!
+        val old = valueUpdater<T>().getAndSet(this, new)
         if (new !== old) {
             listeners.forEach { it(old, new) }
         }
@@ -44,6 +47,15 @@ class ConcurrentBiMappedCachedReferenceProperty<A, B, T>(
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.remove(onChange)
+    }
+
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+    private companion object {
+        val ValueUpdater: AtomicReferenceFieldUpdater<ConcurrentBiMappedCachedReferenceProperty<*, *, *>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcurrentBiMappedCachedReferenceProperty::class.java, Any::class.java, "valueRef")
+
+        inline fun <T> valueUpdater() =
+                ValueUpdater as AtomicReferenceFieldUpdater<ConcurrentBiMappedCachedReferenceProperty<*, *, T>, T>
     }
 
 }

@@ -2,7 +2,8 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 
-class UnsynchronizedMappedReferenceProperty<O, out T>(
+
+class UnsynchronizedMappedReferenceProperty<in O, out T>(
         private val original: Property<O>,
         private val transform: (O) -> T
 ) : Property<T> {

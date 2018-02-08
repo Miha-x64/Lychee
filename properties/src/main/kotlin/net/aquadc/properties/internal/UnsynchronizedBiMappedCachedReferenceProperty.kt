@@ -2,7 +2,8 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 
-class UnsynchronizedBiMappedCachedReferenceProperty<A, B, T>(
+
+class UnsynchronizedBiMappedCachedReferenceProperty<in A, in B, out T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
@@ -27,12 +28,13 @@ class UnsynchronizedBiMappedCachedReferenceProperty<A, B, T>(
         return false
     }
 
-    override var value = transform(a.value, b.value)
+    override val value: T
         get() {
             checkThread(thread)
-            return field
+            return valueRef
         }
-        private set
+
+    private var valueRef: T = transform(a.value, b.value)
 
     init {
         a.addChangeListener { _, new -> recalculate(new, b.value) }
@@ -44,7 +46,7 @@ class UnsynchronizedBiMappedCachedReferenceProperty<A, B, T>(
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = value
-        value = new
+        valueRef = new
         if (new !== old) {
             listeners.forEach { it(old, new) }
         }
