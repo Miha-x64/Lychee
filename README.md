@@ -49,12 +49,6 @@ verticalLayout {
         setWhenClicked(vm.buttonClickedProp)
     }
 
-    view().lparams(weight = 1f)
-
-    button("Show Monolithic Activity") {
-        setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
-    }
-
 }
 ```
 
