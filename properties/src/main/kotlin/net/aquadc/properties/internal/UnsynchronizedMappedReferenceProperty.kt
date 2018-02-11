@@ -24,9 +24,7 @@ class UnsynchronizedMappedReferenceProperty<in O, out T>(
             val tOld = transform(old)
             val tNew = transform(new)
             valueRef = tNew
-            if (tOld !== tNew) {
-                listeners.notifyAll(transform(old), transform(new))
-            }
+            listeners.notifyAll(tOld, tNew)
         }
     }
 

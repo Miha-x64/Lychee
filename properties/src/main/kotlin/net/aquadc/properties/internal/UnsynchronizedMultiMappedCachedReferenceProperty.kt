@@ -46,11 +46,9 @@ class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
         val new = Pair(changed, transform(changed))
         _value = new
 
-        if (new.second !== old.second) {
-            val ov = old.second
-            val nv = new.second
-            listeners.notifyAll(old, new)
-        }
+        val ov = old.second
+        val nv = new.second
+        listeners.notifyAll(ov, nv)
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {

@@ -45,11 +45,9 @@ class ConcurrentMultiMappedCachedReferenceProperty<in A, out T>(
             new = Pair(changed, transformed)
         } while (!valueUpdater<A, T>().compareAndSet(this, old, new))
 
-        if (new.second !== old.second) {
-            val ov = old.second
-            val nv = new.second
-            listeners.forEach { it(ov, nv) }
-        }
+        val ov = old.second
+        val nv = new.second
+        listeners.forEach { it(ov, nv) }
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {

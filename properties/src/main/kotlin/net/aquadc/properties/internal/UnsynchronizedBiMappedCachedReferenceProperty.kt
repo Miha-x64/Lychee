@@ -47,9 +47,7 @@ class UnsynchronizedBiMappedCachedReferenceProperty<in A, in B, out T>(
         val new = transform(newA, newB)
         val old = value
         valueRef = new
-        if (new !== old) {
-            listeners.notifyAll(old, new)
-        }
+        listeners.notifyAll(old, new)
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
