@@ -40,3 +40,23 @@ dependencies {
     implementation project(':properties')
     provided "com.android.support:support-annotations:$support_version"
 }
+
+// https://stackoverflow.com/a/35431416
+task _deleteJar(type: Delete) {
+    delete 'libs/jars/flawless-library.jar'
+}
+
+task _createJar(type: Copy) {
+    from('build/intermediates/bundles/release/')
+    into('build/libs/')
+    include('classes.jar')
+    rename('classes.jar', 'android-bindings-library.jar')
+}
+
+_createJar.dependsOn(_deleteJar, build)
+
+// https://stackoverflow.com/a/28969412/3050249
+task _jarSources(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
