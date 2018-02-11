@@ -46,9 +46,7 @@ class ConcurrentMutableReferenceProperty<T>(
 
     private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
     private fun onChangeInternal(old: T, new: T) {
-        if (new !== old) {
-            listeners.forEach { it(old, new) }
-        }
+        listeners.forEach { it(old, new) }
     }
 
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()

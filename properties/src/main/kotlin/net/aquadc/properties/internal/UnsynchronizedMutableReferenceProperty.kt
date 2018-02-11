@@ -58,9 +58,7 @@ class UnsynchronizedMutableReferenceProperty<T>(
 
     private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
     private fun onChangeInternal(old: T, new: T) {
-        if (new !== old) {
-            listeners.notifyAll(old, new)
-        }
+        listeners.notifyAll(old, new)
     }
 
     private var listeners: Any? = null
