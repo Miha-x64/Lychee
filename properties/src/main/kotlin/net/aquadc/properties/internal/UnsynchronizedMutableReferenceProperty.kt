@@ -19,13 +19,15 @@ class UnsynchronizedMutableReferenceProperty<T>(
         }
         set(new) {
             checkThread(thread)
-            val old = valueRef
-            valueRef = new
 
             // if bound, unbind
             val oldSample = sample
             oldSample?.removeChangeListener(onChangeInternal)
             sample = null
+
+            // set value then
+            val old = valueRef
+            valueRef = new
 
             onChangeInternal(old, new)
         }
