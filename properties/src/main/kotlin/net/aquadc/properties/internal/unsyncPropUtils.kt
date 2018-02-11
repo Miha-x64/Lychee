@@ -16,27 +16,27 @@ internal fun checkThread(expected: Thread) {
  * throws an [AssertionError] otherwise.
  */
 @Suppress("UNCHECKED_CAST")
-internal fun <T> Any?.notifyAll(old: T, new: T) = when (this) {
-    null -> { /* no listeners, nothing to do */ }
-    is Function2<*, *, *> -> { (this as ChangeListener<T>)(old, new) }
-    is ArrayList<*> -> { (this as ArrayList<ChangeListener<T>>).forEach { it(old, new) } }
+internal fun <T> Any?.notifyAll(old: T, new: T) = when {
+    this === null -> { /* no listeners, nothing to do */ }
+    this is Function2<*, *, *> -> { (this as ChangeListener<T>)(old, new) }
+    this.isArrayList() -> { (this as ArrayList<ChangeListener<T>>).forEach { it(old, new) } }
     else -> throw AssertionError()
 }
 
 @Suppress("UNCHECKED_CAST")
-internal fun <T> Any?.plus(listener: ChangeListener<T>): Any = when (this) {
-    null -> listener
-    is Function2<*, *, *> -> ArrayList<ChangeListener<T>>(2).also { it.add(this as ChangeListener<T>); it.add(listener) }
-    isArrayList() -> (this as ArrayList<ChangeListener<T>>).apply { add(listener) }
+internal fun <T> Any?.plus(listener: ChangeListener<T>): Any = when {
+    this === null -> listener
+    this is Function2<*, *, *> -> ArrayList<ChangeListener<T>>(2).also { it.add(this as ChangeListener<T>); it.add(listener) }
+    this.isArrayList() -> (this as ArrayList<ChangeListener<T>>).apply { add(listener) }
     else -> throw AssertionError()
 }
 
 @Suppress("UNCHECKED_CAST")
-internal fun <T> Any?.minus(listener: ChangeListener<T>): Any? = when (this) {
-    null -> null
-    listener -> null
-    is Function2<*, *, *> -> this
-    isArrayList() -> (this as ArrayList<ChangeListener<T>>).apply { remove(listener) }
+internal fun <T> Any?.minus(listener: ChangeListener<T>): Any? = when {
+    this === null -> null
+    this === listener -> null
+    this is Function2<*, *, *> -> this
+    this.isArrayList() -> (this as ArrayList<ChangeListener<T>>).apply { remove(listener) }
     else -> throw AssertionError()
 }
 
