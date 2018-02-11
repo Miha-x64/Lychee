@@ -3,6 +3,7 @@ package net.aquadc.properties
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+
 class BindingTest {
 
     @Test fun concBinding() = binding(true)
@@ -55,6 +56,67 @@ class BindingTest {
 
         mutable.value = "hey"
         assertEquals("hey", mutable.value)
+    }
+
+    @Test fun testConcSub() {
+        val p = concurrentMutablePropertyOf("")
+        testUnsubscription(p, p)
+    }
+    @Test fun testConcMapSub() {
+        val p = concurrentMutablePropertyOf("")
+        testUnsubscription(p, p.map { "text: $it" })
+    }
+    @Test fun testConcBiMapSub() {
+        val p = concurrentMutablePropertyOf("")
+        testUnsubscription(p, p.mapWith(concurrentMutablePropertyOf("")) { a, b -> a + b })
+    }
+    @Test fun testConcMultiMapSub() {
+        val p = concurrentMutablePropertyOf("")
+        testUnsubscription(p,
+                listOf(p, concurrentMutablePropertyOf(""), concurrentMutablePropertyOf(""))
+                        .mapValueList { vals -> vals.joinToString() }
+        )
+    }
+    @Test fun testUnsSub() {
+        val p = unsynchronizedMutablePropertyOf("")
+        testUnsubscription(p, p)
+    }
+    @Test fun testUnsMapSub() {
+        val p = unsynchronizedMutablePropertyOf("")
+        testUnsubscription(p, p.map { "text: $it" })
+    }
+    @Test fun testUnsBiMapSub() {
+        val p = unsynchronizedMutablePropertyOf("")
+        testUnsubscription(p, p.mapWith(unsynchronizedMutablePropertyOf("")) { a, b -> a + b })
+    }
+    @Test fun testUnsMultiMapSub() {
+        val p = unsynchronizedMutablePropertyOf("")
+        testUnsubscription(p,
+                listOf(p, unsynchronizedMutablePropertyOf(""), unsynchronizedMutablePropertyOf(""))
+                        .mapValueList { vals -> vals.joinToString()}
+        )
+    }
+
+    private fun testUnsubscription(controller: MutableProperty<String>, controlled: Property<String>) {
+        var called = 0
+        val onChange1 = { _: Any?, _: Any? -> called++; Unit }
+        controlled.addChangeListener(onChange1)
+        controller.value = "change"
+        assertEquals(1, called)
+
+        val onChange2 = { _: Any?, _: Any? -> called++; Unit }
+        controlled.addChangeListener(onChange2)
+        controller.value = "cone more time"
+        assertEquals(3, called)
+
+        val onChange3 = object : (Any?, Any?) -> Unit {
+            override fun invoke(p1: Any?, p2: Any?) {
+                controlled.removeChangeListener(this)
+            }
+        }
+        controlled.addChangeListener(onChange3)
+        controller.value = "he-he"
+        assertEquals(5, called)
     }
 
 }
