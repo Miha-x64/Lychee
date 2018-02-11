@@ -4,7 +4,7 @@ import net.aquadc.properties.Property
 
 
 class UnsynchronizedMappedReferenceProperty<in O, out T>(
-        private val original: Property<O>,
+        original: Property<O>,
         private val transform: (O) -> T
 ) : Property<T> {
 
@@ -17,10 +17,13 @@ class UnsynchronizedMappedReferenceProperty<in O, out T>(
 
     private var listeners: Any? = null
 
+    private var valueRef: T = transform(original.value)
+
     init {
         original.addChangeListener { old, new ->
             val tOld = transform(old)
             val tNew = transform(new)
+            valueRef = tNew
             if (tOld !== tNew) {
                 listeners.notifyAll(transform(old), transform(new))
             }
@@ -29,7 +32,7 @@ class UnsynchronizedMappedReferenceProperty<in O, out T>(
 
     override val value: T get() {
         checkThread(thread)
-        return transform(original.value)
+        return valueRef
     }
 
     override val mayChange: Boolean get() {
