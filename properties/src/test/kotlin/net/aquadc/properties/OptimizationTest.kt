@@ -67,17 +67,32 @@ class OptimizationTest {
         assertTrue(joinedProp is UnsynchronizedMultiMappedCachedReferenceProperty<*, *>)
     }
 
-    /*@Test fun memoryStressTest() {
+    /*@Test fun concStressTest() {
         //  -Xmx10M
 
-        // AtomicReference,    JDK 1.8, 42 000, OOM: GC overhead limit exceeded
-        // AtomicReference,    JDK   9, 56 000, OOM: Java heap space
+        // AtomicReference,    JDK 1.8, 42k, OOM: GC overhead limit exceeded
+        // AtomicReference,    JDK   9, 56k, OOM: Java heap space
 
-        // AtomicFieldUpdater, JDK 1.8, 51 000, OOM: GC overhead limit exceeded
-        // AtomicFieldUpdater, JDK   9, 70 000, OOM: Java heap space
+        // AtomicFieldUpdater, JDK 1.8, 51k, OOM: GC overhead limit exceeded
+        // AtomicFieldUpdater, JDK   9, 70k, OOM: Java heap space
         val list = ArrayList<MutableProperty<Any?>>()
         while (true) {
             repeat(1_000) { list.add(concurrentMutablePropertyOf(null)) }
+            println(list.size)
+        }
+    }*/
+
+    /*@Test fun unsStressTest() {
+        //  -Xmx10M
+
+        // listeners: ArrayList,    JDK 1.8,  90k, OOM: GC overhead limit exceeded
+        // listeners: ArrayList,    JDK   9, 103k, OOM: Java heap space
+
+        // listeners: Any?,         JDK 1.8, 126k, OOM: GC overhead limit exceeded
+        // listeners: Any?,         JDK   9, 124k, OOM: Java heap space
+        val list = ArrayList<MutableProperty<Any?>>()
+        while (true) {
+            repeat(1_000) { list.add(unsynchronizedMutablePropertyOf(null)) }
             println(list.size)
         }
     }*/

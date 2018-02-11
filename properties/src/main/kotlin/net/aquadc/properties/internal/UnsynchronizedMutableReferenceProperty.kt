@@ -59,20 +59,20 @@ class UnsynchronizedMutableReferenceProperty<T>(
     private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
     private fun onChangeInternal(old: T, new: T) {
         if (new !== old) {
-            listeners.forEach { it(old, new) }
+            listeners.notifyAll(old, new)
         }
     }
 
-    private val listeners = ArrayList<(T, T) -> Unit>()
+    private var listeners: Any? = null
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.add(onChange)
+        listeners = listeners.plus(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.remove(onChange)
+        listeners = listeners.minus(onChange)
     }
 
 }

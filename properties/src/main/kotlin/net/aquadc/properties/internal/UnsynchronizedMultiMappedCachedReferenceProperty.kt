@@ -37,7 +37,7 @@ class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
         return _value.second
     }
 
-    private val listeners = ArrayList<(T, T) -> Unit>()
+    private var listeners: Any? = null
 
     private fun set(index: Int, value: A) {
         val old = _value
@@ -49,18 +49,18 @@ class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
         if (new.second !== old.second) {
             val ov = old.second
             val nv = new.second
-            listeners.forEach { it(ov, nv) }
+            listeners.notifyAll(old, new)
         }
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.add(onChange)
+        listeners = listeners.plus(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.remove(onChange)
+        listeners = listeners.minus(onChange)
     }
 
 }

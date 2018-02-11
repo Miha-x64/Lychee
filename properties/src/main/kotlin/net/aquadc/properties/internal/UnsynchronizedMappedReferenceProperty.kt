@@ -15,14 +15,14 @@ class UnsynchronizedMappedReferenceProperty<in O, out T>(
             throw IllegalArgumentException("immutable property $original should not be mapped")
     }
 
-    private val listeners = ArrayList<(T, T) -> Unit>()
+    private var listeners: Any? = null
 
     init {
         original.addChangeListener { old, new ->
             val tOld = transform(old)
             val tNew = transform(new)
             if (tOld !== tNew) {
-                listeners.forEach { it(transform(old), transform(new)) }
+                listeners.notifyAll(transform(old), transform(new))
             }
         }
     }
@@ -44,12 +44,12 @@ class UnsynchronizedMappedReferenceProperty<in O, out T>(
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.add(onChange)
+        listeners = listeners.plus(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.remove(onChange)
+        listeners = listeners.minus(onChange)
     }
 
 }

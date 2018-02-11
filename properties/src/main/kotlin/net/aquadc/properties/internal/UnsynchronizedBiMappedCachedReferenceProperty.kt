@@ -41,25 +41,25 @@ class UnsynchronizedBiMappedCachedReferenceProperty<in A, in B, out T>(
         b.addChangeListener { _, new -> recalculate(a.value, new) }
     }
 
-    private val listeners = ArrayList<(T, T) -> Unit>()
+    private var listeners: Any? = null
 
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = value
         valueRef = new
         if (new !== old) {
-            listeners.forEach { it(old, new) }
+            listeners.notifyAll(old, new)
         }
     }
 
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.add(onChange)
+        listeners = listeners.plus(onChange)
     }
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         checkThread(thread)
-        listeners.remove(onChange)
+        listeners = listeners.minus(onChange)
     }
 
 }
