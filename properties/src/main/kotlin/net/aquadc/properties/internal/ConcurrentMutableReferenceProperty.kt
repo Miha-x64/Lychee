@@ -12,17 +12,19 @@ class ConcurrentMutableReferenceProperty<T>(
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
+
     override var value: T
         get() {
             val sample = sampleUpdater<T>().get(this)
             return if (sample == null) valueUpdater<T>().get(this) else sample.value
         }
         set(new) {
-            val old: T = valueUpdater<T>().getAndSet(this, new)
-
             // if bound, unbind
             val oldSample = sampleUpdater<T>().getAndSet(this, null)
             oldSample?.removeChangeListener(onChangeInternal)
+
+            // update then
+            val old: T = valueUpdater<T>().getAndSet(this, new)
 
             onChangeInternal(old, new)
         }
