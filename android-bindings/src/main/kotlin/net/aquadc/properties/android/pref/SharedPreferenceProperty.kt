@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * Caveats:
  * * [SharedPreferences.OnSharedPreferenceChangeListener.onSharedPreferenceChanged] is being called on main thread
  * * when bound, there will be some lag between source value change and change notification
+ * * CAS is not a straight CAS, may be inaccurate a bit
  */
 class SharedPreferenceProperty<T>(
         private val prefs: SharedPreferences,
@@ -39,9 +40,7 @@ class SharedPreferenceProperty<T>(
     override var value: T
         get() = valueUpdater<T>().get(this)
         set(new) {
-            // if bound, unbind
-            val oldSample = sampleUpdater<T>().getAndSet(this, null)
-            oldSample?.removeChangeListener(sampleChanged)
+            dropBinding()
 
             // update then
             val ed = prefs.edit()
@@ -64,6 +63,21 @@ class SharedPreferenceProperty<T>(
         val ed = prefs.edit()
         adapter.save(ed, key, sample.value)
         ed.apply()
+    }
+
+    override fun cas(expect: T, update: T): Boolean {
+        dropBinding()
+        return if (valueRef === expect) {
+            value = update
+            true
+        } else {
+            false
+        }
+    }
+
+    private fun dropBinding() {
+        val oldSample = sampleUpdater<T>().getAndSet(this, null)
+        oldSample?.removeChangeListener(sampleChanged)
     }
 
     private val sampleChanged = { _: T, new: T ->

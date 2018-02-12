@@ -20,10 +20,7 @@ class UnsynchronizedMutableReferenceProperty<T>(
         set(new) {
             checkThread(thread)
 
-            // if bound, unbind
-            val oldSample = sample
-            oldSample?.removeChangeListener(onChangeInternal)
-            sample = null
+            dropBinding()
 
             // set value then
             val old = valueRef
@@ -56,6 +53,22 @@ class UnsynchronizedMutableReferenceProperty<T>(
         val new = sample.value
         valueRef = new
         onChangeInternal(old, new)
+    }
+
+    override fun cas(expect: T, update: T): Boolean {
+        dropBinding()
+        return if (valueRef === expect) {
+            onChangeInternal(expect, update)
+            true
+        } else {
+            false
+        }
+    }
+
+    private fun dropBinding() {
+        val oldSample = sample
+        oldSample?.removeChangeListener(onChangeInternal)
+        sample = null
     }
 
     private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal

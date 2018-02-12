@@ -34,3 +34,41 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
     b) if we add listener first, in (*) place value may change and we'll call func after that, in wrong order
      */
 }
+
+/**
+ * Inline copy of [java.util.concurrent.atomic.AtomicReference.getAndUpdate].
+ */
+inline fun <T> MutableProperty<T>.getAndUpdate(updater: (old: T) -> T): T {
+    var prev: T
+    var next: T
+    do {
+        prev = value
+        next = updater(prev)
+    } while (!cas(prev, next))
+    return prev
+}
+
+/**
+ * Inline copy of [java.util.concurrent.atomic.AtomicReference.updateAndGet].
+ */
+inline fun <T> MutableProperty<T>.updateAndGet(updater: (old: T) -> T): T {
+    var prev: T
+    var next: T
+    do {
+        prev = value
+        next = updater(prev)
+    } while (!cas(prev, next))
+    return next
+}
+
+/**
+ * Simplified version of [getAndUpdate] or [updateAndGet].
+ */
+inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
+    var prev: T
+    var next: T
+    do {
+        prev = value
+        next = updater(prev)
+    } while (!cas(prev, next))
+}
