@@ -1,10 +1,28 @@
+
 # reactive-properties
 
-Lightweight properties (subjects) implementation.
+Properties (subjects) inspired by JavaFX MVVM-like approach.
+* Lightweight
+* Contains both unsynchronized and concurrent implementations
+* MVVM / data-binding for Android and JavaFX
+* Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
+  and [TornadoFX](https://github.com/edvin/tornadofx)
+* Depends only on Kotlin-stdlib
+* [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
+   — problem statement, explanations
 
-[Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
+## Other solutions
 
-Sample:
+* [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT) — similar to this,
+  Observable-based, Android-only, depends on coroutines
+* [BennyWang/KBinding](https://github.com/BennyWang/KBinding) (no license) —
+  Android-only, based on annotation processing, depends on RXJava 1.3,
+* [LewisRhine/AnkoDataBindingTest](https://github.com/LewisRhine/AnkoDataBindingTest)
+   (no license) 
+   — simple solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
+   article, Android-only, depends on Anko and AppCompat
+
+## Sample
 
 ```kt
 val prop = concurrentMutablePropertyOf(1)
