@@ -65,6 +65,7 @@ verticalLayout {
         bindEnabledTo(vm.buttonEnabledProp)
         bindTextTo(vm.buttonTextProp)
         setWhenClicked(vm.buttonClickedProp)
+        // ^ set flag on action
     }
 
 }
@@ -127,5 +128,6 @@ init {
     buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
 
     buttonClickedProp.takeEachAnd { userProp.value = editedUser.snapshot() }
+    // ^ reset flag and perform action
 }
 ```
