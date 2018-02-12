@@ -19,11 +19,8 @@ class ConcurrentMutableReferenceProperty<T>(
             return if (sample == null) valueUpdater<T>().get(this) else sample.value
         }
         set(new) {
-            // if bound, unbind
-            val oldSample = sampleUpdater<T>().getAndSet(this, null)
-            oldSample?.removeChangeListener(onChangeInternal)
+            dropBinding()
 
-            // update then
             val old: T = valueUpdater<T>().getAndSet(this, new)
 
             onChangeInternal(old, new)
@@ -44,6 +41,21 @@ class ConcurrentMutableReferenceProperty<T>(
         val new = sample.value
         val old = valueUpdater<T>().getAndSet(this, new)
         onChangeInternal(old, new)
+    }
+
+    override fun cas(expect: T, update: T): Boolean {
+        dropBinding()
+        return if (valueUpdater<T>().compareAndSet(this, expect, update)) {
+            onChangeInternal(expect, update)
+            true
+        } else {
+            false
+        }
+    }
+
+    private fun dropBinding() {
+        val oldSample = sampleUpdater<T>().getAndSet(this, null)
+        oldSample?.removeChangeListener(onChangeInternal)
     }
 
     private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
