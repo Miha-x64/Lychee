@@ -58,6 +58,7 @@ class UnsynchronizedMutableReferenceProperty<T>(
     override fun cas(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueRef === expect) {
+            valueRef = update
             onChangeInternal(expect, update)
             true
         } else {
