@@ -16,10 +16,26 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
+
+    signingConfigs {
+        release {
+            storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+            storePassword 'android'
+        }
+    }
+
     buildTypes {
         debug {
             minifyEnabled false
+            shrinkResources false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
             proguardFiles 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 
@@ -47,5 +63,6 @@ dependencies {
     implementation project(':android-bindings')
     implementation project(':logic-sample')
 
-    implementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
 }

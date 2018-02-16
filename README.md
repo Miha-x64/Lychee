@@ -131,3 +131,24 @@ init {
     // ^ reset flag and perform action
 }
 ```
+
+## ProGuard
+
+```
+# using annotations with 'provided' scope
+-dontwarn android.support.annotation.**
+
+# design lib with 'provided' scope
+-dontwarn android.support.design.widget.**
+
+# safely checking for JavaFX which is not accessible on Android
+-dontwarn javafx.application.Platform
+
+# keep volatile field names for AtomicFieldUpdater
+-keepclassmembernames class net.aquadc.properties.internal.** {
+  volatile <fields>;
+}
+-keepclassmembernames class net.aquadc.properties.android.pref.SharedPreferenceProperty {
+  volatile <fields>;
+}
+```

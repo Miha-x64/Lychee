@@ -26,8 +26,23 @@
 }
 
 -keepclassmembers enum * {
-    public static **[] values();
-#    public static ** valueOf(java.lang.String);
+  public static **[] values();
+#  public static ** valueOf(java.lang.String);
 }
 
+# using annotations with 'provided' scope
 -dontwarn android.support.annotation.**
+
+# design lib with 'provided' scope
+-dontwarn android.support.design.widget.**
+
+# not a part of android-bindings, but helps :)
+-dontwarn javafx.application.Platform
+
+# keep volatile field names for AtomicFieldUpdater
+-keepclassmembernames class net.aquadc.properties.internal.** {
+  volatile <fields>;
+}
+-keepclassmembernames class net.aquadc.properties.android.pref.SharedPreferenceProperty {
+  volatile <fields>;
+}
