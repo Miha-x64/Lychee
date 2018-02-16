@@ -1,15 +1,15 @@
 package net.aquadc.properties
 
-import net.aquadc.properties.internal.ConcurrentMutableReferenceProperty
+import net.aquadc.properties.internal.ConcMutableProperty
 import net.aquadc.properties.internal.ImmutableReferenceProperty
 import net.aquadc.properties.internal.UnsMutableProperty
 
 fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
-        if (concurrent) ConcurrentMutableReferenceProperty(value)
+        if (concurrent) ConcMutableProperty(value)
         else UnsMutableProperty(value)
 
 fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
-        ConcurrentMutableReferenceProperty(value)
+        ConcMutableProperty(value)
 
 fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
         UnsMutableProperty(value)

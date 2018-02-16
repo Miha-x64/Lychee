@@ -5,13 +5,10 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
-class ConcurrentMultiMappedCachedReferenceProperty<in A, out T>(
+class ConcMultiMappedProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
-): Property<T> {
-
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
+) : BaseConcProperty<T>() {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: Pair<List<A>, T>
@@ -28,8 +25,6 @@ class ConcurrentMultiMappedCachedReferenceProperty<in A, out T>(
 
     override val value: T
         get() = valueUpdater<A, T>().get(this).second
-
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
 
     private fun set(index: Int, value: A) {
         var old: Pair<List<A>, T>
@@ -50,21 +45,21 @@ class ConcurrentMultiMappedCachedReferenceProperty<in A, out T>(
         listeners.forEach { it(ov, nv) }
     }
 
+    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.add(onChange)
     }
-
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.remove(onChange)
     }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
-        val ValueUpdater: AtomicReferenceFieldUpdater<ConcurrentMultiMappedCachedReferenceProperty<*, *>, Pair<*, *>> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcurrentMultiMappedCachedReferenceProperty::class.java, Pair::class.java, "valueRef")
+        val ValueUpdater: AtomicReferenceFieldUpdater<ConcMultiMappedProperty<*, *>, Pair<*, *>> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcMultiMappedProperty::class.java, Pair::class.java, "valueRef")
 
         inline fun <A, T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<ConcurrentMultiMappedCachedReferenceProperty<A, T>, Pair<List<A>, T>>
+                ValueUpdater as AtomicReferenceFieldUpdater<ConcMultiMappedProperty<A, T>, Pair<List<A>, T>>
     }
 
 }
