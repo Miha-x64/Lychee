@@ -5,10 +5,12 @@ import net.aquadc.properties.Property
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
-
-class ConcurrentMutableReferenceProperty<T>(
+/**
+ * Concurrent [MutableProperty] implementation.
+ */
+class ConcMutableProperty<T>(
         value: T
-) : MutableProperty<T> {
+) : BaseConcProperty<T>(), MutableProperty<T> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
@@ -28,9 +30,6 @@ class ConcurrentMutableReferenceProperty<T>(
 
     @Volatile @Suppress("UNUSED")
     private var sample: Property<T>? = null
-
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
 
     override fun bindTo(sample: Property<T>) {
         val newSample = if (sample.mayChange) sample else null
@@ -64,26 +63,24 @@ class ConcurrentMutableReferenceProperty<T>(
     }
 
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
-
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.add(onChange)
     }
-
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.remove(onChange)
     }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
-        val ValueUpdater: AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<*>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcurrentMutableReferenceProperty::class.java, Any::class.java, "valueRef")
-        val SampleUpdater: AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<*>, Property<*>?> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcurrentMutableReferenceProperty::class.java, Property::class.java, "sample")
+        val ValueUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Any::class.java, "valueRef")
+        val SampleUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Property<*>?> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Property::class.java, "sample")
 
         inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<T>, T>
+                ValueUpdater as AtomicReferenceFieldUpdater<ConcMutableProperty<T>, T>
         inline fun <T> sampleUpdater() =
-                SampleUpdater as AtomicReferenceFieldUpdater<ConcurrentMutableReferenceProperty<T>, Property<T>>
+                SampleUpdater as AtomicReferenceFieldUpdater<ConcMutableProperty<T>, Property<T>>
     }
 
 }

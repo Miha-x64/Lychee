@@ -13,11 +13,11 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * Notifies subscribers about changes with a delay,
  * swallowing useless updates.
  */
-class ConcurrentDebouncedProperty<out T>(
+class ConcDebouncedProperty<out T>(
         private val original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : Property<T> {
+) : BaseConcProperty<T>() {
 
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
@@ -46,12 +46,6 @@ class ConcurrentDebouncedProperty<out T>(
     override val value: T
         get() = original.value
 
-    override val mayChange: Boolean
-        get() = true
-
-    override val isConcurrent: Boolean
-        get() = true
-
     private val listeners = CopyOnWriteArrayList<Pair<Thread, ChangeListener<T>>>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         val thread = Thread.currentThread()
@@ -64,11 +58,11 @@ class ConcurrentDebouncedProperty<out T>(
 
     companion object {
         private val pendingUpdater =
-                AtomicReferenceFieldUpdater.newUpdater(ConcurrentDebouncedProperty::class.java, Pair::class.java, "pending")
+                AtomicReferenceFieldUpdater.newUpdater(ConcDebouncedProperty::class.java, Pair::class.java, "pending")
 
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         private inline fun <T> pendingUpdater() =
-                pendingUpdater as AtomicReferenceFieldUpdater<ConcurrentDebouncedProperty<T>, Pair<T, ScheduledFuture<*>>?>
+                pendingUpdater as AtomicReferenceFieldUpdater<ConcDebouncedProperty<T>, Pair<T, ScheduledFuture<*>>?>
 
         internal val scheduled = ScheduledThreadPoolExecutor(1, ThreadFactory { Thread(it).also { it.isDaemon = true } })
     }

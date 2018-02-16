@@ -53,6 +53,7 @@ class DebounceTest {
             uns.value = "e"
 
             Thread.sleep(10)
+            conc.value = "new"
             uns.value = "new"
         }
 

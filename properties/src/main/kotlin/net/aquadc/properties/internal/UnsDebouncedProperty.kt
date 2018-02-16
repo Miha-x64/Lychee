@@ -29,7 +29,7 @@ class UnsDebouncedProperty<out T>(
                 it.first
             }
 
-            pending = Pair(reallyOld, ConcurrentDebouncedProperty.scheduled.schedule({
+            pending = Pair(reallyOld, ConcDebouncedProperty.scheduled.schedule({
                 executor.execute {
                     listeners.notifyAll(reallyOld, new)
                 }
