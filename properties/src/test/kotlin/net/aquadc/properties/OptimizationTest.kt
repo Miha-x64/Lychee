@@ -19,7 +19,7 @@ class OptimizationTest {
             immutablePropMapWithReturnsMapped(true, ConcurrentMappedReferenceProperty::class.java)
 
     @Test fun unsImmutablePropMapWithReturnsMapped() =
-            immutablePropMapWithReturnsMapped(false, UnsynchronizedMappedReferenceProperty::class.java)
+            immutablePropMapWithReturnsMapped(false, UnsMappedProperty::class.java)
 
     private fun immutablePropMapWithReturnsMapped(concurrent: Boolean, mapsTo: Class<*>) {
         val prop0 = immutablePropertyOf("yo")
@@ -44,7 +44,7 @@ class OptimizationTest {
     }
 
     @Test fun concSimpleMap() = simpleMap(true, ConcurrentMappedReferenceProperty::class.java)
-    @Test fun unsSimpleMap() = simpleMap(false, UnsynchronizedMappedReferenceProperty::class.java)
+    @Test fun unsSimpleMap() = simpleMap(false, UnsMappedProperty::class.java)
     fun simpleMap(concurrent: Boolean, mapsTo: Class<*>) {
         val prop = mutablePropertyOf("hey", concurrent)
         val mapped = prop.map { "$it!" }
@@ -52,7 +52,7 @@ class OptimizationTest {
     }
 
     @Test fun concSimpleMapWith() = simpleMapWith(true, ConcurrentBiMappedCachedReferenceProperty::class.java)
-    @Test fun unsSimpleMapWith() = simpleMapWith(false, UnsynchronizedBiMappedCachedReferenceProperty::class.java)
+    @Test fun unsSimpleMapWith() = simpleMapWith(false, UnsBiMappedProperty::class.java)
     fun simpleMapWith(concurrent: Boolean, mapsTo: Class<*>) {
         val prop0 = mutablePropertyOf("hey", concurrent)
         val prop1 = mutablePropertyOf("hey", concurrent)
@@ -64,7 +64,7 @@ class OptimizationTest {
         val prop1 = concurrentMutablePropertyOf("yo")
         val joinedProp = listOf(prop0, prop1).mapValueList { it.joinToString(" ") }
         assertEquals("hey yo", joinedProp.value)
-        assertTrue(joinedProp is UnsynchronizedMultiMappedCachedReferenceProperty<*, *>)
+        assertTrue(joinedProp is UnsMultiMappedProperty<*, *>)
     }
 
     /*@Test fun concStressTest() {

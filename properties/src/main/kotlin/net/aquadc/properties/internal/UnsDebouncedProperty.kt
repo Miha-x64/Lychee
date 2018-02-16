@@ -8,14 +8,13 @@ import java.util.concurrent.TimeUnit
  * Notifies subscribers about changes with a delay,
  * swallowing useless updates.
  */
-class UnsyncDebouncedProperty<out T>(
+class UnsDebouncedProperty<out T>(
         private val original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : Property<T> {
+) : UnsListeners<T>() {
 
-    private val thread = Thread.currentThread()
-    private val executor = PlatformExecutors.executorForThread(thread)
+    private val executor = PlatformExecutors.executorForThread(Thread.currentThread())
     private var pending: Pair<T, ScheduledFuture<*>>? = null
 
     init {
@@ -40,28 +39,8 @@ class UnsyncDebouncedProperty<out T>(
 
     override val value: T
         get() {
-            checkThread(thread)
+            checkThread()
             return original.value
         }
-
-    override val mayChange: Boolean
-        get() {
-            checkThread(thread)
-            return true
-        }
-
-    override val isConcurrent: Boolean
-        get() {
-            checkThread(thread)
-            return false
-        }
-
-    private var listeners: Any? = null
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners = listeners.plus(onChange)
-    }
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners = listeners.minus(onChange)
-    }
 
 }

@@ -6,7 +6,7 @@ interface Property<out T> {
     val mayChange: Boolean
     val isConcurrent: Boolean
 
-    fun addChangeListener(onChange: (old: T, new: T) -> Unit)
-    fun removeChangeListener(onChange: (old: T, new: T) -> Unit)
+    fun addChangeListener(onChange: ChangeListener<T>)
+    fun removeChangeListener(onChange: ChangeListener<T>)
 
 }

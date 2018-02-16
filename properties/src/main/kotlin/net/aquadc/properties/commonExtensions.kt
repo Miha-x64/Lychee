@@ -4,7 +4,7 @@ package net.aquadc.properties
 import net.aquadc.properties.internal.ConcDistinctPropertyWrapper
 import net.aquadc.properties.internal.ConcurrentDebouncedProperty
 import net.aquadc.properties.internal.UnsDistinctPropertyWrapper
-import net.aquadc.properties.internal.UnsyncDebouncedProperty
+import net.aquadc.properties.internal.UnsDebouncedProperty
 import java.util.concurrent.TimeUnit
 
 inline fun <T> Property<T>.readOnlyView() = map { it }
@@ -47,7 +47,7 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
 fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit) = when {
     !mayChange -> this
     isConcurrent -> ConcurrentDebouncedProperty(this, delay, unit)
-    !isConcurrent -> UnsyncDebouncedProperty(this, delay, unit)
+    !isConcurrent -> UnsDebouncedProperty(this, delay, unit)
     else -> throw AssertionError()
 }
 
