@@ -3,21 +3,10 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.Property
 
 
-class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
+class UnsMultiMappedProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
-): Property<T> {
-
-    private val thread = Thread.currentThread()
-
-    override val mayChange: Boolean get() {
-        checkThread(thread)
-        return true
-    }
-    override val isConcurrent: Boolean get() {
-        checkThread(thread)
-        return false
-    }
+): UnsListeners<T>() {
 
     // hm... I could use Array instead of List here for performance reasons
     private var _value: Pair<List<A>, T>
@@ -33,11 +22,9 @@ class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
     }
 
     override val value: T get() {
-        checkThread(thread)
+        checkThread()
         return _value.second
     }
-
-    private var listeners: Any? = null
 
     private fun set(index: Int, value: A) {
         val old = _value
@@ -49,16 +36,6 @@ class UnsynchronizedMultiMappedCachedReferenceProperty<in A, out T>(
         val ov = old.second
         val nv = new.second
         listeners.notifyAll(ov, nv)
-    }
-
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        checkThread(thread)
-        listeners = listeners.plus(onChange)
-    }
-
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        checkThread(thread)
-        listeners = listeners.minus(onChange)
     }
 
 }
