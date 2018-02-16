@@ -49,6 +49,10 @@ class MainActivity : Activity() {
                 setWhenClicked(vm.buttonClickedProp)
             }
 
+            textView {
+                bindTextTo(vm.debouncedEmail)
+            }
+
             view().lparams(weight = 1f)
 
             button("Show Monolithic Activity") {

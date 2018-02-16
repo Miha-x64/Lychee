@@ -40,4 +40,8 @@ fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
         setOnAction { vm.buttonClickedProp.set() }
     })
 
+    children.add(Label().apply {
+        textProperty().bindTo(vm.debouncedEmail)
+    })
+
 }

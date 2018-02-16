@@ -4,6 +4,7 @@ import net.aquadc.properties.*
 import net.aquadc.properties.persistence.PersistableProperties
 import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.x
+import java.util.concurrent.TimeUnit
 
 /**
  * This ViewModel can be used both in Android and on JVM.
@@ -29,6 +30,7 @@ class MainVm(
     val emailValidProp = unsynchronizedMutablePropertyOf(false)
     val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)
     val buttonTextProp = unsynchronizedMutablePropertyOf("")
+    val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
     private val editedUser = OnScreenUser(
             emailProp = emailProp,
