@@ -2,7 +2,10 @@
 package net.aquadc.properties
 
 import net.aquadc.properties.internal.ConcDistinctPropertyWrapper
+import net.aquadc.properties.internal.ConcurrentDebouncedProperty
 import net.aquadc.properties.internal.UnsDistinctPropertyWrapper
+import net.aquadc.properties.internal.UnsyncDebouncedProperty
+import java.util.concurrent.TimeUnit
 
 inline fun <T> Property<T>.readOnlyView() = map { it }
 
@@ -33,6 +36,19 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
     a) if we call function first, in (*) place value may change and we won't see new one
     b) if we add listener first, in (*) place value may change and we'll call func after that, in wrong order
      */
+}
+
+/**
+ * Returns debounced wrapper around this property.
+ * Will work only on those threads which can accept tasks (currently JavaFX and Android Looper supported).
+ * Single-threaded debounced wrapper will throw exception when created on wrong thread.
+ * Concurrent debounced wrapper will throw exception when listener gets subscribed from wrong thread.
+ */
+fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit) = when {
+    !mayChange -> this
+    isConcurrent -> ConcurrentDebouncedProperty(this, delay, unit)
+    !isConcurrent -> UnsyncDebouncedProperty(this, delay, unit)
+    else -> throw AssertionError()
 }
 
 /**
