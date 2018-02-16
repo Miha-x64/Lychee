@@ -34,11 +34,23 @@ class ConcDebouncedProperty<out T>(
                     it.first
                 }
 
-                Pair(reallyOld, scheduled.schedule({
-                    listeners.forEach {
-                        PlatformExecutors.executorForThread(it.first).execute { it.second(reallyOld, new) }
-                    }
-                }, delay, unit))
+                Pair(reallyOld, scheduled.schedule(NotifyOnCorrectThread(listeners, reallyOld, new), delay, unit))
+            }
+        }
+    }
+
+    /**
+     * Why not a lambda? This class's private modifier helps ProGuard find out that outer is not used.
+     * Btw, this not helps much: if `debounced` used anywhere, outer will be kept.
+     */
+    private class NotifyOnCorrectThread<T>(
+            private val listeners: List<Pair<Thread, ChangeListener<T>>>,
+            private val old: T,
+            private val new: T
+    ) : Runnable {
+        override fun run() {
+            listeners.forEach {
+                PlatformExecutors.executorForThread(it.first).execute { it.second(old, new) }
             }
         }
     }
