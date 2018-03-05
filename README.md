@@ -1,4 +1,7 @@
 
+[![Build Status](https://travis-ci.org/Miha-x64/reactive-properties.svg?branch=master)](https://travis-ci.org/Miha-x64/reactive-properties)
+
+
 # reactive-properties
 
 Properties (subjects) inspired by JavaFX MVVM-like approach.
