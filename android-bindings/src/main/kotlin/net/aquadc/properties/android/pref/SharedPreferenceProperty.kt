@@ -37,16 +37,17 @@ class SharedPreferenceProperty<T>(
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = adapter.read(prefs, key, defaultValue)
 
-    override var value: T
-        get() = valueUpdater<T>().get(this)
-        set(new) {
-            dropBinding()
+    override fun getValue(): T =
+            valueUpdater<T>().get(this)
 
-            // update then
-            val ed = prefs.edit()
-            adapter.save(ed, key, new)
-            ed.apply()
-        }
+    override fun setValue(newValue: T) {
+        dropBinding()
+
+        // update then
+        val ed = prefs.edit()
+        adapter.save(ed, key, newValue)
+        ed.apply()
+    }
 
     @Volatile @Suppress("UNUSED")
     private var sample: Property<T>? = null
@@ -61,14 +62,14 @@ class SharedPreferenceProperty<T>(
         newSample?.addChangeListener(sampleChanged)
 
         val ed = prefs.edit()
-        adapter.save(ed, key, sample.value)
+        adapter.save(ed, key, sample.getValue())
         ed.apply()
     }
 
     override fun cas(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueRef === expect) {
-            value = update
+            setValue(update)
             true
         } else {
             false

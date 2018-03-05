@@ -21,8 +21,8 @@ class ConcDistinctPropertyWrapper<out T>(
         }
     }
 
-    override val value: T
-        get() = original.value
+    override fun getValue(): T =
+            original.getValue()
 
     private var listeners = CopyOnWriteArrayList<ChangeListener<T>>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {

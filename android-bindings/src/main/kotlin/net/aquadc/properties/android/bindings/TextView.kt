@@ -21,10 +21,10 @@ fun TextView.bindTextTo(textResProperty: Property<Int>) =
         bindViewTo(textResProperty, ::setText)
 
 fun TextView.bindToText(textProperty: MutableProperty<CharSequence>) {
-    textProperty.value = text.toString()
+    textProperty.setValue(text.toString())
     addTextChangedListener(object : SimpleTextWatcher() {
         override fun afterTextChanged(s: Editable) {
-            textProperty.value = SpannedString(s)
+            textProperty.setValue(SpannedString(s))
         }
     })
 }
@@ -37,7 +37,7 @@ fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
             mutatingFromWatcher = true
         }
         override fun afterTextChanged(s: Editable) {
-            if (!mutatingFromChangeListener) textProperty.value = s.toString()
+            if (!mutatingFromChangeListener) textProperty.setValue(s.toString())
             mutatingFromWatcher = false
         }
     })

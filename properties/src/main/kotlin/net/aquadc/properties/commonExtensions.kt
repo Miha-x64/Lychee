@@ -7,6 +7,13 @@ import net.aquadc.properties.internal.UnsDistinctPropertyWrapper
 import net.aquadc.properties.internal.UnsDebouncedProperty
 import java.util.concurrent.TimeUnit
 
+inline val <T> Property<T>.value
+    get() = this.getValue()
+
+/*inline*/ var <T> MutableProperty<T>.value
+    get() = this.getValue()
+    set(new) { this.setValue(new) }
+
 inline fun <T> Property<T>.readOnlyView() = map { it }
 
 inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) = when {

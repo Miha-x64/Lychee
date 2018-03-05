@@ -55,8 +55,8 @@ class ConcDebouncedProperty<out T>(
         }
     }
 
-    override val value: T
-        get() = original.value
+    override fun getValue(): T =
+            original.getValue()
 
     private val listeners = CopyOnWriteArrayList<Pair<Thread, ChangeListener<T>>>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {

@@ -2,7 +2,7 @@ package net.aquadc.properties
 
 interface Property<out T> {
 
-    val value: T
+    fun getValue(): T
     val mayChange: Boolean
     val isConcurrent: Boolean
 

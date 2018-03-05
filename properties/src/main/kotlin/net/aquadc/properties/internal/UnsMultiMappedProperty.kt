@@ -17,11 +17,11 @@ class UnsMultiMappedProperty<in A, out T>(
             }
         }
 
-        val values = properties.map { it.value }
+        val values = properties.map(Property<A>::getValue)
         _value = Pair(values, transform(values))
     }
 
-    override val value: T get() {
+    override fun getValue(): T {
         checkThread()
         return _value.second
     }

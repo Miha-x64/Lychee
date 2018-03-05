@@ -1,6 +1,7 @@
 package net.aquadc.properties.persistence
 
 import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.value
 import java.io.DataInput
 import java.util.*
 

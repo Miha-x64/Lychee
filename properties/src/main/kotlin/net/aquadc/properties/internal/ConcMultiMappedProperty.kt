@@ -19,12 +19,12 @@ class ConcMultiMappedProperty<in A, out T>(
             }
         }
 
-        val values = properties.map { it.value }
+        val values = properties.map(Property<A>::getValue)
         valueRef = values to transform(values)
     }
 
-    override val value: T
-        get() = valueUpdater<A, T>().get(this).second
+    override fun getValue(): T =
+            valueUpdater<A, T>().get(this).second
 
     private fun set(index: Int, value: A) {
         var old: Pair<List<A>, T>
