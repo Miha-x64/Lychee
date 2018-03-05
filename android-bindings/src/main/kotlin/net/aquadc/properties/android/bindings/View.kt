@@ -4,6 +4,7 @@ import android.annotation.TargetApi
 import android.view.View
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.clear
 import net.aquadc.properties.set
 
 
@@ -26,13 +27,13 @@ fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>) =
 
 @TargetApi(19)
 fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean>) {
-    attachedToWindowProperty.value = isAttachedToWindow
+    attachedToWindowProperty.setValue(isAttachedToWindow)
     addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {
-            attachedToWindowProperty.value = true
+            attachedToWindowProperty.set()
         }
         override fun onViewDetachedFromWindow(v: View?) {
-            attachedToWindowProperty.value = false
+            attachedToWindowProperty.clear()
         }
     })
 }

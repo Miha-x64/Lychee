@@ -15,7 +15,7 @@ inline fun <T> TabLayout.populateAndBindTabsBidirectionally(
         values: Array<T>,
         configureTab: TabLayout.Tab.(T) -> Unit
 ) {
-    val value = prop.value
+    val value = prop.getValue()
     values.forEach { t -> addTab(newTab().also { tab ->
         if (t == value) tab.select()
         configureTab(tab, t)
@@ -30,7 +30,7 @@ fun <T> TabLayout.bindTabsBidirectionally(
 ) {
     addOnTabSelectedListener(object : SimpleOnTabSelectedListener() {
         override fun onTabSelected(tab: TabLayout.Tab) {
-            prop.value = values[tab.position]
+            prop.setValue(values[tab.position])
         }
     })
 

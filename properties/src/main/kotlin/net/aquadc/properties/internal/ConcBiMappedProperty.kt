@@ -19,14 +19,14 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
     }
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef = transform(a.value, b.value)
+    private var valueRef = transform(a.getValue(), b.getValue())
     init {
-        a.addChangeListener { _, new -> recalculate(new, b.value) }
-        b.addChangeListener { _, new -> recalculate(a.value, new) }
+        a.addChangeListener { _, new -> recalculate(new, b.getValue()) }
+        b.addChangeListener { _, new -> recalculate(a.getValue(), new) }
     }
 
-    override val value: T
-        get() = valueUpdater<T>().get(this)
+    override fun getValue(): T =
+            valueUpdater<T>().get(this)
 
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)

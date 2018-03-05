@@ -18,10 +18,9 @@ class UnsDistinctPropertyWrapper<out T>(
         }
     }
 
-    override val value: T
-        get() {
-            checkThread()
-            return original.value
-        }
+    override fun getValue(): T {
+        checkThread()
+        return original.getValue()
+    }
 
 }

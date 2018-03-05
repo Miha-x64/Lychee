@@ -15,9 +15,9 @@ inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolea
         mapWith(that, Xor)
 
 
-inline fun MutableProperty<Boolean>.set() { value = true }
+inline fun MutableProperty<Boolean>.set() { setValue(true) }
 
-inline fun MutableProperty<Boolean>.clear() { value = false }
+inline fun MutableProperty<Boolean>.clear() { setValue(false) }
 
 /**
  * Every time property becomes set (`true`),

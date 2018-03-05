@@ -15,18 +15,16 @@ class ConcMutableProperty<T>(
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
 
-    override var value: T
-        get() {
-            val sample = sampleUpdater<T>().get(this)
-            return if (sample == null) valueUpdater<T>().get(this) else sample.value
-        }
-        set(new) {
-            dropBinding()
+    override fun getValue(): T {
+        val sample = sampleUpdater<T>().get(this)
+        return if (sample == null) valueUpdater<T>().get(this) else sample.getValue()
+    }
 
-            val old: T = valueUpdater<T>().getAndSet(this, new)
-
-            onChangeInternal(old, new)
-        }
+    override fun setValue(newValue: T) {
+        dropBinding()
+        val old: T = valueUpdater<T>().getAndSet(this, newValue)
+        onChangeInternal(old, newValue)
+    }
 
     @Volatile @Suppress("UNUSED")
     private var sample: Property<T>? = null
@@ -37,7 +35,7 @@ class ConcMutableProperty<T>(
         oldSample?.removeChangeListener(onChangeInternal)
         newSample?.addChangeListener(onChangeInternal)
 
-        val new = sample.value
+        val new = sample.getValue()
         val old = valueUpdater<T>().getAndSet(this, new)
         onChangeInternal(old, new)
     }

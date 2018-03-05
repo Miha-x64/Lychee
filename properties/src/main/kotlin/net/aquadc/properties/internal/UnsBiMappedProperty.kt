@@ -13,21 +13,20 @@ class UnsBiMappedProperty<in A, in B, out T>(
         check(a !is ImmutableReferenceProperty)
         check(b !is ImmutableReferenceProperty)
 
-        a.addChangeListener { _, new -> recalculate(new, b.value) }
-        b.addChangeListener { _, new -> recalculate(a.value, new) }
+        a.addChangeListener { _, new -> recalculate(new, b.getValue()) }
+        b.addChangeListener { _, new -> recalculate(a.getValue(), new) }
     }
 
-    override val value: T
-        get() {
-            checkThread()
-            return valueRef
-        }
+    override fun getValue(): T {
+        checkThread()
+        return valueRef
+    }
 
-    private var valueRef: T = transform(a.value, b.value)
+    private var valueRef: T = transform(a.getValue(), b.getValue())
 
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
-        val old = value
+        val old = valueRef
         valueRef = new
         listeners.notifyAll(old, new)
     }

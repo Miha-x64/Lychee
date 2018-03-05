@@ -16,7 +16,7 @@ class ConcMappedProperty<in O, out T>(
     }
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef = transform(original.value)
+    private var valueRef = transform(original.getValue())
 
     init {
         original.addChangeListener { _, new ->
@@ -26,8 +26,8 @@ class ConcMappedProperty<in O, out T>(
         }
     }
 
-    override val value: T
-        get() = valueUpdater<T>().get(this)
+    override fun getValue(): T =
+            valueUpdater<T>().get(this)
 
     private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
