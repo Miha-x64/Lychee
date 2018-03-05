@@ -1,7 +1,11 @@
 language: android
 
-jdk:
-  - oraclejdk8
+jdk: oraclejdk8
+
+android:
+  components:
+    - build-tools-27.0.2
+    - android-25
 
 install:
   - echo yes | sdkmanager "tools" &>/dev/null
@@ -11,10 +15,6 @@ install:
 
 script:
   - ./gradlew clean testDebug lintDebug jacocoDebugReport coveralls -Dscan --stacktrace
-
-branches:
-  except:
-    - gh-pages
 
 sudo: false
 
