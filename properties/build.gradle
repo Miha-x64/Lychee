@@ -13,7 +13,4 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.6"
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
+apply from: rootProject.file('release-bintray.gradle')

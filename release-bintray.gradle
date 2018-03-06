@@ -1,0 +1,33 @@
+/**
+ * Bintray release configuration
+ * */
+ext {
+  bintrayRepo = 'maven'
+  bintrayName = POM_BINTRAY_NAME
+
+  publishedGroupId = 'net.aquadc.properties'
+  libraryName = 'Reactive Properties'
+  artifact = POM_ARTIFACT_ID
+  packagingType = POM_PACKAGING
+
+  libraryDescription = POM_DESCRIPTION
+
+  siteUrl = 'http://github.com/Miha-x64/reactive-properties/'
+  gitUrl = 'http://github.com/Miha-x64/reactive-properties.git'
+
+  libraryVersion = POM_VERSION
+
+  developerId = 'Miha-x64'
+  developerName = 'Mike'
+  developerEmail = 'silizium@ok.de'
+
+  licenseName = 'Apache-2.0'
+  licenseUrl = 'https://github.com/Miha-x64/reactive-properties/blob/master/LICENSE'
+  allLicenses = ['Apache-2.0']
+}
+
+// Set up the Android Maven publication.
+apply from: rootProject.file('bintray/maven-install.gradle')
+
+// Publish on Bintray.
+apply from: rootProject.file('bintray/bintray.gradle')
