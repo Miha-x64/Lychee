@@ -31,7 +31,7 @@ class UnsDebouncedProperty<out T>(
 
             pending = Pair(reallyOld, ConcDebouncedProperty.scheduled.schedule({
                 executor.execute {
-                    listeners.notifyAll(reallyOld, new)
+                    valueChanged(reallyOld, new)
                 }
             }, delay, unit))
         }

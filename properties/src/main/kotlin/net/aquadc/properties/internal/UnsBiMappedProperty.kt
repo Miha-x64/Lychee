@@ -28,7 +28,7 @@ class UnsBiMappedProperty<in A, in B, out T>(
         val new = transform(newA, newB)
         val old = valueRef
         valueRef = new
-        listeners.notifyAll(old, new)
+        valueChanged(old, new)
     }
 
 }

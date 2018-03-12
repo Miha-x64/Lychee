@@ -61,7 +61,7 @@ class UnsMutableProperty<T>(
     }
 
     private fun notifyAll(old: T, new: T) {
-        listeners?.notifyAll(old, new)
+        valueChanged(old, new)
     }
 
     private fun dropBinding() {
