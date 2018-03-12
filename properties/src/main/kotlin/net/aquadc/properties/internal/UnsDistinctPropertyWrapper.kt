@@ -13,7 +13,7 @@ class UnsDistinctPropertyWrapper<out T>(
 
         original.addChangeListener { old, new ->
             if (!areEqual(old, new)) {
-                listeners.notifyAll(old, new)
+                valueChanged(old, new)
             }
         }
     }

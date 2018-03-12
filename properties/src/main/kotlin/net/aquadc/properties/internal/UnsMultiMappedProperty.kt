@@ -35,7 +35,7 @@ class UnsMultiMappedProperty<in A, out T>(
 
         val ov = old.second
         val nv = new.second
-        listeners.notifyAll(ov, nv)
+        valueChanged(ov, nv)
     }
 
 }

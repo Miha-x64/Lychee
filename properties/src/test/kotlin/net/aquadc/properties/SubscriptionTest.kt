@@ -86,7 +86,7 @@ class SubscriptionTest {
 
         val l1 = { old: Int, new: Int ->
             v1 = new
-            prop.value = 10
+            if (new != 10) prop.value = 10
         }
 
         prop.addChangeListener(l1)

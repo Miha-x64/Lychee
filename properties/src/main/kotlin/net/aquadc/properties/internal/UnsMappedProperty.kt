@@ -17,7 +17,7 @@ class UnsMappedProperty<in O, out T>(
             val tOld = transform(old)
             val tNew = transform(new)
             valueRef = tNew
-            listeners.notifyAll(tOld, tNew)
+            valueChanged(tOld, tNew)
         }
     }
 
