@@ -1,10 +1,35 @@
 package net.aquadc.properties
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 
 class SubscriptionTest {
+
+    @Test fun concSubscribe() = subscribe(true)
+    @Test fun unsSubscribe() = subscribe(false)
+
+    private fun subscribe(conc: Boolean) {
+        val prop = mutablePropertyOf(false, conc)
+
+        var l2Called = false
+
+        val l2 = { old: Boolean, new: Boolean ->
+            l2Called = true
+        }
+
+        val l1 = { old: Boolean, new: Boolean ->
+            prop.addChangeListener(l2)
+            Unit
+        }
+
+        prop.addChangeListener(l1)
+
+        prop.value = false
+
+        assertTrue(l2Called)
+    }
 
     @Test fun concUnsubscribe() = unsubscribe(true)
     @Test fun unsUnsubscribe() = unsubscribe(false)
