@@ -12,7 +12,7 @@ class UnsMutableProperty<T>(
 ) : UnsListeners<T>(), MutableProperty<T> {
 
     private var _notifyAllFunc: ((T, T) -> Unit)? = null
-    private val notifyAllFunc: (T, T) -> Unit = _notifyAllFunc ?: ::notifyAll.also { _notifyAllFunc = it }
+    private val notifyAllFunc: (T, T) -> Unit = _notifyAllFunc ?: ::valueChanged.also { _notifyAllFunc = it }
 
     var valueRef: T = value
     override fun getValue(): T {
@@ -29,7 +29,7 @@ class UnsMutableProperty<T>(
         val old = valueRef
         valueRef = newValue
 
-        notifyAll(old, newValue)
+        valueChanged(old, newValue)
     }
 
     private var sample: Property<T>? = null
@@ -45,7 +45,7 @@ class UnsMutableProperty<T>(
         val old = valueRef
         val new = sample.getValue()
         valueRef = new
-        notifyAll(old, new)
+        valueChanged(old, new)
     }
 
     override fun cas(expect: T, update: T): Boolean {
@@ -53,15 +53,11 @@ class UnsMutableProperty<T>(
         dropBinding()
         return if (valueRef === expect) {
             valueRef = update
-            notifyAll(expect, update)
+            valueChanged(expect, update)
             true
         } else {
             false
         }
-    }
-
-    private fun notifyAll(old: T, new: T) {
-        valueChanged(old, new)
     }
 
     private fun dropBinding() {

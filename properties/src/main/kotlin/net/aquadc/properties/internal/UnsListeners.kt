@@ -73,22 +73,18 @@ abstract class UnsListeners<out T> : Property<T> {
             return
         }
 
-        notifying = true
+        notifying = true // this means 'don't notify directly, add to the queue!'
         notify(old, new)
-        notifying = false
 
         pendingValues?.let {
             var older = new
             while (!it.isEmpty()) {
                 val newer = it.remove()
-
-                notifying = true
                 notify(older, newer)
-                notifying = false
-
                 older = newer
             }
         }
+        notifying = false
 
         // clean up nulled out listeners
         listeners?.let {

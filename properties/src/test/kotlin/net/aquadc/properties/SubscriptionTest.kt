@@ -1,7 +1,9 @@
 package net.aquadc.properties
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import net.aquadc.properties.internal.copyOfWithout
+import net.aquadc.properties.internal.with
+import net.aquadc.properties.internal.withoutNulls
+import org.junit.Assert.*
 import org.junit.Test
 
 
@@ -96,6 +98,30 @@ class SubscriptionTest {
 
         assertEquals(10, v1)
         assertEquals(10, v2)
+    }
+
+    // todo: check conc updater under contention
+
+    @Test fun with() {
+        assertArrayEquals(arrayOf(1), emptyArray<Int>().with(1))
+        assertArrayEquals(arrayOf(1, 2), arrayOf(1).with(2))
+    }
+
+    @Test fun copyWithout() {
+        assertArrayEquals(arrayOf(1, 2), arrayOf(0, 1, 2).copyOfWithout(0))
+        assertArrayEquals(arrayOf(0, 2), arrayOf(0, 1, 2).copyOfWithout(1))
+        assertArrayEquals(arrayOf(0, 1), arrayOf(0, 1, 2).copyOfWithout(2))
+    }
+
+    @Test fun withoutNulls() {
+        assertArrayEquals(emptyArray(), arrayOf<Any?>(null).withoutNulls())
+        assertArrayEquals(emptyArray(), arrayOf<Any?>(null, null).withoutNulls())
+        assertArrayEquals(arrayOf(0, 1, 2), arrayOf<Any?>(0, null, 1, null, 2).withoutNulls())
+        assertArrayEquals(arrayOf(0, 2), arrayOf<Any?>(0, null, null, null, 2).withoutNulls())
+        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, 1, null).withoutNulls())
+        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, null, null, 1, null).withoutNulls())
+        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, 3, 4).withoutNulls())
+        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, null, 3, null, 4).withoutNulls())
     }
 
 }

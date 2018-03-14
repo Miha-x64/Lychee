@@ -9,7 +9,7 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
-) : BaseConcProperty<T>() {
+) : ConcPropListeners<T>() {
 
     init {
         check(a.isConcurrent)
@@ -31,15 +31,7 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
     private fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = valueUpdater<T>().getAndSet(this, new)
-        listeners.forEach { it(old, new) }
-    }
-
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.add(onChange)
-    }
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.remove(onChange)
+        valueChanged(old, new)
     }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")

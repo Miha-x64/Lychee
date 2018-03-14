@@ -17,7 +17,7 @@ class ConcDebouncedProperty<out T>(
         private val original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : BaseConcProperty<T>() {
+) : BaseConcProperty<T>() { // todo: upgrade listeners!
 
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
