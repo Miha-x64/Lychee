@@ -2,7 +2,6 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 /**
@@ -10,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  */
 class ConcMutableProperty<T>(
         value: T
-) : BaseConcProperty<T>(), MutableProperty<T> {
+) : ConcPropListeners<T>(), MutableProperty<T> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
@@ -23,7 +22,7 @@ class ConcMutableProperty<T>(
     override fun setValue(newValue: T) {
         dropBinding()
         val old: T = valueUpdater<T>().getAndSet(this, newValue)
-        onChangeInternal(old, newValue)
+        valueChanged(old, newValue)
     }
 
     @Volatile @Suppress("UNUSED")
@@ -37,13 +36,13 @@ class ConcMutableProperty<T>(
 
         val new = sample.getValue()
         val old = valueUpdater<T>().getAndSet(this, new)
-        onChangeInternal(old, new)
+        valueChanged(old, new)
     }
 
     override fun cas(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueUpdater<T>().compareAndSet(this, expect, update)) {
-            onChangeInternal(expect, update)
+            valueChanged(expect, update)
             true
         } else {
             false
@@ -55,18 +54,7 @@ class ConcMutableProperty<T>(
         oldSample?.removeChangeListener(onChangeInternal)
     }
 
-    private val onChangeInternal: (T, T) -> Unit = this::onChangeInternal
-    private fun onChangeInternal(old: T, new: T) {
-        listeners.forEach { it(old, new) }
-    }
-
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.add(onChange)
-    }
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.remove(onChange)
-    }
+    private val onChangeInternal: (T, T) -> Unit = this::valueChanged
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {

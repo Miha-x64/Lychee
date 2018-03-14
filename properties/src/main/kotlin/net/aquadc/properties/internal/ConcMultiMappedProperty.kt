@@ -1,14 +1,13 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
 class ConcMultiMappedProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
-) : BaseConcProperty<T>() {
+) : ConcPropListeners<T>() {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: Pair<List<A>, T>
@@ -42,15 +41,7 @@ class ConcMultiMappedProperty<in A, out T>(
 
         val ov = old.second
         val nv = new.second
-        listeners.forEach { it(ov, nv) }
-    }
-
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.add(onChange)
-    }
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.remove(onChange)
+        valueChanged(ov, nv)
     }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
