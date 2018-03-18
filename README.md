@@ -1,5 +1,7 @@
 
 [![Build Status](https://travis-ci.org/Miha-x64/reactive-properties.svg?branch=master)](https://travis-ci.org/Miha-x64/reactive-properties)
+![Lock-free](https://img.shields.io/badge/%E2%9A%9B-Lock--free-3399aa.svg)
+![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely Lightweight-7799cc.svg)
 
 Properties: [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion)
 
