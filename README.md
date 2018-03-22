@@ -1,17 +1,18 @@
 
 [![Build Status](https://travis-ci.org/Miha-x64/reactive-properties.svg?branch=master)](https://travis-ci.org/Miha-x64/reactive-properties)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/89813e3ee28441b3937a76f09e906aef)](https://www.codacy.com/app/Miha-x64/reactive-properties?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Miha-x64/reactive-properties&amp;utm_campaign=Badge_Grade)
 ![Lock-free](https://img.shields.io/badge/%E2%9A%9B-Lock--free-3399aa.svg)
 ![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely%20Lightweight-7799cc.svg)
 
-Properties: [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion)
+Reactive Properties: [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion)
 
-Android bindings: [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) 
+Android Bindings: [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) 
 
 # reactive-properties
 
 Properties (subjects) inspired by JavaFX MVVM-like approach.
 * Lightweight
-* Contains both unsynchronized and concurrent implementations
+* Contains both unsynchronized and concurrent (lock-free) implementations
 * MVVM / data-binding for Android and JavaFX
 * Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
   and [TornadoFX](https://github.com/edvin/tornadofx)
