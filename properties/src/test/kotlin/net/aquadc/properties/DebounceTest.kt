@@ -2,6 +2,7 @@ package net.aquadc.properties
 
 import com.sun.javafx.application.PlatformImpl
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 
@@ -9,20 +10,20 @@ import java.util.concurrent.TimeUnit
 class DebounceTest {
 
     @Test(expected = UnsupportedOperationException::class)
-    fun concOnJavaAppMainThread() {
+    fun cantDebounceConcOnJavaAppMainThread() {
         concurrentMutablePropertyOf("")
                 .debounced(300, TimeUnit.MILLISECONDS)
                 .addChangeListener { _, _ ->  }
     }
 
     @Test(expected = UnsupportedOperationException::class)
-    fun unsOnJavaAppMainThread() {
+    fun cantDebounceUnsOnJavaAppMainThread() {
         unsynchronizedMutablePropertyOf("")
                 .debounced(300, TimeUnit.MILLISECONDS)
                 .addChangeListener { _, _ ->  }
     }
 
-    @Test
+    @Test @Ignore // JavaFX cannot start on CI
     fun onFxThread() {
         val conc = concurrentMutablePropertyOf("old")
         val concDeb = conc.debounced(100, TimeUnit.MILLISECONDS)
