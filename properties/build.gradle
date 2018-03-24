@@ -3,6 +3,7 @@ apply plugin: 'kotlin'
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    compileOnly project(':fake-android')
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 

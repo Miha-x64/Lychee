@@ -2,10 +2,11 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.executor.PlatformExecutors
+import net.aquadc.properties.executor.ScheduledDaemonHolder
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executor
 import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
@@ -34,23 +35,13 @@ class ConcDebouncedProperty<out T>(
                     it.first
                 }
 
-                Pair(reallyOld, scheduled.schedule(NotifyOnCorrectThread(listeners, reallyOld, new), delay, unit))
-            }
-        }
-    }
-
-    /**
-     * Why not a lambda? This class's private modifier helps ProGuard find out that outer is not used.
-     * Btw, this not helps much: if `debounced` used anywhere, outer will be kept.
-     */
-    private class NotifyOnCorrectThread<T>(
-            private val listeners: List<Pair<Thread, ChangeListener<T>>>,
-            private val old: T,
-            private val new: T
-    ) : Runnable {
-        override fun run() {
-            listeners.forEach {
-                PlatformExecutors.executorForThread(it.first).execute { it.second(old, new) }
+                Pair(reallyOld,
+                        ScheduledDaemonHolder.scheduledDaemon.schedule({
+                            listeners.forEach {
+                                it.first.execute { it.second(reallyOld, new) }
+                            }
+                        }, delay, unit)
+                )
             }
         }
     }
@@ -58,11 +49,9 @@ class ConcDebouncedProperty<out T>(
     override fun getValue(): T =
             original.getValue()
 
-    private val listeners = CopyOnWriteArrayList<Pair<Thread, ChangeListener<T>>>()
+    private val listeners = CopyOnWriteArrayList<Pair<Executor, ChangeListener<T>>>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        val thread = Thread.currentThread()
-        PlatformExecutors.executorForThread(thread) // ensure such executor exists
-        listeners.add(thread to onChange)
+        listeners.add(PlatformExecutors.executorForCurrentThread() to onChange)
     }
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.firstOrNull { it.second == onChange }?.let { listeners.remove(it) }
@@ -75,8 +64,6 @@ class ConcDebouncedProperty<out T>(
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         private inline fun <T> pendingUpdater() =
                 pendingUpdater as AtomicReferenceFieldUpdater<ConcDebouncedProperty<T>, Pair<T, ScheduledFuture<*>>?>
-
-        internal val scheduled = ScheduledThreadPoolExecutor(1, ThreadFactory { Thread(it).also { it.isDaemon = true } })
     }
 
 }
