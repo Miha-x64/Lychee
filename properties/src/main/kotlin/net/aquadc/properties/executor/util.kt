@@ -50,7 +50,7 @@ internal object PlatformExecutors {
 
     private fun createForCurrentThread(): Executor {
         executorFactories.forEach { it()?.let { return it } }
-        throw UnsupportedOperationException("Can't execute task on $this")
+        throw UnsupportedOperationException("Can't execute task on ${Thread.currentThread()}")
     }
 
 }
