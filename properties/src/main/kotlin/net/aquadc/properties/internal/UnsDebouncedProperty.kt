@@ -1,6 +1,8 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
+import net.aquadc.properties.executor.PlatformExecutors
+import net.aquadc.properties.executor.ScheduledDaemonHolder
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
@@ -14,7 +16,7 @@ class UnsDebouncedProperty<out T>(
         private val unit: TimeUnit
 ) : UnsListeners<T>() {
 
-    private val executor = PlatformExecutors.executorForThread(Thread.currentThread())
+    private val executor = PlatformExecutors.executorForCurrentThread()
     private var pending: Pair<T, ScheduledFuture<*>>? = null
 
     init {
@@ -29,7 +31,7 @@ class UnsDebouncedProperty<out T>(
                 it.first
             }
 
-            pending = Pair(reallyOld, ConcDebouncedProperty.scheduled.schedule({
+            pending = Pair(reallyOld, ScheduledDaemonHolder.scheduledDaemon.schedule({
                 executor.execute {
                     valueChanged(reallyOld, new)
                 }
