@@ -25,10 +25,10 @@ class ConcMultiMappedProperty<in A, out T>(
     override fun getValue(): T =
             valueUpdater<A, T>().get(this).second
 
-    private fun set(index: Int, value: A) {
+    @Suppress("MemberVisibilityCanBePrivate") // produce no access$
+    internal fun set(index: Int, value: A) {
         var old: Pair<List<A>, T>
         var new: Pair<List<A>, T>
-
 
         do {
             old = valueUpdater<A, T>().get(this)
@@ -44,11 +44,12 @@ class ConcMultiMappedProperty<in A, out T>(
         valueChanged(ov, nv)
     }
 
-    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
+        @JvmField
         val ValueUpdater: AtomicReferenceFieldUpdater<ConcMultiMappedProperty<*, *>, Pair<*, *>> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcMultiMappedProperty::class.java, Pair::class.java, "valueRef")
 
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         inline fun <A, T> valueUpdater() =
                 ValueUpdater as AtomicReferenceFieldUpdater<ConcMultiMappedProperty<A, T>, Pair<List<A>, T>>
     }

@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 class ConcMappedProperty<in O, out T>(
         original: Property<O>,
-        private val transform: (O) -> T
+        transform: (O) -> T
 ) : ConcPropListeners<T>() {
 
     init {
@@ -29,11 +29,12 @@ class ConcMappedProperty<in O, out T>(
     override fun getValue(): T =
             valueUpdater<T>().get(this)
 
-    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
+        @JvmField
         val ValueUpdater: AtomicReferenceFieldUpdater<ConcMappedProperty<*, *>, Any?> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcMappedProperty::class.java, Any::class.java, "valueRef")
 
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         inline fun <T> valueUpdater() =
                 ValueUpdater as AtomicReferenceFieldUpdater<ConcMappedProperty<*, T>, T>
     }

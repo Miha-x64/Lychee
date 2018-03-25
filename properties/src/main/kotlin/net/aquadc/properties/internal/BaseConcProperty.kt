@@ -111,11 +111,15 @@ abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
     }
 
     private companion object {
+        @JvmField
         val NoListeners = emptyArray<ChangeListener<*>>()
+        @JvmField
         val InitialListeners = Triple(false, NoListeners, emptyArray<Any?>())
 
+        @JvmField
         val listenersUpdater: AtomicReferenceFieldUpdater<ConcPropListeners<*>, Triple<*, *, *>> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcPropListeners::class.java, Triple::class.java, "listeners")
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         inline fun <T> listenersUpdater() =
                 listenersUpdater as AtomicReferenceFieldUpdater<BaseConcProperty<T>, Triple<Boolean, Listeners<T>, Array<Any?>>>
     }

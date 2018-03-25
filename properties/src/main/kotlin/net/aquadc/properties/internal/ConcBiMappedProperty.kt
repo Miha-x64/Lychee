@@ -21,6 +21,8 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
     @Volatile @Suppress("UNUSED")
     private var valueRef = transform(a.getValue(), b.getValue())
     init {
+        val a = a
+        val b = b
         a.addChangeListener { _, new -> recalculate(new, b.getValue()) }
         b.addChangeListener { _, new -> recalculate(a.getValue(), new) }
     }
@@ -28,17 +30,19 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
     override fun getValue(): T =
             valueUpdater<T>().get(this)
 
-    private fun recalculate(newA: A, newB: B) {
+    @Suppress("MemberVisibilityCanBePrivate") // produce no access$
+    internal fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = valueUpdater<T>().getAndSet(this, new)
         valueChanged(old, new)
     }
 
-    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
+        @JvmField
         val ValueUpdater: AtomicReferenceFieldUpdater<ConcBiMappedProperty<*, *, *>, Any?> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcBiMappedProperty::class.java, Any::class.java, "valueRef")
 
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         inline fun <T> valueUpdater() =
                 ValueUpdater as AtomicReferenceFieldUpdater<ConcBiMappedProperty<*, *, T>, T>
     }

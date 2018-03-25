@@ -58,8 +58,10 @@ class ConcMutableProperty<T>(
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
+        @JvmField
         val ValueUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Any?> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Any::class.java, "valueRef")
+        @JvmField
         val SampleUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Property<*>?> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Property::class.java, "sample")
 

@@ -5,7 +5,7 @@ import net.aquadc.properties.Property
 
 class UnsDistinctPropertyWrapper<out T>(
         private val original: Property<T>,
-        private val areEqual: (T, T) -> Boolean
+        areEqual: (T, T) -> Boolean
 ) : UnsListeners<T>() {
 
     init {

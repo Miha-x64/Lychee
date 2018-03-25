@@ -4,8 +4,8 @@ import net.aquadc.properties.Property
 
 
 class UnsBiMappedProperty<in A, in B, out T>(
-        private val a: Property<A>,
-        private val b: Property<B>,
+        a: Property<A>,
+        b: Property<B>,
         private val transform: (A, B) -> T
 ) : UnsListeners<T>() {
 
@@ -24,7 +24,8 @@ class UnsBiMappedProperty<in A, in B, out T>(
 
     private var valueRef: T = transform(a.getValue(), b.getValue())
 
-    private fun recalculate(newA: A, newB: B) {
+    @Suppress("MemberVisibilityCanBePrivate") // produce no access$
+    internal fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = valueRef
         valueRef = new
