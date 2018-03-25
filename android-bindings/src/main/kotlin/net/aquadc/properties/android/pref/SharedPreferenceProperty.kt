@@ -20,18 +20,21 @@ class SharedPreferenceProperty<T>(
         private val adapter: PrefAdapter<T>
 ) : MutableProperty<T> {
 
-    // we need a hard reference because shared prefs holding a weak one
+    // we need a strong reference because shared prefs holding a weak one
     private val prefChangeListener =
-            SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                if (adapter.isKeyFor(this.key, key)) {
-                    val new = adapter.read(prefs, this.key, defaultValue)
-                    val old = valueUpdater<T>().getAndSet(this, new)
-                    listeners.forEach { it(old, new) }
-                }
-            }
+            SharedPreferences.OnSharedPreferenceChangeListener { _, key -> changed(key) }
 
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefChangeListener)
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate") // internal — to avoid synthetic accessors
+    internal fun changed(key: String) {
+        if (adapter.isKeyFor(this.key, key)) {
+            val new = adapter.read(prefs, this.key, defaultValue)
+            val old = valueUpdater<T>().getAndSet(this, new)
+            listeners.forEach { it(old, new) }
+        }
     }
 
     @Volatile @Suppress("UNUSED")
@@ -81,7 +84,10 @@ class SharedPreferenceProperty<T>(
         oldSample?.removeChangeListener(sampleChanged)
     }
 
-    private val sampleChanged = { _: T, new: T ->
+    private val sampleChanged: (T, T) -> Unit = { _, new -> sampleChanged(new) }
+
+    @Suppress("MemberVisibilityCanBePrivate") // using internal to avoid synthetic accessors
+    internal fun sampleChanged(new: T) {
         val ed = prefs.edit()
         adapter.save(ed, key, new)
         ed.apply()
@@ -99,8 +105,10 @@ class SharedPreferenceProperty<T>(
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
+        @JvmField
         val ValueUpdater: AtomicReferenceFieldUpdater<SharedPreferenceProperty<*>, Any?> =
                 AtomicReferenceFieldUpdater.newUpdater(SharedPreferenceProperty::class.java, Any::class.java, "valueRef")
+        @JvmField
         val SampleUpdater: AtomicReferenceFieldUpdater<SharedPreferenceProperty<*>, Property<*>?> =
                 AtomicReferenceFieldUpdater.newUpdater(SharedPreferenceProperty::class.java, Property::class.java, "sample")
 

@@ -26,7 +26,8 @@ class UnsMultiMappedProperty<in A, out T>(
         return _value.second
     }
 
-    private fun set(index: Int, value: A) {
+    @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
+    internal fun set(index: Int, value: A) {
         val old = _value
         val values = old.first
         val changed = values.mapIndexed { i, v -> if (i == index) value else v }

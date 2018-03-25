@@ -16,7 +16,10 @@ class UnsDebouncedProperty<out T>(
         private val unit: TimeUnit
 ) : UnsListeners<T>() {
 
-    private val executor = PlatformExecutors.executorForCurrentThread()
+    @JvmField
+    @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
+    internal val executor = PlatformExecutors.executorForCurrentThread()
+
     private var pending: Pair<T, ScheduledFuture<*>>? = null
 
     init {
@@ -24,19 +27,25 @@ class UnsDebouncedProperty<out T>(
         check(!original.isConcurrent)
 
         original.addChangeListener { old, new ->
-            val it = pending
-            val reallyOld = if (it == null) old else {
-                val f = it.second
-                if (!f.isDone) f.cancel(false)
-                it.first
-            }
-
-            pending = Pair(reallyOld, ScheduledDaemonHolder.scheduledDaemon.schedule({
-                executor.execute {
-                    valueChanged(reallyOld, new)
-                }
-            }, delay, unit))
+            onChange(old, new)
         }
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
+    internal fun onChange(old: Any?, new: Any?) {
+        old as T; new as T
+        val it = pending
+        val reallyOld = if (it == null) old else {
+            val f = it.second
+            if (!f.isDone) f.cancel(false)
+            it.first
+        }
+
+        pending = Pair(reallyOld, ScheduledDaemonHolder.scheduledDaemon.schedule({
+            executor.execute {
+                valueChanged(reallyOld, new)
+            }
+        }, delay, unit))
     }
 
     override fun getValue(): T {

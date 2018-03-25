@@ -14,11 +14,16 @@ class UnsMappedProperty<in O, out T>(
         check(original !is ImmutableReferenceProperty)
 
         original.addChangeListener { old, new ->
-            val tOld = transform(old)
-            val tNew = transform(new)
-            valueRef = tNew
-            valueChanged(tOld, tNew)
+            onChange(old, new)
         }
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
+    internal fun onChange(old: O, new: O) {
+        val tOld = transform(old)
+        val tNew = transform(new)
+        valueRef = tNew
+        valueChanged(tOld, tNew)
     }
 
     private var valueRef: T = transform(original.getValue())

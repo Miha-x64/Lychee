@@ -16,17 +16,24 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  */
 class ConcDebouncedProperty<out T>(
         private val original: Property<T>,
-        private val delay: Long,
-        private val unit: TimeUnit
+        delay: Long,
+        unit: TimeUnit
 ) : BaseConcProperty<T>() { // todo: upgrade listeners!
 
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
 
+    override fun getValue(): T =
+            original.getValue()
+
+    private val listeners = CopyOnWriteArrayList<Pair<Executor, ChangeListener<T>>>()
+
     init {
         check(original.mayChange)
         check(original.isConcurrent)
 
+        val listeners = listeners
+        // take `listeners` into local
         original.addChangeListener { old, new ->
             pendingUpdater<T>().update(this) {
                 val reallyOld = if (it == null) old else {
@@ -46,10 +53,6 @@ class ConcDebouncedProperty<out T>(
         }
     }
 
-    override fun getValue(): T =
-            original.getValue()
-
-    private val listeners = CopyOnWriteArrayList<Pair<Executor, ChangeListener<T>>>()
     override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
         listeners.add(PlatformExecutors.executorForCurrentThread() to onChange)
     }
@@ -57,12 +60,13 @@ class ConcDebouncedProperty<out T>(
         listeners.firstOrNull { it.second == onChange }?.let { listeners.remove(it) }
     }
 
-    companion object {
-        private val pendingUpdater =
+    private companion object {
+        @JvmField
+        val pendingUpdater: AtomicReferenceFieldUpdater<ConcDebouncedProperty<*>, Pair<*, *>> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcDebouncedProperty::class.java, Pair::class.java, "pending")
 
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-        private inline fun <T> pendingUpdater() =
+        inline fun <T> pendingUpdater() =
                 pendingUpdater as AtomicReferenceFieldUpdater<ConcDebouncedProperty<T>, Pair<T, ScheduledFuture<*>>?>
     }
 
