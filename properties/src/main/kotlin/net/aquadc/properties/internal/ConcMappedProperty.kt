@@ -1,13 +1,14 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
+import net.aquadc.properties.executor.Worker
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
 class ConcMappedProperty<in O, out T>(
         original: Property<O>,
-        transform: (O) -> T
+        map: (O) -> T,
+        mapOn: Worker
 ) : ConcPropListeners<T>() {
 
     init {
@@ -16,13 +17,16 @@ class ConcMappedProperty<in O, out T>(
     }
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef = transform(original.getValue())
+    private var valueRef = map(original.getValue())
 
     init {
+        val onValueMapped = { new: T ->
+            val old = valueUpdater<T>().getAndSet(this, new)
+            valueChanged(old, new)
+        }
+
         original.addChangeListener { _, new ->
-            val newRef = transform(new)
-            val oldRef = valueUpdater<T>().getAndSet(this, newRef)
-            valueChanged(oldRef, newRef)
+            mapOn.map(new, map, onValueMapped)
         }
     }
 
