@@ -1,7 +1,7 @@
 package net.aquadc.properties
 
 /**
- * Represents an observable value.
+ * Represents an observable value of type [T].
  */
 interface Property<out T> {
 
