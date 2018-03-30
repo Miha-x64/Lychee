@@ -7,6 +7,9 @@ import net.aquadc.properties.internal.ConcMappedProperty
 import net.aquadc.properties.internal.UnsBiMappedProperty
 import net.aquadc.properties.internal.UnsMappedProperty
 
+/**
+ * Returns new property with [transform]ed value.
+ */
 fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
     this.mayChange -> {
         if (this.isConcurrent) ConcMappedProperty(this, transform, InPlaceWorker)
@@ -16,7 +19,8 @@ fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
 }
 
 /**
- * Maps property. Note that [transform] will be called in-place for the first time.
+ * Returns new property with [transform]ed value.
+ * Note that [transform] will be called in-place for the first time.
  */
 fun <T, R> Property<T>.mapOn(worker: Worker, transform: (T) -> R): Property<R> = when {
     this.mayChange -> ConcMappedProperty(this, transform, worker)
