@@ -76,11 +76,12 @@ abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
         }
     }
 
+    @Suppress("UNCHECKED_CAST") // [old] and [new] are [T], listeners is Object[] with listeners, I'm 146% sure
     private fun notify(old: Any?, new: Any?) {
         var i = 0
         var listeners = listenersUpdater<T>().get(this).listeners
         while (i < listeners.size) {
-            listeners[i]?.invoke(old, new)
+            (listeners[i] as ChangeListener<Any?>?)?.invoke(old, new)
 
             // read volatile listeners on every step, they may be added or nulled out!
             listeners = listenersUpdater<T>().get(this).listeners

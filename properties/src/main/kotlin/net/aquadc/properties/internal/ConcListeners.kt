@@ -1,19 +1,17 @@
 package net.aquadc.properties.internal
 
-import net.aquadc.properties.ChangeListener
-
 @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
 internal class ConcListeners(
         @JvmField val notifying: Boolean,
-        @JvmField val listeners: Array<ChangeListener<Any?>?>,
+        @JvmField val listeners: Array<Any?>,
         @JvmField val pendingValues: Array<Any?>
 ) {
 
-    fun withListener(newListener: ChangeListener<*>): ConcListeners =
-            ConcListeners(notifying, listeners.with(newListener as ChangeListener<Any?>), pendingValues)
+    fun withListener(newListener: Any): ConcListeners =
+            ConcListeners(notifying, listeners.with(newListener), pendingValues)
 
-    fun withoutListener(victim: ChangeListener<*>): ConcListeners {
-        val idx = listeners.indexOf(victim as ChangeListener<Any?>)
+    fun withoutListener(victim: Any): ConcListeners {
+        val idx = listeners.indexOf(victim)
         if (idx < 0) {
             return this
         }
@@ -22,10 +20,10 @@ internal class ConcListeners(
             notifying -> listeners.clone().also { it[idx] = null }
             // we can't just remove this element while array is being iterated
 
-            listeners.size == 1 -> EmptyListenersArray
+            listeners.size == 1 -> EmptyArray
             // our victim was the only listener — let's return a shared const
 
-            else -> listeners.copyOfWithout(idx, EmptyListenersArray)
+            else -> listeners.copyOfWithout(idx, EmptyArray)
             // we're not the only listener, not notifying, remove at the specified position
         }
 
@@ -35,7 +33,7 @@ internal class ConcListeners(
             ConcListeners(notifying, newListeners, pendingValues)
     }
 
-    fun withNextValue(newValue: Any?) =
+    fun withNextValue(newValue: Any?): ConcListeners =
             if (notifying) {
                 ConcListeners(notifying, listeners, pendingValues.with(newValue))
             } else {
@@ -45,26 +43,25 @@ internal class ConcListeners(
     fun next(): ConcListeners {
         check(notifying)
         val notifyMore: Boolean
-        val listeners: Array<ChangeListener<Any?>?>
+        val listeners: Array<Any?>
         val pendingValues: Array<Any?>
 
         if (this.pendingValues.isEmpty()) {
             notifyMore = false
-            listeners = this.listeners.withoutNulls(EmptyListenersArray)
+            listeners = this.listeners.withoutNulls(EmptyArray)
             pendingValues = this.pendingValues /* empty array */
         } else {
             notifyMore = true
             listeners = this.listeners
-            pendingValues = this.pendingValues.copyOfWithout(0, EmptyPendingValuesArray)
+            pendingValues = this.pendingValues.copyOfWithout(0, EmptyArray)
         }
 
         return ConcListeners(notifyMore, listeners, pendingValues)
     }
 
     companion object {
-        @JvmField val EmptyListenersArray = emptyArray<ChangeListener<Any?>?>()
-        @JvmField val EmptyPendingValuesArray = emptyArray<Any?>()
-        @JvmField val NoListeners = ConcListeners(false, EmptyListenersArray, EmptyPendingValuesArray)
+        @JvmField val EmptyArray = emptyArray<Any?>()
+        @JvmField val NoListeners = ConcListeners(false, EmptyArray, EmptyArray)
     }
 
 }
