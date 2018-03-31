@@ -18,12 +18,12 @@ class ConcMultiMappedProperty<in A, out T>(
             }
         }
 
-        val values = properties.map(Property<A>::getValue)
+        val values = properties.map(Property<A>::value)
         valueRef = values to transform(values)
     }
 
-    override fun getValue(): T =
-            valueUpdater<A, T>().get(this).second
+    override val value: T
+        get() = valueUpdater<A, T>().get(this).second
 
     @Suppress("MemberVisibilityCanBePrivate") // produce no access$
     internal fun set(index: Int, value: A) {

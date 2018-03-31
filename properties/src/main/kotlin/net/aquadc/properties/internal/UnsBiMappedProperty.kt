@@ -13,16 +13,17 @@ class UnsBiMappedProperty<in A, in B, out T>(
         check(a !is ImmutableReferenceProperty)
         check(b !is ImmutableReferenceProperty)
 
-        a.addChangeListener { _, new -> recalculate(new, b.getValue()) }
-        b.addChangeListener { _, new -> recalculate(a.getValue(), new) }
+        a.addChangeListener { _, new -> recalculate(new, b.value) }
+        b.addChangeListener { _, new -> recalculate(a.value, new) }
     }
 
-    override fun getValue(): T {
-        checkThread()
-        return valueRef
-    }
+    override val value: T
+        get() {
+            checkThread()
+            return valueRef
+        }
 
-    private var valueRef: T = transform(a.getValue(), b.getValue())
+    private var valueRef: T = transform(a.value, b.value)
 
     @Suppress("MemberVisibilityCanBePrivate") // produce no access$
     internal fun recalculate(newA: A, newB: B) {

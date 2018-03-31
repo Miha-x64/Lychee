@@ -6,9 +6,9 @@ package net.aquadc.properties
 interface Property<out T> {
 
     /**
-     * Returns current value.
+     * Current value.
      */
-    fun getValue(): T
+    val value: T
 
     /**
      * When `true`, means that property value may change in future.

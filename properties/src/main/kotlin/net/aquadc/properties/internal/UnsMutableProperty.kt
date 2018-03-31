@@ -15,22 +15,23 @@ class UnsMutableProperty<T>(
     private val notifyAllFunc: (T, T) -> Unit = _notifyAllFunc ?: ::valueChanged.also { _notifyAllFunc = it }
 
     var valueRef: T = value
-    override fun getValue(): T {
-        checkThread()
-        val sample = sample
-        return if (sample == null) valueRef else sample.getValue()
-    }
 
-    override fun setValue(newValue: T) {
-        checkThread()
-        dropBinding()
+    override var value: T
+        get() {
+            checkThread()
+            val sample = sample
+            return if (sample == null) valueRef else sample.value
+        }
+        set(newValue) {
+            checkThread()
+            dropBinding()
 
-        // set value then
-        val old = valueRef
-        valueRef = newValue
+            // set value then
+            val old = valueRef
+            valueRef = newValue
 
-        valueChanged(old, newValue)
-    }
+            valueChanged(old, newValue)
+        }
 
     private var sample: Property<T>? = null
 
@@ -43,7 +44,7 @@ class UnsMutableProperty<T>(
         newSample?.addChangeListener(notifyAllFunc)
 
         val old = valueRef
-        val new = sample.getValue()
+        val new = sample.value
         valueRef = new
         valueChanged(old, new)
     }

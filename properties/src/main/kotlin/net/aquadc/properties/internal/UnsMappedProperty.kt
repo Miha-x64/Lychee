@@ -26,11 +26,12 @@ class UnsMappedProperty<in O, out T>(
         valueChanged(tOld, tNew)
     }
 
-    private var valueRef: T = transform(original.getValue())
+    private var valueRef: T = transform(original.value)
 
-    override fun getValue(): T {
-        checkThread()
-        return valueRef
-    }
+    override val value: T
+        get() {
+            checkThread()
+            return valueRef
+        }
 
 }
