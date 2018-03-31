@@ -17,11 +17,11 @@ class SubscriptionTest {
 
         var l2Called = false
 
-        val l2 = { old: Boolean, new: Boolean ->
+        val l2 = { _: Boolean, _: Boolean ->
             l2Called = true
         }
 
-        val l1 = { old: Boolean, new: Boolean ->
+        val l1 = { _: Boolean, _: Boolean ->
             prop.addChangeListener(l2)
             Unit
         }
@@ -43,12 +43,12 @@ class SubscriptionTest {
         var l2Called = 0
         var l3Called = 0
 
-        val l1 = { old: Boolean, new: Boolean ->
+        val l1 = { _: Boolean, _: Boolean ->
             l1Called++
             Unit
         }
 
-        val l3 = { old: Boolean, new: Boolean ->
+        val l3 = { _: Boolean, _: Boolean ->
             l3Called++
             Unit
         }
@@ -82,11 +82,11 @@ class SubscriptionTest {
         var v1 = 0
         var v2 = 0
 
-        val l2 = { old: Int, new: Int ->
+        val l2 = { _: Int, new: Int ->
             v2 = new
         }
 
-        val l1 = { old: Int, new: Int ->
+        val l1 = { _: Int, new: Int ->
             v1 = new
             if (new != 10) prop.value = 10
         }
@@ -108,20 +108,20 @@ class SubscriptionTest {
     }
 
     @Test fun copyWithout() {
-        assertArrayEquals(arrayOf(1, 2), arrayOf(0, 1, 2).copyOfWithout(0))
-        assertArrayEquals(arrayOf(0, 2), arrayOf(0, 1, 2).copyOfWithout(1))
-        assertArrayEquals(arrayOf(0, 1), arrayOf(0, 1, 2).copyOfWithout(2))
+        assertArrayEquals(arrayOf(1, 2), arrayOf(0, 1, 2).copyOfWithout(0, emptyArray()))
+        assertArrayEquals(arrayOf(0, 2), arrayOf(0, 1, 2).copyOfWithout(1, emptyArray()))
+        assertArrayEquals(arrayOf(0, 1), arrayOf(0, 1, 2).copyOfWithout(2, emptyArray()))
     }
 
     @Test fun withoutNulls() {
-        assertArrayEquals(emptyArray(), arrayOf<Any?>(null).withoutNulls())
-        assertArrayEquals(emptyArray(), arrayOf<Any?>(null, null).withoutNulls())
-        assertArrayEquals(arrayOf(0, 1, 2), arrayOf<Any?>(0, null, 1, null, 2).withoutNulls())
-        assertArrayEquals(arrayOf(0, 2), arrayOf<Any?>(0, null, null, null, 2).withoutNulls())
-        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, 1, null).withoutNulls())
-        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, null, null, 1, null).withoutNulls())
-        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, 3, 4).withoutNulls())
-        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, null, 3, null, 4).withoutNulls())
+        assertArrayEquals(emptyArray(), arrayOf<Any?>(null).withoutNulls(emptyArray()))
+        assertArrayEquals(emptyArray(), arrayOf<Any?>(null, null).withoutNulls(emptyArray()))
+        assertArrayEquals(arrayOf(0, 1, 2), arrayOf<Any?>(0, null, 1, null, 2).withoutNulls(emptyArray()))
+        assertArrayEquals(arrayOf(0, 2), arrayOf<Any?>(0, null, null, null, 2).withoutNulls(emptyArray()))
+        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, 1, null).withoutNulls(emptyArray()))
+        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, null, null, 1, null).withoutNulls(emptyArray()))
+        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, 3, 4).withoutNulls(emptyArray()))
+        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, null, 3, null, 4).withoutNulls(emptyArray()))
     }
 
 }

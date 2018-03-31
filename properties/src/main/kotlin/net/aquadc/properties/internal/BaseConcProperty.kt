@@ -20,110 +20,78 @@ abstract class BaseConcProperty<out T> : Property<T> {
 
 abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
 
-    @Volatile @Suppress("UNCHECKED_CAST") // it's safe, I PROVE IT
-    private var listeners: Triple<
-            @ParameterName("notifying") Boolean,
-            @ParameterName("listeners") Listeners<T>,
-            @ParameterName("pendingValues") Array<Any?>?
-            > = InitialListeners as Triple<Boolean, Listeners<T>, Array<Any?>>
+    @Volatile
+    private var listeners: ConcListeners = ConcListeners.NoListeners
 
     final override fun addChangeListener(onChange: ChangeListener<T>) {
-        listenersUpdater<T>().update(this) { (notifying, listeners, pending) ->
-            Triple(notifying, listeners.with(onChange), pending)
-        }
+        listenersUpdater<T>().update(this) { it.withListener(onChange) }
     }
     final override fun removeChangeListener(onChange: ChangeListener<T>) {
-        listenersUpdater<T>().update(this) { (notifying, listeners, pending) ->
-            val idx = listeners.indexOf(onChange)
-            if (idx < 0) return
-
-            val newListeners = if (notifying) {
-                listeners.clone().also { it[idx] = null }
-            } else {
-                listeners.copyOfWithout(idx)
-            }
-
-            Triple(notifying, newListeners, pending)
-        }
+        listenersUpdater<T>().update(this) { it.withoutListener(onChange) }
     }
 
     /**
      * Sophisticated thing, see [net.aquadc.properties.internal.UnsListeners.valueChanged].
      */
     protected fun valueChanged(old: Any?, new: Any?) {
-        old as T; new as T
-
-        val (_, listeners) = listenersUpdater<T>().get(this)
-
-        // if we have no one to notify, just give up
-        if (listeners.isEmpty()) return
-
-        var meNotifying = false
-
-        listenersUpdater<T>().update(this) { (notifying, listeners, pending) ->
-            if (notifying) {
-                meNotifying = false
-                Triple(notifying, listeners, pending.with(new))
-            } else {
-                meNotifying = true
-                Triple(true, listeners, pending)
+        val oldListeners = listenersUpdater<T>().iGetAndUpdate(this) {
+            if (it.listeners.isEmpty()) {
+                return // if we have no one to notify, just give up
             }
+
+            it.withNextValue(new)
         }
 
-        if (!meNotifying) return // other `valueChanged` is on the stack.
+        if (oldListeners.notifying) {
+            return // other `valueChanged` is on the stack, [new] was added to pending values
+        }
 
-        // notifying is true now
+        // notifying is true now, it's a kind of lock
         notify(old, new)
 
-        var older = new
+        // done, but now we may have some pending values
+
+        var prev = new
         while (true) {
             val state = listenersUpdater<T>().get(this)
-            val (updating, listeners, pending) = state
-            check(updating)
+            val update = state.next()
+            if (!listenersUpdater<T>().compareAndSet(this, state, update)) {
+                continue
+            }
 
-            if (pending.isEmpty()) {
-                // all pending notified, reset 'notifying' flag and remove nulled out listeners
-                val update = Triple(false, listeners.withoutNulls(), /* empty array */pending)
-                if (listenersUpdater<T>().compareAndSet(this, state, update)) {
-                    return
-                }
+            if (update.notifying) {
+                // now we've removed pending[0] from queue, let's notify
+                val current = state.pendingValues[0] // take a pending value from prev state
+                notify(prev, current)
+                prev = current
             } else {
-                val update = Triple(true, listeners, pending.copyOfWithout(0))
-                if (listenersUpdater<T>().compareAndSet(this, state, update)) {
-                    // now we've removed pending[0] from queue, let's notify
-                    val newer = pending[0]
-                    notify(older, newer)
-                    older = newer
-                }
+                // all pending notified, 'notifying' flag is reset, nulled out listeners are removed
+                check(update.pendingValues.isEmpty())
+                check(!update.listeners.contains(null))
+                return // success! go home.
             }
         }
     }
 
     private fun notify(old: Any?, new: Any?) {
-        old as T; new as T
-
         var i = 0
-        // read volatile size on every step, it's important!
-        while (i < listenersUpdater<T>().get(this).second.size) {
-            listenersUpdater<T>().get(this).second[i]?.invoke(old, new)
+        var listeners = listenersUpdater<T>().get(this).listeners
+        while (i < listeners.size) {
+            listeners[i]?.invoke(old, new)
+
+            // read volatile listeners on every step, they may be added or nulled out!
+            listeners = listenersUpdater<T>().get(this).listeners
             i++
         }
     }
 
     private companion object {
         @JvmField
-        val NoListeners = emptyArray<ChangeListener<*>>()
-        @JvmField
-        val InitialListeners = Triple(false, NoListeners, emptyArray<Any?>())
-
-        @JvmField
-        val listenersUpdater: AtomicReferenceFieldUpdater<ConcPropListeners<*>, Triple<*, *, *>> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcPropListeners::class.java, Triple::class.java, "listeners")
+        val listenersUpdater: AtomicReferenceFieldUpdater<ConcPropListeners<*>, ConcListeners> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcPropListeners::class.java, ConcListeners::class.java, "listeners")
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         inline fun <T> listenersUpdater() =
-                listenersUpdater as AtomicReferenceFieldUpdater<BaseConcProperty<T>, Triple<Boolean, Listeners<T>, Array<Any?>>>
+                listenersUpdater as AtomicReferenceFieldUpdater<BaseConcProperty<T>, ConcListeners>
     }
 
 }
-
-private typealias Listeners<T> = Array<ChangeListener<T>?>
