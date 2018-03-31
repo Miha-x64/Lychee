@@ -54,7 +54,10 @@ class ConcMutableProperty<T>(
         oldSample?.removeChangeListener(onChangeInternal)
     }
 
-    private val onChangeInternal: (T, T) -> Unit = this::valueChanged
+    private var _onChangeInternal: ((T, T) -> Unit)? = null
+
+    private val onChangeInternal: (T, T) -> Unit // non-thread-safe lazy, which is totally OK in this case
+        get() = _onChangeInternal ?: { old: T, new: T -> valueChanged(old, new) }.also { _onChangeInternal = it }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
