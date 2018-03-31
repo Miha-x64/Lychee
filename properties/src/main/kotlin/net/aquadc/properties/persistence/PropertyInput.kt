@@ -17,12 +17,6 @@ class PropertyInput(
     override fun byte(prop: MutableProperty<Byte>) {
         prop.value = input.readByte()
     }
-    override fun short(prop: MutableProperty<Short>) {
-        prop.value = input.readShort()
-    }
-    override fun char(prop: MutableProperty<Char>) {
-        prop.value = input.readChar()
-    }
     override fun int(prop: MutableProperty<Int>) {
         prop.value = input.readInt()
     }
@@ -38,9 +32,6 @@ class PropertyInput(
 
     override fun bytes(prop: MutableProperty<ByteArray>) {
         prop.value = ByteArray(input.readInt()).also(input::readFully)
-    }
-    override fun shorts(prop: MutableProperty<ShortArray>) {
-        prop.value = ShortArray(input.readInt()) { input.readShort() }
     }
     override fun chars(prop: MutableProperty<CharArray>) {
         prop.value = CharArray(input.readInt()) { input.readChar() }
@@ -60,9 +51,6 @@ class PropertyInput(
 
     override fun string(prop: MutableProperty<String>) {
         prop.value = input.readUTF()
-    }
-    override fun stringArr(prop: MutableProperty<Array<String>>) {
-        prop.value = Array(input.readInt()) { input.readUTF() }
     }
     override fun stringList(prop: MutableProperty<List<String>>) {
         prop.value = List(input.readInt()) { input.readUTF() }

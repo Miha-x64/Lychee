@@ -16,12 +16,6 @@ class PropertyOutput(
     override fun byte(prop: MutableProperty<Byte>) {
         output.writeByte(prop.value.toInt())
     }
-    override fun short(prop: MutableProperty<Short>) {
-        output.writeShort(prop.value.toInt())
-    }
-    override fun char(prop: MutableProperty<Char>) {
-        output.writeChar(prop.value.toInt())
-    }
     override fun int(prop: MutableProperty<Int>) {
         output.writeInt(prop.value)
     }
@@ -39,11 +33,6 @@ class PropertyOutput(
         val value = prop.value
         output.writeInt(value.size)
         output.write(value)
-    }
-    override fun shorts(prop: MutableProperty<ShortArray>) {
-        val value = prop.value
-        output.writeInt(value.size)
-        value.forEach { output.writeShort(it.toInt()) }
     }
     override fun chars(prop: MutableProperty<CharArray>) {
         val value = prop.value
@@ -73,11 +62,6 @@ class PropertyOutput(
 
     override fun string(prop: MutableProperty<String>) {
         output.writeUTF(prop.value)
-    }
-    override fun stringArr(prop: MutableProperty<Array<String>>) {
-        val value = prop.value
-        output.writeInt(value.size)
-        value.forEach(output::writeUTF)
     }
     override fun stringList(prop: MutableProperty<List<String>>) {
         val value = prop.value
