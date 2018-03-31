@@ -5,7 +5,7 @@ import net.aquadc.properties.Property
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 /**
- * Base class for concurrent properties.
+ * Base class for concurrent properties. Despite class is public, this is private API.
  * I don't like implementation inheritance, but it is more lightweight than composition.
  */
 abstract class BaseConcProperty<out T> : Property<T> {
@@ -18,6 +18,9 @@ abstract class BaseConcProperty<out T> : Property<T> {
 
 }
 
+/**
+ * Base class containing concurrent props' listeners. Despite class is public, this is private API.
+ */
 abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
 
     @Volatile
