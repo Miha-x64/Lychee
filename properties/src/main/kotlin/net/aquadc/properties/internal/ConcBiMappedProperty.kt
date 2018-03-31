@@ -8,7 +8,7 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
         a: Property<A>,
         b: Property<B>,
         private val transform: (A, B) -> T
-) : ConcPropListeners<T>() {
+) : ConcPropNotifier<T>() {
 
     init {
         check(a.isConcurrent)
@@ -31,7 +31,7 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
     internal fun recalculate(newA: A, newB: B) {
         val new = transform(newA, newB)
         val old = valueUpdater<T>().getAndSet(this, new)
-        valueChanged(old, new)
+        valueChanged(old, new, null)
     }
 
     private companion object {

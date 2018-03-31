@@ -9,7 +9,7 @@ class ConcMappedProperty<in O, out T>(
         original: Property<O>,
         map: (O) -> T,
         mapOn: Worker
-) : ConcPropListeners<T>() {
+) : ConcPropNotifier<T>() {
 
     init {
         check(original.isConcurrent)
@@ -22,7 +22,7 @@ class ConcMappedProperty<in O, out T>(
     init {
         val onValueMapped = { new: T ->
             val old = valueUpdater<T>().getAndSet(this, new)
-            valueChanged(old, new)
+            valueChanged(old, new, null)
         }
 
         original.addChangeListener { _, new ->

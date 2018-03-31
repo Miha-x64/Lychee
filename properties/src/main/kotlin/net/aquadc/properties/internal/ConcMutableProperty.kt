@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  */
 class ConcMutableProperty<T>(
         value: T
-) : ConcPropListeners<T>(), MutableProperty<T> {
+) : ConcPropNotifier<T>(), MutableProperty<T> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
@@ -22,7 +22,7 @@ class ConcMutableProperty<T>(
         set(newValue) {
             dropBinding()
             val old: T = valueUpdater<T>().getAndSet(this, newValue)
-            valueChanged(old, newValue)
+            valueChanged(old, newValue, null)
         }
 
     @Volatile @Suppress("UNUSED")
@@ -36,13 +36,13 @@ class ConcMutableProperty<T>(
 
         val new = sample.value
         val old = valueUpdater<T>().getAndSet(this, new)
-        valueChanged(old, new)
+        valueChanged(old, new, null)
     }
 
     override fun casValue(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueUpdater<T>().compareAndSet(this, expect, update)) {
-            valueChanged(expect, update)
+            valueChanged(expect, update, null)
             true
         } else {
             false
@@ -57,7 +57,7 @@ class ConcMutableProperty<T>(
     private var _onChangeInternal: ((T, T) -> Unit)? = null
 
     private val onChangeInternal: (T, T) -> Unit // non-thread-safe lazy, which is totally OK in this case
-        get() = _onChangeInternal ?: { old: T, new: T -> valueChanged(old, new) }.also { _onChangeInternal = it }
+        get() = _onChangeInternal ?: { old: T, new: T -> valueChanged(old, new, null) }.also { _onChangeInternal = it }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
