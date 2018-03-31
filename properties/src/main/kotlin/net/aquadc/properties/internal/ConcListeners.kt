@@ -1,16 +1,19 @@
 package net.aquadc.properties.internal
 
+/**
+ * This is internal API, despite the class is public.
+ */
 @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-internal class ConcListeners(
+class ConcListeners<out T>(
         @JvmField val notifying: Boolean,
         @JvmField val listeners: Array<Any?>,
-        @JvmField val pendingValues: Array<Any?>
+        @JvmField val pendingValues: Array<out T>
 ) {
 
-    fun withListener(newListener: Any): ConcListeners =
+    fun withListener(newListener: Any): ConcListeners<T> =
             ConcListeners(notifying, listeners.with(newListener), pendingValues)
 
-    fun withoutListener(victim: Any): ConcListeners {
+    fun withoutListener(victim: Any): ConcListeners<T> {
         val idx = listeners.indexOf(victim)
         if (idx < 0) {
             return this
@@ -33,18 +36,18 @@ internal class ConcListeners(
             ConcListeners(notifying, newListeners, pendingValues)
     }
 
-    fun withNextValue(newValue: Any?): ConcListeners =
+    fun withNextValue(newValue: Any?): ConcListeners<T> =
             if (notifying) {
-                ConcListeners(notifying, listeners, pendingValues.with(newValue))
+                ConcListeners(notifying, listeners, pendingValues.with(newValue) as Array<out T>)
             } else {
                 ConcListeners(true, listeners, pendingValues)
             }
 
-    fun next(): ConcListeners {
+    fun next(): ConcListeners<T> {
         check(notifying)
         val notifyMore: Boolean
         val listeners: Array<Any?>
-        val pendingValues: Array<Any?>
+        val pendingValues: Array<out T>
 
         if (this.pendingValues.isEmpty()) {
             notifyMore = false
@@ -53,7 +56,7 @@ internal class ConcListeners(
         } else {
             notifyMore = true
             listeners = this.listeners
-            pendingValues = this.pendingValues.copyOfWithout(0, EmptyArray)
+            pendingValues = this.pendingValues.copyOfWithout(0, EmptyArray) as Array<out T>
         }
 
         return ConcListeners(notifyMore, listeners, pendingValues)
@@ -61,7 +64,7 @@ internal class ConcListeners(
 
     companion object {
         @JvmField val EmptyArray = emptyArray<Any?>()
-        @JvmField val NoListeners = ConcListeners(false, EmptyArray, EmptyArray)
+        @JvmField val NoListeners = ConcListeners(false, EmptyArray, EmptyArray) as ConcListeners<Nothing>
     }
 
 }

@@ -51,12 +51,15 @@ abstract class UnsListeners<out T> : Property<T> {
 
     /**
      * It's a tricky one.
-     * First, while notifying, can't remove listeners from ArrayList
-     * because this will break indices; may null out them instead.
-     * Second, can't update value while notifying: this will lead to stack overflow.
-     * Must persist all pending values and deliver them later.
+     *
+     * First, while notifying, can't remove listeners from the List because this will break indices
+     * which are being used for iteration; nulling out removed listeners instead.
+     *
+     * Second, can't update value and trigger notification while already notifying:
+     * this will lead to stack overflow and/or sequentially-inconsistent notifications;
+     * must persist all pending values and deliver them later.
      */
-    protected fun valueChanged(old: /*T*/ Any?, new: /*T*/ Any?) {
+    protected fun valueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T) {
         // if we have no one to notify, just give up
         if (listeners == null) return
 
@@ -69,7 +72,7 @@ abstract class UnsListeners<out T> : Property<T> {
                 pendingValues = pending
             }
 
-            pending.add(new as T)
+            pending.add(new)
             return
         }
 
@@ -96,8 +99,7 @@ abstract class UnsListeners<out T> : Property<T> {
         }
     }
 
-    private fun notify(old: Any?, new: Any?) {
-        old as T; new as T
+    private fun notify(old: T, new: T) {
         val listeners = listeners ?: return
 
         var i = 0
