@@ -67,7 +67,7 @@ inline fun <T> MutableProperty<T>.getAndUpdate(updater: (old: T) -> T): T {
     do {
         prev = value
         next = updater(prev)
-    } while (!cas(prev, next))
+    } while (!casValue(prev, next))
     return prev
 }
 
@@ -80,7 +80,7 @@ inline fun <T> MutableProperty<T>.updateAndGet(updater: (old: T) -> T): T {
     do {
         prev = value
         next = updater(prev)
-    } while (!cas(prev, next))
+    } while (!casValue(prev, next))
     return next
 }
 
@@ -93,5 +93,5 @@ inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
     do {
         prev = value
         next = updater(prev)
-    } while (!cas(prev, next))
+    } while (!casValue(prev, next))
 }
