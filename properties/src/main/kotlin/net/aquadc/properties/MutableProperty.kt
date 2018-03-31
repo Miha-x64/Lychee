@@ -18,6 +18,6 @@ interface MutableProperty<T> : Property<T> {
     /**
      * CompareAndSet value atomically. Will break binding, if any.
      */
-    fun cas(expect: T, update: T): Boolean
+    fun casValue(expect: T, update: T): Boolean
 
 }

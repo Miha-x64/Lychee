@@ -48,7 +48,7 @@ class UnsMutableProperty<T>(
         valueChanged(old, new)
     }
 
-    override fun cas(expect: T, update: T): Boolean {
+    override fun casValue(expect: T, update: T): Boolean {
         checkThread()
         dropBinding()
         return if (valueRef === expect) {

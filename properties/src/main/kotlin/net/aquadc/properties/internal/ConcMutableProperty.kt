@@ -39,7 +39,7 @@ class ConcMutableProperty<T>(
         valueChanged(old, new)
     }
 
-    override fun cas(expect: T, update: T): Boolean {
+    override fun casValue(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueUpdater<T>().compareAndSet(this, expect, update)) {
             valueChanged(expect, update)
