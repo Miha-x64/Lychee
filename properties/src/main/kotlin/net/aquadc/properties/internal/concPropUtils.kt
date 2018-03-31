@@ -12,17 +12,6 @@ internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.update(zis: T, upda
     } while (!compareAndSet(zis, prev, next))
 }
 
-// 'i' is for 'inline', don't shadow 'getAndUpdate'
-internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.iGetAndUpdate(zis: T, update: (V) -> V): V {
-    var prev: V
-    var next: V
-    do {
-        prev = get(zis)
-        next = update(prev)
-    } while (!compareAndSet(zis, prev, next))
-    return prev
-}
-
 internal fun Array<*>.with(lastElement: Any?): Array<Any?> {
     val size = size
     val new = arrayOfNulls<Any>(size + 1)
@@ -41,9 +30,10 @@ internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>):
     return new
 }
 
-internal fun Array<Any?>.withoutNulls(canonicalEmptyArray: Array<Any?>): Array<Any?> {
+@Suppress("UNCHECKED_CAST")
+internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>): Array<T> {
     val nulls = count { it == null }
-    if (nulls == 0) return this
+    if (nulls == 0) return this as Array<T> // it safe since there are no actual nulls
 
     val newSize = size - nulls
     if (newSize == 0) return canonicalEmptyArray
@@ -52,5 +42,5 @@ internal fun Array<Any?>.withoutNulls(canonicalEmptyArray: Array<Any?>): Array<A
     var destPos = 0
     forEach { if (it != null) newArray[destPos++] = it }
 
-    return newArray
+    return newArray as Array<T> // not actually T[], but it's OK
 }

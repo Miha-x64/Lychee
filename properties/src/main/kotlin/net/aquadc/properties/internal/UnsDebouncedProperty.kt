@@ -32,8 +32,7 @@ class UnsDebouncedProperty<out T>(
     }
 
     @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
-    internal fun onChange(old: Any?, new: Any?) {
-        old as T; new as T
+    internal fun onChange(old: @UnsafeVariance T, new: @UnsafeVariance T) {
         val it = pending
         val reallyOld = if (it == null) old else {
             val f = it.second

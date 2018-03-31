@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 class ConcMultiMappedProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
-) : ConcPropListeners<T>() {
+) : ConcPropNotifier<T>() {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: Pair<List<A>, T>
@@ -41,7 +41,7 @@ class ConcMultiMappedProperty<in A, out T>(
 
         val ov = old.second
         val nv = new.second
-        valueChanged(ov, nv)
+        valueChanged(ov, nv, null)
     }
 
     private companion object {
