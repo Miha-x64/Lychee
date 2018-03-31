@@ -19,12 +19,13 @@ abstract class BaseConcProperty<out T> : Property<T> {
 }
 
 /**
- * Base class containing concurrent props' listeners. Despite class is public, this is private API.
+ * Base class containing concurrent props' listeners & notification logic.
+ * Despite class is public, this is private API.
  */
 abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
 
-    @Volatile
-    private var listeners: ConcListeners = ConcListeners.NoListeners
+    @Volatile @Suppress("UNUSED")
+    private var listeners: ConcListeners<T> = ConcListeners.NoListeners
 
     final override fun addChangeListener(onChange: ChangeListener<T>) {
         listenersUpdater<T>().update(this) { it.withListener(onChange) }
@@ -36,7 +37,7 @@ abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
     /**
      * Sophisticated thing, see [net.aquadc.properties.internal.UnsListeners.valueChanged].
      */
-    protected fun valueChanged(old: Any?, new: Any?) {
+    protected fun valueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T) {
         val oldListeners = listenersUpdater<T>().iGetAndUpdate(this) {
             if (it.listeners.isEmpty()) {
                 return // if we have no one to notify, just give up
@@ -77,11 +78,11 @@ abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
     }
 
     @Suppress("UNCHECKED_CAST") // [old] and [new] are [T], listeners is Object[] with listeners, I'm 146% sure
-    private fun notify(old: Any?, new: Any?) {
+    private fun notify(old: T, new: T) {
         var i = 0
         var listeners = listenersUpdater<T>().get(this).listeners
         while (i < listeners.size) {
-            (listeners[i] as ChangeListener<Any?>?)?.invoke(old, new)
+            (listeners[i] as ChangeListener<T>?)?.invoke(old, new)
 
             // read volatile listeners on every step, they may be added or nulled out!
             listeners = listenersUpdater<T>().get(this).listeners
@@ -89,13 +90,13 @@ abstract class ConcPropListeners<out T> : BaseConcProperty<T>() {
         }
     }
 
-    private companion object {
+    protected companion object {
         @JvmField
-        val listenersUpdater: AtomicReferenceFieldUpdater<ConcPropListeners<*>, ConcListeners> =
+        val listenersUpdater: AtomicReferenceFieldUpdater<ConcPropListeners<*>, ConcListeners<*>> =
                 AtomicReferenceFieldUpdater.newUpdater(ConcPropListeners::class.java, ConcListeners::class.java, "listeners")
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         inline fun <T> listenersUpdater() =
-                listenersUpdater as AtomicReferenceFieldUpdater<BaseConcProperty<T>, ConcListeners>
+                listenersUpdater as AtomicReferenceFieldUpdater<BaseConcProperty<T>, ConcListeners<T>>
     }
 
 }
