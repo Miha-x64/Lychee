@@ -28,7 +28,7 @@ interface Property<out T> {
 
     /**
      * Unsubscribe from value changes.
-     * It [onChange] is not registered as a listener, does nothing.
+     * If [onChange] is not registered as a listener, does nothing.
      */
     fun removeChangeListener(onChange: ChangeListener<T>)
 
