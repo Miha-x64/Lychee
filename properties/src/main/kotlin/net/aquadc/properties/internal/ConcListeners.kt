@@ -45,7 +45,6 @@ class ConcListeners<out L : Any, out T>(
         val listeners: Array<out L?>
         val pendingValues: Array<out T>
 
-        println(this.pendingValues.asList())
         if (this.pendingValues.size == 1) { // 1 means empty
             notifyMore = false
             listeners = (this.listeners as Array<L?>).withoutNulls(EmptyArray as Array<L>)
