@@ -12,7 +12,8 @@ class UnsMutableProperty<T>(
 ) : UnsListeners<T>(), MutableProperty<T> {
 
     private var _notifyAllFunc: ((T, T) -> Unit)? = null
-    private val notifyAllFunc: (T, T) -> Unit = _notifyAllFunc ?: ::valueChanged.also { _notifyAllFunc = it }
+    private val notifyAllFunc: (T, T) -> Unit
+        get() = _notifyAllFunc ?: { old: T, new: T -> valueChanged(old, new) }.also { _notifyAllFunc = it }
 
     var valueRef: T = value
 
