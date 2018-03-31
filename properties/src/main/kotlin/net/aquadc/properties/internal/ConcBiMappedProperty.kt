@@ -1,13 +1,12 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
 internal class ConcBiMappedProperty<in A, in B, out T>(
-        private val a: Property<A>,
-        private val b: Property<B>,
+        a: Property<A>,
+        b: Property<B>,
         private val transform: (A, B) -> T
 ) : ConcPropListeners<T>() {
 
@@ -19,16 +18,14 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
     }
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef = transform(a.getValue(), b.getValue())
+    private var valueRef = transform(a.value, b.value)
     init {
-        val a = a
-        val b = b
-        a.addChangeListener { _, new -> recalculate(new, b.getValue()) }
-        b.addChangeListener { _, new -> recalculate(a.getValue(), new) }
+        a.addChangeListener { _, new -> recalculate(new, b.value) }
+        b.addChangeListener { _, new -> recalculate(a.value, new) }
     }
 
-    override fun getValue(): T =
-            valueUpdater<T>().get(this)
+    override val value: T
+        get() = valueUpdater<T>().get(this)
 
     @Suppress("MemberVisibilityCanBePrivate") // produce no access$
     internal fun recalculate(newA: A, newB: B) {

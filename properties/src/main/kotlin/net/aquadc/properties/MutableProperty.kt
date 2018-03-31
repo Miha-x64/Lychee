@@ -6,9 +6,10 @@ package net.aquadc.properties
 interface MutableProperty<T> : Property<T> {
 
     /**
-     * Changes value and notifies listeners. Will break current binding, if any.
+     * Current value.
+     * Setter changes it and notifies listeners. Will break current binding, if any.
      */
-    fun setValue(newValue: T)
+    override var value: T
 
     /**
      * Bind this property's value to [sample]'s value.

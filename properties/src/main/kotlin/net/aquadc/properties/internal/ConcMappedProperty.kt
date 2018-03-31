@@ -17,7 +17,7 @@ class ConcMappedProperty<in O, out T>(
     }
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef = map(original.getValue())
+    private var valueRef = map(original.value)
 
     init {
         val onValueMapped = { new: T ->
@@ -30,8 +30,8 @@ class ConcMappedProperty<in O, out T>(
         }
     }
 
-    override fun getValue(): T =
-            valueUpdater<T>().get(this)
+    override val value: T
+        get() = valueUpdater<T>().get(this)
 
     private companion object {
         @JvmField

@@ -17,14 +17,15 @@ class UnsMultiMappedProperty<in A, out T>(
             }
         }
 
-        val values = properties.map(Property<A>::getValue)
+        val values = properties.map(Property<A>::value)
         _value = Pair(values, transform(values))
     }
 
-    override fun getValue(): T {
-        checkThread()
-        return _value.second
-    }
+    override val value: T
+        get() {
+            checkThread()
+            return _value.second
+        }
 
     @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
     internal fun set(index: Int, value: A) {

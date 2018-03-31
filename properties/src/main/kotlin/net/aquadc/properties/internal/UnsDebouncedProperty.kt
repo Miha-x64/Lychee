@@ -48,9 +48,10 @@ class UnsDebouncedProperty<out T>(
         }, delay, unit))
     }
 
-    override fun getValue(): T {
-        checkThread()
-        return original.getValue()
-    }
+    override val value: T
+        get() {
+            checkThread()
+            return original.value
+        }
 
 }

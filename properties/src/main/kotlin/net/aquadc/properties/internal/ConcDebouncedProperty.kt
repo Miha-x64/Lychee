@@ -23,8 +23,8 @@ class ConcDebouncedProperty<out T>(
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
 
-    override fun getValue(): T =
-            original.getValue()
+    override val value: T
+        get() = original.value
 
     private val listeners = CopyOnWriteArrayList<Pair<Executor, ChangeListener<T>>>()
 

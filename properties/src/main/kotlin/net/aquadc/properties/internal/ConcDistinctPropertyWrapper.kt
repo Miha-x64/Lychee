@@ -19,7 +19,7 @@ class ConcDistinctPropertyWrapper<out T>(
         }
     }
 
-    override fun getValue(): T =
-            original.getValue()
+    override val value: T
+        get() = original.value
 
 }

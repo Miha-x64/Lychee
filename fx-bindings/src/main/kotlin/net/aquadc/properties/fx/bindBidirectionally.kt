@@ -1,11 +1,10 @@
 package net.aquadc.properties.fx
 
 import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.value
 import javafx.beans.property.Property as FxProperty
 
 fun <T> FxProperty<T>.bindBidirectionally(that: MutableProperty<T>) {
-    value = that.getValue()
+    this.value = that.value
     var mutatingThis = false
     var mutatingThat = false
 
