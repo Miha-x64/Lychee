@@ -23,37 +23,34 @@ internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.iGetAndUpdate(zis: 
     return prev
 }
 
-@Suppress("UNCHECKED_CAST") // if T is not nullable, this array element type won't be nullable too
-internal inline fun <reified T> Array<T>.with(lastElement: T): Array<T> {
+internal fun Array<*>.with(lastElement: Any?): Array<Any?> {
     val size = size
-    val new = arrayOfNulls<T>(size + 1)
+    val new = arrayOfNulls<Any>(size + 1)
     System.arraycopy(this, 0, new, 0, size)
     new[size] = lastElement
-    return new as Array<T>
+    return new
 }
 
-@Suppress("UNCHECKED_CAST") // same here
-internal inline fun <reified T> Array<T>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<T>): Array<T> {
+internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>): Array<Any?> {
     val oldSize = size
     if (idx == 0 && oldSize == 1) return canonicalEmptyArray
 
-    val new = arrayOfNulls<T>(oldSize-1)
+    val new = arrayOfNulls<Any>(oldSize-1)
     System.arraycopy(this, 0, new, 0, idx)
     System.arraycopy(this, idx+1, new, idx, oldSize-idx-1)
-    return new as Array<T>
+    return new
 }
 
-@Suppress("UNCHECKED_CAST")
-internal inline fun <reified T> Array<T>.withoutNulls(canonicalEmptyArray: Array<T>): Array<T> {
+internal fun Array<Any?>.withoutNulls(canonicalEmptyArray: Array<Any?>): Array<Any?> {
     val nulls = count { it == null }
     if (nulls == 0) return this
 
     val newSize = size - nulls
     if (newSize == 0) return canonicalEmptyArray
 
-    val newArray = arrayOfNulls<T>(size - nulls)
+    val newArray = arrayOfNulls<Any>(size - nulls)
     var destPos = 0
     forEach { if (it != null) newArray[destPos++] = it }
 
-    return newArray as Array<T>
+    return newArray
 }
