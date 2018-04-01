@@ -1,0 +1,15 @@
+
+apply plugin: 'kotlin'
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compile project(':properties')
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.6"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.6"
+}

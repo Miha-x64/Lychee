@@ -20,7 +20,7 @@ before_install:
 #  - echo yes | sdkmanager "platforms;android-25" &>/dev/null
 
 script:
-  - ./gradlew clean :properties:test --info --stacktrace
+  - ./gradlew clean :properties:test :diff-properties:test --info --stacktrace
 
 #before_cache:
 #  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
