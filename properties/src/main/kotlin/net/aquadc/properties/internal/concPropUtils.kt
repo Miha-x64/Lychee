@@ -12,6 +12,16 @@ internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.update(zis: T, upda
     } while (!compareAndSet(zis, prev, next))
 }
 
+internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.updateUndGet(zis: T, update: (V) -> V): V {
+    var prev: V
+    var next: V
+    do {
+        prev = get(zis)
+        next = update(prev)
+    } while (!compareAndSet(zis, prev, next))
+    return next
+}
+
 internal fun Array<*>.with(lastElement: Any?): Array<Any?> {
     val size = size
     val new = arrayOfNulls<Any>(size + 1)
