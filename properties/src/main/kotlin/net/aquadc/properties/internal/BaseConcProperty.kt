@@ -35,51 +35,49 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : BaseConc
      * Sophisticated thing, see [net.aquadc.properties.internal.UnsListeners.valueChanged].
      */
     protected fun valueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D) {
-        val oldListeners = updateListeners(old, new, diff)
+        val oldListeners = enqueueUpdate(old, new, diff)
                 ?: return // nothing to notify
 
-        if (oldListeners.notifying)
-            return // other `valueChanged` is on the stack, [new] was added to pending values
+        if (oldListeners.pendingValues.isNotEmpty())
+            return // other [valueChanged] is on the stack or in parallel,
+                   // [new] was added to pending values and will be delivered soon
 
         /*
-         * [notifying] is true now, it's a kind of lock
-         * new values is added to pending list, let's deliver all the pending values
+         * [pendingValues] is not empty now, it's a kind of lock
+         * new values were added to pending list, let's deliver all the pending values,
+         * including those which will appear during the notification
          */
 
         var prev = old
         while (true) {
             val state = listenersUpdater().get(this)
 
-            if (state.notifying) {
-                // let's deliver pending[0]
-                val current = state.pendingValues[0] // take a pending value from prev state
-                val currentValue = unpackValue(current)
-                notifyAll(prev, currentValue, unpackDiff(current))
-                prev = currentValue
-            } else {
-                // all pending notified, 'notifying' flag is reset, nulled out listeners are removed
-                check(state.pendingValues.isEmpty())
-                check(!state.listeners.contains(null))
+            val current = state.pendingValues[0] // take a pending value from prev state
+            val currentValue = unpackValue(current)
+            notifyAll(prev, currentValue, unpackDiff(current))
+            prev = currentValue
+
+            // `pending[0]` is delivered, now remove it from our 'queue'
+
+            /*
+             * taking fresh state is safe because the only one thread/function is allowed to notify.
+             * Just remove our 'queue' head, but let anyone add pending values or listeners
+             */
+            val next = listenersUpdater()
+                    .updateUndGet(this, ConcListeners<LISTENER, UPDATE>::next)
+
+            if (next.pendingValues.isEmpty()) {
+                // all pending notified, nulled out listeners are removed
                 return // success! go home.
             }
-
-            // it's time to remove `pending[0]` or clear `notifying` flag
-
-            do {
-                val actualState = listenersUpdater().get(this)
-                // It's safe because the only one thread/function is allowed to notify.
-                // Just remove our 'queue' head
-            } while (!listenersUpdater().compareAndSet(this, actualState, actualState.next()))
         }
     }
 
     /**
-     * Update listeners state.
-     * If [ConcListeners.notifying] is `false`, will become `true`, old [ConcListeners] must be returned.
-     * If [ConcListeners.notifying] it `true`, new value will be changed added, old value must be returned.
-     * If there are no listeners, `null` must be returned.
+     * Enqueues [new] value. If no one notifies listeners right now, takes the right to do it.
+     * @return previous state, or `null`, if there's nothing to do
      */
-    private fun updateListeners(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D): ConcListeners<LISTENER, UPDATE>? {
+    private fun enqueueUpdate(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D): ConcListeners<LISTENER, UPDATE>? {
         var prev: ConcListeners<LISTENER, UPDATE>
         var next: ConcListeners<LISTENER, UPDATE>
         do {
@@ -88,13 +86,14 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : BaseConc
             if (prev.listeners.isEmpty())
                 return null // nothing to notify
 
-            if (prev.notifying) {
+            if (prev.pendingValues.isNotEmpty()) {
+                // other thread or stack performs notification at the moment
+
                 /*
                  * if another thread made value CAS earlier,
                  * but have not made CAS on listeners yet, just wait
                  */
 
-                check(prev.pendingValues.isNotEmpty()) // while notifying, pending cannot be empty
                 if (unpackValue(prev.pendingValues.last()) !== old) {
                     Thread.yield() // a bit of awful programming, yay!
                     // wait until other thread set its update, we can't help here
@@ -104,15 +103,16 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : BaseConc
 
             /*
              * at this point, either
-             * prev.notifying && prev.pendingValues.last().first == old
+             * prev.pendingValues.isNotEmpty() && prev.pendingValues.last().first == old
              * or
-             * !prev.notifying
+             * prev.pendingValues.isEmpty()
              */
 
             next = prev.withNextValue(pack(new, diff))
 
-            if (listenersUpdater().compareAndSet(this, prev, next))
+            if (listenersUpdater().compareAndSet(this, prev, next)) {
                 return prev
+            }
 
         } while (true)
     }
