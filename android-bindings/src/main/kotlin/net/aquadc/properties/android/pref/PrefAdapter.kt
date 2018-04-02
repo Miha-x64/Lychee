@@ -2,7 +2,9 @@ package net.aquadc.properties.android.pref
 
 import android.content.SharedPreferences
 
-
+/**
+ * Generic adapter to SharedPreferences#get* and SharedPreferences.Editor#set*.
+ */
 interface PrefAdapter<T> {
     fun read(prefs: SharedPreferences, key: String, default: T): T
     fun save(editor: SharedPreferences.Editor, key: String, value: T)
@@ -13,6 +15,9 @@ interface PrefAdapter<T> {
     fun isKeyFor(propKey: String, prefKey: String): Boolean
 }
 
+/**
+ * Adapts [SharedPreferences.getString] and [SharedPreferences.Editor.putString].
+ */
 object StringPrefAdapter : PrefAdapter<String> {
 
     override fun read(prefs: SharedPreferences, key: String, default: String): String =
