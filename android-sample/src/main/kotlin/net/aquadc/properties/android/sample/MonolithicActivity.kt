@@ -9,7 +9,6 @@ import android.widget.EditText
 import android.widget.TextView
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 import net.aquadc.properties.sample.logic.InMemoryUser
-import net.aquadc.properties.value
 import org.jetbrains.anko.*
 
 class MonolithicActivity : Activity() {
