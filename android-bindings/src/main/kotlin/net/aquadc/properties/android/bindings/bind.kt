@@ -32,7 +32,7 @@ class SafeBinding<T>(
     private val listener = { _: T, new: T -> bind(new) }
 
     override fun onViewAttachedToWindow(v: View) {
-        bind(property.getValue())
+        bind(property.value)
         property.addChangeListener(listener)
     }
 
