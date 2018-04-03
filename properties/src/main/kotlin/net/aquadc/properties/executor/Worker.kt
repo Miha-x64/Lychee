@@ -8,6 +8,7 @@ import java.util.concurrent.Executor
 interface Worker {
 
     fun <T, U> map(t: T, map: (T) -> U, callback: (U) -> Unit)
+    fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit)
 
 }
 
@@ -20,6 +21,10 @@ object InPlaceWorker : Worker {
         callback(map(t))
     }
 
+    override fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit) {
+        callback(map(t, u))
+    }
+
 }
 
 /**
@@ -30,6 +35,12 @@ class WorkerOnExecutor(private val executor: Executor) : Worker {
     override fun <T, U> map(t: T, map: (T) -> U, callback: (U) -> Unit) {
         executor.execute {
             callback(map(t))
+        }
+    }
+
+    override fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit) {
+        executor.execute {
+            callback(map(t, u))
         }
     }
 
