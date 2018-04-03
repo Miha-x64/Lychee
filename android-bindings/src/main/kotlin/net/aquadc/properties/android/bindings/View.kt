@@ -27,7 +27,7 @@ fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>) =
 
 @TargetApi(19)
 fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean>) {
-    attachedToWindowProperty.setValue(isAttachedToWindow)
+    attachedToWindowProperty.value = isAttachedToWindow
     addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {
             attachedToWindowProperty.set()
