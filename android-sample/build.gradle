@@ -58,10 +58,14 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     testImplementation 'junit:junit:4.12'
+
+    implementation 'com.android.support:recyclerview-v7:25.4.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'org.jetbrains.anko:anko-sdk21:0.10.1'
+    implementation 'org.jetbrains.anko:anko-sdk21:0.10.4'
+    implementation 'org.jetbrains.anko:anko-recyclerview-v7:0.10.4'
     implementation project(':android-bindings')
     implementation project(':logic-sample')
+    implementation project(':diff-properties')
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'

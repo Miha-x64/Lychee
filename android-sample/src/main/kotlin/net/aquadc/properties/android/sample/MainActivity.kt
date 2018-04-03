@@ -55,6 +55,10 @@ class MainActivity : Activity() {
 
             view().lparams(weight = 1f)
 
+            button("Show RecyclerView sample") {
+                setOnClickListener { startActivity(intentFor<RecyclerViewActivity>()) }
+            }
+
             button("Show Monolithic Activity") {
                 setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
             }
