@@ -5,7 +5,9 @@ import net.aquadc.properties.MutableProperty
 import java.util.*
 
 /**
- * Describes an object which can either save or restore 
+ * Describes an object which can either save or restore some data.
+ * Similar to [java.io.DataInput], [java.io.DataOutput] or `android.os.Parcel`,
+ * but uses the same API for reading and writing.
  */
 interface PropertyIo {
     /** Reads or writes a [Boolean] value */
