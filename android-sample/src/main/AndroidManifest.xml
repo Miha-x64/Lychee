@@ -23,6 +23,8 @@
 
         <activity android:name=".MonolithicActivity"/>
 
+        <activity android:name=".RecyclerViewActivity"/>
+
     </application>
 
 </manifest>
