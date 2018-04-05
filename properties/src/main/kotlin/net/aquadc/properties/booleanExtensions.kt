@@ -5,13 +5,13 @@ package net.aquadc.properties
  * Returns inverted view on this property.
  */
 inline operator fun Property<Boolean>.not() =
-        map(Not)
+        map(UnaryNotBinaryAnd)
 
 /**
  * Returns a view on [this] && [that].
  */
 inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, And)
+        mapWith(that, UnaryNotBinaryAnd)
 
 /**
  * Returns a view on [this] || [that].
@@ -51,10 +51,11 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
 
 // if we'd just use lambdas, they'd be copied into call-site
 
-@PublishedApi internal object Not : (Boolean) -> Boolean {
+@PublishedApi internal object UnaryNotBinaryAnd :
+        /* not: */ (Boolean) -> Boolean,
+        /* and: */ (Boolean, Boolean) -> Boolean {
+
     override fun invoke(p1: Boolean): Boolean = !p1
-}
-@PublishedApi internal object And : (Boolean, Boolean) -> Boolean {
     override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 && p2
 }
 @PublishedApi internal object Or : (Boolean, Boolean) -> Boolean {
