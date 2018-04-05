@@ -38,9 +38,9 @@ class ByteArrayPropertiesMemento : PropertiesMemento, Externalizable {
     fun copyValue(): ByteArray =
             bytes.clone()
 
-    companion object {
+    private companion object {
         private const val serialVersionUid: Long = 1
-        private val EMPTY = ByteArray(0)
+        @JvmField val EMPTY = ByteArray(0)
     }
 
 }
