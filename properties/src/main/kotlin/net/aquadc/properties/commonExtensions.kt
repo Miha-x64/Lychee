@@ -8,12 +8,17 @@ import net.aquadc.properties.internal.UnsDebouncedProperty
 import java.util.concurrent.TimeUnit
 
 
-inline fun <T> Property<T>.readOnlyView() = map { it }
+@Suppress("UNCHECKED_CAST")
+inline fun <T> Property<T>.readOnlyView() = map(Just as (T) -> T)
 
 inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) = when {
     !this.mayChange -> this
     !isConcurrent -> UnsDistinctPropertyWrapper(this, areEqual)
     else -> ConcDistinctPropertyWrapper(this, areEqual)
+}
+
+object Just : (Any?) -> Any? {
+    override fun invoke(p1: Any?): Any? = p1
 }
 
 object Identity : (Any?, Any?) -> Boolean {

@@ -23,13 +23,27 @@ inline fun <T> Iterable<Property<T>>.filterValues(crossinline predicate: (T) -> 
         mapValueList { it.filter(predicate) }
 
 inline fun <T> Iterable<Property<T>>.containsValue(value: T): Property<Boolean> =
-        mapValueList { it.contains(value) }
+        mapValueList(ContainsValue(value))
 
 inline fun <T> Iterable<Property<T>>.containsAllValues(values: Collection<T>): Property<Boolean> =
-        mapValueList { it.containsAll(values) }
+        mapValueList(ContainsAll(values))
 
 inline fun <T> Iterable<Property<T>>.allValues(crossinline predicate: (T) -> Boolean): Property<Boolean> =
         mapValueList { it.all(predicate) }
 
 inline fun <T> Iterable<Property<T>>.anyValue(crossinline predicate: (T) -> Boolean): Property<Boolean> =
         mapValueList { it.any(predicate) }
+
+// if we'd just use lambdas, they'd be copied into call-site
+
+@PublishedApi internal class ContainsValue<in T>(
+        private val value: T
+) : (List<T>) -> Boolean {
+    override fun invoke(p1: List<T>): Boolean = p1.contains(value)
+}
+
+@PublishedApi internal class ContainsAll<in T>(
+        private val values: Collection<T>
+) : (List<T>) -> Boolean {
+    override fun invoke(p1: List<T>): Boolean = p1.containsAll(values)
+}
