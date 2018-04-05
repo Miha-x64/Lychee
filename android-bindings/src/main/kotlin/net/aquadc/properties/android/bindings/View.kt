@@ -9,17 +9,13 @@ import net.aquadc.properties.set
 
 
 fun View.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>) =
-        bindViewTo(visibleProperty) {
-            visibility = if (it) View.VISIBLE else View.INVISIBLE
-        }
+        bindViewTo(visibleProperty, SetVisibilitySoftly)
 
 fun View.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>) =
-        bindViewTo(visibleProperty) {
-            visibility = if (it) View.VISIBLE else View.GONE
-        }
+        bindViewTo(visibleProperty, SetVisibilityHardly)
 
 fun View.bindEnabledTo(enabledProperty: Property<Boolean>) =
-        bindViewTo(enabledProperty, ::setEnabled)
+        bindViewTo(enabledProperty) { v, ena -> v.isEnabled = ena }
 
 
 fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>) =
@@ -36,4 +32,15 @@ fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean
             attachedToWindowProperty.clear()
         }
     })
+}
+
+private val SetVisibilitySoftly = SetVisibility(View.INVISIBLE)
+private val SetVisibilityHardly = SetVisibility(View.GONE)
+
+private class SetVisibility(
+        private val invisible: Int
+) : (View, Boolean) -> Unit {
+    override fun invoke(p1: View, p2: Boolean) {
+        p1.visibility = if (p2) View.VISIBLE else invisible
+    }
 }
