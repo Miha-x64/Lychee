@@ -21,10 +21,10 @@ inline val Property<CharSequence>.trimmed get() = map(TrimmedCharSeq)
     override fun invoke(p1: CharSequence): CharSequence = p1.trim()
 }
 
-@PublishedApi internal val CharSeqEmpty = CharSeqBooleanFunc(0)
-@PublishedApi internal val CharSeqNotEmpty = CharSeqBooleanFunc(1)
-@PublishedApi internal val CharSeqBlank = CharSeqBooleanFunc(2)
-@PublishedApi internal val CharSeqNotBlank = CharSeqBooleanFunc(3)
+@PublishedApi @JvmField internal val CharSeqEmpty = CharSeqBooleanFunc(0)
+@PublishedApi @JvmField internal val CharSeqNotEmpty = CharSeqBooleanFunc(1)
+@PublishedApi @JvmField internal val CharSeqBlank = CharSeqBooleanFunc(2)
+@PublishedApi @JvmField internal val CharSeqNotBlank = CharSeqBooleanFunc(3)
 @PublishedApi internal class CharSeqBooleanFunc(private val mode: Int) : (CharSequence) -> Boolean {
     override fun invoke(p1: CharSequence): Boolean = when (mode) {
         0 -> p1.isEmpty()
