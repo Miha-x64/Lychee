@@ -65,7 +65,6 @@ dependencies {
     implementation 'org.jetbrains.anko:anko-recyclerview-v7:0.10.4'
     implementation project(':android-bindings')
     implementation project(':logic-sample')
-    implementation project(':diff-properties')
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
