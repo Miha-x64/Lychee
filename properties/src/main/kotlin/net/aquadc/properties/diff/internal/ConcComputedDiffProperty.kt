@@ -18,14 +18,19 @@ class ConcComputedDiffProperty<T, D>(
 
         original.addChangeListener { old, new ->
             computeOn.map2(old, new, calculateDiff) {
-                value = new
-                valueChanged(old, new, it)
+                valueChangedAccess(old, new, it)
             }
         }
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
+    internal fun valueChangedAccess(old: T, new: T, diff: D) {
+        value = new
+        valueChanged(old, new, diff)
+    }
+
     @Volatile
     override var value: T = original.value
-        internal set
+        private set
 
 }
