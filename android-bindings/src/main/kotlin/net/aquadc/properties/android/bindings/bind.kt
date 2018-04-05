@@ -11,12 +11,14 @@ import net.aquadc.properties.Property
  * because I don't know any safe ways to check whether it is attached
  * and requires instantaneous binding and subscription or not.
  */
-fun <T> View.bindViewTo(property: Property<T>, bind: (new: T) -> Unit) {
+fun <V : View, T> V.bindViewTo(property: Property<T>, bind: (view: V, new: T) -> Unit) {
     if (Build.VERSION.SDK_INT >= 19 && isAttachedToWindow) {
-        throw IllegalStateException("Must bind view before it gets attached. Use onCreateView in Fragments.")
+        throw IllegalStateException(
+                "Must bind view before it gets attached. Use onCreateView instead of onViewCreated in Fragments."
+        )
     }
 
-    addOnAttachStateChangeListener(SafeBinding(property, bind))
+    addOnAttachStateChangeListener(SafeBinding(this, property, bind))
 }
 
 /**
@@ -24,20 +26,23 @@ fun <T> View.bindViewTo(property: Property<T>, bind: (new: T) -> Unit) {
  * * View gets attached to window
  * * [property]'s value gets changed while View is attached
  */
-class SafeBinding<T>(
+class SafeBinding<V : View, in T>(
+        private val view: V,
         private val property: Property<T>,
-        private val bind: (T) -> Unit
-) : View.OnAttachStateChangeListener {
+        private val bind: (V, T) -> Unit
+) : View.OnAttachStateChangeListener, (T, T) -> Unit {
 
-    private val listener = { _: T, new: T -> bind(new) }
+    override fun invoke(p1: T, p2: T) {
+        bind(view, p2)
+    }
 
     override fun onViewAttachedToWindow(v: View) {
-        bind(property.value)
-        property.addChangeListener(listener)
+        bind(view, property.value)
+        property.addChangeListener(this)
     }
 
     override fun onViewDetachedFromWindow(v: View) {
-        property.removeChangeListener(listener)
+        property.removeChangeListener(this)
     }
 
 }

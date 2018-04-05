@@ -4,6 +4,6 @@ import android.support.annotation.DrawableRes
 import android.support.annotation.StringRes
 
 class MessageAndIconRes(
-        @StringRes val messageRes: Int,
-        @DrawableRes val iconRes: Int
+        @JvmField @StringRes val messageRes: Int,
+        @JvmField @DrawableRes val iconRes: Int
 )

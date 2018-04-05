@@ -28,11 +28,18 @@ fun <T> TabLayout.bindTabsBidirectionally(
         prop: MutableProperty<T>,
         values: Array<T>
 ) {
-    addOnTabSelectedListener(object : SimpleOnTabSelectedListener() {
+    val listenerAndBinding = object : SimpleOnTabSelectedListener(), (TabLayout, T) -> Unit {
+
         override fun onTabSelected(tab: TabLayout.Tab) {
             prop.value = values[tab.position]
         }
-    })
 
-    bindViewTo(prop) { getTabAt(values.indexOf(it))!!.select() }
+        override fun invoke(p1: TabLayout, p2: T) {
+            p1.getTabAt(values.indexOf(p2))!!.select()
+        }
+
+    }
+
+    addOnTabSelectedListener(listenerAndBinding)
+    bindViewTo(prop, listenerAndBinding)
 }
