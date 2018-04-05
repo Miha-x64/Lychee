@@ -136,7 +136,7 @@ init {
     buttonEnabledProp.bindTo(usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid })
     buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
 
-    buttonClickedProp.takeEachAnd { userProp.value = editedUser.snapshot() }
+    buttonClickedProp.clearEachAnd { userProp.value = editedUser.snapshot() }
     // ^ reset flag and perform action
 }
 ```
