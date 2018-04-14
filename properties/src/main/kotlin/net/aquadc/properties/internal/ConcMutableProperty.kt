@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  */
 class ConcMutableProperty<T>(
         value: T
-) : ConcPropNotifier<T>(), MutableProperty<T> {
+) : PropNotifier<T>(null), MutableProperty<T> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value

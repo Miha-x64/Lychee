@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 class ConcMultiMappedProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
-) : ConcPropNotifier<T>() {
+) : PropNotifier<T>(null) {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: Pair<List<A>, T>

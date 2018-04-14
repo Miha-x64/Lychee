@@ -6,14 +6,14 @@ import net.aquadc.properties.Property
 class UnsDistinctPropertyWrapper<out T>(
         private val original: Property<T>,
         areEqual: (T, T) -> Boolean
-) : UnsListeners<T>() {
+) : PropNotifier<T>(Thread.currentThread()) {
 
     init {
         check(original.mayChange)
 
         original.addChangeListener { old, new ->
             if (!areEqual(old, new)) {
-                valueChanged(old, new)
+                valueChanged(old, new, null)
             }
         }
     }

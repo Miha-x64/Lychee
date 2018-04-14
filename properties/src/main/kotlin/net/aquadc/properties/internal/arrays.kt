@@ -9,7 +9,11 @@ internal fun Array<*>.with(lastElement: Any?): Array<Any?> {
     return new
 }
 
-internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>): Array<Any?> {
+@JvmName("copyOfWithoutNn")
+internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>): Array<Any?> =
+        copyOfWithout(idx, canonicalEmptyArray as Array<Any?>?) as Array<Any?>
+
+internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>?): Array<Any?>? {
     val oldSize = size
     if (idx == 0 && oldSize == 1) return canonicalEmptyArray
 
@@ -19,8 +23,12 @@ internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>):
     return new
 }
 
+@JvmName("withoutNullsNn")
+internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>): Array<T> =
+        withoutNulls<T>(canonicalEmptyArray as Array<T>?) as Array<T>
+
 @Suppress("UNCHECKED_CAST")
-internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>): Array<T> {
+internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>?): Array<T>? {
     val nulls = count { it == null }
     if (nulls == 0) return this as Array<T> // it safe since there are no actual nulls
 

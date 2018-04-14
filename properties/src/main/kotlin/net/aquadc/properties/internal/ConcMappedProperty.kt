@@ -9,7 +9,7 @@ class ConcMappedProperty<in O, out T>(
         original: Property<O>,
         map: (O) -> T,
         mapOn: Worker
-) : ConcPropNotifier<T>() {
+) : PropNotifier<T>(null) {
 
     init {
         check(original.isConcurrent)

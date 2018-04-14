@@ -6,7 +6,7 @@ import net.aquadc.properties.Property
 class ConcDistinctPropertyWrapper<out T>(
         private val original: Property<T>,
         areEqual: (T, T) -> Boolean
-) : ConcPropNotifier<T>() {
+) : PropNotifier<T>(null) {
 
     init {
         if (!original.mayChange)

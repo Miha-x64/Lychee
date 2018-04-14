@@ -14,7 +14,7 @@ class UnsDebouncedProperty<out T>(
         private val original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : UnsListeners<T>() {
+) : PropNotifier<T>(Thread.currentThread()) {
 
     @JvmField
     @Suppress("MemberVisibilityCanBePrivate") // produce no synthetic accessors
@@ -42,7 +42,7 @@ class UnsDebouncedProperty<out T>(
 
         pending = Pair(reallyOld, ScheduledDaemonHolder.scheduledDaemon.schedule({
             executor.execute {
-                valueChanged(reallyOld, new)
+                valueChanged(reallyOld, new, null)
             }
         }, delay, unit))
     }
