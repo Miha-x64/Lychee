@@ -18,6 +18,7 @@
 # Gradle:
 .idea/**/gradle.xml
 .idea/**/libraries
+.gradle/
 
 # CMake
 cmake-build-debug/
@@ -32,6 +33,7 @@ cmake-build-debug/
 
 # IntelliJ
 out/
+build/
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
