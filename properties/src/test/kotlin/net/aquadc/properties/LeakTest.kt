@@ -5,6 +5,8 @@ import net.aquadc.properties.executor.InPlaceWorker
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.lang.ref.WeakReference
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.TimeUnit
 
 class LeakTest {
 
@@ -32,6 +34,24 @@ class LeakTest {
     @Test fun leakDiff() =
             leak(unsynchronizedMutablePropertyOf(""), { it.calculateDiffOn(InPlaceWorker, { _, _ -> "" }) })
 
+    @Test fun leakUnsDebounced() {
+        ForkJoinPool.commonPool().submit {
+            leak(unsynchronizedMutablePropertyOf(""), { it.debounced(0, TimeUnit.MILLISECONDS) })
+        }.get()
+    }
+
+    @Test fun leakConcDebounced() {
+        ForkJoinPool.commonPool().submit {
+            leak(concurrentMutablePropertyOf(""), { it.debounced(0, TimeUnit.MILLISECONDS) })
+        }.get()
+    }
+
+    @Test fun leakUnsDistinct() =
+            leak(unsynchronizedMutablePropertyOf(""), { it.distinct(Identity) })
+
+    @Test fun leakConcDistinct() =
+            leak(concurrentMutablePropertyOf(""), { it.distinct(Identity) })
+
     private fun <T> leak(original: Property<T>, createForLeak: (Property<T>) -> Property<*>) {
         val ref1 = WeakReference(createForLeak(original))
         // should never hold new property
@@ -41,7 +61,7 @@ class LeakTest {
         val listener = { _: Any?, _: Any? -> }
         killMePlease!!.addChangeListener(listener) // start holding new property
         val ref2 = WeakReference(killMePlease)
-        killMePlease!!.removeChangeListener(listener) // stop holding [1]
+        killMePlease.removeChangeListener(listener) // stop holding [1]
         killMePlease = null // stop holding [2]
         assertGarbage(ref2)
 
