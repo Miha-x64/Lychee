@@ -17,7 +17,9 @@ class ConcListeners<out L : Any, out T>(
             ConcListeners(listeners.with(newListener) as Array<L?>, pendingValues)
 
     fun withoutListener(victim: @UnsafeVariance L): ConcListeners<L, T> {
-        val idx = listeners.indexOf(victim)
+        return withoutListenerAt(listeners.indexOfFirst { it === victim })
+    }
+    fun withoutListenerAt(idx: Int): ConcListeners<L, T> {
         if (idx < 0) {
             return this
         }
