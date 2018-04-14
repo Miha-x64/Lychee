@@ -3,6 +3,7 @@ package net.aquadc.properties.executor
 import android.os.Handler
 import android.os.Looper
 import javafx.application.Platform
+import java.util.*
 import java.util.concurrent.*
 
 
@@ -21,17 +22,42 @@ internal object PlatformExecutors {
 
         try {
             Looper.myLooper() // ensure class available
-            facs.add {
-                Looper.myLooper()?.let { myLooper -> HandlerAsExecutor(Handler(myLooper)) }
-            }
-        } catch (ignored: NoClassDefFoundError) {}
+            facs.add(object : () -> Executor? {
+                override fun invoke(): Executor? =
+                        Looper.myLooper()?.let { myLooper -> HandlerAsExecutor(Handler(myLooper)) }
+
+                override fun toString(): String =
+                        "AndroidCurrentLooperExecutorFactory(current looper: ${Looper.myLooper()})"
+            })
+        } catch (ignored: NoClassDefFoundError) {
+            // only Android has handlers, JDK doesn't
+        }
 
         try {
             Platform.isFxApplicationThread() // ensure class available
-            facs.add {
-                if (Platform.isFxApplicationThread()) FxApplicationThreadExecutor else null
-            }
-        } catch (ignored: NoClassDefFoundError) {}
+            facs.add(object : () -> Executor? {
+                override fun invoke(): Executor? =
+                        if (Platform.isFxApplicationThread()) FxApplicationThreadExecutor else null
+
+                override fun toString(): String =
+                        "JavaFxApplicationThreadExecutorFactory(on application thread: ${Platform.isFxApplicationThread()})"
+            })
+        } catch (ignored: NoClassDefFoundError) {
+            // only certain JDK builds contain JavaFX, Android doesn't
+        }
+
+        try {
+            Class.forName("java.util.concurrent.ForkJoinPool", false, null) // ensure class available without loading it
+            facs.add(object : () -> Executor? {
+                override fun invoke(): Executor? =
+                        ForkJoinTask.getPool() // ForkJoinPool already implements Executor; may be null
+
+                override fun toString(): String =
+                        "ForkJoinPoolExecutorFactory(current pool: ${ForkJoinTask.getPool()})"
+            })
+        } catch (ignored: ClassNotFoundException) {
+            // only JDK 1.7+ and Android 21+ contain FJ
+        }
 
         executorFactories = facs.toArray(arrayOfNulls(facs.size))
     }
@@ -51,7 +77,9 @@ internal object PlatformExecutors {
 
     private fun createForCurrentThread(): Executor {
         executorFactories.forEach { it()?.let { return it } }
-        throw UnsupportedOperationException("Can't execute task on ${Thread.currentThread()}")
+        throw UnsupportedOperationException(
+                "Can't execute task on ${Thread.currentThread()}. " +
+                        "Executor factories available: ${Arrays.toString(executorFactories)}")
     }
 
 }
