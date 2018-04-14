@@ -1,11 +1,8 @@
 package net.aquadc.properties.internal
 
-import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.executor.PlatformExecutors
 import net.aquadc.properties.executor.ScheduledDaemonHolder
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.Executor
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
@@ -18,7 +15,7 @@ class ConcDebouncedProperty<out T>(
         private val original: Property<T>,
         delay: Long,
         unit: TimeUnit
-) : BaseConcProperty<T>() { // todo: upgrade listeners!
+) : ConcPropNotifier<T>() {
 
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
@@ -26,13 +23,10 @@ class ConcDebouncedProperty<out T>(
     override val value: T
         get() = original.value
 
-    private val listeners = CopyOnWriteArrayList<Pair<Executor, ChangeListener<T>>>()
-
     init {
         check(original.mayChange)
         check(original.isConcurrent)
 
-        val listeners = listeners
         // take `listeners` into local
         original.addChangeListener { old, new ->
             pendingUpdater<T>().update(this) {
@@ -44,20 +38,27 @@ class ConcDebouncedProperty<out T>(
 
                 Pair(reallyOld,
                         ScheduledDaemonHolder.scheduledDaemon.schedule({
-                            listeners.forEach {
-                                it.first.execute { it.second(reallyOld, new) }
-                            }
+                            valueChanged(reallyOld, new, null)
                         }, delay, unit)
                 )
             }
         }
     }
 
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.add(PlatformExecutors.executorForCurrentThread() to onChange)
-    }
+    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) =
+            super.addChangeListener(ConfinedChangeListener(
+                    PlatformExecutors.executorForCurrentThread(),
+                    onChange
+            ))
+
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.firstOrNull { it.second == onChange }?.let { listeners.remove(it) }
+        listenersUpdater().update(this) {
+            it.withoutListenerAt(
+                    it.listeners.indexOfFirst {
+                        (it as ConfinedChangeListener<*>).actual === onChange
+                    }
+            )
+        }
     }
 
     private companion object {

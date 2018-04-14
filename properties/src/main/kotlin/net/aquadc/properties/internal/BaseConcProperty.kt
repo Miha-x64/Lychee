@@ -2,31 +2,23 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.diff.internal.ConcMutableDiffProperty
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 // I don't like implementation inheritance, but it is more lightweight than composition.
 
 /**
- * Base class for concurrent properties.
+ * Base class containing concurrent props' listeners.
  * Despite class is public, this is private API.
- * Used by [ConcPropListeners] and [ConcDebouncedProperty].
+ * Used by [ConcPropNotifier] and [ConcMutableDiffProperty].
  */
-abstract class BaseConcProperty<out T> : Property<T> {
+abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property<T> {
 
     final override val mayChange: Boolean
         get() = true
 
     final override val isConcurrent: Boolean
         get() = true
-
-}
-
-/**
- * Base class containing concurrent props' listeners.
- * Despite class is public, this is private API.
- * Used by [ConcPropNotifier] and `diff/ConcMutableDiffProperty`.
- */
-abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : BaseConcProperty<T>() {
 
     @Volatile @Suppress("UNUSED")
     private var listeners: ConcListeners<LISTENER, UPDATE> = ConcListeners.NoListeners
@@ -155,10 +147,10 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : BaseConc
 abstract class ConcPropNotifier<out T> :
         ConcPropListeners<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>() {
 
-    final override fun addChangeListener(onChange: ChangeListener<T>) =
+    override fun addChangeListener(onChange: ChangeListener<T>) =
             listenersUpdater().update(this) { it.withListener(onChange) }
 
-    final override fun removeChangeListener(onChange: ChangeListener<T>) =
+    override fun removeChangeListener(onChange: ChangeListener<T>) =
             listenersUpdater().update(this) { it.withoutListener(onChange) }
 
     final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
