@@ -62,6 +62,7 @@ class LeakTest {
         killMePlease!!.addChangeListener(listener) // start holding new property
         val ref2 = WeakReference(killMePlease)
         killMePlease.removeChangeListener(listener) // stop holding [1]
+        @Suppress("UNUSED_VALUE")
         killMePlease = null // stop holding [2]
         assertGarbage(ref2)
 
