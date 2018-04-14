@@ -1,10 +1,13 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties
 
+import android.os.Looper
+import javafx.application.Platform
 import net.aquadc.properties.internal.ConcDistinctPropertyWrapper
 import net.aquadc.properties.internal.ConcDebouncedProperty
 import net.aquadc.properties.internal.UnsDistinctPropertyWrapper
 import net.aquadc.properties.internal.UnsDebouncedProperty
+import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
 
 
@@ -45,10 +48,14 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
 }
 
 /**
- * Returns debounced wrapper around this property.
- * Will work only on those threads which can accept tasks (currently JavaFX and Android Looper supported).
- * Single-threaded debounced wrapper will throw exception when created on wrong thread.
- * Concurrent debounced wrapper will throw exception when listener gets subscribed from wrong thread.
+ * Returns a debounced wrapper around this property.
+ * Will work only on threads which can accept tasks:
+ * * JavaFX Application thread (via [Platform]);
+ * * Android [Looper] thread;
+ * * a thread of a [ForkJoinPool].
+ *
+ * Single-threaded debounced wrapper will throw exception when created on inappropriate thread.
+ * Concurrent debounced wrapper will throw exception when listener gets subscribed from inappropriate thread.
  */
 fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit) = when {
     !mayChange -> this
