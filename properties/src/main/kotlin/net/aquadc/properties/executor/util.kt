@@ -33,7 +33,7 @@ internal object PlatformExecutors {
             }
         } catch (ignored: NoClassDefFoundError) {}
 
-        executorFactories = facs.toTypedArray()
+        executorFactories = facs.toArray(arrayOfNulls(facs.size))
     }
 
     internal fun executorForCurrentThread(): Executor {
