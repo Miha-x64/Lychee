@@ -51,6 +51,10 @@ class ConcDebouncedProperty<out T>(
                     onChange
             ))
 
+    /**
+     * Note: this will remove first occurrence of [onChange],
+     * no matter on which executor it was subscribed.
+     */
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         listenersUpdater().update(this) {
             it.withoutListenerAt(
