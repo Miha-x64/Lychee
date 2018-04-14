@@ -7,7 +7,7 @@ class UnsBiMappedProperty<in A, in B, out T>(
         a: Property<A>,
         b: Property<B>,
         private val transform: (A, B) -> T
-) : UnsListeners<T>() {
+) : PropNotifier<T>(Thread.currentThread()) {
 
     init {
         check(a !is ImmutableReferenceProperty)
@@ -30,7 +30,7 @@ class UnsBiMappedProperty<in A, in B, out T>(
         val new = transform(newA, newB)
         val old = valueRef
         valueRef = new
-        valueChanged(old, new)
+        valueChanged(old, new, null)
     }
 
 }

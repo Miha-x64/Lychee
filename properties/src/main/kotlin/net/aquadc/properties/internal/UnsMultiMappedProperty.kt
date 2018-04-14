@@ -6,7 +6,7 @@ import net.aquadc.properties.Property
 class UnsMultiMappedProperty<in A, out T>(
         properties: Iterable<Property<A>>,
         private val transform: (List<A>) -> T
-): UnsListeners<T>() {
+): PropNotifier<T>(Thread.currentThread()) {
 
     // hm... I could use Array instead of List here for performance reasons
     private var _value: Pair<List<A>, T>
@@ -37,7 +37,7 @@ class UnsMultiMappedProperty<in A, out T>(
 
         val ov = old.second
         val nv = new.second
-        valueChanged(ov, nv)
+        valueChanged(ov, nv, null)
     }
 
 }

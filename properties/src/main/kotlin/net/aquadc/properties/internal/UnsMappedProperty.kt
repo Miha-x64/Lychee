@@ -8,7 +8,7 @@ import net.aquadc.properties.Property
 class UnsMappedProperty<in O, out T>(
         original: Property<O>,
         private val transform: (O) -> T
-) : UnsListeners<T>() {
+) : PropNotifier<T>(Thread.currentThread()) {
 
     init {
         check(original !is ImmutableReferenceProperty)
@@ -23,7 +23,7 @@ class UnsMappedProperty<in O, out T>(
         val tOld = transform(old)
         val tNew = transform(new)
         valueRef = tNew
-        valueChanged(tOld, tNew)
+        valueChanged(tOld, tNew, null)
     }
 
     private var valueRef: T = transform(original.value)

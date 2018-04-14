@@ -8,7 +8,7 @@ internal class ConcBiMappedProperty<in A, in B, out T>(
         a: Property<A>,
         b: Property<B>,
         private val transform: (A, B) -> T
-) : ConcPropNotifier<T>() {
+) : PropNotifier<T>(null) {
 
     init {
         check(a.isConcurrent)

@@ -10,29 +10,66 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 /**
  * Base class containing concurrent props' listeners.
  * Despite class is public, this is private API.
- * Used by [ConcPropNotifier] and [ConcMutableDiffProperty].
+ * Used by [PropNotifier] and [ConcMutableDiffProperty].
+ * @property thread our thread, or null, if this property is concurrent
  */
-abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property<T> {
+abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
+        @JvmField protected val thread: Thread?
+) : Property<T> {
 
     final override val mayChange: Boolean
-        get() = true
+        get() {
+            if (thread != null) checkThread()
+            return true
+        }
 
     final override val isConcurrent: Boolean
-        get() = true
-
-    @Volatile @Suppress("UNUSED")
-    private var listeners: ConcListeners<LISTENER, UPDATE> = ConcListeners.NoListeners
+        get() {
+            val concurrent = thread == null
+            if (!concurrent) checkThread()
+            return concurrent
+        }
 
     /**
-     * Sophisticated thing, see [net.aquadc.properties.internal.UnsListeners.valueChanged].
+     * This has type [ConcListeners]<LISTENER, UPDATE> for concurrent properties
+     * and `UPDATE[]?` for non-synchronized ones;
+     * single-thread properties store listeners separately.
+     */
+    @Volatile @Suppress("UNUSED")
+//    private var listeners: ConcListeners<LISTENER, UPDATE> = ConcListeners.NoListeners
+     private var state: Any? = if (thread == null) ConcListeners.NoListeners else null
+
+    /**
+     * Holds listeners of a non-synchronized property. Unused, if this is a concurrent one.
+     * When unused, this introduces no sadness:
+     * on 64-bit HotSpot with compressed OOPS and 8-byte object alignment,
+     * instances of this class have size of 24 bytes.
+     * Without [nonSyncListeners] this space would be occupied by padding.
+     */
+    @JvmField protected var nonSyncListeners: Any? = null
+
+    /**
+     * It's a tricky one.
+     *
+     * First, while notifying, can't remove listeners from the list/array because this will break indices
+     * which are being used for iteration; nulling out removed listeners instead.
+     *
+     * Second, can't update value and trigger notification while already notifying:
+     * this will lead to stack overflow and/or sequentially-inconsistent notifications;
+     * must persist all pending values and deliver them later.
      */
     protected fun valueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D) {
-        val oldListeners = enqueueUpdate(old, new, diff)
+        if (thread == null) concValueChanged(old, new, diff)
+        else nonSyncValueChanged(old, new, diff)
+    }
+
+    private fun concValueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D) {
+        val oldListeners = concEnqueueUpdate(old, new, diff)
                 ?: return // nothing to notify
 
         if (oldListeners.pendingValues.isNotEmpty())
             return // other [valueChanged] is on the stack or in parallel,
-                   // [new] was added to pending values and will be delivered soon
+        // [new] was added to pending values and will be delivered soon
 
         /*
          * [pendingValues] is not empty now, it's a kind of lock
@@ -42,11 +79,11 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property
 
         var prev = old
         while (true) {
-            val state = listenersUpdater().get(this)
+            val state = concStateUpdater().get(this) as ConcListeners<LISTENER, UPDATE>
 
             val current = state.pendingValues[0] // take a pending value from prev state
             val currentValue = unpackValue(current)
-            notifyAll(prev, currentValue, unpackDiff(current))
+            concNotifyAll(prev, currentValue, unpackDiff(current))
             prev = currentValue
 
             // `pending[0]` is delivered, now remove it from our 'queue'
@@ -55,7 +92,7 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property
              * taking fresh state is safe because the only one thread/function is allowed to notify.
              * Just remove our 'queue' head, but let anyone add pending values or listeners
              */
-            val next = listenersUpdater()
+            val next = concStateUpdater()
                     .updateUndGet(this, ConcListeners<LISTENER, UPDATE>::next)
 
             if (next.pendingValues.isEmpty()) {
@@ -69,11 +106,11 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property
      * Enqueues [new] value. If no one notifies listeners right now, takes the right to do it.
      * @return previous state, or `null`, if there's nothing to do
      */
-    private fun enqueueUpdate(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D): ConcListeners<LISTENER, UPDATE>? {
+    private fun concEnqueueUpdate(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D): ConcListeners<LISTENER, UPDATE>? {
         var prev: ConcListeners<LISTENER, UPDATE>
         var next: ConcListeners<LISTENER, UPDATE>
         do {
-            prev = listenersUpdater().get(this)
+            prev = concStateUpdater().get(this)
 
             if (prev.listeners.isEmpty())
                 return null // nothing to notify
@@ -102,19 +139,16 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property
 
             next = prev.withNextValue(pack(new, diff))
 
-            if (listenersUpdater().compareAndSet(this, prev, next)) {
+            if (concStateUpdater().compareAndSet(this, prev, next)) {
                 return prev
             }
 
         } while (true)
     }
-    protected abstract fun pack(new: @UnsafeVariance T, diff: D): UPDATE
-    protected abstract fun unpackValue(packed: UPDATE): T
-    protected abstract fun unpackDiff(packed: UPDATE): @UnsafeVariance D
 
-    private fun notifyAll(old: T, new: T, diff: D) {
+    private fun concNotifyAll(old: T, new: T, diff: D) {
         var i = 0
-        var listeners = listenersUpdater().get(this).listeners
+        var listeners = concStateUpdater().get(this).listeners
         while (i < listeners.size) {
             val listener = listeners[i]
             if (listener != null) {
@@ -122,20 +156,117 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property
             }
 
             // read volatile listeners on every step, they may be added or nulled out!
-            listeners = listenersUpdater().get(this).listeners
+            listeners = concStateUpdater().get(this).listeners
             i++
         }
     }
 
+
+    private fun nonSyncValueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D) {
+        // if we have no one to notify, just give up
+        if (nonSyncListeners == null) return
+
+        nonSyncPendingUpdater().get(this)?.let { pendingValues ->
+            // This method is already on the stack, somewhere deeper.
+            // Just push the new value...
+            val newValues = pendingValues.with(pack(new, diff))
+
+            @Suppress("UNCHECKED_CAST")
+            nonSyncPendingUpdater().lazySet(this, newValues as Array<UPDATE>)
+
+            // and let deeper version of this method pick it up.
+            return
+        }
+
+        @Suppress("UNCHECKED_CAST") // this means 'don't notify directly, add to the queue!'
+        nonSyncPendingUpdater().lazySet(this, ConcListeners.EmptyArray as Array<UPDATE>)
+        // pendingValues is empty array now
+
+        // now we own notification process
+
+        nonSyncNotifyAll(old, new, diff)
+
+        var pendingValues = nonSyncPendingUpdater().get(this)!!
+        var i = 0
+        var older = new
+        while (true) { // now take enqueued values set by notified properties
+            if (i == pendingValues.size)
+                break // real end of queue, nothing to do here
+
+            val newer = pendingValues[i]
+            val newerValue = unpackValue(newer)
+            nonSyncNotifyAll(older, newerValue, unpackDiff(newer))
+            older = newerValue
+            i++
+
+            if (i == pendingValues.size) // end of queue, read a fresh one
+                pendingValues = nonSyncPendingUpdater().get(this)!!
+        }
+        nonSyncPendingUpdater().lazySet(this, null) // release notification ownership
+
+        // clean up nulled out listeners
+        if (nonSyncListeners is Array<*>)
+            nonSyncListeners = (nonSyncListeners as Array<LISTENER?>).withoutNulls<LISTENER>(null)
+    }
+
+    private fun nonSyncNotifyAll(old: T, new: T, diff: D) {
+        var listeners = nonSyncListeners!!
+
+        var i = 0
+        if (listeners !is Array<*>) { // single listener
+            notify(listeners as LISTENER, old, new, diff)
+
+            listeners = nonSyncListeners!!
+            if (listeners is Array<*>) {
+                i = 1 // transformed to array during notification, start from second item
+            } else {
+                return
+            }
+        }
+
+        // array of listeners
+
+        while (true) { // size may change, so we can't use Kotlin's for loop (iterator) here
+            listeners as Array<*> // smart-cast doesn't work when assignment below exists
+
+            if (i == listeners.size)
+                break
+
+            val listener = listeners[i]
+            if (listener != null) {
+                notify(listener as LISTENER, old, new, diff)
+            }
+            i++
+
+            if (i == listeners.size)
+                listeners = nonSyncListeners!! as Array<*>
+        }
+    }
+
+    protected abstract fun pack(new: @UnsafeVariance T, diff: D): UPDATE
+    protected abstract fun unpackValue(packed: UPDATE): T
+    protected abstract fun unpackDiff(packed: UPDATE): @UnsafeVariance D
+
     protected abstract fun notify(listener: LISTENER, old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D)
 
+    protected fun checkThread() {
+        if (Thread.currentThread() !== thread)
+            throw RuntimeException("${Thread.currentThread()} is not allowed to touch this property since it was created in $thread.")
+    }
+
     protected companion object {
-        @JvmField
-        val listenersUpdater: AtomicReferenceFieldUpdater<ConcPropListeners<*, *, *, *>, ConcListeners<*, *>> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcPropListeners::class.java, ConcListeners::class.java, "listeners")
+        @JvmField val updater: AtomicReferenceFieldUpdater<PropListeners<*, *, *, *>, Any> =
+                AtomicReferenceFieldUpdater.newUpdater(PropListeners::class.java, Any::class.java, "state")
+
+        @JvmField val SingleNull = arrayOfNulls<Any>(1)
+
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
-        inline fun <T, D, LISTENER : Any, PACKED> ConcPropListeners<T, D, LISTENER, PACKED>.listenersUpdater() =
-                listenersUpdater as AtomicReferenceFieldUpdater<ConcPropListeners<T, D, LISTENER, PACKED>, ConcListeners<LISTENER, PACKED>>
+        inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.concStateUpdater() =
+                updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, ConcListeners<LISTENER, PACKED>>
+
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
+        inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.nonSyncPendingUpdater() =
+                updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, Array<PACKED>?>
     }
 
 }
@@ -144,14 +275,52 @@ abstract class ConcPropListeners<out T, in D, LISTENER : Any, UPDATE> : Property
  * Base class containing concurrent notification logic.
  * Despite class is public, this is private API.
  */
-abstract class ConcPropNotifier<out T> :
-        ConcPropListeners<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>() {
+abstract class PropNotifier<out T>(thread: Thread?) :
+        PropListeners<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
 
-    override fun addChangeListener(onChange: ChangeListener<T>) =
-            listenersUpdater().update(this) { it.withListener(onChange) }
+    override fun addChangeListener(onChange: ChangeListener<T>) {
+        if (thread == null) {
+            concStateUpdater().update(this) { it.withListener(onChange) }
+        } else {
+            checkThread()
+            val listeners = nonSyncListeners
+            nonSyncListeners = when (listeners) {
+                null -> onChange
+                is Function<*> -> arrayOf(listeners, onChange)
+                is Array<*> -> listeners.with(onChange)
+                else -> throw AssertionError()
+            }
+        }
+    }
 
-    override fun removeChangeListener(onChange: ChangeListener<T>) =
-            listenersUpdater().update(this) { it.withoutListener(onChange) }
+    override fun removeChangeListener(onChange: ChangeListener<T>) {
+        if (thread == null) {
+            concStateUpdater().update(this) { it.withoutListener(onChange) }
+        } else {
+            checkThread()
+            val listeners = nonSyncListeners
+            when (listeners) {
+                null -> return
+                is Function<*> -> {
+                    if (listeners !== onChange)
+                        return
+
+                    nonSyncListeners = if (nonSyncPendingUpdater().get(this) == null) null else SingleNull
+                }
+                is Array<*> -> {
+                    val idx = listeners.indexOf(onChange)
+                    if (idx < 0) return
+                    if (nonSyncPendingUpdater().get(this) != null) {
+                        // notifying now. Null this listener out, that's all
+                        (listeners as Array<Any?>)[idx] = null
+                    } else {
+                        nonSyncListeners = listeners.copyOfWithout(idx, null)
+                    }
+                }
+                else -> throw AssertionError()
+            }
+        }
+    }
 
     final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
             new

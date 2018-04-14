@@ -3,25 +3,25 @@ package net.aquadc.properties.diff.internal
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.diff.DiffChangeListener
 import net.aquadc.properties.diff.DiffProperty
-import net.aquadc.properties.internal.ConcPropListeners
+import net.aquadc.properties.internal.PropListeners
 import net.aquadc.properties.internal.update
 
 /**
  * Despite the class is public, it is a part of private API.
  */
-abstract class ConcDiffPropNotifier<T, D> : ConcPropListeners<T, D, Any, Pair<T, D>>(), DiffProperty<T, D> {
+abstract class ConcDiffPropNotifier<T, D> : PropListeners<T, D, Any, Pair<T, D>>(null), DiffProperty<T, D> {
 
     final override fun addChangeListener(onChange: ChangeListener<T>) =
-            listenersUpdater().update(this) { it.withListener(onChange) }
+            concStateUpdater().update(this) { it.withListener(onChange) }
 
     final override fun addChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
-            listenersUpdater().update(this) { it.withListener(onChangeWithDiff) }
+            concStateUpdater().update(this) { it.withListener(onChangeWithDiff) }
 
     final override fun removeChangeListener(onChange: ChangeListener<T>) =
-            listenersUpdater().update(this) { it.withoutListener(onChange) }
+            concStateUpdater().update(this) { it.withoutListener(onChange) }
 
     final override fun removeChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
-            listenersUpdater().update(this) { it.withoutListener(onChangeWithDiff) }
+            concStateUpdater().update(this) { it.withoutListener(onChangeWithDiff) }
 
     final override fun pack(new: T, diff: D): Pair<T, D> =
             new to diff

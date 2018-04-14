@@ -9,11 +9,11 @@ import net.aquadc.properties.Property
  */
 class UnsMutableProperty<T>(
         value: T
-) : UnsListeners<T>(), MutableProperty<T> {
+) : PropNotifier<T>(Thread.currentThread()), MutableProperty<T> {
 
     private var _notifyAllFunc: ((T, T) -> Unit)? = null
     private val notifyAllFunc: (T, T) -> Unit
-        get() = _notifyAllFunc ?: { old: T, new: T -> valueChanged(old, new) }.also { _notifyAllFunc = it }
+        get() = _notifyAllFunc ?: { old: T, new: T -> valueChanged(old, new, null) }.also { _notifyAllFunc = it }
 
     var valueRef: T = value
 
@@ -31,7 +31,7 @@ class UnsMutableProperty<T>(
             val old = valueRef
             valueRef = newValue
 
-            valueChanged(old, newValue)
+            valueChanged(old, newValue, null)
         }
 
     private var sample: Property<T>? = null
@@ -47,7 +47,7 @@ class UnsMutableProperty<T>(
         val old = valueRef
         val new = sample.value
         valueRef = new
-        valueChanged(old, new)
+        valueChanged(old, new, null)
     }
 
     override fun casValue(expect: T, update: T): Boolean {
@@ -55,7 +55,7 @@ class UnsMutableProperty<T>(
         dropBinding()
         return if (valueRef === expect) {
             valueRef = update
-            valueChanged(expect, update)
+            valueChanged(expect, update, null)
             true
         } else {
             false
