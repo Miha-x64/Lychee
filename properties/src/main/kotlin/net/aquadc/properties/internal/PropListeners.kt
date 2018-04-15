@@ -36,7 +36,6 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
      * single-thread properties store listeners separately.
      */
     @Volatile @Suppress("UNUSED")
-//    private var listeners: ConcListeners<LISTENER, UPDATE> = ConcListeners.NoListeners
      private var state: Any? = if (thread == null) ConcListeners.NoListeners else null
 
     /**
@@ -205,8 +204,11 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
         nonSyncPendingUpdater().lazySet(this, null) // release notification ownership
 
         // clean up nulled out listeners
-        if (nonSyncListeners is Array<*>)
-            nonSyncListeners = (nonSyncListeners as Array<LISTENER?>).withoutNulls<LISTENER>(null)
+        nonSyncListeners.let {
+            if (it is Array<*>) {
+                nonSyncListeners = it.withoutNulls<Any>(null)
+            }
+        }
     }
 
     private fun nonSyncNotifyAll(old: T, new: T, diff: D) {
@@ -214,6 +216,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
 
         var i = 0
         if (listeners !is Array<*>) { // single listener
+            @Suppress("UNCHECKED_CAST")
             notify(listeners as LISTENER, old, new, diff)
 
             listeners = nonSyncListeners!!
@@ -234,6 +237,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
 
             val listener = listeners[i]
             if (listener != null) {
+                @Suppress("UNCHECKED_CAST")
                 notify(listener as LISTENER, old, new, diff)
             }
             i++
@@ -312,6 +316,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                     if (idx < 0) return
                     if (nonSyncPendingUpdater().get(this) != null) {
                         // notifying now. Null this listener out, that's all
+                        @Suppress("UNCHECKED_CAST")
                         (listeners as Array<Any?>)[idx] = null
                     } else {
                         nonSyncListeners = listeners.copyOfWithout(idx, null)
