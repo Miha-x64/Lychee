@@ -20,12 +20,13 @@ class MappedProperty<in O, out T>(
 
     init {
         when {
+            // simple concurrent binding: notify where changed
             original.isConcurrent -> original.addChangeListener(MapWhenChanged(mapOn, map) { new ->
                 val old = valueUpdater<T>().getAndSet(this, new)
                 valueChanged(old, new, null)
             })
 
-            // not concurrent
+            // simple non-synchronized binding
             mapOn === InPlaceWorker -> original.addChangeListener { _: O, new: O ->
                 val tOld = valueRef
                 val tNew = map(new)
@@ -33,20 +34,17 @@ class MappedProperty<in O, out T>(
                 valueChanged(tOld, tNew, null)
             }
 
-            // not concurrent, but must be computed on a worker
-            else -> {
-                // map on a worker, move result to this thread
-                val executor = PlatformExecutors.executorForCurrentThread()
-                original.addChangeListener(
-                        MapWhenChanged(mapOn, map,
-                                ConsumeOn(executor) { new ->
-                                    val old = valueRef
-                                    valueUpdater<T>().lazySet(this, new)
-                                    valueChanged(old, new, null)
-                                }
-                        )
+            // not concurrent, but must be computed on a worker;
+            // must also bring result to this thread
+            else -> original.addChangeListener(
+                MapWhenChanged(mapOn, map,
+                        ConsumeOn(PlatformExecutors.executorForCurrentThread()) { new ->
+                            val old = valueRef
+                            valueUpdater<T>().lazySet(this, new)
+                            valueChanged(old, new, null)
+                        }
                 )
-            }
+            )
         }
     }
 
