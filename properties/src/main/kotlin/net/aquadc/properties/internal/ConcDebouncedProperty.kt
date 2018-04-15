@@ -56,40 +56,7 @@ class ConcDebouncedProperty<out T>(
      * no matter on which executor it was subscribed.
      */
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        if (thread == null) {
-            concStateUpdater().update(this) {
-                it.withoutListenerAt(
-                        it.listeners.indexOfFirst {
-                            (it as ConfinedChangeListener<*>).actual === onChange
-                        }
-                )
-            }
-        } else {
-            // almost copy of PropNotifier.removeChangeListener
-            checkThread()
-            val listeners = nonSyncListeners
-            when (listeners) {
-                null -> return
-                is ConfinedChangeListener<*> -> {
-                    if (listeners.actual !== onChange)
-                        return
-
-                    nonSyncListeners = if (nonSyncPendingUpdater().get(this) == null) null else SingleNull
-                }
-                is Array<*> -> {
-                    val idx = listeners.indexOfFirst { (it as ConfinedChangeListener<*>).actual === onChange }
-                    if (idx < 0) return
-                    if (nonSyncPendingUpdater().get(this) != null) {
-                        // notifying now. Null this listener out, that's all
-                        @Suppress("UNCHECKED_CAST")
-                        (listeners as Array<Any?>)[idx] = null
-                    } else {
-                        nonSyncListeners = listeners.copyOfWithout(idx, null)
-                    }
-                }
-                else -> throw AssertionError()
-            }
-        }
+        removeChangeListenerWhere { (it as ConfinedChangeListener<*>).actual === onChange }
     }
 
     private companion object {

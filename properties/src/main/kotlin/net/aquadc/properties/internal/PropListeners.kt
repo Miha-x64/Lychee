@@ -290,7 +290,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
             val listeners = nonSyncListeners
             nonSyncListeners = when (listeners) {
                 null -> onChange
-                is Function<*> -> arrayOf(listeners, onChange)
+                is Function2<*, *, *> -> arrayOf(listeners, onChange)
                 is Array<*> -> listeners.with(onChange)
                 else -> throw AssertionError()
             }
@@ -298,29 +298,37 @@ abstract class PropNotifier<out T>(thread: Thread?) :
     }
 
     override fun removeChangeListener(onChange: ChangeListener<T>) {
+        removeChangeListenerWhere { it === onChange }
+    }
+
+    internal inline fun removeChangeListenerWhere(predicate: (ChangeListener<@UnsafeVariance T>) -> Boolean) {
         if (thread == null) {
-            concStateUpdater().update(this) { it.withoutListener(onChange) }
+            concStateUpdater().update(this) {
+                it.withoutListenerAt(
+                        it.listeners.indexOfFirst { it != null && predicate(it) }
+                )
+            }
         } else {
             checkThread()
             val listeners = nonSyncListeners
             when (listeners) {
                 null -> return
-                is Function<*> -> {
-                    if (listeners !== onChange)
+                is Function2<*, *, *> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    if (!predicate(listeners as ChangeListener<T>))
                         return
 
                     nonSyncListeners = if (nonSyncPendingUpdater().get(this) == null) null else SingleNull
                 }
                 is Array<*> -> {
-                    val idx = listeners.indexOf(onChange)
-                    if (idx < 0) return
-                    if (nonSyncPendingUpdater().get(this) != null) {
-                        // notifying now. Null this listener out, that's all
+                    val idx = listeners.indexOfFirst {
                         @Suppress("UNCHECKED_CAST")
-                        (listeners as Array<Any?>)[idx] = null
-                    } else {
-                        nonSyncListeners = listeners.copyOfWithout(idx, null)
+                        it != null && predicate(it as ChangeListener<T>)
                     }
+                    if (idx < 0) return
+
+                    @Suppress("UNCHECKED_CAST")
+                    (listeners as Array<Any?>)[idx] = null
                 }
                 else -> throw AssertionError()
             }
