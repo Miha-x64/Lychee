@@ -81,6 +81,7 @@ class ConcDebouncedProperty<out T>(
                     if (idx < 0) return
                     if (nonSyncPendingUpdater().get(this) != null) {
                         // notifying now. Null this listener out, that's all
+                        @Suppress("UNCHECKED_CAST")
                         (listeners as Array<Any?>)[idx] = null
                     } else {
                         nonSyncListeners = listeners.copyOfWithout(idx, null)

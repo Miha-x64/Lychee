@@ -28,7 +28,7 @@ internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>): Ar
         withoutNulls<T>(canonicalEmptyArray as Array<T>?) as Array<T>
 
 @Suppress("UNCHECKED_CAST")
-internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>?): Array<T>? {
+internal fun <T : Any> Array<out T?>.withoutNulls(canonicalEmptyArray: Array<T>?): Array<T>? {
     val nulls = count { it == null }
     if (nulls == 0) return this as Array<T> // it safe since there are no actual nulls
 
