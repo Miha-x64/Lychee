@@ -41,3 +41,22 @@ internal fun <T : Any> Array<out T?>.withoutNulls(canonicalEmptyArray: Array<T>?
 
     return newArray as Array<T> // not actually T[], but it's OK
 }
+
+/**
+ * Compacts array, where null means 'empty'.
+ * @return index of first empty index after compaction, or -1, if none
+ * @implNote copied from [java.util.ArrayList]
+ */
+internal fun <T> Array<T?>.compact(): Int {
+    var head = 0
+    var w = 0
+    while (head < size) {
+        if (this[head] != null)
+            this[w++] = this[head]
+        head++
+    }
+    for (i in w until size) {
+        this[i] = null
+    }
+    return if (w == size) -1 else w
+}

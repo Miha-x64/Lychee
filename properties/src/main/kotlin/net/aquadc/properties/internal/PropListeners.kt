@@ -288,10 +288,29 @@ abstract class PropNotifier<out T>(thread: Thread?) :
         } else {
             checkThread()
             val listeners = nonSyncListeners
-            nonSyncListeners = when (listeners) {
-                null -> onChange
-                is Function2<*, *, *> -> arrayOf(listeners, onChange)
-                is Array<*> -> listeners.with(onChange)
+            when (listeners) {
+                null -> nonSyncListeners = onChange
+                is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
+                is Array<*> -> {
+                    if (nonSyncPendingUpdater().get(this) != null) {
+                        // notifying now, expand array without structural changes
+                        nonSyncListeners = listeners.with(onChange)
+                    } else {
+                        // not notifying, we can do anything we want
+                        val insIdx = listeners.compact() // remove nulls
+                        when (insIdx) {
+                            -1 -> // no nulls, grow
+                                nonSyncListeners = listeners.with(onChange)
+
+                            0 -> // drop array, especially if it is SingleNull instance which must not be mutated
+                                nonSyncListeners = onChange
+
+                            else -> // we have some room in the existing array
+                                @Suppress("UNCHECKED_CAST")
+                                (listeners as Array<Any?>)[insIdx] = onChange
+                        }
+                    }
+                }
                 else -> throw AssertionError()
             }
         }
@@ -318,7 +337,9 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                     if (!predicate(listeners as ChangeListener<T>))
                         return
 
-                    nonSyncListeners = if (nonSyncPendingUpdater().get(this) == null) null else SingleNull
+                    nonSyncListeners =
+                            if (nonSyncPendingUpdater().get(this) == null) null
+                            else SingleNull.also { check(it[0] === null) }
                 }
                 is Array<*> -> {
                     val idx = listeners.indexOfFirst {
