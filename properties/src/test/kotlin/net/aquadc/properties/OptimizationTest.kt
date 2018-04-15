@@ -16,10 +16,10 @@ class OptimizationTest {
     }
 
     @Test fun concImmutablePropMapWithReturnsMapped() =
-            immutablePropMapWithReturnsMapped(true, ConcMappedProperty::class.java)
+            immutablePropMapWithReturnsMapped(true, MappedProperty::class.java)
 
     @Test fun unsImmutablePropMapWithReturnsMapped() =
-            immutablePropMapWithReturnsMapped(false, UnsMappedProperty::class.java)
+            immutablePropMapWithReturnsMapped(false, MappedProperty::class.java)
 
     private fun immutablePropMapWithReturnsMapped(concurrent: Boolean, mapsTo: Class<*>) {
         val prop0 = immutablePropertyOf("yo")
@@ -43,8 +43,8 @@ class OptimizationTest {
         assertTrue(mapped is ImmutableReferenceProperty)
     }
 
-    @Test fun concSimpleMap() = simpleMap(true, ConcMappedProperty::class.java)
-    @Test fun unsSimpleMap() = simpleMap(false, UnsMappedProperty::class.java)
+    @Test fun concSimpleMap() = simpleMap(true, MappedProperty::class.java)
+    @Test fun unsSimpleMap() = simpleMap(false, MappedProperty::class.java)
     fun simpleMap(concurrent: Boolean, mapsTo: Class<*>) {
         val prop = mutablePropertyOf("hey", concurrent)
         val mapped = prop.map { "$it!" }
