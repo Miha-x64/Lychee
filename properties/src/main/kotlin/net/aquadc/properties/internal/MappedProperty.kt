@@ -1,10 +1,7 @@
 package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
-import net.aquadc.properties.executor.InPlaceWorker
-import net.aquadc.properties.executor.MappedValueProxy
-import net.aquadc.properties.executor.PlatformExecutors
-import net.aquadc.properties.executor.Worker
+import net.aquadc.properties.executor.*
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
@@ -23,7 +20,7 @@ class MappedProperty<in O, out T>(
 
     init {
         when {
-            original.isConcurrent -> original.addChangeListener(MappedValueProxy(mapOn, map) { new ->
+            original.isConcurrent -> original.addChangeListener(MapWhenChanged(mapOn, map) { new ->
                 val old = valueUpdater<T>().getAndSet(this, new)
                 valueChanged(old, new, null)
             })
@@ -40,13 +37,15 @@ class MappedProperty<in O, out T>(
             else -> {
                 // map on a worker, move result to this thread
                 val executor = PlatformExecutors.executorForCurrentThread()
-                original.addChangeListener(MappedValueProxy(mapOn, map) { new ->
-                    executor.execute {
-                        val old = valueRef
-                        valueUpdater<T>().lazySet(this, new)
-                        valueChanged(old, new, null)
-                    }
-                })
+                original.addChangeListener(
+                        MapWhenChanged(mapOn, map,
+                                ConsumeOn(executor) { new ->
+                                    val old = valueRef
+                                    valueUpdater<T>().lazySet(this, new)
+                                    valueChanged(old, new, null)
+                                }
+                        )
+                )
             }
         }
     }
