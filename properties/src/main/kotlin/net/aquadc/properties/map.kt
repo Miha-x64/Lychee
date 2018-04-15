@@ -3,18 +3,14 @@ package net.aquadc.properties
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.Worker
 import net.aquadc.properties.internal.ConcBiMappedProperty
-import net.aquadc.properties.internal.ConcMappedProperty
+import net.aquadc.properties.internal.MappedProperty
 import net.aquadc.properties.internal.UnsBiMappedProperty
-import net.aquadc.properties.internal.UnsMappedProperty
 
 /**
  * Returns new property with [transform]ed value.
  */
 fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
-    this.mayChange -> {
-        if (this.isConcurrent) ConcMappedProperty(this, transform, InPlaceWorker)
-        else UnsMappedProperty(this, transform)
-    }
+    this.mayChange -> MappedProperty(this, transform, InPlaceWorker)
     else -> immutablePropertyOf(transform(value))
 }
 
@@ -23,8 +19,7 @@ fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
  * Note that [transform] will be called in-place for the first time.
  */
 fun <T, R> Property<T>.mapOn(worker: Worker, transform: (T) -> R): Property<R> = when {
-    this.mayChange -> ConcMappedProperty(this, transform, worker)
-        // there's no un-synchronized version 'cause it does not support parallel mapping
+    this.mayChange -> MappedProperty(this, transform, worker)
     else -> immutablePropertyOf(transform(value))
 }
 
