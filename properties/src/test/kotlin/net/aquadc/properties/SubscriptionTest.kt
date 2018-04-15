@@ -100,28 +100,4 @@ class SubscriptionTest {
         assertEquals(10, v2)
     }
 
-    // todo: check conc updater under contention
-
-    @Test fun with() {
-        assertArrayEquals(arrayOf(1), emptyArray<Int>().with(1))
-        assertArrayEquals(arrayOf(1, 2), arrayOf(1).with(2))
-    }
-
-    @Test fun copyWithout() {
-        assertArrayEquals(arrayOf(1, 2), arrayOf(0, 1, 2).copyOfWithout(0, emptyArray()))
-        assertArrayEquals(arrayOf(0, 2), arrayOf(0, 1, 2).copyOfWithout(1, emptyArray()))
-        assertArrayEquals(arrayOf(0, 1), arrayOf(0, 1, 2).copyOfWithout(2, emptyArray()))
-    }
-
-    @Test fun withoutNulls() {
-        assertArrayEquals(emptyArray(), arrayOf<Any?>(null).withoutNulls(emptyArray()))
-        assertArrayEquals(emptyArray(), arrayOf<Any?>(null, null).withoutNulls(emptyArray()))
-        assertArrayEquals(arrayOf(0, 1, 2), arrayOf<Any?>(0, null, 1, null, 2).withoutNulls(emptyArray()))
-        assertArrayEquals(arrayOf(0, 2), arrayOf<Any?>(0, null, null, null, 2).withoutNulls(emptyArray()))
-        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, 1, null).withoutNulls(emptyArray()))
-        assertArrayEquals(arrayOf(0, 1), arrayOf<Any?>(0, null, null, 1, null).withoutNulls(emptyArray()))
-        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, 3, 4).withoutNulls(emptyArray()))
-        assertArrayEquals(arrayOf(3, 4), arrayOf<Any?>(null, null, 3, null, 4).withoutNulls(emptyArray()))
-    }
-
 }
