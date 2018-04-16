@@ -18,10 +18,22 @@ internal class MapWhenChanged<in T, U>(
 internal class ConsumeOn<in T>(
         private val consumeOn: Executor,
         private val consumer: (T) -> Unit
-) : (T) -> Unit {
+) : (T) -> Unit, Runnable {
+
+    @Volatile @Suppress("UNCHECKED_CAST")
+    private var value: T = this as T
+    // 'this' means 'unset', should not pass instance of this class to its `invoke` 😅
+
     override fun invoke(value: T) {
-        consumeOn.execute {
-            consumer(value)
-        }
+        check(value !== this)
+        this.value = value
+        consumeOn.execute(this)
     }
+
+    override fun run() {
+        val value = value
+        check(value !== this)
+        consumer(value)
+    }
+
 }
