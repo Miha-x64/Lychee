@@ -3,59 +3,95 @@ package net.aquadc.properties
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.Worker
 import net.aquadc.properties.executor.WorkerOnExecutor
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
+import org.junit.Assert.*
 import org.junit.Test
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
+import java.util.concurrent.*
 
 
 class WorkerTest {
 
-    private val bgWrk: Worker
-    private val exec: Executor
-    private val bgThread: Thread
+    private val caller: ExecutorService
+    private val callerThread: Thread
+
+    private val worker: Worker
+    private val workerThread: Thread
 
     init {
-        var thread: Thread? = null
-        exec = Executors.newSingleThreadExecutor { runnable -> Thread(runnable).also {
+        var clThread: Thread? = null
+        this.caller = ForkJoinPool(1, { pool -> object : ForkJoinWorkerThread(pool) {}.also {
             it.isDaemon = true
-            thread = it
+            clThread = it
+        } }, null, false)
+        caller.execute { /* just trigger factory to set [clThread] variable value */ }
+        this.callerThread = clThread!!
+
+
+        var wrkThread: Thread? = null
+        val exec = Executors.newSingleThreadExecutor { runnable -> Thread(runnable).also {
+            it.isDaemon = true
+            wrkThread = it
         } }
 
-        exec.execute { /* just trigger factory to set [thread] variable value */ }
+        exec.execute { /* just trigger factory to set [wrkThread] variable value */ }
 
-        this.bgWrk = WorkerOnExecutor(exec)
-        this.bgThread = thread!!
+        this.worker = WorkerOnExecutor(exec)
+        this.workerThread = wrkThread!!
     }
 
-    @Test fun mappedPropertyInPlace() = mappedProperty(InPlaceWorker, Thread.currentThread())
-    @Test fun mappedPropertyOnBg() = mappedProperty(bgWrk, bgThread)
+    @Test fun unsMappedPropertyInPlace() =
+            mappedProperty(
+                    caller.submit<MutableProperty<String>> { unsynchronizedMutablePropertyOf("none") }.get(),
+                    caller, callerThread, InPlaceWorker, callerThread, callerThread
+            )
 
-    private fun mappedProperty(worker: Worker, expectedThread: Thread) {
+    @Test fun unsMappedPropertyOnBg() =
+            mappedProperty(
+                    caller.submit<MutableProperty<String>> { unsynchronizedMutablePropertyOf("none") }.get(),
+                    caller, callerThread, worker, workerThread, callerThread
+            )
+
+    @Test fun concMappedPropertyInPlace() =
+            mappedProperty(
+                    concurrentMutablePropertyOf("none"),
+                    caller, callerThread, InPlaceWorker, callerThread, callerThread
+            )
+
+    @Test fun concMappedPropertyOnBg() =
+            mappedProperty(
+                    concurrentMutablePropertyOf("none"),
+                    caller, callerThread, worker, workerThread, workerThread
+            )
+
+    private fun mappedProperty(prop: MutableProperty<String>, caller: ExecutorService, callerThread: Thread, worker: Worker, workerThread: Thread, notifyThread: Thread) {
         val mappedOn = CopyOnWriteArrayList<Thread>()
         val mappedVals = CopyOnWriteArrayList<String>()
+        val notifiedOn = CopyOnWriteArrayList<Thread>()
 
-        val prop = concurrentMutablePropertyOf("none")
-        val mapped = prop.mapOn(worker) {
-            mappedOn.add(Thread.currentThread())
-            mappedVals.add(it.toUpperCase())
+        caller.submit<Future<Unit>> {
+            val mapped = prop.mapOn(worker) {
+                mappedOn.add(Thread.currentThread())
 
-            it.toUpperCase()
-        }
+                it.toUpperCase().also { mappedVals.add(it) }
+            }
 
-        prop.value = "some"
+            mapped.addChangeListener { _, new ->
+                notifiedOn.add(Thread.currentThread())
+            }
 
-        while (mapped.value == "NONE")
-            Thread.yield()
+            prop.value = "some"
 
-        assertEquals("NONE", mappedVals[0])
-        assertEquals("SOME", mappedVals[1])
-        assertEquals("SOME", mapped.value)
+            // value update gets posted...
+            while (mappedOn.size < 2)
+                Thread.yield()
 
-        assertSame(Thread.currentThread(), mappedOn[0])
-        assertSame(expectedThread, mappedOn[1])
+            caller.submit<Unit> {
+                assertEquals("SOME", mapped.value)
+            }
+        }.get().get()
+
+        assertEquals(listOf("NONE", "SOME"), mappedVals)
+        assertEquals(listOf(callerThread, workerThread), mappedOn)
+        assertEquals(listOf(notifyThread), notifiedOn)
     }
 
 }
