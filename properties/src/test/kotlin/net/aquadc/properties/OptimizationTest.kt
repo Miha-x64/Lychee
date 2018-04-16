@@ -64,7 +64,7 @@ class OptimizationTest {
         val prop1 = concurrentMutablePropertyOf("yo")
         val joinedProp = listOf(prop0, prop1).mapValueList { it.joinToString(" ") }
         assertEquals("hey yo", joinedProp.value)
-        assertTrue(joinedProp is UnsMultiMappedProperty<*, *>)
+        assertTrue(joinedProp is MultiMappedProperty<*, *>)
     }
 
     /*@Test fun concStressTest() {
