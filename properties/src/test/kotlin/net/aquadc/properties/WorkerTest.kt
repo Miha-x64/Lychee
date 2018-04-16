@@ -81,8 +81,8 @@ class WorkerTest {
             prop.value = "some"
 
             // value update gets posted...
-            while (mappedOn.size < 2)
-                Thread.yield()
+            while (mappedVals.size < 2)
+                Thread.sleep(10)
 
             caller.submit<Unit> {
                 assertEquals("SOME", mapped.value)

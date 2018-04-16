@@ -51,8 +51,8 @@ class OptimizationTest {
         assertTrue("mapped is ${mapped.javaClass}", mapsTo.isInstance(mapped))
     }
 
-    @Test fun concSimpleMapWith() = simpleMapWith(true, ConcBiMappedProperty::class.java)
-    @Test fun unsSimpleMapWith() = simpleMapWith(false, UnsBiMappedProperty::class.java)
+    @Test fun concSimpleMapWith() = simpleMapWith(true, BiMappedProperty::class.java)
+    @Test fun unsSimpleMapWith() = simpleMapWith(false, BiMappedProperty::class.java)
     fun simpleMapWith(concurrent: Boolean, mapsTo: Class<*>) {
         val prop0 = mutablePropertyOf("hey", concurrent)
         val prop1 = mutablePropertyOf("hey", concurrent)
