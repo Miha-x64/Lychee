@@ -6,7 +6,7 @@ import net.aquadc.properties.Property
 class DistinctPropertyWrapper<out T>(
         private val original: Property<T>,
         areEqual: (T, T) -> Boolean
-) : PropNotifier<T>(if (original.isConcurrent) null else Thread.currentThread()) {
+) : PropNotifier<T>(threadIfNot(original.isConcurrent)) {
 
     init {
         check(original.mayChange)

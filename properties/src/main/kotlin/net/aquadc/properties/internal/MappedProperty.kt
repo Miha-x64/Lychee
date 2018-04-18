@@ -9,7 +9,7 @@ class MappedProperty<in O, out T>(
         original: Property<O>,
         map: (O) -> T,
         mapOn: Worker
-) : PropNotifier<T>(if (original.isConcurrent) null else Thread.currentThread()) {
+) : PropNotifier<T>(threadIfNot(original.isConcurrent)) {
 
     init {
         check(original.mayChange)

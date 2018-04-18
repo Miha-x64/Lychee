@@ -9,7 +9,7 @@ internal class BiMappedProperty<in A, in B, out T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
-) : PropNotifier<T>(if (a.isConcurrent && b.isConcurrent) null else Thread.currentThread()), ChangeListener<Any?> {
+) : PropNotifier<T>(threadIfNot(a.isConcurrent && b.isConcurrent)), ChangeListener<Any?> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef = transform(a.value, b.value)
