@@ -74,7 +74,7 @@ class WorkerTest {
                 it.toUpperCase().also { mappedVals.add(it) }
             }
 
-            mapped.addChangeListener { _, new ->
+            mapped.addChangeListener { _, _ ->
                 notifiedOn.add(Thread.currentThread())
             }
 

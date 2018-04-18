@@ -3,9 +3,8 @@ package net.aquadc.properties
 
 import android.os.Looper
 import javafx.application.Platform
-import net.aquadc.properties.internal.ConcDistinctPropertyWrapper
+import net.aquadc.properties.internal.DistinctPropertyWrapper
 import net.aquadc.properties.internal.ConcDebouncedProperty
-import net.aquadc.properties.internal.UnsDistinctPropertyWrapper
 import net.aquadc.properties.internal.UnsDebouncedProperty
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
@@ -14,11 +13,8 @@ import java.util.concurrent.TimeUnit
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Property<T>.readOnlyView() = map(Just as (T) -> T)
 
-inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) = when {
-    !this.mayChange -> this
-    !isConcurrent -> UnsDistinctPropertyWrapper(this, areEqual)
-    else -> ConcDistinctPropertyWrapper(this, areEqual)
-}
+inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
+        if (this.mayChange) DistinctPropertyWrapper(this, areEqual) else this
 
 object Just : (Any?) -> Any? {
     override fun invoke(p1: Any?): Any? = p1
