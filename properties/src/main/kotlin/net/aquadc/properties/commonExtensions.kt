@@ -4,8 +4,7 @@ package net.aquadc.properties
 import android.os.Looper
 import javafx.application.Platform
 import net.aquadc.properties.internal.DistinctPropertyWrapper
-import net.aquadc.properties.internal.ConcDebouncedProperty
-import net.aquadc.properties.internal.UnsDebouncedProperty
+import net.aquadc.properties.internal.DebouncedProperty
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
 
@@ -53,12 +52,9 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
  * Single-threaded debounced wrapper will throw exception when created on inappropriate thread.
  * Concurrent debounced wrapper will throw exception when listener gets subscribed from inappropriate thread.
  */
-fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit) = when {
-    !mayChange -> this
-    isConcurrent -> ConcDebouncedProperty(this, delay, unit)
-    !isConcurrent -> UnsDebouncedProperty(this, delay, unit)
-    else -> throw AssertionError()
-}
+fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit) =
+        if (mayChange) DebouncedProperty(this, delay, unit)
+        else this
 
 /**
  * Inline copy of [java.util.concurrent.atomic.AtomicReference.getAndUpdate].

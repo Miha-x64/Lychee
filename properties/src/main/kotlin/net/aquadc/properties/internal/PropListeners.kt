@@ -36,7 +36,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
      * single-thread properties store listeners separately.
      */
     @Volatile @Suppress("UNUSED")
-     private var state: Any? = if (thread == null) ConcListeners.NoListeners else null
+    private var state: Any? = if (thread == null) ConcListeners.NoListeners else null
 
     /**
      * Holds listeners of a non-synchronized property. Unused, if this is a concurrent one.
@@ -369,3 +369,6 @@ abstract class PropNotifier<out T>(thread: Thread?) :
             listener(old, new)
 
 }
+
+internal fun threadIfNot(concurrent: Boolean): Thread? =
+        if (concurrent) null else Thread.currentThread()
