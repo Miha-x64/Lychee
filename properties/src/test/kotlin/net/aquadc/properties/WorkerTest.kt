@@ -65,33 +65,38 @@ class WorkerTest {
     private fun mappedProperty(prop: MutableProperty<String>, caller: ExecutorService, callerThread: Thread, worker: Worker, workerThread: Thread, notifyThread: Thread) {
         val mappedOn = CopyOnWriteArrayList<Thread>()
         val mappedVals = CopyOnWriteArrayList<String>()
+        val notifications = CopyOnWriteArrayList<String>()
         val notifiedOn = CopyOnWriteArrayList<Thread>()
 
-        caller.submit<Future<Unit>> {
-            val mapped = prop.mapOn(worker) {
+        val lock = Semaphore(0)
+        lateinit var mapped: Property<String>
+
+        caller.submit {
+            mapped = prop.mapOn(worker) {
                 mappedOn.add(Thread.currentThread())
 
                 it.toUpperCase().also { mappedVals.add(it) }
             }
 
-            mapped.addChangeListener { _, _ ->
+            mapped.addChangeListener { _, new ->
                 notifiedOn.add(Thread.currentThread())
+                notifications.add(new)
+                lock.release()
             }
 
             prop.value = "some"
+        }.get()
 
-            // value update gets posted...
-            while (mappedVals.size < 2)
-                Thread.sleep(10)
+        lock.acquire()
 
-            caller.submit<Unit> {
-                assertEquals("SOME", mapped.value)
-            }
-        }.get().get()
+        caller.submit<Unit> {
+            assertEquals(mappedVals.toString(), "SOME", mapped.value)
+        }.get()
 
         assertEquals(listOf("NONE", "SOME"), mappedVals)
         assertEquals(listOf(callerThread, workerThread), mappedOn)
         assertEquals(listOf(notifyThread), notifiedOn)
+        assertEquals(listOf("SOME"), notifications)
     }
 
 }
