@@ -1,5 +1,6 @@
 package net.aquadc.properties.internal
 
+import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 
@@ -7,13 +8,10 @@ import net.aquadc.properties.Property
  * Single-threaded mutable property.
  * Will remember thread it was created on and throw an exception if touched from wrong thread.
  */
-class UnsMutableProperty<T>(
+@PublishedApi
+internal class UnsMutableProperty<T>(
         value: T
-) : PropNotifier<T>(Thread.currentThread()), MutableProperty<T> {
-
-    private var _notifyAllFunc: ((T, T) -> Unit)? = null
-    private val notifyAllFunc: (T, T) -> Unit
-        get() = _notifyAllFunc ?: { old: T, new: T -> valueChanged(old, new, null) }.also { _notifyAllFunc = it }
+) : PropNotifier<T>(Thread.currentThread()), MutableProperty<T>, ChangeListener<T> {
 
     var valueRef: T = value
 
@@ -41,8 +39,8 @@ class UnsMutableProperty<T>(
         val newSample = if (sample.mayChange) sample else null
         val oldSample = this.sample
         this.sample = newSample
-        oldSample?.removeChangeListener(notifyAllFunc)
-        newSample?.addChangeListener(notifyAllFunc)
+        oldSample?.removeChangeListener(this)
+        newSample?.addChangeListener(this)
 
         val old = valueRef
         val new = sample.value
@@ -64,8 +62,12 @@ class UnsMutableProperty<T>(
 
     private fun dropBinding() {
         val oldSample = sample
-        oldSample?.removeChangeListener(notifyAllFunc)
+        oldSample?.removeChangeListener(this)
         sample = null
+    }
+
+    override fun invoke(old: T, new: T) {
+        valueChanged(old, new, null)
     }
 
 }

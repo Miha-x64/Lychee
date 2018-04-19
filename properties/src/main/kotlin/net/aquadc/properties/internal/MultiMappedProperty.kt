@@ -4,8 +4,8 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
-
-class MultiMappedProperty<in A, out T>(
+@PublishedApi
+internal class MultiMappedProperty<in A, out T>(
         properties: Collection<Property<A>>,
         private val transform: (List<A>) -> T
 ) : PropNotifier<T>(threadIfNot(properties.all(Property<A>::isConcurrent))), ChangeListener<A> {
