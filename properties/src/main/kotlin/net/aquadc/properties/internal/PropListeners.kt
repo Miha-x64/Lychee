@@ -258,7 +258,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
             throw RuntimeException("${Thread.currentThread()} is not allowed to touch this property since it was created in $thread.")
     }
 
-    protected companion object {
+    internal companion object {
         @JvmField val updater: AtomicReferenceFieldUpdater<PropListeners<*, *, *, *>, Any> =
                 AtomicReferenceFieldUpdater.newUpdater(PropListeners::class.java, Any::class.java, "state")
 

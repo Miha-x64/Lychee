@@ -8,7 +8,7 @@ package net.aquadc.properties.internal
  *                         then notification is happening right now
  */
 @Suppress("UNCHECKED_CAST")
-class ConcListeners<out L : Any, out T>(
+internal class ConcListeners<out L : Any, out T>(
         @JvmField val listeners: Array<out L?>,
         @JvmField val pendingValues: Array<out T>
 ) {

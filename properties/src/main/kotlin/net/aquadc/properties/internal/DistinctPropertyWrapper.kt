@@ -2,8 +2,8 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 
-
-class DistinctPropertyWrapper<out T>(
+@PublishedApi
+internal class DistinctPropertyWrapper<out T>(
         private val original: Property<T>,
         areEqual: (T, T) -> Boolean
 ) : PropNotifier<T>(threadIfNot(original.isConcurrent)) {

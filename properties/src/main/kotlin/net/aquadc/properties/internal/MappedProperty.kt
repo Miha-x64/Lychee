@@ -5,7 +5,7 @@ import net.aquadc.properties.executor.*
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
-class MappedProperty<in O, out T>(
+internal class MappedProperty<in O, out T>(
         original: Property<O>,
         map: (O) -> T,
         mapOn: Worker

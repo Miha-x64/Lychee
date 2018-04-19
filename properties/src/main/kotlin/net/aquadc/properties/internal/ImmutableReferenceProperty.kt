@@ -2,7 +2,8 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.Property
 
-class ImmutableReferenceProperty<out T>(
+@PublishedApi
+internal class ImmutableReferenceProperty<out T>(
         override val value: T
 ) : Property<T> {
 

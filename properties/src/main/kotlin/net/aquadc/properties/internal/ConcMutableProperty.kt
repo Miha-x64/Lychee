@@ -1,5 +1,6 @@
 package net.aquadc.properties.internal
 
+import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
@@ -7,9 +8,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 /**
  * Concurrent [MutableProperty] implementation.
  */
-class ConcMutableProperty<T>(
+@PublishedApi
+internal class ConcMutableProperty<T>(
         value: T
-) : PropNotifier<T>(null), MutableProperty<T> {
+) : PropNotifier<T>(null), MutableProperty<T>, ChangeListener<T> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
@@ -31,8 +33,8 @@ class ConcMutableProperty<T>(
     override fun bindTo(sample: Property<T>) {
         val newSample = if (sample.mayChange) sample else null
         val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
-        oldSample?.removeChangeListener(onChangeInternal)
-        newSample?.addChangeListener(onChangeInternal)
+        oldSample?.removeChangeListener(this)
+        newSample?.addChangeListener(this)
 
         val new = sample.value
         val old = valueUpdater<T>().getAndSet(this, new)
@@ -51,13 +53,12 @@ class ConcMutableProperty<T>(
 
     private fun dropBinding() {
         val oldSample = sampleUpdater<T>().getAndSet(this, null)
-        oldSample?.removeChangeListener(onChangeInternal)
+        oldSample?.removeChangeListener(this)
     }
 
-    private var _onChangeInternal: ((T, T) -> Unit)? = null
-
-    private val onChangeInternal: (T, T) -> Unit // non-thread-safe lazy, which is totally OK in this case
-        get() = _onChangeInternal ?: { old: T, new: T -> valueChanged(old, new, null) }.also { _onChangeInternal = it }
+    override fun invoke(old: T, new: T) {
+        valueChanged(old, new, null)
+    }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {

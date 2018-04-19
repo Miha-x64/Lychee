@@ -37,3 +37,14 @@ internal class ConsumeOn<in T>(
     }
 
 }
+
+class ConfinedChangeListener<in T>(
+        private val executor: Executor,
+        @JvmField internal val actual: ChangeListener<T>
+) : ChangeListener<T> {
+
+    override fun invoke(old: T, new: T) {
+        executor.execute { actual(old, new) }
+    }
+
+}

@@ -2,6 +2,8 @@ package net.aquadc.properties.internal
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
+// UpdatersKt class wont't ever be loaded because it fully consists of inline functions
+
 internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.update(zis: T, update: (V) -> V) {
     var prev: V
     var next: V
