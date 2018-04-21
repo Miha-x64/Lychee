@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * Notifies subscribers about changes with a delay,
  * swallowing useless updates.
  */
+@PublishedApi
 internal class DebouncedProperty<out T>(
         private val original: Property<T>,
         private val delay: Long,

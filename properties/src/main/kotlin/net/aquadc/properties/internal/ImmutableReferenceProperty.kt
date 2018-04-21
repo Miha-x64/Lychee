@@ -14,4 +14,10 @@ internal class ImmutableReferenceProperty<out T>(
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) = Unit
 
+    @PublishedApi
+    internal companion object {
+        @JvmField val TRUE = ImmutableReferenceProperty(true)
+        @JvmField val FALSE = ImmutableReferenceProperty(false)
+    }
+
 }
