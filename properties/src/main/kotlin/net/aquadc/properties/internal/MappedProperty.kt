@@ -53,14 +53,17 @@ internal class MappedProperty<in O, out T>(
             original.addChangeListener(originalChanged)
         } else {
             original.removeChangeListener(originalChanged)
-            valueUpdater<T>().lazySet(this, null)
+            valueUpdater<T>().lazySet(this, this as T)
         }
     }
 
     override val value: T
-        get() = valueUpdater<T>().get(this).let {
-            if (it === this) map(original.value) // if not observed, calculate on demand
-            else it
+        get() {
+            if (thread !== null) checkThread()
+            val value = valueUpdater<T>().get(this)
+
+            // if not observed, calculate on demand
+            return if (value === this) map(original.value) else value
         }
 
     private companion object {
