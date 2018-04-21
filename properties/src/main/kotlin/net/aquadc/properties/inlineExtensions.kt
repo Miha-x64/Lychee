@@ -23,26 +23,30 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
 /**
  * Returns inverted view on this property.
  */
+@Suppress("UNCHECKED_CAST")
 inline operator fun Property<Boolean>.not(): Property<Boolean> =
-        map(UnaryNotBinaryAnd)
+        map(UnaryNotBinaryAnd as (Boolean) -> Boolean)
 
 /**
  * Returns a view on [this] && [that].
  */
+@Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, UnaryNotBinaryAnd)
+        mapWith(that, UnaryNotBinaryAnd as (Boolean, Boolean) -> Boolean)
 
 /**
  * Returns a view on [this] || [that].
  */
+@Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.or(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, Or)
+        mapWith(that, OrBooleans as (Boolean, Boolean) -> Boolean)
 
 /**
  * Returns a view on [this] ^ [that].
  */
+@Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, Xor)
+        mapWith(that, XorBooleans as (Boolean, Boolean) -> Boolean)
 
 /**
  * Sets [this] value to `true`.
@@ -72,15 +76,17 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
 // CharSequence
 //
 
-inline val Property<CharSequence>.length get() = map(CharSeqLength)
+@Suppress("UNCHECKED_CAST")
+inline val Property<CharSequence>.length: Property<Int> get() = map(CharSeqLength as (CharSequence) -> Int)
 
-inline val Property<CharSequence>.isEmpty get() = map(CharSeqBooleanFunc.Empty)
-inline val Property<CharSequence>.isNotEmpty get() = map(CharSeqBooleanFunc.NotEmpty)
+inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSeqBooleanFunc.Empty)
+inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSeqBooleanFunc.NotEmpty)
 
-inline val Property<CharSequence>.isBlank get() = map(CharSeqBooleanFunc.Blank)
-inline val Property<CharSequence>.isNotBlank get() = map(CharSeqBooleanFunc.NotBlank)
+inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSeqBooleanFunc.Blank)
+inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSeqBooleanFunc.NotBlank)
 
-inline val Property<CharSequence>.trimmed get() = map(TrimmedCharSeq)
+@Suppress("UNCHECKED_CAST")
+inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(TrimmedCharSeq as (CharSequence) -> CharSequence)
 
 
 //
@@ -183,48 +189,82 @@ inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List
 /**
  * Folds a list of properties into a single [Property].
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T, R> Collection<Property<T>>.foldValues(initial: R, crossinline operation: (acc: R, T) -> R): Property<R> =
-        mapValueList {
+        mapValueList({ it: Any ->
+            it as List<T>
+
             var accumulator = initial
             for (element in it) accumulator = operation(accumulator, element)
-            accumulator
-        }
+            accumulator as Any?
+        } as (List<T>) -> R)
 
 /**
  * Returns a property which holds first non-null property's value, or null, if all are nulls.
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.firstValueOrNull(crossinline predicate: (T) -> Boolean): Property<T?> =
-        mapValueList { it.firstOrNull(predicate) }
+        mapValueList({ it: Any ->
+            it as List<T>
+
+            it.firstOrNull(predicate) as Any?
+        } as (List<T>) -> T?)
 
 /**
  * Returns a property which holds a filtered collection.
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.filterValues(crossinline predicate: (T) -> Boolean): Property<List<T>> =
-        mapValueList { it.filter(predicate) }
+        mapValueList({ it: Any ->
+            it as List<T>
+
+            it.filter(predicate) as Any?
+        } as (List<T>) -> List<T>)
 
 /**
  * Returns a property which holds `true` if [this] contains a property holding [value].
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsValue(value: T): Property<Boolean> =
-        mapValueList(ContainsValue(value))
+        mapValueList({ it: Any ->
+            it as List<T>
+
+            it.contains(value) as Any?
+        } as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if [this] contains a property holding all [values].
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsAllValues(values: Collection<T>): Property<Boolean> =
-        mapValueList(ContainsAll(values))
+        mapValueList({ it: Any ->
+            it as List<T>
+
+            it.containsAll(values) as Any?
+        } as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if all properties' values in [this] are conforming to [predicate].
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.allValues(crossinline predicate: (T) -> Boolean): Property<Boolean> =
-        mapValueList { it.all(predicate) }
+        mapValueList({ it: Any ->
+            it as List<T>
+
+            it.all(predicate) as Any?
+        } as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if any of properties' values in [this] conforms to [predicate].
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Boolean): Property<Boolean> =
-        mapValueList { it.any(predicate) }
+        mapValueList({ it: Any ->
+            @Suppress("UNCHECKED_CAST")
+            it as List<T>
+
+            it.any(predicate) as Any?
+        } as (List<T>) -> Boolean)
 
 
 //
