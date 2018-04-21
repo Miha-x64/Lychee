@@ -260,57 +260,6 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
             throw RuntimeException("${Thread.currentThread()} is not allowed to touch this property since it was created in $thread.")
     }
 
-    internal companion object {
-        @JvmField val updater: AtomicReferenceFieldUpdater<PropListeners<*, *, *, *>, Any> =
-                AtomicReferenceFieldUpdater.newUpdater(PropListeners::class.java, Any::class.java, "state")
-
-        @JvmField val SingleNull = arrayOfNulls<Any>(1)
-
-        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
-        inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.concStateUpdater() =
-                updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, ConcListeners<LISTENER, PACKED>>
-
-        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
-        inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.nonSyncPendingUpdater() =
-                updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, Array<PACKED>?>
-
-        /**
-         * @return number of read locks to lock
-         */
-        internal fun ReentrantReadWriteLock.lockForWrite(): Int {
-            val rl = readLock()
-
-            val readCount = if (writeHoldCount == 0) readHoldCount else 0
-            repeat(readCount) { rl.unlock() }
-
-            writeLock().lock()
-
-            return readCount
-        }
-    }
-
-}
-
-/**
- * Base class containing concurrent notification logic.
- * Despite class is public, this is private API.
- */
-abstract class PropNotifier<out T>(thread: Thread?) :
-        PropListeners<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
-
-    protected fun isBeingObserved(): Boolean =
-            if (thread == null) {
-                concStateUpdater().get(this).listeners.any { it != null }
-            } else {
-                val lis = nonSyncListeners
-                when (lis) {
-                    null -> false
-                    is Function2<*, *, *> -> true
-                    is Array<*> -> lis.any { it != null }
-                    else -> throw AssertionError()
-                }
-            }
-
     /**
      * We can (un)subscribe concurrently under read lock,
      * but when subscribers count changes from 0 to 1 or vice versa,
@@ -320,13 +269,13 @@ abstract class PropNotifier<out T>(thread: Thread?) :
     internal val subscriptionLock
         get() = _subscriptionLock!!
 
-    override fun addChangeListener(onChange: ChangeListener<T>) {
+    protected fun addChangeListenerInternal(onChange: LISTENER) {
         if (thread == null) {
             subscriptionLock.read {
                 var removedReadLocks = 0
                 val old = concStateUpdater().getUndUpdate(this) {
                     if (subscriptionLock.writeHoldCount == 0 && it.listeners.all { it == null }) {
-                        // there are 0 listeners, we're goint to change 'observed' state
+                        // there are 0 listeners, we're going to change 'observed' state
                         removedReadLocks += subscriptionLock.lockForWrite()
                     }
                     it.withListener(onChange)
@@ -379,11 +328,11 @@ abstract class PropNotifier<out T>(thread: Thread?) :
         }
     }
 
-    override fun removeChangeListener(onChange: ChangeListener<T>) {
+    protected fun removeChangeListenerInternal(onChange: LISTENER) {
         removeChangeListenerWhere { it === onChange }
     }
 
-    internal inline fun removeChangeListenerWhere(predicate: (ChangeListener<@UnsafeVariance T>) -> Boolean) {
+    internal inline fun removeChangeListenerWhere(predicate: (LISTENER) -> Boolean) {
         if (thread == null) {
             subscriptionLock.read {
                 var removedReadLocks = 0
@@ -414,13 +363,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                     prev.withoutListenerAt(victimIdx)
                 }
                 // it's guaranteed that we've successfully removed something
-                if (subscriptionLock.writeHoldCount == 1) {
-                    // ...and nothing left
-                    check(concStateUpdater().get(this).listeners.all { it == null })
-                    observedStateChangedWLocked(false)
-                    subscriptionLock.writeLock().unlock()
-                    repeat(removedReadLocks) { subscriptionLock.readLock().lock() }
-                }
+                finishConcRemoval(removedReadLocks)
             }
         } else {
             checkThread()
@@ -429,7 +372,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                 null -> return
                 is Function2<*, *, *> -> {
                     @Suppress("UNCHECKED_CAST")
-                    if (!predicate(listeners as ChangeListener<T>))
+                    if (!predicate(listeners as LISTENER))
                         return
 
                     nonSyncListeners =
@@ -441,7 +384,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                 is Array<*> -> {
                     val idx = listeners.indexOfFirst {
                         @Suppress("UNCHECKED_CAST")
-                        it != null && predicate(it as ChangeListener<T>)
+                        it != null && predicate(it as LISTENER)
                     }
                     if (idx < 0) return
 
@@ -455,7 +398,80 @@ abstract class PropNotifier<out T>(thread: Thread?) :
         }
     }
 
+    // attempt to make inline functin smaller
+    private fun finishConcRemoval(removedReadLocks: Int) {
+        if (subscriptionLock.writeHoldCount == 1) {
+            // ...and nothing left
+            check(concStateUpdater().get(this).listeners.all { it == null })
+            observedStateChangedWLocked(false)
+            subscriptionLock.writeLock().unlock()
+            repeat(removedReadLocks) { subscriptionLock.readLock().lock() }
+        }
+    }
+
+    /**
+     * ...not overridden in [ConcMutableDiffProperty], because it is not mapped and cannot be bound.
+     */
     protected open fun observedStateChangedWLocked(observed: Boolean) {}
+
+    internal companion object {
+        @JvmField val updater: AtomicReferenceFieldUpdater<PropListeners<*, *, *, *>, Any> =
+                AtomicReferenceFieldUpdater.newUpdater(PropListeners::class.java, Any::class.java, "state")
+
+        @JvmField val SingleNull = arrayOfNulls<Any>(1)
+
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
+        inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.concStateUpdater() =
+                updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, ConcListeners<LISTENER, PACKED>>
+
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
+        inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.nonSyncPendingUpdater() =
+                updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, Array<PACKED>?>
+
+        /**
+         * @return number of read locks to lock
+         */
+        internal fun ReentrantReadWriteLock.lockForWrite(): Int {
+            val rl = readLock()
+
+            val readCount = if (writeHoldCount == 0) readHoldCount else 0
+            repeat(readCount) { rl.unlock() }
+
+            writeLock().lock()
+
+            return readCount
+        }
+    }
+
+}
+
+/**
+ * Base class containing concurrent notification logic.
+ * Despite class is public, this is private API.
+ */
+abstract class PropNotifier<out T>(thread: Thread?) :
+        PropListeners<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
+
+    protected fun isBeingObserved(): Boolean =
+            if (thread == null) {
+                concStateUpdater().get(this).listeners.any { it != null }
+            } else {
+                val lis = nonSyncListeners
+                when (lis) {
+                    null -> false
+                    is Function2<*, *, *> -> true
+                    is Array<*> -> lis.any { it != null }
+                    else -> throw AssertionError()
+                }
+            }
+
+    override fun addChangeListener(onChange: ChangeListener<T>) {
+        addChangeListenerInternal(onChange)
+    }
+
+    override fun removeChangeListener(onChange: ChangeListener<T>) {
+        removeChangeListenerInternal(onChange)
+    }
 
     final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
             new
