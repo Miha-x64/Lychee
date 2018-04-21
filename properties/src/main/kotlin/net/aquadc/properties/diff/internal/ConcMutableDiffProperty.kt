@@ -4,7 +4,8 @@ import net.aquadc.properties.diff.MutableDiffProperty
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
-class ConcMutableDiffProperty<T, D>(
+@PublishedApi
+internal class ConcMutableDiffProperty<T, D>(
         value: T
 ) : ConcDiffPropNotifier<T, D>(), MutableDiffProperty<T, D> {
 

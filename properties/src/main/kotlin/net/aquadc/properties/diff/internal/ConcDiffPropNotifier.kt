@@ -4,12 +4,9 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.diff.DiffChangeListener
 import net.aquadc.properties.diff.DiffProperty
 import net.aquadc.properties.internal.PropListeners
-import net.aquadc.properties.internal.update
 
-/**
- * Despite the class is public, it is a part of private API.
- */
-abstract class ConcDiffPropNotifier<T, D> : PropListeners<T, D, Any, Pair<T, D>>(null), DiffProperty<T, D> {
+
+internal abstract class ConcDiffPropNotifier<T, D> : PropListeners<T, D, Any, Pair<T, D>>(null), DiffProperty<T, D> {
 
     final override fun addChangeListener(onChange: ChangeListener<T>) =
             addChangeListenerInternal(onChange)
