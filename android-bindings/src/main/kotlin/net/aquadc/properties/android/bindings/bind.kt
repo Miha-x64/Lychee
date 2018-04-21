@@ -37,8 +37,12 @@ class SafeBinding<V : View, in T>(
     }
 
     override fun onViewAttachedToWindow(v: View) {
-        bind(view, property.value)
+        // We're probably the first listener,
+        // subscription may trigger value computation.
         property.addChangeListener(this)
+
+        // Bind when value computed.
+        bind(view, property.value)
     }
 
     override fun onViewDetachedFromWindow(v: View) {
