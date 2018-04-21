@@ -17,13 +17,10 @@ internal class ConcListeners<out L : Any, out T>(
             ConcListeners(listeners.with(newListener) as Array<L?>, pendingValues)
 
     fun withoutListener(victim: @UnsafeVariance L): ConcListeners<L, T> {
-        return withoutListenerAt(listeners.indexOfFirst { it === victim })
+        val victimIdx = listeners.indexOfFirst { it === victim }
+        return if (victimIdx < 0) this else withoutListenerAt(victimIdx)
     }
     fun withoutListenerAt(idx: Int): ConcListeners<L, T> {
-        if (idx < 0) {
-            return this
-        }
-
         val newListeners = when {
             pendingValues.isNotEmpty() ->
                 (listeners as Array<L?>).clone().also { it[idx] = null }

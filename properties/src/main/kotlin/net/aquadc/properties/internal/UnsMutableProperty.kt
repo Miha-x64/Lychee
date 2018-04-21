@@ -39,13 +39,23 @@ internal class UnsMutableProperty<T>(
         val newSample = if (sample.mayChange) sample else null
         val oldSample = this.sample
         this.sample = newSample
-        oldSample?.removeChangeListener(this)
-        newSample?.addChangeListener(this)
+
+        if (isBeingObserved()) {
+            oldSample?.removeChangeListener(this)
+            newSample?.addChangeListener(this)
+        }
 
         val old = valueRef
         val new = sample.value
         valueRef = new
         valueChanged(old, new, null)
+    }
+
+    override fun observedStateChanged(observed: Boolean) {
+        val sample = sample ?: return
+
+        if (observed) sample.addChangeListener(this)
+        else sample.removeChangeListener(this)
     }
 
     override fun casValue(expect: T, update: T): Boolean {
@@ -61,8 +71,11 @@ internal class UnsMutableProperty<T>(
     }
 
     private fun dropBinding() {
-        val oldSample = sample
-        oldSample?.removeChangeListener(this)
+        val oldSample = sample ?: return
+
+        if (isBeingObserved()) {
+            oldSample.removeChangeListener(this)
+        }
         sample = null
     }
 
