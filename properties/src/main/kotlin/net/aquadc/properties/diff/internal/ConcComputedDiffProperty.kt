@@ -1,25 +1,32 @@
 package net.aquadc.properties.diff.internal
 
+import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.executor.Worker
 
 
 class ConcComputedDiffProperty<T, D>(
-        original: Property<T>,
-        calculateDiff: (T, T) -> D,
-        computeOn: Worker
-) : ConcDiffPropNotifier<T, D>() {
+        private val original: Property<T>,
+        private val calculateDiff: (T, T) -> D,
+        private val computeOn: Worker
+) : ConcDiffPropNotifier<T, D>(), ChangeListener<T> {
 
-    init {
-        /*
-         * Oh... I don't want to have both single-threaded and concurrent implementations of Diff properties.
-         * But a concurrent property aggregating a single-threaded property is, um... strange and unpredictable.
-         */
+    /*
+     * Oh... I don't want to have both single-threaded and concurrent implementations of Diff properties.
+     * But a concurrent property aggregating a single-threaded property is, um... strange and unpredictable.
+     */
 
-        original.addChangeListener { old, new ->
-            computeOn.map2(old, new, calculateDiff) {
-                valueChangedAccess(old, new, it)
-            }
+    @Volatile
+    override var value: T = this as T
+        get() {
+            val v = field
+            return if (v === this) original.value else v
+        }
+        private set
+
+    override fun invoke(old: T, new: T) {
+        computeOn.map2(old, new, calculateDiff) {
+            valueChangedAccess(old, new, it)
         }
     }
 
@@ -29,8 +36,12 @@ class ConcComputedDiffProperty<T, D>(
         valueChanged(old, new, diff)
     }
 
-    @Volatile
-    override var value: T = original.value
-        private set
+    override fun observedStateChangedWLocked(observed: Boolean) {
+        if (observed) {
+            original.addChangeListener(this)
+        } else {
+            original.removeChangeListener(this)
+        }
+    }
 
 }
