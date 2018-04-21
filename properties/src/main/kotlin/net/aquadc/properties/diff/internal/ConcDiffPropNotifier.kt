@@ -12,16 +12,16 @@ import net.aquadc.properties.internal.update
 abstract class ConcDiffPropNotifier<T, D> : PropListeners<T, D, Any, Pair<T, D>>(null), DiffProperty<T, D> {
 
     final override fun addChangeListener(onChange: ChangeListener<T>) =
-            concStateUpdater().update(this) { it.withListener(onChange) }
+            addChangeListenerInternal(onChange)
 
     final override fun addChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
-            concStateUpdater().update(this) { it.withListener(onChangeWithDiff) }
+            addChangeListenerInternal(onChangeWithDiff)
 
     final override fun removeChangeListener(onChange: ChangeListener<T>) =
-            concStateUpdater().update(this) { it.withoutListener(onChange) }
+            removeChangeListenerInternal(onChange)
 
     final override fun removeChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
-            concStateUpdater().update(this) { it.withoutListener(onChangeWithDiff) }
+            removeChangeListenerInternal(onChangeWithDiff)
 
     final override fun pack(new: T, diff: D): Pair<T, D> =
             new to diff
