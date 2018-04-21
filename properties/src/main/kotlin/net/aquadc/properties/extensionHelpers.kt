@@ -5,19 +5,19 @@ package net.aquadc.properties
 //
 
 @PublishedApi internal object UnaryNotBinaryAnd :
-/* not: */ (Boolean) -> Boolean,
-        /* and: */ (Boolean, Boolean) -> Boolean {
+        /* not: */ (Any) -> Any,
+        /* and: */ (Any, Any) -> Any {
 
-    override fun invoke(p1: Boolean): Boolean = !p1
-    override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 && p2
+    override fun invoke(p1: Any): Any = !(p1 as Boolean)
+    override fun invoke(p1: Any, p2: Any): Any = (p1 as Boolean) && (p2 as Boolean)
 }
 
-@PublishedApi internal object Or : (Boolean, Boolean) -> Boolean {
-    override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 || p2
+@PublishedApi internal object OrBooleans : (Any, Any) -> Any {
+    override fun invoke(p1: Any, p2: Any): Any = p1 as Boolean || p2 as Boolean
 }
 
-@PublishedApi internal object Xor : (Boolean, Boolean) -> Boolean {
-    override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 xor p2
+@PublishedApi internal object XorBooleans : (Any, Any) -> Any {
+    override fun invoke(p1: Any, p2: Any): Any = p1 as Boolean xor p2 as Boolean
 }
 
 
@@ -25,29 +25,33 @@ package net.aquadc.properties
 // CharSequence
 //
 
-@PublishedApi internal object CharSeqLength : (CharSequence) -> Int {
-    override fun invoke(p1: CharSequence): Int = p1.length
+@PublishedApi internal object CharSeqLength : (Any) -> Any {
+    override fun invoke(p1: Any): Any = (p1 as CharSequence).length
 }
 
-@PublishedApi internal object TrimmedCharSeq : (CharSequence) -> CharSequence {
-    override fun invoke(p1: CharSequence): CharSequence = p1.trim()
+@PublishedApi internal object TrimmedCharSeq : (Any) -> Any {
+    override fun invoke(p1: Any): Any = (p1 as CharSequence).trim()
 }
 
-@PublishedApi internal class CharSeqBooleanFunc(private val mode: Int) : (CharSequence) -> Boolean {
-    override fun invoke(p1: CharSequence): Boolean = when (mode) {
-        0 -> p1.isEmpty()
-        1 -> p1.isNotEmpty()
-        2 -> p1.isBlank()
-        3 -> p1.isNotBlank()
-        else -> throw AssertionError()
+@PublishedApi internal class CharSeqBooleanFunc(private val mode: Int) : (Any) -> Any {
+    override fun invoke(p1: Any): Any {
+        p1 as CharSequence
+        return when (mode) {
+            0 -> p1.isEmpty()
+            1 -> p1.isNotEmpty()
+            2 -> p1.isBlank()
+            3 -> p1.isNotBlank()
+            else -> throw AssertionError()
+        }
     }
 
+    @Suppress("UNCHECKED_CAST")
     @PublishedApi
     internal companion object {
-        @JvmField val Empty = CharSeqBooleanFunc(0)
-        @JvmField val NotEmpty = CharSeqBooleanFunc(1)
-        @JvmField val Blank = CharSeqBooleanFunc(2)
-        @JvmField val NotBlank = CharSeqBooleanFunc(3)
+        @JvmField val Empty = CharSeqBooleanFunc(0) as (CharSequence) -> Boolean
+        @JvmField val NotEmpty = CharSeqBooleanFunc(1) as (CharSequence) -> Boolean
+        @JvmField val Blank = CharSeqBooleanFunc(2) as (CharSequence) -> Boolean
+        @JvmField val NotBlank = CharSeqBooleanFunc(3) as (CharSequence) -> Boolean
     }
 }
 
@@ -73,21 +77,4 @@ object Identity : (Any?, Any?) -> Boolean {
  */
 object Equals : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 == p2
-}
-
-
-//
-// bulk
-//
-
-@PublishedApi internal class ContainsValue<in T>(
-        private val value: T
-) : (List<T>) -> Boolean {
-    override fun invoke(p1: List<T>): Boolean = p1.contains(value)
-}
-
-@PublishedApi internal class ContainsAll<in T>(
-        private val values: Collection<T>
-) : (List<T>) -> Boolean {
-    override fun invoke(p1: List<T>): Boolean = p1.containsAll(values)
 }
