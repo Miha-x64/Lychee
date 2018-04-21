@@ -5,7 +5,8 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.executor.Worker
 
 
-class ConcComputedDiffProperty<T, D>(
+@PublishedApi
+internal class ConcComputedDiffProperty<T, D>(
         private val original: Property<T>,
         private val calculateDiff: (T, T) -> D,
         private val computeOn: Worker
