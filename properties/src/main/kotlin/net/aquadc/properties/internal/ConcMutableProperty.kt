@@ -47,7 +47,7 @@ internal class ConcMutableProperty<T>(
         (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
         newSample?.addChangeListener(this)
 
-        if (newSample !== null && valueUpdater<T>().get(this).value !== newSample) {
+        if (newSample !== null && valueUpdater<T>().get(this).let { it is Value.Binding && it.original !== newSample }) {
             // bound to other property concurrently
             // drop new binding and stop now
             newSample.removeChangeListener(this)
