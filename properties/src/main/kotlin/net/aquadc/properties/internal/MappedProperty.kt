@@ -48,12 +48,11 @@ internal class MappedProperty<in O, out T>(
     override fun observedStateChangedWLocked(observed: Boolean) {
         if (observed) {
             val mapped = map(original.value)
-            if (thread == null) valueUpdater<T>().set(this, mapped)
-            else valueUpdater<T>().lazySet(this, mapped)
+            valueUpdater<T>().eagerOrLazySet(this, thread, mapped)
             original.addChangeListener(originalChanged)
         } else {
             original.removeChangeListener(originalChanged)
-            valueUpdater<T>().lazySet(this, this as T)
+            valueUpdater<T>().eagerOrLazySet(this, thread, this as T)
         }
     }
 

@@ -13,18 +13,19 @@ internal class MultiMappedProperty<in A, out T>(
     private val properties: Array<Property<A>>
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef: T
+    private var valueRef: T = this as T
 
     init {
         @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
         this.properties = (properties as java.util.Collection<*>).toArray(arrayOfNulls(properties.size))
-        this.properties.forEach { if (it.mayChange) it.addChangeListener(this) }
-
-        valueRef = transform.invoke(List(properties.size) { this.properties[it].value })
     }
 
     override val value: T
-        get() = valueUpdater<A, T>().get(this)
+        get() {
+            if (thread != null) checkThread()
+            val value = valueUpdater<A, T>().get(this)
+            return if (value === this) transformed() else value
+        }
 
     override fun invoke(_old: A, _new: A) {
         var old: T
@@ -32,9 +33,7 @@ internal class MultiMappedProperty<in A, out T>(
 
         do {
             old = valueUpdater<A, T>().get(this)
-
-            val values = List(properties.size) { properties[it].value }
-            new = transform.invoke(values)
+            new = transformed()
         } while (!cas(old, new))
 
         valueChanged(old, new, null)
@@ -46,6 +45,20 @@ internal class MultiMappedProperty<in A, out T>(
         valueUpdater<A, T>().lazySet(this, new)
         true
     }
+
+    override fun observedStateChangedWLocked(observed: Boolean) {
+        if (observed) {
+            val value = transform.invoke(List(properties.size) { this.properties[it].value })
+            valueUpdater<A, T>().eagerOrLazySet(this, thread, value)
+            properties.forEach { if (it.mayChange) it.addChangeListener(this) }
+        } else {
+            properties.forEach { if (it.mayChange) it.removeChangeListener(this) }
+            valueUpdater<A, T>().eagerOrLazySet(this, thread, this as T)
+        }
+    }
+
+    private fun transformed(): T =
+            transform(List(properties.size) { this.properties[it].value })
 
     private companion object {
         @JvmField
