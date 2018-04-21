@@ -4,6 +4,8 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.diff.internal.ConcMutableDiffProperty
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
 
 // I don't like implementation inheritance, but it is more lightweight than composition.
 
@@ -271,6 +273,20 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
         inline fun <T, D, LISTENER : Any, PACKED> PropListeners<T, D, LISTENER, PACKED>.nonSyncPendingUpdater() =
                 updater as AtomicReferenceFieldUpdater<PropListeners<T, D, LISTENER, PACKED>, Array<PACKED>?>
+
+        /**
+         * @return number of read locks to lock
+         */
+        internal fun ReentrantReadWriteLock.lockForWrite(): Int {
+            val rl = readLock()
+
+            val readCount = if (writeHoldCount == 0) readHoldCount else 0
+            repeat(readCount) { rl.unlock() }
+
+            writeLock().lock()
+
+            return readCount
+        }
     }
 
 }
@@ -295,24 +311,50 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                 }
             }
 
+    /**
+     * We can (un)subscribe concurrently under read lock,
+     * but when subscribers count changes from 0 to 1 or vice versa,
+     * [observedStateChangedWLocked] gets called under write lock.
+     */
+    private val _subscriptionLock = if (thread == null) ReentrantReadWriteLock() else null
+    internal val subscriptionLock
+        get() = _subscriptionLock!!
+
     override fun addChangeListener(onChange: ChangeListener<T>) {
         if (thread == null) {
-            val old = concStateUpdater().getUndUpdate(this) { it.withListener(onChange) }
-            if (old.listeners.all { it == null }) observedStateChanged(true)
+            subscriptionLock.read {
+                var removedReadLocks = 0
+                val old = concStateUpdater().getUndUpdate(this) {
+                    if (subscriptionLock.writeHoldCount == 0 && it.listeners.all { it == null }) {
+                        // there are 0 listeners, we're goint to change 'observed' state
+                        removedReadLocks += subscriptionLock.lockForWrite()
+                    }
+                    it.withListener(onChange)
+                }
+                val writeLocked = subscriptionLock.writeHoldCount == 1
+                if (old.listeners.all { it == null }) {
+                    check(writeLocked) // we must know about it in update loop
+                    observedStateChangedWLocked(true)
+                }
+                if (writeLocked) {
+                    subscriptionLock.writeLock().unlock()
+                    repeat(removedReadLocks) { subscriptionLock.readLock().lock() }
+                }
+            }
         } else {
             checkThread()
             val listeners = nonSyncListeners
             when (listeners) {
                 null -> {
                     nonSyncListeners = onChange
-                    observedStateChanged(true)
+                    observedStateChangedWLocked(true)
                 }
                 is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
                 is Array<*> -> {
                     if (nonSyncPendingUpdater().get(this) != null) {
                         // notifying now, expand array without structural changes
                         nonSyncListeners = listeners.with(onChange)
-                        if (listeners.all { it == null }) observedStateChanged(true)
+                        if (listeners.all { it == null }) observedStateChangedWLocked(true)
                     } else {
                         // not notifying, we can do anything we want
                         val insIdx = listeners.compact() // remove nulls
@@ -323,7 +365,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
 
                             0 -> {// drop array, especially if it is SingleNull instance which must not be mutated
                                 nonSyncListeners = onChange
-                                observedStateChanged(true)
+                                observedStateChangedWLocked(true)
                             }
 
                             else -> // we have some room in the existing array
@@ -343,13 +385,43 @@ abstract class PropNotifier<out T>(thread: Thread?) :
 
     internal inline fun removeChangeListenerWhere(predicate: (ChangeListener<@UnsafeVariance T>) -> Boolean) {
         if (thread == null) {
-            val new = concStateUpdater().updateUndGet(this) {
-                val victimIdx = it.listeners.indexOfFirst { it != null && predicate(it) }
-                if (victimIdx < 0) return
-                it.withoutListenerAt(victimIdx)
+            subscriptionLock.read {
+                var removedReadLocks = 0
+                concStateUpdater().updateUndGet(this) { prev ->
+                    var hasOthers = false
+                    var victimIdx = -1
+                    prev.listeners.forEachIndexed { idx, it ->
+                        if (it != null) {
+                            if (predicate(it)) {
+                                victimIdx = idx
+                            } else {
+                                hasOthers = true
+                            }
+                        }
+                    }
+
+                    if (victimIdx < 0) {
+                        // previous CAS from other thread removed that last listener
+                        if (subscriptionLock.writeHoldCount == 1) subscriptionLock.writeLock().unlock()
+                        return
+                    }
+
+                    if (!hasOthers) {
+                        // we're going to change 'observed' state
+                        removedReadLocks = subscriptionLock.lockForWrite()
+                    }
+
+                    prev.withoutListenerAt(victimIdx)
+                }
+                // it's guaranteed that we've successfully removed something
+                if (subscriptionLock.writeHoldCount == 1) {
+                    // ...and nothing left
+                    check(concStateUpdater().get(this).listeners.all { it == null })
+                    observedStateChangedWLocked(false)
+                    subscriptionLock.writeLock().unlock()
+                    repeat(removedReadLocks) { subscriptionLock.readLock().lock() }
+                }
             }
-            // it's guaranteed that we've successfully removed something
-            if (new.listeners.all { it == null }) observedStateChanged(false)
         } else {
             checkThread()
             val listeners = nonSyncListeners
@@ -364,7 +436,7 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                             if (nonSyncPendingUpdater().get(this) == null) null
                             else SingleNull.also { check(it[0] === null) }
 
-                    observedStateChanged(false)
+                    observedStateChangedWLocked(false)
                 }
                 is Array<*> -> {
                     val idx = listeners.indexOfFirst {
@@ -376,14 +448,14 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                     @Suppress("UNCHECKED_CAST")
                     (listeners as Array<Any?>)[idx] = null
 
-                    if (listeners.all { it == null }) observedStateChanged(false)
+                    if (listeners.all { it == null }) observedStateChangedWLocked(false)
                 }
                 else -> throw AssertionError()
             }
         }
     }
 
-    protected open fun observedStateChanged(observed: Boolean) {}
+    protected open fun observedStateChangedWLocked(observed: Boolean) {}
 
     final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
             new

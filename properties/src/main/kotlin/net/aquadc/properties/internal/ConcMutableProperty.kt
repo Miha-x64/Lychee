@@ -4,6 +4,7 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+import kotlin.concurrent.write
 
 /**
  * Concurrent [MutableProperty] implementation.
@@ -23,9 +24,6 @@ internal class ConcMutableProperty<T>(
             valueChanged(old, newValue, null)
         }
 
-    @Volatile @Suppress("UNUSED")
-    private var sample: Property<T>? = null
-
     override fun bindTo(sample: Property<T>) {
         val newValue: Value<T>
         val newSample: Property<T>?
@@ -37,23 +35,31 @@ internal class ConcMutableProperty<T>(
             newSample = null
         }
 
-        val oldValue = valueUpdater<T>().getAndSet(this, newValue)
+        var oldT: T? = null
+        subscriptionLock.write {
+            val oldValue = valueUpdater<T>().getAndSet(this, newValue)
+            oldT = oldValue.value
 
-        if (oldValue is Value.Binding && oldValue.original === newSample) {
-            // nothing changed, don't re-subscribe, don't notify
-            return
+            if (oldValue is Value.Binding && oldValue.original === newSample) {
+                // nothing changed, don't re-subscribe, don't notify
+                return
+            }
+
+            if (isBeingObserved()) {
+                (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
+                newSample?.addChangeListener(this)
+            }
         }
 
-        (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
-        newSample?.addChangeListener(this)
+        valueChanged(oldT as T, newValue.value, null)
+    }
 
-        if (newSample !== null && valueUpdater<T>().get(this).let { it is Value.Binding && it.original !== newSample }) {
-            // bound to other property concurrently
-            // drop new binding and stop now
-            newSample.removeChangeListener(this)
-        }
+    override fun observedStateChangedWLocked(observed: Boolean) {
+        val value = valueUpdater<T>().get(this)
+        if (value !is Value.Binding) return
 
-        valueChanged(oldValue.value, newValue.value, null)
+        if (observed) value.original.addChangeListener(this)
+        else value.original.removeChangeListener(this)
     }
 
     override fun casValue(expect: T, update: T): Boolean {
