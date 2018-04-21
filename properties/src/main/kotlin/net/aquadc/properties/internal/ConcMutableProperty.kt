@@ -14,16 +14,12 @@ internal class ConcMutableProperty<T>(
 ) : PropNotifier<T>(null), MutableProperty<T>, ChangeListener<T> {
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef: T = value
+    private var valueRef: Value<T> = Value.Reference(value)
 
     override var value: T
-        get() {
-            val sample = sampleUpdater<T>().get(this)
-            return if (sample == null) valueUpdater<T>().get(this) else sample.value
-        }
+        get() = valueUpdater<T>().get(this).value
         set(newValue) {
-            dropBinding()
-            val old: T = valueUpdater<T>().getAndSet(this, newValue)
+            val old: T = valueUpdater<T>().getAndSet(this, Value.Reference(newValue)).value
             valueChanged(old, newValue, null)
         }
 
@@ -31,19 +27,38 @@ internal class ConcMutableProperty<T>(
     private var sample: Property<T>? = null
 
     override fun bindTo(sample: Property<T>) {
-        val newSample = if (sample.mayChange) sample else null
-        val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
-        oldSample?.removeChangeListener(this)
+        val newValue: Value<T>
+        val newSample: Property<T>?
+        if (sample.mayChange) {
+            newValue = Value.Binding(sample)
+            newSample = sample
+        } else {
+            newValue = Value.Reference(sample.value)
+            newSample = null
+        }
+
+        val oldValue = valueUpdater<T>().getAndSet(this, newValue)
+
+        if (oldValue is Value.Binding && oldValue.original === newSample) {
+            // nothing changed, don't re-subscribe, don't notify
+            return
+        }
+
+        (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
         newSample?.addChangeListener(this)
 
-        val new = sample.value
-        val old = valueUpdater<T>().getAndSet(this, new)
-        valueChanged(old, new, null)
+        if (newSample !== null && valueUpdater<T>().get(this).value !== newSample) {
+            // bound to other property concurrently
+            // drop new binding and stop now
+            newSample.removeChangeListener(this)
+        }
+
+        valueChanged(oldValue.value, newValue.value, null)
     }
 
     override fun casValue(expect: T, update: T): Boolean {
-        dropBinding()
-        return if (valueUpdater<T>().compareAndSet(this, expect, update)) {
+        val actual = valueUpdater<T>().get(this)
+        return if (actual.value === expect && valueUpdater<T>().compareAndSet(this, actual, Value.Reference(update))) {
             valueChanged(expect, update, null)
             true
         } else {
@@ -51,28 +66,29 @@ internal class ConcMutableProperty<T>(
         }
     }
 
-    private fun dropBinding() {
-        val oldSample = sampleUpdater<T>().getAndSet(this, null)
-        oldSample?.removeChangeListener(this)
-    }
-
     override fun invoke(old: T, new: T) {
         valueChanged(old, new, null)
+    }
+
+    private sealed class Value<T> {
+        abstract val value: T
+
+        class Reference<T>(override val value: T) : Value<T>()
+
+        class Binding<T>(val original: Property<T>) : Value<T>() {
+            override val value: T
+                get() = original.value
+        }
     }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
         @JvmField
-        val ValueUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Any::class.java, "valueRef")
-        @JvmField
-        val SampleUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Property<*>?> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Property::class.java, "sample")
+        val ValueUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Value<*>> =
+                AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Value::class.java, "valueRef")
 
         inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<ConcMutableProperty<T>, T>
-        inline fun <T> sampleUpdater() =
-                SampleUpdater as AtomicReferenceFieldUpdater<ConcMutableProperty<T>, Property<T>>
+                ValueUpdater as AtomicReferenceFieldUpdater<ConcMutableProperty<T>, Value<T>>
     }
 
 }
