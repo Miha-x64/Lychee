@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * swallowing useless updates.
  */
 internal class DebouncedProperty<out T>(
-        original: Property<T>,
+        private val original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
 ) : PropNotifier<T>(threadIfNot(original.isConcurrent)), ChangeListener<@UnsafeVariance T> {
@@ -28,14 +28,14 @@ internal class DebouncedProperty<out T>(
     init {
         check(original.mayChange)
         if (thread !== null) executor = PlatformExecutors.executorForCurrentThread()
-        original.addChangeListener(this)
     }
 
     @Volatile
-    override var value: @UnsafeVariance T = original.value
+    override var value: @UnsafeVariance T = this as T // this means 'not observed'
         get() {
             if (thread !== null) checkThread()
-            return field
+            val v = field
+            return if (v === this) original.value else v
         }
         private set
 
@@ -80,6 +80,16 @@ internal class DebouncedProperty<out T>(
                     PlatformExecutors.executorForCurrentThread(),
                     onChange
             ))
+
+    override fun observedStateChangedWLocked(observed: Boolean) {
+        if (observed) {
+            value = original.value
+            original.addChangeListener(this)
+        } else {
+            original.removeChangeListener(this)
+            value = this as T
+        }
+    }
 
     /**
      * Note: this will remove first occurrence of [onChange],
