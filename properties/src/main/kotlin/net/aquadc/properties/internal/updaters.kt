@@ -22,3 +22,13 @@ internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.updateUndGet(zis: T
     } while (!compareAndSet(zis, prev, next))
     return next
 }
+
+internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.getUndUpdate(obj: T, update: (V) -> V): V {
+    var prev: V
+    var next: V
+    do {
+        prev = get(obj)
+        next = update(prev)
+    } while (!compareAndSet(obj, prev, next))
+    return prev
+}

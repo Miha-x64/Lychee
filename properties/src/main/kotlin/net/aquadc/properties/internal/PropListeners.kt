@@ -282,28 +282,49 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
 abstract class PropNotifier<out T>(thread: Thread?) :
         PropListeners<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
 
+    protected fun isBeingObserved(): Boolean =
+            if (thread == null) {
+                concStateUpdater().get(this).listeners.any { it != null }
+            } else {
+                val lis = nonSyncListeners
+                when (lis) {
+                    null -> false
+                    is Function2<*, *, *> -> true
+                    is Array<*> -> lis.any { it != null }
+                    else -> throw AssertionError()
+                }
+            }
+
     override fun addChangeListener(onChange: ChangeListener<T>) {
         if (thread == null) {
-            concStateUpdater().update(this) { it.withListener(onChange) }
+            val old = concStateUpdater().getUndUpdate(this) { it.withListener(onChange) }
+            if (old.listeners.all { it == null }) observedStateChanged(true)
         } else {
             checkThread()
             val listeners = nonSyncListeners
             when (listeners) {
-                null -> nonSyncListeners = onChange
+                null -> {
+                    nonSyncListeners = onChange
+                    observedStateChanged(true)
+                }
                 is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
                 is Array<*> -> {
                     if (nonSyncPendingUpdater().get(this) != null) {
                         // notifying now, expand array without structural changes
                         nonSyncListeners = listeners.with(onChange)
+                        if (listeners.all { it == null }) observedStateChanged(true)
                     } else {
                         // not notifying, we can do anything we want
                         val insIdx = listeners.compact() // remove nulls
                         when (insIdx) {
-                            -1 -> // no nulls, grow
+                            -1 -> {// no nulls, grow
                                 nonSyncListeners = listeners.with(onChange)
+                            }
 
-                            0 -> // drop array, especially if it is SingleNull instance which must not be mutated
+                            0 -> {// drop array, especially if it is SingleNull instance which must not be mutated
                                 nonSyncListeners = onChange
+                                observedStateChanged(true)
+                            }
 
                             else -> // we have some room in the existing array
                                 @Suppress("UNCHECKED_CAST")
@@ -322,11 +343,13 @@ abstract class PropNotifier<out T>(thread: Thread?) :
 
     internal inline fun removeChangeListenerWhere(predicate: (ChangeListener<@UnsafeVariance T>) -> Boolean) {
         if (thread == null) {
-            concStateUpdater().update(this) {
-                it.withoutListenerAt(
-                        it.listeners.indexOfFirst { it != null && predicate(it) }
-                )
+            val new = concStateUpdater().updateUndGet(this) {
+                val victimIdx = it.listeners.indexOfFirst { it != null && predicate(it) }
+                if (victimIdx < 0) return
+                it.withoutListenerAt(victimIdx)
             }
+            // it's guaranteed that we've successfully removed something
+            if (new.listeners.all { it == null }) observedStateChanged(false)
         } else {
             checkThread()
             val listeners = nonSyncListeners
@@ -340,6 +363,8 @@ abstract class PropNotifier<out T>(thread: Thread?) :
                     nonSyncListeners =
                             if (nonSyncPendingUpdater().get(this) == null) null
                             else SingleNull.also { check(it[0] === null) }
+
+                    observedStateChanged(false)
                 }
                 is Array<*> -> {
                     val idx = listeners.indexOfFirst {
@@ -350,11 +375,15 @@ abstract class PropNotifier<out T>(thread: Thread?) :
 
                     @Suppress("UNCHECKED_CAST")
                     (listeners as Array<Any?>)[idx] = null
+
+                    if (listeners.all { it == null }) observedStateChanged(false)
                 }
                 else -> throw AssertionError()
             }
         }
     }
+
+    protected open fun observedStateChanged(observed: Boolean) {}
 
     final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
             new
