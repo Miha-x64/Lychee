@@ -3,17 +3,24 @@ package net.aquadc.properties
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
 import org.junit.Assert.assertEquals
-import org.junit.Ignore
 import org.junit.Test
 import java.lang.ref.WeakReference
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
 
-@Ignore // it's in progress. Don't make my build red!
+
 class LeakTest {
+
+    private val pool = ForkJoinPool(1)
 
     @Test fun definitelyWillPass() =
             leak(unsynchronizedMutablePropertyOf(""), { unsynchronizedMutablePropertyOf("") })
+
+    @Test fun leakUnsBound() =
+            leak(unsynchronizedMutablePropertyOf(""), { unsynchronizedMutablePropertyOf("").apply { bindTo(it) } })
+
+    @Test fun leakConcBound() =
+            leak(concurrentMutablePropertyOf(""), { concurrentMutablePropertyOf("").apply { bindTo(it) } })
 
     @Test fun leakUnsMap() =
             leak(unsynchronizedMutablePropertyOf(""), Property<Any>::readOnlyView)
@@ -37,13 +44,13 @@ class LeakTest {
             leak(unsynchronizedMutablePropertyOf(""), { it.calculateDiffOn(InPlaceWorker, { _, _ -> "" }) })
 
     @Test fun leakUnsDebounced() {
-        ForkJoinPool.commonPool().submit {
+        pool.submit {
             leak(unsynchronizedMutablePropertyOf(""), { it.debounced(0, TimeUnit.MILLISECONDS) })
         }.get()
     }
 
     @Test fun leakConcDebounced() {
-        ForkJoinPool.commonPool().submit {
+        pool.submit {
             leak(concurrentMutablePropertyOf(""), { it.debounced(0, TimeUnit.MILLISECONDS) })
         }.get()
     }
