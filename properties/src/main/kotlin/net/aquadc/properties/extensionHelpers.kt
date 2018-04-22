@@ -1,5 +1,7 @@
 package net.aquadc.properties
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 //
 // Boolean
 //
@@ -77,4 +79,19 @@ object Identity : (Any?, Any?) -> Boolean {
  */
 object Equals : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 == p2
+}
+
+@PublishedApi
+internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
+
+    internal var calledRef: AtomicBoolean? = AtomicBoolean(false)
+
+    override fun invoke(old: T, new: T) {
+        calledRef?.let {
+            it.set(true) // set eagerly, null out in lazy way
+            calledRef = null
+        }
+        invoke(new)
+    }
+
 }

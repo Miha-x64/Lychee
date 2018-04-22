@@ -39,18 +39,3 @@ fun <T, U, R> Property<T>.mapWith(that: Property<U>, transform: (T, U) -> R): Pr
     }
     else -> ImmutableReferenceProperty(transform(this.value, that.value))
 }
-
-/**
- * Calls [func] for each [Property.value] including initial.
- */
-fun <T> Property<T>.onEach(func: (T) -> Unit) {
-    addChangeListener { _, new -> func(new) }
-    // *
-    func(value)
-
-    /*
-    What's better — call func first or add listener first?
-    a) if we call function first, in (*) place value may change and we won't see new one
-    b) if we add listener first, in (*) place value may change and we'll call func after that, in wrong order
-     */
-}
