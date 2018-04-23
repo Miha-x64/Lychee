@@ -16,7 +16,7 @@ import kotlin.concurrent.read
  * @property thread our thread, or null, if this property is concurrent
  */
 abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
-        @JvmField protected val thread: Thread?
+        @JvmField internal val thread: Thread?
 ) : Property<T> {
 
     final override val mayChange: Boolean
@@ -47,7 +47,8 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
      * instances of this class have size of 24 bytes.
      * Without [nonSyncListeners] this space would be occupied by padding.
      */
-    @JvmField protected var nonSyncListeners: Any? = null
+    @JvmField @JvmSynthetic(/* hide */)
+    internal var nonSyncListeners: Any? = null
 
     /**
      * It's a tricky one.
@@ -255,7 +256,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
 
     protected abstract fun notify(listener: LISTENER, old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D)
 
-    protected fun checkThread() {
+    internal fun checkThread() {
         if (Thread.currentThread() !== thread)
             throw RuntimeException("${Thread.currentThread()} is not allowed to touch this property since it was created in $thread.")
     }
@@ -399,7 +400,8 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
     }
 
     // attempt to make inline functin smaller
-    private fun finishConcRemoval(removedReadLocks: Int) {
+    @Suppress("MemberVisibilityCanBePrivate") // called from internal function
+    internal fun finishConcRemoval(removedReadLocks: Int) {
         if (subscriptionLock.writeHoldCount == 1) {
             // ...and nothing left
             check(concStateUpdater().get(this).listeners.all { it == null })
@@ -412,7 +414,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
     /**
      * ...not overridden in [ConcMutableDiffProperty], because it is not mapped and cannot be bound.
      */
-    protected open fun observedStateChangedWLocked(observed: Boolean) {}
+    internal open fun observedStateChangedWLocked(observed: Boolean) {}
 
     internal companion object {
         @JvmField val updater: AtomicReferenceFieldUpdater<PropListeners<*, *, *, *>, Any> =
