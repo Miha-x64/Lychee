@@ -1,9 +1,10 @@
 package net.aquadc.properties.android.pref
 
 import android.content.SharedPreferences
+import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
-import java.util.concurrent.CopyOnWriteArrayList
+import net.aquadc.properties.internal.PropNotifier
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 /**
@@ -18,14 +19,25 @@ class SharedPreferenceProperty<T>(
         private val key: String,
         private val defaultValue: T,
         private val adapter: PrefAdapter<T>
-) : MutableProperty<T> {
+) : PropNotifier<T>(null), MutableProperty<T> {
 
     // we need a strong reference because shared prefs holding a weak one
-    private val prefChangeListener =
-            SharedPreferences.OnSharedPreferenceChangeListener { _, key -> changed(key) }
+    private val changeListener = object :
+            SharedPreferences.OnSharedPreferenceChangeListener, ChangeListener<T> {
+
+        override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String) {
+            changed(key)
+        }
+
+        // sample change listener
+        override fun invoke(old: T, new: T) {
+            sampleChanged(new)
+        }
+
+    }
 
     init {
-        prefs.registerOnSharedPreferenceChangeListener(prefChangeListener)
+        prefs.registerOnSharedPreferenceChangeListener(changeListener)
     }
 
     @Suppress("MemberVisibilityCanBePrivate") // internal — to avoid synthetic accessors
@@ -33,7 +45,7 @@ class SharedPreferenceProperty<T>(
         if (adapter.isKeyFor(this.key, key)) {
             val new = adapter.read(prefs, this.key, defaultValue)
             val old = valueUpdater<T>().getAndSet(this, new)
-            listeners.forEach { it(old, new) }
+            valueChanged(old, new, null)
         }
     }
 
@@ -54,14 +66,12 @@ class SharedPreferenceProperty<T>(
     @Volatile @Suppress("UNUSED")
     private var sample: Property<T>? = null
 
-    override val mayChange: Boolean get() = true
-    override val isConcurrent: Boolean get() = true
-
+    @Synchronized
     override fun bindTo(sample: Property<T>) {
         val newSample = if (sample.mayChange) sample else null
         val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
-        oldSample?.removeChangeListener(sampleChanged)
-        newSample?.addChangeListener(sampleChanged)
+        oldSample?.removeChangeListener(changeListener)
+        newSample?.addChangeListener(changeListener)
 
         val ed = prefs.edit()
         adapter.save(ed, key, sample.value)
@@ -81,26 +91,14 @@ class SharedPreferenceProperty<T>(
 
     private fun dropBinding() {
         val oldSample = sampleUpdater<T>().getAndSet(this, null)
-        oldSample?.removeChangeListener(sampleChanged)
+        oldSample?.removeChangeListener(changeListener)
     }
-
-    private val sampleChanged: (T, T) -> Unit = { _, new -> sampleChanged(new) }
 
     @Suppress("MemberVisibilityCanBePrivate") // using internal to avoid synthetic accessors
     internal fun sampleChanged(new: T) {
         val ed = prefs.edit()
         adapter.save(ed, key, new)
         ed.apply()
-    }
-
-    private val listeners = CopyOnWriteArrayList<(T, T) -> Unit>()
-
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.add(onChange)
-    }
-
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        listeners.remove(onChange)
     }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
