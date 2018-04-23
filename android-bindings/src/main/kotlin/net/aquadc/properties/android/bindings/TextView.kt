@@ -94,25 +94,24 @@ private object SetError : (TextView, Any?) -> Unit {
 }
 
 fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>) =
-        bindViewTo(errorProperty) { v, new ->
-            if (new == null) {
-                v.setError(null, null)
-            } else {
-                val (text, icon) = new
-                v.setErrorWithIntrinsicBounds(text, icon)
-            }
-        }
+        bindViewTo(errorProperty, BindErrorMessageAndIconTo)
 
 @JvmName("bindErrorMessageResAndIconTo")
 fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>) =
-        bindViewTo(errorResProperty) { v, new ->
-            val res = v.resources
-            if (new == null) {
-                v.setError(null, null)
-            } else {
-                v.setErrorWithIntrinsicBounds(res.getText(new.messageRes), res.getDrawableCompat(new.iconRes))
-            }
-        }
+        bindViewTo(errorResProperty, BindErrorMessageAndIconTo)
 
+private object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
+
+    override fun invoke(v: TextView, new: Any?) = when {
+        new == null -> v.setError(null, null)
+        new is Pair<*, *> -> v.setErrorWithIntrinsicBounds(new.first as CharSequence, new.second as Drawable)
+        new is MessageAndIconRes -> {
+            val res = v.resources
+            v.setErrorWithIntrinsicBounds(res.getText(new.messageRes), res.getDrawableCompat(new.iconRes))
+        }
+        else -> throw AssertionError()
+    }
+
+}
 
 // todo: compound drawables
