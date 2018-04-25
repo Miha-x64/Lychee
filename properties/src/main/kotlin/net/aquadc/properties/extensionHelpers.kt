@@ -6,12 +6,15 @@ import java.util.concurrent.atomic.AtomicBoolean
 // Boolean
 //
 
+// I can't use erased types here,
+// because checkcast to (Boolean, Boolean) -> Boolean
+// would fail: https://youtrack.jetbrains.com/issue/KT-24067
 @PublishedApi internal object UnaryNotBinaryAnd :
-        /* not: */ (Any) -> Any,
-        /* and: */ (Any, Any) -> Any {
+        /* not: */ (Boolean) -> Boolean,
+        /* and: */ (Boolean, Boolean) -> Boolean {
 
-    override fun invoke(p1: Any): Any = !(p1 as Boolean)
-    override fun invoke(p1: Any, p2: Any): Any = (p1 as Boolean) && (p2 as Boolean)
+    override fun invoke(p1: Boolean): Boolean = !p1
+    override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 && p2
 }
 
 @PublishedApi internal object OrBooleans : (Any, Any) -> Any {

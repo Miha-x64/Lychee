@@ -25,14 +25,14 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
  */
 @Suppress("UNCHECKED_CAST")
 inline operator fun Property<Boolean>.not(): Property<Boolean> =
-        map(UnaryNotBinaryAnd as (Boolean) -> Boolean)
+        map(UnaryNotBinaryAnd)
 
 /**
  * Returns a view on [this] && [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, UnaryNotBinaryAnd as (Boolean, Boolean) -> Boolean)
+        mapWith(that, UnaryNotBinaryAnd)
 
 /**
  * Returns a view on [this] || [that].
