@@ -38,7 +38,7 @@ internal class DebouncedProperty<out T>(
             val v = field
             return if (v === this) original.value else v
         }
-        private set
+        internal set // accessed from inner class
 
     override fun invoke(old: @UnsafeVariance T, new: @UnsafeVariance T) {
         var prev: Pair<T, ScheduledFuture<*>>?

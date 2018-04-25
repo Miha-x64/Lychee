@@ -16,8 +16,8 @@ internal class MappedProperty<in O, out T>(
         check(original.mayChange)
     }
 
-    @Volatile @Suppress("UNUSED")
-    private var valueRef: T = this as T // 'this' means 'not observed'
+    @Volatile @JvmField @Suppress("UNUSED", "MemberVisibilityCanBePrivate") // used from inner class
+    internal var valueRef: @UnsafeVariance T = this as T // 'this' means 'not observed'
 
     private val originalChanged: ChangeListener<O> = when {
         // simple concurrent binding: notify where changed
