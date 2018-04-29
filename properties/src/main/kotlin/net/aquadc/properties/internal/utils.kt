@@ -1,3 +1,4 @@
+@file:JvmName("Internal\$Utils")
 package net.aquadc.properties.internal
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
@@ -63,8 +64,12 @@ internal fun <T> Array<T?>.compact(): Int {
     return if (w == size) -1 else w
 }
 
-// why 'arrays'? because 'updaters' if for inline functions.
+// why 'arrays'? because 'updaters' file is for inline functions.
+
 internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T, confinedTo: Thread?, value: V) {
     if (confinedTo == null) set(thisRef, value)
     else lazySet(thisRef, value)
 }
+
+internal fun threadIfNot(concurrent: Boolean): Thread? =
+        if (concurrent) null else Thread.currentThread()
