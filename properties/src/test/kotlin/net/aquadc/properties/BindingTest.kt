@@ -26,6 +26,7 @@ class BindingTest {
         sample.value = "just bound"
         mutable.addChangeListener { _, n -> new = n }
         mutable.bindTo(sample)
+        mutable.bindTo(sample) // binding should be idempotent
         assertEquals("just bound", new)
 
         sample.value = "rebound"

@@ -1,8 +1,5 @@
 package net.aquadc.properties
 
-import net.aquadc.properties.internal.copyOfWithout
-import net.aquadc.properties.internal.with
-import net.aquadc.properties.internal.withoutNulls
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -31,6 +28,17 @@ class SubscriptionTest {
         prop.value = false
 
         assertTrue(l2Called)
+
+        l2Called = false
+        prop.removeChangeListener(l1)
+
+        assertTrue(prop.casValue(false, true))
+        assertFalse(prop.casValue(false, true))
+        assertTrue(l2Called)
+
+        l2Called = false
+        prop.removeChangeListener(l2)
+        assertFalse(l2Called)
     }
 
     @Test fun concUnsubscribe() = unsubscribe(true)
@@ -98,6 +106,26 @@ class SubscriptionTest {
 
         assertEquals(10, v1)
         assertEquals(10, v2)
+    }
+
+    @Test fun onEach() {
+        val prop = unsynchronizedMutablePropertyOf("")
+        val values = ArrayList<String>()
+        prop.onEach { values.add(it) }
+        prop.value = "new"
+        assertEquals(listOf("", "new"), values)
+    }
+
+    @Test fun clearEach() {
+        val prop = unsynchronizedMutablePropertyOf(true)
+        var called = 0
+        prop.clearEachAnd { called++ }
+        assertEquals(1, called)
+        assertFalse(prop.value)
+
+        prop.set()
+        assertEquals(2, called)
+        assertFalse(prop.value)
     }
 
 }

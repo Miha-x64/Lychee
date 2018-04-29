@@ -3,6 +3,10 @@ package net.aquadc.properties
 import net.aquadc.properties.persistence.*
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.util.*
 import net.aquadc.properties.unsynchronizedMutablePropertyOf as ump
 
@@ -144,6 +148,20 @@ class PersistenceTest : PersistableProperties {
             pb.consumeThen()
         }
         assertInState2()
+    }
+
+    @Test fun baPropMemento() {
+        moveToState1()
+        val memento = ByteArrayPropertiesMemento(this)
+        val baos = ByteArrayOutputStream()
+        val oos = ObjectOutputStream(baos)
+        oos.writeObject(memento)
+
+        val ois = ObjectInputStream(ByteArrayInputStream(baos.toByteArray()))
+        val restored = ois.readObject()
+
+        assertNotSame(memento, restored)
+        assertArrayEquals(memento.copyValue(), (restored as ByteArrayPropertiesMemento).copyValue())
     }
 
     override fun saveOrRestore(d: PropertyIo) {
