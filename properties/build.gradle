@@ -15,4 +15,14 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.6"
 }
 
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        html.enabled false
+    }
+}
+test {
+    finalizedBy jacocoTestReport
+}
+
 apply from: rootProject.file('release-bintray.gradle')
