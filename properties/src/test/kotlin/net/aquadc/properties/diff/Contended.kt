@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 
-class DiffPropTest {
+class Contended {
 
     @Test fun allDeliveredOnHalfCores() = halfCores(::allDelivered)
     @Test fun allDeliveredOnAllCores() = allCores(::allDelivered)
