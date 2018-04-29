@@ -12,22 +12,12 @@ before_install:
   # Install SDK license so Android Gradle plugin can install deps.
   - mkdir "$ANDROID_HOME/licenses" || true
   - echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
-
-#install:
-#  - echo yes | sdkmanager "tools" &>/dev/null
-#  - echo yes | sdkmanager "platform-tools" &>/dev/null
-#  - echo yes | sdkmanager "build-tools;27.0.2" &>/dev/null
-#  - echo yes | sdkmanager "platforms;android-25" &>/dev/null
+  # Codacy code coverage reporter
+  - sudo apt-get install jq
+  - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url)
 
 script:
-  - ./gradlew clean :properties:test --info --stacktrace
+  - ./gradlew clean :properties:test :properties:jacocoTestReport --info --stacktrace
 
-#before_cache:
-#  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-#  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
-
-#cache:
-#  directories:
-#    - $HOME/.gradle/caches/
-#    - $HOME/.gradle/wrapper/
-#- $HOME/.android/build-cache
+after_success:
+  - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r build/reports/jacoco/test/jacocoTestReport.xml
