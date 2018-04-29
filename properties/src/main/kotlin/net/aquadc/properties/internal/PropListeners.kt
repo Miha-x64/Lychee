@@ -502,6 +502,3 @@ abstract class PropNotifier<out T>(thread: Thread?) :
             listener(old, new)
 
 }
-
-internal fun threadIfNot(concurrent: Boolean): Thread? =
-        if (concurrent) null else Thread.currentThread()
