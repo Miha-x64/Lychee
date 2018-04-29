@@ -153,28 +153,33 @@ inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
 /**
  * Calls [func] for each [Property.value] including initial.
  */
-inline fun <T> Property<T>.onEach(crossinline func: (T) -> Unit) {
-    val proxy = object : OnEach<T>() {
+fun <T> Property<T>.onEach(func: (T) -> Unit) {
+    if (isConcurrent) {
+        val proxy = object : OnEach<T>() {
 
-        override fun invoke(p1: T) =
-                func(p1)
+            override fun invoke(p1: T) =
+                    func(p1)
 
-    }
-    addChangeListener(proxy)
+        }
+        addChangeListener(proxy)
 
-    /*
+        /*
        In the worst case scenario, change will happen in parallel just after subscription,
        invoke(T, T) will start running;
        we will CAS successfully and func will run in parallel.
      */
 
-    // if calledRef is still not null
-    // and has value of 'false',
-    // then our function was not called yet.
-    if (proxy.calledRef?.compareAndSet(false, true) == true) {
-        func(value) // run function, ASAP!
-        proxy.calledRef = null
-    } // else we have more fresh value, don't call func
+        // if calledRef is still not null
+        // and has value of 'false',
+        // then our function was not called yet.
+        if (proxy.calledRef?.compareAndSet(false, true) == true) {
+            func(value) // run function, ASAP!
+            proxy.calledRef = null
+        } // else we have more fresh value, don't call func
+    } else {
+        addChangeListener { _, new -> func(new) }
+        func(value)
+    }
 }
 
 
