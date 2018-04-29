@@ -5,6 +5,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
 import net.aquadc.properties.executor.ScheduledDaemonHolder
+import java.lang.ref.WeakReference
 import java.util.concurrent.Executor
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -16,10 +17,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  */
 @PublishedApi
 internal class DebouncedProperty<out T>(
-        private val original: Property<T>,
+        original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : PropNotifier<T>(threadIfNot(original.isConcurrent)), ChangeListener<@UnsafeVariance T> {
+) : PropNotifier<T>(threadIfNot(original.isConcurrent)) {
 
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
@@ -32,15 +33,18 @@ internal class DebouncedProperty<out T>(
     }
 
     @Volatile
-    override var value: @UnsafeVariance T = this as T // this means 'not observed'
+    override var value: @UnsafeVariance T = original.value
         get() {
             if (thread !== null) checkThread()
-            val v = field
-            return if (v === this) original.value else v
+            return field
         }
         internal set // accessed from inner class
 
-    override fun invoke(old: @UnsafeVariance T, new: @UnsafeVariance T) {
+    private val observer = Observer(original, this).also {
+        original.addChangeListener(it)
+    }
+
+    internal fun originalChanged(old: @UnsafeVariance T, new: @UnsafeVariance T) {
         var prev: Pair<T, ScheduledFuture<*>>?
         var next: Pair<T, ScheduledFuture<*>>
         do {
@@ -84,11 +88,9 @@ internal class DebouncedProperty<out T>(
 
     override fun observedStateChangedWLocked(observed: Boolean) {
         if (observed) {
-            value = original.value
-            original.addChangeListener(this)
+            observer.hard = this
         } else {
-            original.removeChangeListener(this)
-            value = this as T
+            observer.hard = null
         }
     }
 
@@ -98,6 +100,27 @@ internal class DebouncedProperty<out T>(
      */
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
         removeChangeListenerWhere { (it as ConfinedChangeListener<*>).actual === onChange }
+    }
+
+    private class Observer<T>(
+            private val original: Property<T>,
+            prop: DebouncedProperty<T>
+    ) : WeakReference<DebouncedProperty<T>>(prop), ChangeListener<T> {
+
+        @JvmField
+        internal var hard: DebouncedProperty<T>? = null
+
+        override fun invoke(old: T, new: T) {
+            val actual = get()
+            if (actual == null) {
+                check(hard == null) // when actual property GCed, it's impossible to have a hard ref
+                original.removeChangeListener(this)
+                return // it's the end, we've GCed
+            }
+
+            actual.originalChanged(old, new)
+        }
+
     }
 
     private companion object {
