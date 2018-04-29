@@ -8,7 +8,11 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 internal class MultiMappedProperty<in A, out T>(
         properties: Collection<Property<A>>,
         private val transform: (List<A>) -> T
-) : PropNotifier<T>(threadIfNot(properties.all(Property<A>::isConcurrent))), ChangeListener<A> {
+) : PropNotifier<T>(
+        threadIfNot(properties.any { it.isConcurrent && it.mayChange })
+        // if at least one property is concurrent, we must be ready that
+        // it will notify us from a random thread
+), ChangeListener<A> {
 
     private val properties: Array<Property<A>>
 
