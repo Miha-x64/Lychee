@@ -1,13 +1,22 @@
 package net.aquadc.properties
 
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class PropertiesTest {
 
     @Test fun immutableProps() {
-        val prop by immutablePropertyOf("hello")
-        assertEquals("hello", prop)
+        val prop = immutablePropertyOf("hello")
+        assertEquals("hello", prop.value)
+        assertTrue(prop.isConcurrent)
+        assertFalse(prop.mayChange)
+
+        val onChange = { _: String, _: String -> }
+        assertEquals(Unit, prop.addChangeListener(onChange))
+        assertEquals(Unit, prop.removeChangeListener(onChange))
+        // they're no-op, just for coverage ;)
     }
 
     @Test fun concMutableProps() = mutableProps(true)

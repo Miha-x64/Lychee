@@ -61,7 +61,7 @@ class LeakTest {
     @Test fun leakConcDistinct() =
             leak(concurrentMutablePropertyOf(""), { it.distinct(Identity) })
 
-    private fun <T> leak(original: Property<T>, createForLeak: (Property<T>) -> Property<*>) {
+    private fun leak(original: MutableProperty<String>, createForLeak: (Property<String>) -> Property<*>) {
         val ref1 = WeakReference(createForLeak(original))
         // should never hold new property
         assertGarbage(ref1)
@@ -76,7 +76,7 @@ class LeakTest {
         assertGarbage(ref2)
 
         // hold the original property!
-        println(original.toString().substring(0, 0))
+        original.value = "changed"
     }
 
     private fun assertGarbage(ref: WeakReference<*>) {

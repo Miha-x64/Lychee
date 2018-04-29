@@ -11,8 +11,9 @@ class CommonTest {
     private val controlledUProps = listOf(
             ump,
             ump.map { "text: $it" },
-            ump.mapWith(concurrentMutablePropertyOf("")) { a, b -> a + b },
-            listOf(ump, concurrentMutablePropertyOf(""), concurrentMutablePropertyOf("")).mapValueList { vals -> vals.joinToString() }
+            ump.mapWith(unsynchronizedMutablePropertyOf("")) { a, b -> a + b },
+            listOf(ump, unsynchronizedMutablePropertyOf(""), unsynchronizedMutablePropertyOf(""))
+                    .mapValueList { vals -> vals.joinToString() }
     )
 
     private val cmp = concurrentMutablePropertyOf("")
@@ -54,16 +55,22 @@ class CommonTest {
         assertEquals(1, called)
     }
 
-    private fun testEqualsDistinctChange(controller: MutableProperty<String>, controlled: Property<String>) {
-        val prop = controlled.distinct(Equals)
+    private fun testEquals(original: MutableProperty<String>) {
+        val dist = original.distinct(Equals)
+        assertEquals(original.value, original.value)
         var called = 0
-        prop.addChangeListener { _, _ -> called++; Unit }
-        controller.value = controller.value
+        dist.addChangeListener { _, _ -> called++; Unit }
+        original.value = original.value
         assertEquals(0, called)
+        assertEquals(original.value, original.value)
 
-        controller.value = " " + controller.value
+        original.value = " " + original.value
         assertEquals(1, called)
+        assertEquals(original.value, original.value)
     }
+
+    @Test fun nonSyncEquals() = testEquals(ump)
+    @Test fun concEquals() = testEquals(cmp)
 
     private fun testAll(func: (MutableProperty<String>, Property<String>) -> Unit) {
         controlledUProps.forEach { func(ump, it) }
@@ -72,23 +79,22 @@ class CommonTest {
 
     @Test fun unsubscription() = testAll(::testUnsubscription)
     @Test fun change() = testAll(::testChange)
-    @Test fun equalsChange() = testAll(::testEqualsDistinctChange)
 
     // different props have different identity, so we are going to test only mutable and mapped
-    fun testIdentity(controller: MutableProperty<String>, controlled: Property<String>) {
-        val prop = controlled.distinct(Identity)
+    fun testIdentity(original: MutableProperty<String>) {
+        val dist = original.distinct(Identity)
         var called = 0
-        prop.addChangeListener { _, _ -> called++; Unit }
-        controller.value = controller.value
+        dist.addChangeListener { _, _ -> called++; Unit }
+        original.value = original.value
         assertEquals(0, called)
+        assertEquals(original.value, dist.value)
 
-        controller.value = (" " + controller.value).substring(1)
+        original.value = (" " + original.value).substring(1)
         assertEquals(1, called)
+        assertEquals(original.value, dist.value)
     }
 
-    @Test fun ideitity() {
-        testIdentity(ump, ump)
-        testIdentity(cmp, cmp)
-    }
+    @Test fun nonSyncIdentity() = testIdentity(ump)
+    @Test fun concIdentity() = testIdentity(cmp)
 
 }
