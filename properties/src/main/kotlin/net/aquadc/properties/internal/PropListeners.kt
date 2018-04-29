@@ -340,12 +340,26 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
                 concStateUpdater().updateUndGet(this) { prev ->
                     var hasOthers = false
                     var victimIdx = -1
-                    prev.listeners.forEachIndexed { idx, it ->
-                        if (it != null) {
-                            if (predicate(it)) {
-                                victimIdx = idx
-                            } else {
-                                hasOthers = true
+                    val prevLis = prev.listeners
+                    for (i in prevLis.indices) {
+                        val listener = prevLis[i]
+                                ?: continue
+
+                        if (predicate(listener)) {
+                            if (victimIdx == -1) {
+                                victimIdx = i
+                                if (hasOthers) {
+                                    break
+                                    // victim found, others detected,
+                                    // nothing to do here
+                                }
+                            }
+                        } else {
+                            hasOthers = true
+                            if (victimIdx != -1) {
+                                break
+                                // others detected, victim fount,
+                                // that's all
                             }
                         }
                     }
