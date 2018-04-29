@@ -63,13 +63,12 @@ inline fun MutableProperty<Boolean>.clear() { value = false }
  * Every time property becomes set (`true`),
  * it will be unset (`false`) and [action] will be performed.
  */
-inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit): Unit =
-        addChangeListener { wasSet, isSet ->
-            if (!wasSet && isSet) {
-                value = false
-                action()
-            }
-        }
+inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit): Unit = onEach {
+    if (it) {
+        value = false
+        action()
+    }
+}
 
 
 //
