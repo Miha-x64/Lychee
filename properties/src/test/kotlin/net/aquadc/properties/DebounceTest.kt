@@ -3,9 +3,12 @@ package net.aquadc.properties
 import com.sun.javafx.application.PlatformImpl
 import javafx.application.Platform
 import org.junit.Assert.*
-import org.junit.Ignore
+import org.junit.AssumptionViolatedException
 import org.junit.Test
+import java.util.concurrent.Executor
+import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 
@@ -25,27 +28,39 @@ class DebounceTest {
                 .addChangeListener { _, _ ->  }
     }
 
-    @Test @Ignore // JavaFX cannot start on CI
-    fun onFxThread() {
+    @Test fun onFxThread() {
+        try {
+            PlatformImpl.startup { }
+        } catch (e: UnsupportedOperationException) {
+            throw AssumptionViolatedException("Can't run JavaFX here.", e)
+        }
+        test(Executor(Platform::runLater))
+    }
+
+    @Test fun onFJ() {
+        test(ForkJoinPool(1))
+    }
+
+    private fun test(executor: Executor) {
         val conc = concurrentMutablePropertyOf("old")
         val concDeb = conc.debounced(100, TimeUnit.MILLISECONDS)
 
         val unsDeb = AtomicReference<Property<String>>()
-        var concCalled = false
-        var unsCalled = false
-        PlatformImpl.startup {
+        val concCalled = AtomicBoolean()
+        val unsCalled = AtomicBoolean()
+        executor.execute {
             val uns = unsynchronizedMutablePropertyOf("old")
             unsDeb.set(uns.debounced(100, TimeUnit.MILLISECONDS))
 
             concDeb.addChangeListener { old, new ->
                 assertEquals("old", old)
                 assertEquals("new", new)
-                concCalled = true
+                concCalled.set(true)
             }
             unsDeb.get().addChangeListener { old, new ->
                 assertEquals("old", old)
                 assertEquals("new", new)
-                unsCalled = true
+                unsCalled.set(true)
             }
 
             conc.value = "q"
@@ -79,21 +94,21 @@ class DebounceTest {
         conc.value = "new"
         assertEquals("old", concDeb.value)
 
-        assertFalse(concCalled)
-        assertFalse(unsCalled)
+        assertFalse(concCalled.get())
+        assertFalse(unsCalled.get())
         Thread.sleep(200)
 
-        Platform.runLater {
-            assertTrue(unsCalled)
+        executor.execute {
+            assertTrue(unsCalled.get())
             assertEquals("new", unsDeb.get().value)
             unsDeb.set(null)
         }
 
-        Thread.sleep(100)
+        Thread.sleep(1000)
 
-        assertNull("failed inside of Platform.runLater", unsDeb.get())
+        assertNull("failed inside of executor", unsDeb.get())
 
-        assertTrue(concCalled)
+        assertTrue(concCalled.get())
         assertEquals("new", concDeb.value)
     }
 
