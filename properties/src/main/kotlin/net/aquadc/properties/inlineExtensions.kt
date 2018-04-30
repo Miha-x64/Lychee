@@ -75,15 +75,35 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
 // CharSequence
 //
 
+/**
+ * Returns a property representing [CharSequence.length].
+ */
 @Suppress("UNCHECKED_CAST")
 inline val Property<CharSequence>.length: Property<Int> get() = map(CharSeqLength as (CharSequence) -> Int)
 
+/**
+ * Returns a property representing emptiness ([CharSequence.isEmpty]).
+ */
 inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSeqBooleanFunc.Empty)
+
+/**
+ * Returns a property representing non-emptiness ([CharSequence.isNotEmpty]).
+ */
 inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSeqBooleanFunc.NotEmpty)
 
+/**
+ * Returns a property representing blankness ([CharSequence.isBlank]).
+ */
 inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSeqBooleanFunc.Blank)
+
+/**
+ * Returns a property representing non-blankness ([CharSequence.isNotBlank]).
+ */
 inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSeqBooleanFunc.NotBlank)
 
+/**
+ * Returns a property representing a trimmed CharSequence ([CharSequence.trim]).
+ */
 @Suppress("UNCHECKED_CAST")
 inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(TrimmedCharSeq as (CharSequence) -> CharSequence)
 
@@ -92,9 +112,15 @@ inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(Tr
 // common
 //
 
+/**
+ * Returns a read-only view on this property hiding its original type.
+ */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Property<T>.readOnlyView() = map(Just as (T) -> T)
 
+/**
+ * Returns a property which notifies its subscribers only when old and new values are not equal.
+ */
 inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
         if (this.mayChange) DistinctPropertyWrapper(this, areEqual) else this
 
@@ -150,58 +176,42 @@ inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
     } while (!casValue(prev, next))
 }
 
-/**
- * Calls [func] for each [Property.value] including initial.
- */
-fun <T> Property<T>.onEach(func: (T) -> Unit) {
-    if (isConcurrent) {
-        val proxy = object : OnEach<T>() {
-
-            override fun invoke(p1: T) =
-                    func(p1)
-
-        }
-        addChangeListener(proxy)
-
-        /*
-       In the worst case scenario, change will happen in parallel just after subscription,
-       invoke(T, T) will start running;
-       we will CAS successfully and func will run in parallel.
-     */
-
-        // if calledRef is still not null
-        // and has value of 'false',
-        // then our function was not called yet.
-        if (proxy.calledRef?.compareAndSet(false, true) == true) {
-            func(value) // run function, ASAP!
-            proxy.calledRef = null
-        } // else we have more fresh value, don't call func
-    } else {
-        addChangeListener { _, new -> func(new) }
-        func(value)
-    }
-}
-
 
 //
 // factories
 //
 
+/**
+ * Returns new [MutableProperty] with value [value].
+ * If [concurrent] is true, the property can be used from many threads.
+ */
 inline fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
         if (concurrent) ConcMutableProperty(value)
         else UnsMutableProperty(value)
 
+/**
+ * Returns new multi-threaded [MutableProperty] with initial value [value].
+ */
 inline fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
         ConcMutableProperty(value)
 
+/**
+ * Returns new single-threaded [MutableProperty] with initial value [value].
+ */
 inline fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
         UnsMutableProperty(value)
 
+/**
+ * Returns an immutable [Property] representing either `true` or `false`.
+ */
 inline fun immutablePropertyOf(value: Boolean): Property<Boolean> = when (value) {
     true -> ImmutableReferenceProperty.TRUE
     false -> ImmutableReferenceProperty.FALSE
 }
 
+/**
+ * Returns an immutable property representing [value].
+ */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =
         ImmutableReferenceProperty(value)
 
@@ -303,10 +313,16 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
 // Delegates
 //
 
+/**
+ * Returns value of this [Property] when used as a Kotlin property delegate.
+ */
 inline operator fun <T> Property<T>.getValue(thisRef: Any?, property: KProperty<*>): T {
     return value
 }
 
+/**
+ * Sets value of this [MutableProperty] when used as a Kotlin property delegate.
+ */
 inline operator fun <T> MutableProperty<T>.setValue(thisRef: Any?, property: KProperty<*>, value: T) {
     this.value = value
 }
