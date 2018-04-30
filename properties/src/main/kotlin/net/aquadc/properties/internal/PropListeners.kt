@@ -246,7 +246,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
             i++
 
             if (i == listeners.size)
-                listeners = nonSyncListeners!! as Array<*>
+                listeners = nonSyncListeners as Array<*>
         }
     }
 
