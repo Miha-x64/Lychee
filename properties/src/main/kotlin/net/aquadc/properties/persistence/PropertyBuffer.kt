@@ -29,17 +29,26 @@ class PropertyBuffer private constructor() : InvocationHandler {
         return null
     }
 
+    /**
+     * Switches mode to production.
+     */
     fun produceThen() {
         check(produceNext == -1)
         produceNext = 0
     }
 
+    /**
+     * Switches mode to consumption.
+     */
     fun consumeThen() {
         check(produceNext == values.size)
         values.clear()
         produceNext = -1
     }
 
+    /**
+     * Checks whether buffer is clean and ready to use.
+     */
     fun assertClean() {
         check(produceNext == -1)
         check(values.isEmpty())
@@ -47,17 +56,29 @@ class PropertyBuffer private constructor() : InvocationHandler {
 
     companion object {
         private val ref = AtomicReference<Pair<PropertyIo, PropertyBuffer>?>(null)
+
+        /**
+         * Returns either new or cached instance.
+         */
         fun get(): Pair<PropertyIo, PropertyBuffer> {
             ref.getAndSet(null)?.let { return it }
             val buf = PropertyBuffer()
             val proxy = Proxy.newProxyInstance(PropertyIo::class.java.classLoader, arrayOf(PropertyIo::class.java), buf) as PropertyIo
             return proxy to buf
         }
+
+        /**
+         * Returns instance to cache.
+         */
         fun recycle(buffer: Pair<PropertyIo, PropertyBuffer>) {
             check(Proxy.getInvocationHandler(buffer.first) === buffer.second)
             buffer.second.assertClean()
             ref.set(buffer)
         }
+
+        /**
+         * Calls [block] on borrowed [PropertyIo] and [PropertyBuffer], returns to cache then.
+         */
         inline fun <R> borrow(block: (PropertyIo, PropertyBuffer) -> R): R {
             val pdPb = get()
             val (pd, pb) = pdPb
