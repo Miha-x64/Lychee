@@ -1,15 +1,13 @@
 package net.aquadc.properties.android.bindings
 
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.text.Editable
 import android.text.SpannedString
 import android.widget.TextView
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
-import net.aquadc.properties.android.compat.getDrawableCompat
 import net.aquadc.properties.android.container.MessageAndIconRes
-import net.aquadc.properties.android.extension.getTextOrNullIfZero
-import net.aquadc.properties.android.extension.setErrorWithIntrinsicBounds
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 
 
@@ -88,7 +86,7 @@ fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>) =
 private object SetError : (TextView, Any?) -> Unit {
     override fun invoke(p1: TextView, p2: Any?) = when (p2) {
         is CharSequence? -> p1.error = p2
-        is Int -> p1.error = p1.resources.getTextOrNullIfZero(p2)
+        is Int -> p1.error = (if (p2 == 0) null else p1.resources.getText(p2))
         else -> throw AssertionError()
     }
 }
@@ -102,16 +100,26 @@ fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIcon
 
 private object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
 
-    override fun invoke(v: TextView, new: Any?) = when {
-        new == null -> v.setError(null, null)
-        new is Pair<*, *> -> v.setErrorWithIntrinsicBounds(new.first as CharSequence, new.second as Drawable)
-        new is MessageAndIconRes -> {
+    override fun invoke(v: TextView, new: Any?) = when (new) {
+        null -> v.setError(null, null)
+        is Pair<*, *> -> v.setErrorWithIntrinsicBounds(new.first as CharSequence, new.second as Drawable)
+        is MessageAndIconRes -> {
             val res = v.resources
-            v.setErrorWithIntrinsicBounds(res.getText(new.messageRes), res.getDrawableCompat(new.iconRes))
+            v.setErrorWithIntrinsicBounds(
+                    res.getText(new.messageRes),
+                    @Suppress("DEPRECATION")
+                    if (Build.VERSION.SDK_INT >= 21) res.getDrawable(new.iconRes, null)
+                    else res.getDrawable(new.iconRes)
+            )
         }
         else -> throw AssertionError()
     }
 
+}
+
+private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable) {
+    icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+    setError(error, icon)
 }
 
 // todo: compound drawables
