@@ -1,2 +1,5 @@
 exclude_paths:
+  # ignore undocumented test cases, etc
   - 'properties/src/test/**'
+  # ignore unused parameters, constant conditions, etc
+  - 'fake-android/**'
