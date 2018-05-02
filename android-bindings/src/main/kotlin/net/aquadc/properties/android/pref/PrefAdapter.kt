@@ -34,9 +34,19 @@ interface PrefAdapter<T> {
 }
 
 /**
+ * Base adapter for properties which map to single [SharedPreferences] mapping.
+ */
+abstract class SimplePrefAdapter<T> : PrefAdapter<T> {
+
+    final override fun isKeyFor(propKey: String, prefKey: String): Boolean =
+            propKey == prefKey
+
+}
+
+/**
  * Adapts [SharedPreferences.getString] and [SharedPreferences.Editor.putString].
  */
-object StringPrefAdapter : PrefAdapter<String> {
+object StringPrefAdapter : SimplePrefAdapter<String>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: String): String =
             prefs.getString(key, default)
@@ -45,7 +55,91 @@ object StringPrefAdapter : PrefAdapter<String> {
         editor.putString(key, value)
     }
 
-    override fun isKeyFor(propKey: String, prefKey: String): Boolean =
-            propKey == prefKey
+}
+
+/**
+ * Adapts [SharedPreferences.getStringSet] and [SharedPreferences.Editor.putStringSet].
+ */
+object StringSetPrefAdapter : SimplePrefAdapter<Set<String>>() {
+
+    override fun read(prefs: SharedPreferences, key: String, default: Set<String>): Set<String> =
+            prefs.getStringSet(key, default)
+
+    override fun save(editor: SharedPreferences.Editor, key: String, value: Set<String>) {
+        editor.putStringSet(key, value)
+    }
+
+}
+
+/**
+ * Adapts [SharedPreferences.getInt] and [SharedPreferences.Editor.putInt].
+ */
+object IntPrefAdapter : SimplePrefAdapter<Int>() {
+
+    override fun read(prefs: SharedPreferences, key: String, default: Int): Int =
+            prefs.getInt(key, default)
+
+    override fun save(editor: SharedPreferences.Editor, key: String, value: Int) {
+        editor.putInt(key, value)
+    }
+
+}
+
+/**
+ * Adapts [SharedPreferences.getLong] and [SharedPreferences.Editor.putLong].
+ */
+object LongPrefAdapter : SimplePrefAdapter<Long>() {
+
+    override fun read(prefs: SharedPreferences, key: String, default: Long): Long =
+            prefs.getLong(key, default)
+
+    override fun save(editor: SharedPreferences.Editor, key: String, value: Long) {
+        editor.putLong(key, value)
+    }
+
+}
+
+/**
+ * Adapts [SharedPreferences.getFloat] and [SharedPreferences.Editor.putFloat].
+ */
+object FloatPrefAdapter : SimplePrefAdapter<Float>() {
+
+    override fun read(prefs: SharedPreferences, key: String, default: Float): Float =
+            prefs.getFloat(key, default)
+
+    override fun save(editor: SharedPreferences.Editor, key: String, value: Float) {
+        editor.putFloat(key, value)
+    }
+
+}
+
+/**
+ * Adapts [SharedPreferences.getLong] + [java.lang.Double.doubleToRawLongBits]
+ * and [SharedPreferences.Editor.putLong] + [java.lang.Double.longBitsToDouble].
+ */
+object DoublePrefAdapter : SimplePrefAdapter<Double>() {
+
+    override fun read(prefs: SharedPreferences, key: String, default: Double): Double {
+        val value = prefs.all[key] as Long?
+        return value?.let(java.lang.Double::longBitsToDouble) ?: default
+    }
+
+    override fun save(editor: SharedPreferences.Editor, key: String, value: Double) {
+        editor.putLong(key, java.lang.Double.doubleToRawLongBits(value))
+    }
+
+}
+
+/**
+ * Adapts [SharedPreferences.getBoolean] and [SharedPreferences.Editor.putBoolean].
+ */
+object BoolPrefAdapter : SimplePrefAdapter<Boolean>() {
+
+    override fun read(prefs: SharedPreferences, key: String, default: Boolean): Boolean =
+            prefs.getBoolean(key, default)
+
+    override fun save(editor: SharedPreferences.Editor, key: String, value: Boolean) {
+        editor.putBoolean(key, value)
+    }
 
 }
