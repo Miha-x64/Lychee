@@ -11,10 +11,15 @@ import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 
-
+/**
+ * Binds text to [textProperty] via [TextView.setText].
+ */
 fun TextView.bindTextTo(textProperty: Property<CharSequence>) =
         bindViewTo(textProperty, SetText)
 
+/**
+ * Binds text to [textResProperty] via [TextView.setText].
+ */
 @JvmName("bindTextResTo")
 fun TextView.bindTextTo(textResProperty: Property<Int>) =
         bindViewTo(textResProperty, SetText)
@@ -27,6 +32,9 @@ private object SetText : (TextView, Any) -> Unit {
     }
 }
 
+/**
+ * Binds [textProperty] to text via [android.text.TextWatcher].
+ */
 fun TextView.bindToText(textProperty: MutableProperty<CharSequence>) {
     textProperty.value = text.toString()
     addTextChangedListener(object : SimpleTextWatcher() {
@@ -36,6 +44,10 @@ fun TextView.bindToText(textProperty: MutableProperty<CharSequence>) {
     })
 }
 
+/**
+ * Binds [textProperty] with text bidirectionally.
+ * When this TextView gets attached to window, text will be set from [textProperty].
+ */
 fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
     val watcherAndBinding = object : SimpleTextWatcher(), (TextView, String) -> Unit {
 
@@ -62,9 +74,15 @@ fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
 }
 
 
+/**
+ * Binds hint to [hintProperty] via [TextView.setHint].
+ */
 fun TextView.bindHintTo(hintProperty: Property<CharSequence>) =
         bindViewTo(hintProperty, SetHint)
 
+/**
+ * Binds hint to [hintProperty] via [TextView.setHint].
+ */
 @JvmName("bindHintResTo")
 fun TextView.bindHintTo(hintResProperty: Property<Int>) =
         bindViewTo(hintResProperty, SetHint)
@@ -77,9 +95,15 @@ private object SetHint : (TextView, Any) -> Unit {
     }
 }
 
+/**
+ * Binds error message to [errorProperty] via [TextView.setError].
+ */
 fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>) =
         bindViewTo(errorProperty, SetError)
 
+/**
+ * Binds error message to [errorResProperty] via [TextView.setError].
+ */
 @JvmName("bindErrorMessageResTo")
 fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>) =
         bindViewTo(errorResProperty, SetError)
@@ -92,9 +116,17 @@ private object SetError : (TextView, Any?) -> Unit {
     }
 }
 
+/**
+ * Binds error message and icon to [errorProperty]
+ * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
+ */
 fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>) =
         bindViewTo(errorProperty, BindErrorMessageAndIconTo)
 
+/**
+ * Binds error message and icon to [errorResProperty]
+ * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
+ */
 @JvmName("bindErrorMessageResAndIconTo")
 fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>) =
         bindViewTo(errorResProperty, BindErrorMessageAndIconTo)
