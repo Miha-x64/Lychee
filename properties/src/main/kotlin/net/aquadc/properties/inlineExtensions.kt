@@ -185,19 +185,43 @@ inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
  * Returns new [MutableProperty] with value [value].
  * If [concurrent] is true, the property can be used from many threads.
  */
+@Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value, concurrent)"))
 inline fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
+        if (concurrent) ConcMutableProperty(value)
+        else UnsMutableProperty(value)
+
+/**
+ * Returns new [MutableProperty] with value [value].
+ * Returned property is strictly bounded to current thread.
+ */
+inline fun <T> propertyOf(value: T): MutableProperty<T> =
+        UnsMutableProperty(value)
+
+/**
+ * Returns new [MutableProperty] with value [value].
+ * When [concurrent] is true, returns a thread-safe property.
+ */
+inline fun <T> propertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
         if (concurrent) ConcMutableProperty(value)
         else UnsMutableProperty(value)
 
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
+@Deprecated("Use concurrentPropertyOf instead.", ReplaceWith("concurrentPropertyOf(value)"))
 inline fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
+        ConcMutableProperty(value)
+
+/**
+ * Returns new multi-threaded [MutableProperty] with initial value [value].
+ */
+inline fun <T> concurrentPropertyOf(value: T): MutableProperty<T> =
         ConcMutableProperty(value)
 
 /**
  * Returns new single-threaded [MutableProperty] with initial value [value].
  */
+@Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value)"))
 inline fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
         UnsMutableProperty(value)
 
