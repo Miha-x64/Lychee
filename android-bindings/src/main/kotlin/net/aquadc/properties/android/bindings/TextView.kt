@@ -2,12 +2,13 @@ package net.aquadc.properties.android.bindings
 
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.support.annotation.DrawableRes
+import android.support.annotation.StringRes
 import android.text.Editable
 import android.text.SpannedString
 import android.widget.TextView
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
-import net.aquadc.properties.android.container.MessageAndIconRes
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 
 
@@ -116,6 +117,14 @@ private object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
     }
 
 }
+
+/**
+ * A tuple of two [Int]s for [net.aquadc.properties.android.bindings.bindErrorMessageAndIconTo].
+ */
+class MessageAndIconRes(
+        @JvmField @StringRes val messageRes: Int,
+        @JvmField @DrawableRes val iconRes: Int
+)
 
 private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable) {
     icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
