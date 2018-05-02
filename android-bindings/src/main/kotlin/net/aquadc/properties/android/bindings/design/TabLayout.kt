@@ -24,6 +24,10 @@ inline fun <T> TabLayout.populateAndBindTabsBidirectionally(
     bindTabsBidirectionally(prop, values)
 }
 
+/**
+ * Binds currently selected tab to [prop] value and vice versa,
+ * assuming that tabs correspond to [values].
+ */
 fun <T> TabLayout.bindTabsBidirectionally(
         prop: MutableProperty<T>,
         values: Array<T>
