@@ -272,60 +272,69 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
 
     protected fun addChangeListenerInternal(onChange: LISTENER) {
         if (thread == null) {
-            subscriptionLock.read {
-                var removedReadLocks = 0
-                val old = concStateUpdater().getUndUpdate(this) {
-                    if (subscriptionLock.writeHoldCount == 0 && it.listeners.all { it == null }) {
-                        // there are 0 listeners, we're going to change 'observed' state
-                        removedReadLocks += subscriptionLock.lockForWrite()
-                    }
-                    it.withListener(onChange)
-                }
-                val writeLocked = subscriptionLock.writeHoldCount == 1
-                if (old.listeners.all { it == null }) {
-                    check(writeLocked) // we must know about it in update loop
-                    observedStateChangedWLocked(true)
-                }
-                if (writeLocked) {
-                    subscriptionLock.writeLock().unlock()
-                    repeat(removedReadLocks) { subscriptionLock.readLock().lock() }
-                }
-            }
+            concAddChangeListenerInternal(onChange)
         } else {
-            checkThread()
-            val listeners = nonSyncListeners
-            when (listeners) {
-                null -> {
-                    nonSyncListeners = onChange
-                    observedStateChangedWLocked(true)
+            nonSyncAddChangeListenerInternal(onChange)
+        }
+    }
+
+    private fun concAddChangeListenerInternal(onChange: LISTENER) {
+        subscriptionLock.read {
+            var removedReadLocks = 0
+            val old = concStateUpdater().getUndUpdate(this) {
+                if (subscriptionLock.writeHoldCount == 0 && it.listeners.all { it == null }) {
+                    // there are 0 listeners, we're going to change 'observed' state
+                    removedReadLocks += subscriptionLock.lockForWrite()
                 }
-                is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
-                is Array<*> -> {
-                    if (nonSyncPendingUpdater().get(this) != null) {
-                        // notifying now, expand array without structural changes
-                        nonSyncListeners = listeners.with(onChange)
-                        if (listeners.all { it == null }) observedStateChangedWLocked(true)
-                    } else {
-                        // not notifying, we can do anything we want
-                        val insIdx = listeners.compact() // remove nulls
-                        when (insIdx) {
-                            -1 -> {// no nulls, grow
-                                nonSyncListeners = listeners.with(onChange)
-                            }
+                it.withListener(onChange)
+            }
+            val writeLocked = subscriptionLock.writeHoldCount == 1
+            if (old.listeners.all { it == null }) {
+                check(writeLocked) // we must know about it in update loop
+                observedStateChangedWLocked(true)
+            }
+            if (writeLocked) {
+                subscriptionLock.writeLock().unlock()
+                repeat(removedReadLocks) { subscriptionLock.readLock().lock() }
+            }
+        }
+    }
 
-                            0 -> {// drop array, especially if it is SingleNull instance which must not be mutated
-                                nonSyncListeners = onChange
-                                observedStateChangedWLocked(true)
-                            }
+    private fun nonSyncAddChangeListenerInternal(onChange: LISTENER) {
+        checkThread()
+        val listeners = nonSyncListeners
+        when (listeners) {
+            null -> {
+                nonSyncListeners = onChange
+                observedStateChangedWLocked(true)
+            }
+            is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
+            is Array<*> -> {
+                if (nonSyncPendingUpdater().get(this) != null) {
+                    // notifying now, expand array without structural changes
+                    nonSyncListeners = listeners.with(onChange)
+                    if (listeners.all { it == null }) observedStateChangedWLocked(true)
+                } else {
+                    // not notifying, we can do anything we want
+                    val insIdx = listeners.compact() // remove nulls
+                    when (insIdx) {
+                        -1 -> {// no nulls, grow
+                            nonSyncListeners = listeners.with(onChange)
+                        }
 
-                            else -> // we have some room in the existing array
-                                @Suppress("UNCHECKED_CAST")
-                                (listeners as Array<Any?>)[insIdx] = onChange
+                        0 -> {// drop array, especially if it is SingleNull instance which must not be mutated
+                            nonSyncListeners = onChange
+                            observedStateChangedWLocked(true)
+                        }
+
+                        else -> {// we have some room in the existing array
+                            @Suppress("UNCHECKED_CAST")
+                            (listeners as Array<Any?>)[insIdx] = onChange
                         }
                     }
                 }
-                else -> throw AssertionError()
             }
+            else -> throw AssertionError()
         }
     }
 
