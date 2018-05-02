@@ -1,6 +1,6 @@
 package net.aquadc.properties.diff
 
-import net.aquadc.properties.concurrentMutablePropertyOf
+import net.aquadc.properties.concurrentPropertyOf
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.WorkerOnExecutor
 import org.junit.Assert.assertEquals
@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class DiffProp {
 
     @Test fun calcilateDiffInPlace() {
-        val prop = concurrentMutablePropertyOf(10)
+        val prop = concurrentPropertyOf(10)
         val diffProp = prop.calculateDiffOn(InPlaceWorker) { old, new -> new - old }
         var diff = 0
         val listener: DiffChangeListener<Int, Int> = { _, _, d -> diff = d }
@@ -29,7 +29,7 @@ class DiffProp {
     @Test fun calculateDiffInOnWorker() {
         val executor = Executors.newSingleThreadExecutor()
         val worker = WorkerOnExecutor(executor)
-        val prop = concurrentMutablePropertyOf(10)
+        val prop = concurrentPropertyOf(10)
         val diffProp = prop.calculateDiffOn(worker) { old, new -> new - old }
         val diff = AtomicInteger()
 

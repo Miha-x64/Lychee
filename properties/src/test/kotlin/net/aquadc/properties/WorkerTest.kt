@@ -40,25 +40,25 @@ class WorkerTest {
 
     @Test fun unsMappedPropertyInPlace() =
             mappedProperty(
-                    caller.submit<MutableProperty<String>> { unsynchronizedMutablePropertyOf("none") }.get(),
+                    caller.submit<MutableProperty<String>> { propertyOf("none") }.get(),
                     caller, callerThread, InPlaceWorker, callerThread, callerThread
             )
 
     @Test fun unsMappedPropertyOnBg() =
             mappedProperty(
-                    caller.submit<MutableProperty<String>> { unsynchronizedMutablePropertyOf("none") }.get(),
+                    caller.submit<MutableProperty<String>> { propertyOf("none") }.get(),
                     caller, callerThread, worker, workerThread, callerThread
             )
 
     @Test fun concMappedPropertyInPlace() =
             mappedProperty(
-                    concurrentMutablePropertyOf("none"),
+                    concurrentPropertyOf("none"),
                     caller, callerThread, InPlaceWorker, callerThread, callerThread
             )
 
     @Test fun concMappedPropertyOnBg() =
             mappedProperty(
-                    concurrentMutablePropertyOf("none"),
+                    concurrentPropertyOf("none"),
                     caller, callerThread, worker, workerThread, workerThread
             )
 

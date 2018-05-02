@@ -7,21 +7,21 @@ import org.junit.Test
 
 class CommonTest {
 
-    private val ump = unsynchronizedMutablePropertyOf("")
+    private val ump = propertyOf("")
     private val controlledUProps = listOf(
             ump,
             ump.map { "text: $it" },
-            ump.mapWith(unsynchronizedMutablePropertyOf("")) { a, b -> a + b },
-            listOf(ump, unsynchronizedMutablePropertyOf(""), unsynchronizedMutablePropertyOf(""))
+            ump.mapWith(propertyOf("")) { a, b -> a + b },
+            listOf(ump, propertyOf(""), propertyOf(""))
                     .mapValueList { vals -> vals.joinToString() }
     )
 
-    private val cmp = concurrentMutablePropertyOf("")
+    private val cmp = concurrentPropertyOf("")
     private val controlledCProps = listOf(
             cmp,
             cmp.map { "text: $it" },
-            cmp.mapWith(unsynchronizedMutablePropertyOf("")) { a, b -> a + b },
-            listOf(cmp, unsynchronizedMutablePropertyOf(""), unsynchronizedMutablePropertyOf(""))
+            cmp.mapWith(propertyOf("")) { a, b -> a + b },
+            listOf(cmp, propertyOf(""), propertyOf(""))
                     .mapValueList { vals -> vals.joinToString() }
     )
 

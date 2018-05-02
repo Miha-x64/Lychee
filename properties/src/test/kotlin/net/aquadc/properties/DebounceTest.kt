@@ -16,14 +16,14 @@ class DebounceTest {
 
     @Test(expected = UnsupportedOperationException::class)
     fun cantDebounceConcOnJavaAppMainThread() {
-        concurrentMutablePropertyOf("")
+        concurrentPropertyOf("")
                 .debounced(300, TimeUnit.MILLISECONDS)
                 .addChangeListener { _, _ ->  }
     }
 
     @Test(expected = UnsupportedOperationException::class)
     fun cantDebounceUnsOnJavaAppMainThread() {
-        unsynchronizedMutablePropertyOf("")
+        propertyOf("")
                 .debounced(300, TimeUnit.MILLISECONDS)
                 .addChangeListener { _, _ ->  }
     }
@@ -42,14 +42,14 @@ class DebounceTest {
     }
 
     private fun test(executor: Executor) {
-        val conc = concurrentMutablePropertyOf("old")
+        val conc = concurrentPropertyOf("old")
         val concDeb = conc.debounced(100, TimeUnit.MILLISECONDS)
 
         val unsDeb = AtomicReference<Property<String>>()
         val concCalled = AtomicBoolean()
         val unsCalled = AtomicBoolean()
         executor.execute {
-            val uns = unsynchronizedMutablePropertyOf("old")
+            val uns = propertyOf("old")
             unsDeb.set(uns.debounced(100, TimeUnit.MILLISECONDS))
 
             concDeb.addChangeListener { old, new ->

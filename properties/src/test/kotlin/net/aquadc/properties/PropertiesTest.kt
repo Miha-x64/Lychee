@@ -22,7 +22,7 @@ class PropertiesTest {
     @Test fun concMutableProps() = mutableProps(true)
     @Test fun unsMutableProps() = mutableProps(false)
     private fun mutableProps(concurrent: Boolean) {
-        val prop = mutablePropertyOf("hello", concurrent)
+        val prop = propertyOf("hello", concurrent)
         assertEquals("hello", prop.value)
 
         var old: String? = null
@@ -50,7 +50,7 @@ class PropertiesTest {
     @Test fun concMappedProp() = mappedProp(true)
     @Test fun unsMappedProp() = mappedProp(false)
     private fun mappedProp(concurrent: Boolean) {
-        val prop = mutablePropertyOf(1, concurrent)
+        val prop = propertyOf(1, concurrent)
         val mapped = prop.map { 10 * it }
         assertEquals(10, mapped.value)
 
@@ -69,8 +69,8 @@ class PropertiesTest {
     @Test fun concBiMappedProperty() = biMappedProperty(true)
     @Test fun unsBiMappedProperty() = biMappedProperty(false)
     private fun biMappedProperty(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf("a", concurrent)
-        val prop1 = mutablePropertyOf("b", concurrent)
+        val prop0 = propertyOf("a", concurrent)
+        val prop1 = propertyOf("b", concurrent)
         val biMapped = prop0.mapWith(prop1) { a, b -> "$a $b" }
         assertEquals("a b", biMapped.value)
 

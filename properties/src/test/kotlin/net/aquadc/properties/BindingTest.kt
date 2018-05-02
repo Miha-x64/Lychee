@@ -9,8 +9,8 @@ class BindingTest {
     @Test fun concBinding() = binding(true)
     @Test fun unsBinding() = binding(false)
     private fun binding(concurrent: Boolean) {
-        val mutable = mutablePropertyOf("hello", concurrent)
-        val sample = mutablePropertyOf("world", concurrent)
+        val mutable = propertyOf("hello", concurrent)
+        val sample = propertyOf("world", concurrent)
 
         mutable.bindTo(sample)
         assertEquals("world", mutable.value)
@@ -32,7 +32,7 @@ class BindingTest {
         sample.value = "rebound"
         assertEquals("rebound", mutable.value)
 
-        val newSample = mutablePropertyOf("another", concurrent)
+        val newSample = propertyOf("another", concurrent)
         mutable.bindTo(newSample)
         assertEquals("another", mutable.value)
 
@@ -49,7 +49,7 @@ class BindingTest {
      * Same as previous one, but immutable property binding implementation differs
      */
     private fun bindingToImmutable(concurrent: Boolean) {
-        val mutable = mutablePropertyOf("hello", concurrent)
+        val mutable = propertyOf("hello", concurrent)
         val immutable = immutablePropertyOf("world")
 
         mutable.bindTo(immutable)

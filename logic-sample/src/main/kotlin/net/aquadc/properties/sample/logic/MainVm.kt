@@ -15,11 +15,10 @@ class MainVm(
         private val userProp: MutableProperty<InMemoryUser>
 ) : PersistableProperties {
 
-    // todo: find a shorter way to create single-threaded properties
-    val emailProp = unsynchronizedMutablePropertyOf(userProp.value.email)
-    val nameProp = unsynchronizedMutablePropertyOf(userProp.value.name)
-    val surnameProp = unsynchronizedMutablePropertyOf(userProp.value.surname)
-    val buttonClickedProp = unsynchronizedMutablePropertyOf(false)
+    val emailProp = propertyOf(userProp.value.email)
+    val nameProp = propertyOf(userProp.value.name)
+    val surnameProp = propertyOf(userProp.value.surname)
+    val buttonClickedProp = propertyOf(false)
 
     override fun saveOrRestore(d: PropertyIo) {
         d x emailProp
@@ -27,9 +26,9 @@ class MainVm(
         d x surnameProp
     }
 
-    val emailValidProp = unsynchronizedMutablePropertyOf(false)
-    val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)
-    val buttonTextProp = unsynchronizedMutablePropertyOf("")
+    val emailValidProp = propertyOf(false)
+    val buttonEnabledProp = propertyOf(false)
+    val buttonTextProp = propertyOf("")
     val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
     private val editedUser = OnScreenUser(

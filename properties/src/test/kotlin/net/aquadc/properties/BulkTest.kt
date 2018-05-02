@@ -10,9 +10,9 @@ class BulkTest {
     private fun mapValueList(concurrent: Boolean) {
         assertEquals("hello", listOf<Property<Nothing>>().mapValueList { "hello" }.value)
 
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(2, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(2, concurrent)
         val sum = listOf(prop0, prop1, prop2).mapValueList { it.fold(0) { a, b -> a + b } }
         assertEquals(3, sum.value)
 
@@ -23,9 +23,9 @@ class BulkTest {
     @Test fun concFoldValues() = foldValues(true)
     @Test fun unsFoldValues() = foldValues(false)
     private fun foldValues(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(2, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(2, concurrent)
         val sum = listOf(prop0, prop1, prop2).foldValues(0) { a, b -> a + b }
         assertEquals(3, sum.value)
 
@@ -36,9 +36,9 @@ class BulkTest {
     @Test fun concFirstValueOrNull() = firstValueOrNull(true)
     @Test fun unsFirstValueOrNull() = firstValueOrNull(false)
     private fun firstValueOrNull(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(2, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(2, concurrent)
 
         val firstOrNull = listOf(prop0, prop1, prop2).firstValueOrNull { it > 0 }
         assertEquals(1, firstOrNull.value)
@@ -53,9 +53,9 @@ class BulkTest {
     @Test fun concFilterValues() = filterValues(true)
     @Test fun unsFilterValues() = filterValues(false)
     private fun filterValues(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(2, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(2, concurrent)
 
         val filtered = listOf(prop0, prop1, prop2).filterValues { it > 0 }
         assertEquals(listOf(1, 2), filtered.value)
@@ -70,9 +70,9 @@ class BulkTest {
     @Test fun concContainsValue() = containsValue(true)
     @Test fun unsContainsValue() = containsValue(false)
     private fun containsValue(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(1, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(1, concurrent)
 
         val contains = listOf(prop0, prop1, prop2).containsValue(1)
         assertTrue(contains.value)
@@ -87,9 +87,9 @@ class BulkTest {
     @Test fun concContainsAllValues() = containsAllValues(true)
     @Test fun unsContainsAllValues() = containsAllValues(false)
     private fun containsAllValues(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(1, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(1, concurrent)
 
         val contains = listOf(prop0, prop1, prop2).containsAllValues(listOf(0, 1))
         assertTrue(contains.value)
@@ -104,9 +104,9 @@ class BulkTest {
     @Test fun concAllAndAnyValues() = allAndAnyValues(true)
     @Test fun unsAllAndAnyValues() = allAndAnyValues(false)
     private fun allAndAnyValues(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(2, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(2, concurrent)
 
         val all = listOf(prop0, prop1, prop2).allValues { it > 0 }
         val any = listOf(prop0, prop1, prop2).anyValue { it > 0 }
@@ -134,9 +134,9 @@ class BulkTest {
     @Test fun concSubscription() = subscription(true)
     @Test fun unsSubscription() = subscription(false)
     private fun subscription(concurrent: Boolean) {
-        val prop0 = mutablePropertyOf(0, concurrent)
-        val prop1 = mutablePropertyOf(1, concurrent)
-        val prop2 = mutablePropertyOf(2, concurrent)
+        val prop0 = propertyOf(0, concurrent)
+        val prop1 = propertyOf(1, concurrent)
+        val prop2 = propertyOf(2, concurrent)
         val sum = listOf(prop0, prop1, prop2).foldValues(0) { acc, value -> acc + value }
 
         assertEquals(3, sum.value)
