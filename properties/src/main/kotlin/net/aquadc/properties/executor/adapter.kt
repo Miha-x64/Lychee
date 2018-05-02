@@ -38,6 +38,9 @@ internal class ConsumeOn<in T>(
 
 }
 
+/**
+ * When invoked, calls [actual] on [executor].
+ */
 class ConfinedChangeListener<in T>(
         private val executor: Executor,
         @JvmField internal val actual: ChangeListener<T>
