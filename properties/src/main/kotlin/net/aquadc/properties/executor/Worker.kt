@@ -7,7 +7,14 @@ import java.util.concurrent.Executor
  */
 interface Worker {
 
+    /**
+     * Invokes [map] on [t] and passes returned value to the [callback].
+     */
     fun <T, U> map(t: T, map: (T) -> U, callback: (U) -> Unit)
+
+    /**
+     * Invokes [map] on [t] and [u], passes returned value to the [callback].
+     */
     fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit)
 
 }
