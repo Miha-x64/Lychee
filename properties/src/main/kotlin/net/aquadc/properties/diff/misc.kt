@@ -13,8 +13,14 @@ import net.aquadc.properties.executor.Worker
  */
 typealias DiffChangeListener<T, D> = (old: T, new: T, diff:D) -> Unit
 
+/**
+ * Returns new multi-threaded [MutableDiffProperty] with initial value [value].
+ */
 inline fun <T, D> concurrentMutableDiffPropertyOf(value: T): MutableDiffProperty<T, D> =
         ConcMutableDiffProperty(value)
 
+/**
+ * Returns new [DiffProperty] calculated from [this] [Property].
+ */
 inline fun <T, D> Property<T>.calculateDiffOn(worker: Worker, noinline calculate: (T, T) -> D): DiffProperty<T, D> =
         ConcComputedDiffProperty(this, calculate, worker)
