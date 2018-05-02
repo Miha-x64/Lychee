@@ -10,7 +10,7 @@ import net.aquadc.properties.sample.logic.InMemoryUser
 import net.aquadc.properties.sample.logic.User
 import java.util.concurrent.Callable
 
-class Presenter(
+class FxViewModel(
         private val userProp: SimpleObjectProperty<InMemoryUser>
 ) {
 

@@ -12,8 +12,8 @@ class FxNativeSample : Application() {
     private val userProp = SimpleObjectProperty<InMemoryUser>(defaultUser)
 
     override fun start(stage: Stage) {
-        val presenter = Presenter(userProp)
-        stage.scene = Scene(nativeView(presenter), 400.0, 300.0)
+        val vm = FxViewModel(userProp)
+        stage.scene = Scene(nativeView(vm), 400.0, 300.0)
         stage.show()
     }
 
