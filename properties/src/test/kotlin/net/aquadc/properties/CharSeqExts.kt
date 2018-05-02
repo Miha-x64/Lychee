@@ -7,7 +7,7 @@ import org.junit.Test
 class CharSeqExts {
 
     @Test fun length() {
-        val prop = unsynchronizedMutablePropertyOf("")
+        val prop = propertyOf("")
         val len by prop.length
         assertEquals(0, len)
 
@@ -19,7 +19,7 @@ class CharSeqExts {
     }
 
     @Test fun empty() {
-        val prop = unsynchronizedMutablePropertyOf("")
+        val prop = propertyOf("")
 
         val empty by prop.isEmpty
         val notEmpty by prop.isNotEmpty
@@ -47,7 +47,7 @@ class CharSeqExts {
     }
 
     @Test fun trimmed() {
-        val prop = unsynchronizedMutablePropertyOf("")
+        val prop = propertyOf("")
         val trimmed by prop.trimmed
 
         assertEquals("", trimmed)

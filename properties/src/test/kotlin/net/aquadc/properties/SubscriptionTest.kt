@@ -10,7 +10,7 @@ class SubscriptionTest {
     @Test fun unsSubscribe() = subscribe(false)
 
     private fun subscribe(conc: Boolean) {
-        val prop = mutablePropertyOf(false, conc)
+        val prop = propertyOf(false, conc)
 
         var l2Called = false
 
@@ -45,7 +45,7 @@ class SubscriptionTest {
     @Test fun unsUnsubscribe() = unsubscribe(false)
 
     private fun unsubscribe(conc: Boolean) {
-        val prop = mutablePropertyOf(false, conc)
+        val prop = propertyOf(false, conc)
 
         var l1Called = 0
         var l2Called = 0
@@ -85,7 +85,7 @@ class SubscriptionTest {
     @Test fun unsUpdateInside() = updateInside(false)
 
     private fun updateInside(conc: Boolean) {
-        val prop = mutablePropertyOf(0, conc)
+        val prop = propertyOf(0, conc)
 
         var v1 = 0
         var v2 = 0
@@ -109,7 +109,7 @@ class SubscriptionTest {
     }
 
     @Test fun onEach() {
-        val prop = unsynchronizedMutablePropertyOf("")
+        val prop = propertyOf("")
         val values = ArrayList<String>()
         prop.onEach { values.add(it) }
         prop.value = "new"
@@ -117,7 +117,7 @@ class SubscriptionTest {
     }
 
     @Test fun clearEach() {
-        val prop = unsynchronizedMutablePropertyOf(true)
+        val prop = propertyOf(true)
         var called = 0
         prop.clearEachAnd { called++ }
         assertEquals(1, called)

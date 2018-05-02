@@ -8,7 +8,7 @@ class BooleanOperatorsTest {
     @Test fun concNot() = not(true)
     @Test fun unsNot() = not(false)
     private fun not(concurrent: Boolean) {
-        val prop = mutablePropertyOf(true, concurrent)
+        val prop = propertyOf(true, concurrent)
         val notProp by prop.not()
         assertEquals(false, notProp)
 
@@ -19,8 +19,8 @@ class BooleanOperatorsTest {
     @Test fun concAnd() = and(true)
     @Test fun unsAnd() = and(false)
     private fun and(concurrent: Boolean) {
-        val p0 = mutablePropertyOf(true, concurrent)
-        val p1 = mutablePropertyOf(true, concurrent)
+        val p0 = propertyOf(true, concurrent)
+        val p1 = propertyOf(true, concurrent)
 
         val and by p0 and p1
         assertEquals(true, and)
@@ -41,8 +41,8 @@ class BooleanOperatorsTest {
     @Test fun concOr() = or(true)
     @Test fun unsOr() = or(false)
     private fun or(concurrent: Boolean) {
-        val p0 = mutablePropertyOf(true, concurrent)
-        val p1 = mutablePropertyOf(true, concurrent)
+        val p0 = propertyOf(true, concurrent)
+        val p1 = propertyOf(true, concurrent)
 
         val and by p0 or p1
         assertEquals(true, and)
@@ -63,8 +63,8 @@ class BooleanOperatorsTest {
     @Test fun concXor() = xor(true)
     @Test fun unsXor() = xor(false)
     private fun xor(concurrent: Boolean) {
-        val p0 = mutablePropertyOf(true, concurrent)
-        val p1 = mutablePropertyOf(true, concurrent)
+        val p0 = propertyOf(true, concurrent)
+        val p1 = propertyOf(true, concurrent)
 
         val and by p0 xor p1
         assertEquals(false, and)

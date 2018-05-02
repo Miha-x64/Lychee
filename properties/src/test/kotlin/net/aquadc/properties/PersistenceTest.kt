@@ -8,7 +8,7 @@ import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.util.*
-import net.aquadc.properties.unsynchronizedMutablePropertyOf as ump
+import net.aquadc.properties.propertyOf as ump
 
 
 class PersistenceTest : PersistableProperties {

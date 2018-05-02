@@ -23,7 +23,7 @@ class OptimizationTest {
 
     private fun immutablePropMapWithReturnsMapped(concurrent: Boolean, mapsTo: Class<*>) {
         val prop0 = immutablePropertyOf("yo")
-        val prop1 = mutablePropertyOf("hey", concurrent)
+        val prop1 = propertyOf("hey", concurrent)
 
         val mapped0 = prop0.mapWith(prop1) { a, b -> "$b $a" }
         assertEquals("hey yo", mapped0.value)
@@ -46,7 +46,7 @@ class OptimizationTest {
     @Test fun concSimpleMap() = simpleMap(true, MappedProperty::class.java)
     @Test fun unsSimpleMap() = simpleMap(false, MappedProperty::class.java)
     fun simpleMap(concurrent: Boolean, mapsTo: Class<*>) {
-        val prop = mutablePropertyOf("hey", concurrent)
+        val prop = propertyOf("hey", concurrent)
         val mapped = prop.map { "$it!" }
         assertTrue("mapped is ${mapped.javaClass}", mapsTo.isInstance(mapped))
     }
@@ -54,14 +54,14 @@ class OptimizationTest {
     @Test fun concSimpleMapWith() = simpleMapWith(true, BiMappedProperty::class.java)
     @Test fun unsSimpleMapWith() = simpleMapWith(false, BiMappedProperty::class.java)
     fun simpleMapWith(concurrent: Boolean, mapsTo: Class<*>) {
-        val prop0 = mutablePropertyOf("hey", concurrent)
-        val prop1 = mutablePropertyOf("hey", concurrent)
+        val prop0 = propertyOf("hey", concurrent)
+        val prop1 = propertyOf("hey", concurrent)
         assertTrue(mapsTo.isInstance(prop0.mapWith(prop1) { a, b -> "$a $b" }))
     }
 
     @Test fun mapValueList() {
-        val prop0 = unsynchronizedMutablePropertyOf("hey")
-        val prop1 = concurrentMutablePropertyOf("yo")
+        val prop0 = propertyOf("hey")
+        val prop1 = concurrentPropertyOf("yo")
         val joinedProp = listOf(prop0, prop1).mapValueList { it.joinToString(" ") }
         assertEquals("hey yo", joinedProp.value)
         assertTrue(joinedProp is MultiMappedProperty<*, *>)

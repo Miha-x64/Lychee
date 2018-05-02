@@ -3,13 +3,13 @@ package net.aquadc.properties.fx
 import javafx.application.Application
 import javafx.scene.Scene
 import javafx.stage.Stage
-import net.aquadc.properties.concurrentMutablePropertyOf
+import net.aquadc.properties.concurrentPropertyOf
 import net.aquadc.properties.sample.logic.MainVm
 import net.aquadc.properties.sample.logic.defaultUser
 
 class FxWithOurPropsSample : Application() {
 
-    private val userProp = concurrentMutablePropertyOf(defaultUser)
+    private val userProp = concurrentPropertyOf(defaultUser)
 
     override fun start(stage: Stage) {
         val presenter = MainVm(userProp)
