@@ -169,5 +169,3 @@ private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Draw
     icon?.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
     setError(error, icon)
 }
-
-// todo: compound drawables
