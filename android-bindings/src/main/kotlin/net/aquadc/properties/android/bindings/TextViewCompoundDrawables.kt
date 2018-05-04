@@ -13,47 +13,62 @@ import net.aquadc.properties.Property
 import kotlin.annotation.AnnotationRetention.SOURCE
 import kotlin.annotation.AnnotationTarget.*
 
+
+/**
+ * Enumerates possible compound drawable positions.
+ */
 @SuppressLint("RtlHardcoded")
 @Target(VALUE_PARAMETER, FUNCTION, LOCAL_VARIABLE, PROPERTY)
 @Retention(SOURCE)
 @IntDef(LEFT.toLong(), TOP.toLong(), RIGHT.toLong(), BOTTOM.toLong(), START.toLong(), END.toLong())
-annotation class CompoundDrawableGravity
+annotation class CompoundDrawablePosition
+
 
 /**
- * Binds drawable at the given [gravity] to...
- * For [START] and [END] API 17+ required.
- * Usage: `tv.bindDrawableAt(START).to(tvDrawableProp)`.
+ * Binds drawable at the given [position] to...
+ * For [START] and [END] positions API 17+ required.
+ * Usage: `tvWithIcon.bindDrawableAt(START).to(iconProp)`.
  */
-fun TextView.bindDrawableAt(@CompoundDrawableGravity gravity: Int): DrawableBindingStub {
-    if (Build.VERSION.SDK_INT < 17 && (gravity == START || gravity == END)) {
-        throw IllegalArgumentException("START and END gravities are supported only by SDK 17+")
+@SuppressLint("RtlHardcoded")
+fun TextView.bindDrawableAt(@CompoundDrawablePosition position: Int): DrawableBindingStub {
+    if (Build.VERSION.SDK_INT < 17 && (position == START || position == END))
+        throw IllegalArgumentException("START and END compound drawable positions are supported only by SDK 17+")
+
+    return when (position) {
+        LEFT, TOP, RIGHT, BOTTOM, START, END ->
+            DrawableBindingStub(this, position)
+        else ->
+            throw IllegalArgumentException(
+                    "Wrong position $position, must be one of the values listed by @CompoundDrawablePosition.")
     }
-    return DrawableBindingStub(this, gravity)
 }
 
 
+/**
+ * A 'fluent' bridge for binding compound drawables to properties.
+ */
 @SuppressLint("RtlHardcoded")
 @Suppress("NOTHING_TO_INLINE")
-class DrawableBindingStub(
+class DrawableBindingStub internal constructor(
         private val view: TextView,
-        @CompoundDrawableGravity
-        private val gravity: Int
+        @CompoundDrawablePosition
+        private val position: Int
 ) {
 
     /**
-     * Binds drawable at [gravity] to the given [property]'s [Drawable] value.
+     * Binds drawable at [position] to the given [property]'s [Drawable] value.
      */
     inline fun to(property: Property<Drawable?>) = bind(property)
 
     /**
-     * Binds drawable at [gravity] to the given [property]'s [DrawableRes] value.
+     * Binds drawable at [position] to the given [property]'s [DrawableRes] value.
      */
     @JvmName("toRes")
     inline fun to(property: Property<Int>) = bind(property)
 
     @PublishedApi
     internal fun bind(prop: Property<*>) {
-        view.bindViewTo(prop, when (gravity) {
+        view.bindViewTo(prop, when (position) {
             LEFT -> left ?: SetCompoundDrawable(LEFT).also { left = it }
             TOP -> top ?: SetCompoundDrawable(TOP).also { top = it }
             RIGHT -> right ?: SetCompoundDrawable(RIGHT).also { right = it }
@@ -76,13 +91,13 @@ class DrawableBindingStub(
 }
 
 private class SetCompoundDrawable(
-        @CompoundDrawableGravity
-        private val gravity: Int
+        @CompoundDrawablePosition
+        private val position: Int
 ) : (TextView, Any?) -> Unit {
 
     @SuppressLint("RtlHardcoded")
     override fun invoke(view: TextView, drawable: Any?) {
-        when (gravity) {
+        when (position) {
             LEFT -> setAbs(view, 0, drawable)
             TOP -> setAbs(view, 1, drawable)
             RIGHT -> setAbs(view, 2, drawable)
