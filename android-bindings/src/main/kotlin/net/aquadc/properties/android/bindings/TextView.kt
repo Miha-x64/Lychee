@@ -1,5 +1,6 @@
 package net.aquadc.properties.android.bindings
 
+import android.content.res.Resources
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.support.annotation.DrawableRes
@@ -140,15 +141,21 @@ private object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
             val res = v.resources
             v.setErrorWithIntrinsicBounds(
                     res.getText(new.messageRes),
-                    @Suppress("DEPRECATION")
-                    if (Build.VERSION.SDK_INT >= 21) res.getDrawable(new.iconRes, null)
-                    else res.getDrawable(new.iconRes)
+                    res.getDrawableCompat(new.iconRes)
             )
         }
         else -> throw AssertionError()
     }
 
 }
+
+internal fun Resources.getDrawableCompat(@DrawableRes id: Int): Drawable? =
+        @Suppress("DEPRECATION")
+        when {
+            id == 0 -> null
+            Build.VERSION.SDK_INT >= 21 -> getDrawable(id, null)
+            else -> getDrawable(id)
+        }
 
 /**
  * A tuple of two [Int]s for [net.aquadc.properties.android.bindings.bindErrorMessageAndIconTo].
@@ -158,8 +165,8 @@ class MessageAndIconRes(
         @JvmField @DrawableRes val iconRes: Int
 )
 
-private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable) {
-    icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable?) {
+    icon?.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
     setError(error, icon)
 }
 
