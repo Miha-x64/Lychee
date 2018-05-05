@@ -9,20 +9,29 @@ import java.util.concurrent.atomic.AtomicBoolean
 // I can't use erased types here,
 // because checkcast to (Boolean, Boolean) -> Boolean
 // would fail: https://youtrack.jetbrains.com/issue/KT-24067
-@PublishedApi internal object UnaryNotBinaryAnd :
+@PublishedApi internal class BoolFunc(
+        private val mode: Int
+) :
         /* not: */ (Boolean) -> Boolean,
         /* and: */ (Boolean, Boolean) -> Boolean {
 
+    // When used as unary function, acts like 'not'.
     override fun invoke(p1: Boolean): Boolean = !p1
-    override fun invoke(p1: Boolean, p2: Boolean): Boolean = p1 && p2
-}
 
-@PublishedApi internal object OrBooleans : (Any, Any) -> Any {
-    override fun invoke(p1: Any, p2: Any): Any = p1 as Boolean || p2 as Boolean
-}
+    override fun invoke(p1: Boolean, p2: Boolean): Boolean = when (mode) {
+        1 -> p1 && p2
+        2 -> p1 || p2
+        3 -> p1 xor p2
+        else -> throw AssertionError()
+    }
 
-@PublishedApi internal object XorBooleans : (Any, Any) -> Any {
-    override fun invoke(p1: Any, p2: Any): Any = p1 as Boolean xor p2 as Boolean
+    @Suppress("UNCHECKED_CAST")
+    @PublishedApi
+    internal companion object {
+        @JvmField val And = BoolFunc(1)
+        @JvmField val Or = BoolFunc(2)
+        @JvmField val Xor = BoolFunc(3)
+    }
 }
 
 
@@ -30,15 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 // CharSequence
 //
 
-@PublishedApi internal object CharSeqLength : (Any) -> Any {
-    override fun invoke(p1: Any): Any = (p1 as CharSequence).length
-}
-
-@PublishedApi internal object TrimmedCharSeq : (Any) -> Any {
-    override fun invoke(p1: Any): Any = (p1 as CharSequence).trim()
-}
-
-@PublishedApi internal class CharSeqBooleanFunc(private val mode: Int) : (Any) -> Any {
+@PublishedApi internal class CharSeqFunc(private val mode: Int) : (Any) -> Any {
     override fun invoke(p1: Any): Any {
         p1 as CharSequence
         return when (mode) {
@@ -46,6 +47,8 @@ import java.util.concurrent.atomic.AtomicBoolean
             1 -> p1.isNotEmpty()
             2 -> p1.isBlank()
             3 -> p1.isNotBlank()
+            4 -> p1.length
+            5 -> p1.trim()
             else -> throw AssertionError()
         }
     }
@@ -53,10 +56,12 @@ import java.util.concurrent.atomic.AtomicBoolean
     @Suppress("UNCHECKED_CAST")
     @PublishedApi
     internal companion object {
-        @JvmField val Empty = CharSeqBooleanFunc(0) as (CharSequence) -> Boolean
-        @JvmField val NotEmpty = CharSeqBooleanFunc(1) as (CharSequence) -> Boolean
-        @JvmField val Blank = CharSeqBooleanFunc(2) as (CharSequence) -> Boolean
-        @JvmField val NotBlank = CharSeqBooleanFunc(3) as (CharSequence) -> Boolean
+        @JvmField val Empty = CharSeqFunc(0) as (CharSequence) -> Boolean
+        @JvmField val NotEmpty = CharSeqFunc(1) as (CharSequence) -> Boolean
+        @JvmField val Blank = CharSeqFunc(2) as (CharSequence) -> Boolean
+        @JvmField val NotBlank = CharSeqFunc(3) as (CharSequence) -> Boolean
+        @JvmField val Length = CharSeqFunc(4) as (CharSequence) -> Int
+        @JvmField val Trim = CharSeqFunc(5) as (CharSequence) -> CharSequence
     }
 }
 
