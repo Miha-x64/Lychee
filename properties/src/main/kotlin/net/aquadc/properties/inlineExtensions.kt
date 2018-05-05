@@ -291,22 +291,14 @@ inline fun <T> Collection<Property<T>>.filterValues(crossinline predicate: (T) -
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsValue(value: T): Property<Boolean> =
-        mapValueList({ it: Any ->
-            it as List<T>
-
-            it.contains(value) as Any?
-        } as (List<T>) -> Boolean)
+        mapValueList(Contains<T>(value, false) as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if [this] contains a property holding all [values].
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsAllValues(values: Collection<T>): Property<Boolean> =
-        mapValueList({ it: Any ->
-            it as List<T>
-
-            it.containsAll(values) as Any?
-        } as (List<T>) -> Boolean)
+        mapValueList(Contains<T>(values, true) as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if all properties' values in [this] are conforming to [predicate].
