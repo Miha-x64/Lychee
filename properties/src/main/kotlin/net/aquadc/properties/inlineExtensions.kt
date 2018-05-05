@@ -25,28 +25,28 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
  */
 @Suppress("UNCHECKED_CAST")
 inline operator fun Property<Boolean>.not(): Property<Boolean> =
-        map(UnaryNotBinaryAnd)
+        map(BoolFunc.And /* any BoolFunc instance represents unary NOT */)
 
 /**
  * Returns a view on [this] && [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, UnaryNotBinaryAnd)
+        mapWith(that, BoolFunc.And)
 
 /**
  * Returns a view on [this] || [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.or(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, OrBooleans as (Boolean, Boolean) -> Boolean)
+        mapWith(that, BoolFunc.Or)
 
 /**
  * Returns a view on [this] ^ [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, XorBooleans as (Boolean, Boolean) -> Boolean)
+        mapWith(that, BoolFunc.Xor)
 
 /**
  * Sets [this] value to `true`.
@@ -79,33 +79,33 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
  * Returns a property representing [CharSequence.length].
  */
 @Suppress("UNCHECKED_CAST")
-inline val Property<CharSequence>.length: Property<Int> get() = map(CharSeqLength as (CharSequence) -> Int)
+inline val Property<CharSequence>.length: Property<Int> get() = map(CharSeqFunc.Length)
 
 /**
  * Returns a property representing emptiness ([CharSequence.isEmpty]).
  */
-inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSeqBooleanFunc.Empty)
+inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSeqFunc.Empty)
 
 /**
  * Returns a property representing non-emptiness ([CharSequence.isNotEmpty]).
  */
-inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSeqBooleanFunc.NotEmpty)
+inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSeqFunc.NotEmpty)
 
 /**
  * Returns a property representing blankness ([CharSequence.isBlank]).
  */
-inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSeqBooleanFunc.Blank)
+inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSeqFunc.Blank)
 
 /**
  * Returns a property representing non-blankness ([CharSequence.isNotBlank]).
  */
-inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSeqBooleanFunc.NotBlank)
+inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSeqFunc.NotBlank)
 
 /**
  * Returns a property representing a trimmed CharSequence ([CharSequence.trim]).
  */
 @Suppress("UNCHECKED_CAST")
-inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(TrimmedCharSeq as (CharSequence) -> CharSequence)
+inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(CharSeqFunc.Trim)
 
 
 //
