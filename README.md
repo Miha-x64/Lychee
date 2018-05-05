@@ -22,7 +22,7 @@ Properties (subjects) inspired by JavaFX MVVM-like approach.
 * [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
    — problem statement, explanations
 
-## Other solutions
+## Alternatives
 
 * [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT) — similar to this,
   Observable-based, Android-only, depends on coroutines
@@ -30,22 +30,23 @@ Properties (subjects) inspired by JavaFX MVVM-like approach.
   Android-only, based on annotation processing, depends on RXJava 1.3,
 * [LewisRhine/AnkoDataBindingTest](https://github.com/LewisRhine/AnkoDataBindingTest)
    (no license) 
-   — simple solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
+   — theoretical solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
    article, Android-only, depends on Anko and AppCompat
 
 ## Sample
 
 ```kt
-val prop = concurrentMutablePropertyOf(1)
-val mapped = prop.map { 10 * it }
+val prop: MutableProperty&lt;Int&gt; = propertyOf(1)
+val mapped: Property&lt;Int&gt; = prop.map { 10 * it }
 assertEquals(10, mapped.value)
 
 prop.value = 5
 assertEquals(50, mapped.value)
 
 
-val tru = concurrentMutablePropertyOf(true)
-assertEquals(false, (!tru).value)
+val tru = propertyOf(true)
+val fals = !tru // operator overloading
+assertEquals(false, fals.value)
 ```
 
 ## Sample usage in GUI application
@@ -115,14 +116,14 @@ children.add(JFXButton("Press me, hey, you!").apply {
 Common ViewModel:
 
 ```kt
-val emailProp = unsynchronizedMutablePropertyOf(userProp.value.email)
-val nameProp = unsynchronizedMutablePropertyOf(userProp.value.name)
-val surnameProp = unsynchronizedMutablePropertyOf(userProp.value.surname)
-val buttonClickedProp = unsynchronizedMutablePropertyOf(false)
+val emailProp = propertyOf(userProp.value.email)
+val nameProp = propertyOf(userProp.value.name)
+val surnameProp = propertyOf(userProp.value.surname)
+val buttonClickedProp = propertyOf(false)
 
-val emailValidProp = unsynchronizedMutablePropertyOf(false)
-val buttonEnabledProp = unsynchronizedMutablePropertyOf(false)
-val buttonTextProp = unsynchronizedMutablePropertyOf("")
+val emailValidProp = propertyOf(false)
+val buttonEnabledProp = propertyOf(false)
+val buttonTextProp = propertyOf("")
 
 private val editedUser = OnScreenUser(
         emailProp = emailProp,
@@ -131,6 +132,7 @@ private val editedUser = OnScreenUser(
 )
 
 init {
+    // check equals() every time User on screen on in memory gets changed
     val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
             .mapValueList { _ -> userProp.value.equals(editedUser) }
 
@@ -139,17 +141,18 @@ init {
     buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
 
     buttonClickedProp.clearEachAnd { userProp.value = editedUser.snapshot() }
-    // ^ reset flag and perform action
+    // ^ reset flag and perform action — store User being edited into memory
 }
 ```
 
-## ProGuard
+## ProGuard rules for Android
+(assume you depend on `:properties` and `:android-bindings`)
 
 ```
 # using annotations with 'provided' scope
 -dontwarn android.support.annotation.**
 
-# design lib with 'provided' scope
+# bindings to design lib whish has 'provided' scope
 -dontwarn android.support.design.widget.**
 
 # safely checking for JavaFX which is not accessible on Android
