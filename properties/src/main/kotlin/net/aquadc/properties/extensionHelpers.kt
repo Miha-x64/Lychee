@@ -62,6 +62,21 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 
 //
+// contains
+//
+
+@Suppress("UNCHECKED_CAST") @PublishedApi
+internal class Contains<T>(private val value: Any?, private val containsAll: Boolean) : (Any) -> Any? {
+
+    override fun invoke(p1: Any): Any? {
+        p1 as List<T>
+
+        return if (containsAll) p1.containsAll(value as List<T>) else p1.contains(value as T)
+    }
+
+}
+
+//
 // common
 //
 
