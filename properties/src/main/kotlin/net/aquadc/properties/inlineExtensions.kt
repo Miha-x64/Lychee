@@ -261,7 +261,8 @@ inline fun <T, R> Collection<Property<T>>.foldValues(initial: R, crossinline ope
 
             var accumulator = initial
             for (element in it) accumulator = operation(accumulator, element)
-            accumulator as Any?
+            val ret: Any? = accumulator
+            ret
         } as (List<T>) -> R)
 
 /**
@@ -272,7 +273,8 @@ inline fun <T> Collection<Property<T>>.firstValueOrNull(crossinline predicate: (
         mapValueList({ it: Any ->
             it as List<T>
 
-            it.firstOrNull(predicate) as Any?
+            val ret: Any? = it.firstOrNull(predicate)
+            ret
         } as (List<T>) -> T?)
 
 /**
@@ -283,7 +285,8 @@ inline fun <T> Collection<Property<T>>.filterValues(crossinline predicate: (T) -
         mapValueList({ it: Any ->
             it as List<T>
 
-            it.filter(predicate) as Any?
+            val ret: Any? = it.filter(predicate)
+            ret
         } as (List<T>) -> List<T>)
 
 /**
@@ -308,7 +311,8 @@ inline fun <T> Collection<Property<T>>.allValues(crossinline predicate: (T) -> B
         mapValueList({ it: Any ->
             it as List<T>
 
-            it.all(predicate) as Any?
+            val ret: Any? = it.all(predicate)
+            ret
         } as (List<T>) -> Boolean)
 
 /**
@@ -320,7 +324,8 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
             @Suppress("UNCHECKED_CAST")
             it as List<T>
 
-            it.any(predicate) as Any?
+            val ret: Any? = it.any(predicate)
+            ret
         } as (List<T>) -> Boolean)
 
 
