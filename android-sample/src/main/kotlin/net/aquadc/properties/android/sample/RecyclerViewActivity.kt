@@ -11,7 +11,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.WorkerOnExecutor
-import net.aquadc.properties.unsynchronizedMutablePropertyOf
+import net.aquadc.properties.propertyOf
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import java.util.concurrent.Executors
 
@@ -24,7 +24,8 @@ class RecyclerViewActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         val data =
-                unsynchronizedMutablePropertyOf(listOf("empty"))
+                propertyOf(listOf("empty"))
+
         val diffData =
                 data.calculateDiffOn(worker) { old, new ->
                     DiffUtil.calculateDiff(object : DiffUtil.Callback() {
