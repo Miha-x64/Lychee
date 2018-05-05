@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion '27.0.2'
+    buildToolsVersion build_tools_version
 
     defaultConfig {
         minSdkVersion 12 // View.OnAttachStateChangeListener is since 12
