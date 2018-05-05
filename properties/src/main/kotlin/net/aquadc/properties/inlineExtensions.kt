@@ -249,8 +249,7 @@ inline fun <T> immutablePropertyOf(value: T): Property<T> =
  * Maps a list of properties into a single [Property].
  */
 inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
-        if (all { it.isConcurrent }) MultiMappedProperty(this, transform)
-        else MultiMappedProperty(this, transform)
+        MultiMappedProperty(this, transform)
 
 /**
  * Folds a list of properties into a single [Property].
