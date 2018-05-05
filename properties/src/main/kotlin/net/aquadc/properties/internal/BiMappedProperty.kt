@@ -14,8 +14,7 @@ internal class BiMappedProperty<in A, in B, out T>(
     @Volatile @Suppress("UNUSED")
     private var valueRef = this as T // this means 'not observed'
     init {
-        check(a.mayChange)
-        check(b.mayChange)
+        check(a.mayChange || b.mayChange)
     }
 
     override val value: T
@@ -43,11 +42,11 @@ internal class BiMappedProperty<in A, in B, out T>(
         if (observed) {
             val mapped = transform(a.value, b.value)
             valueUpdater<T>().eagerOrLazySet(this, thread, mapped)
-            a.addChangeListener(this)
-            b.addChangeListener(this)
+            if (a.mayChange) a.addChangeListener(this)
+            if (b.mayChange) b.addChangeListener(this)
         } else {
-            a.removeChangeListener(this)
-            b.removeChangeListener(this)
+            if (a.mayChange) a.removeChangeListener(this)
+            if (b.mayChange) b.removeChangeListener(this)
             valueUpdater<T>().eagerOrLazySet(this, thread, this as T)
         }
     }

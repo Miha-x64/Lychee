@@ -15,25 +15,6 @@ class OptimizationTest {
         assertTrue(mapped is ImmutableReferenceProperty)
     }
 
-    @Test fun concImmutablePropMapWithReturnsMapped() =
-            immutablePropMapWithReturnsMapped(true, MappedProperty::class.java)
-
-    @Test fun unsImmutablePropMapWithReturnsMapped() =
-            immutablePropMapWithReturnsMapped(false, MappedProperty::class.java)
-
-    private fun immutablePropMapWithReturnsMapped(concurrent: Boolean, mapsTo: Class<*>) {
-        val prop0 = immutablePropertyOf("yo")
-        val prop1 = propertyOf("hey", concurrent)
-
-        val mapped0 = prop0.mapWith(prop1) { a, b -> "$b $a" }
-        assertEquals("hey yo", mapped0.value)
-        assertTrue(mapsTo.isInstance(mapped0))
-
-        val mapped1 = prop1.mapWith(prop0) { a, b -> "$a $b" }
-        assertEquals("hey yo", mapped1.value)
-        assertTrue("mapped1 is ${mapped1.javaClass}", mapsTo.isInstance(mapped1))
-    }
-
     @Test fun immutablePropMapWithImmutableReturnsImmutable() {
         val prop0 = immutablePropertyOf("hey")
         val prop1 = immutablePropertyOf("yo")
