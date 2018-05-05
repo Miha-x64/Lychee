@@ -55,7 +55,8 @@ class PropertyBuffer private constructor() : InvocationHandler {
     }
 
     companion object {
-        private val ref = AtomicReference<Pair<PropertyIo, PropertyBuffer>?>(null)
+        @JvmField // 'private' is 'static' and produces a synthetic accessor
+        internal val ref = AtomicReference<Pair<PropertyIo, PropertyBuffer>?>(null)
 
         /**
          * Returns either new or cached instance.
