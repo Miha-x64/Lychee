@@ -7,10 +7,15 @@ import java.util.*
 import java.util.concurrent.*
 
 
-internal object ScheduledDaemonHolder {
+internal object ScheduledDaemonHolder : ThreadFactory {
+
     @JvmField
     internal val scheduledDaemon =
-            ScheduledThreadPoolExecutor(1, ThreadFactory { Thread(it).also { it.isDaemon = true } })
+            ScheduledThreadPoolExecutor(1, this)
+
+    override fun newThread(r: Runnable): Thread =
+            Thread(r).also { it.isDaemon = true }
+
 }
 
 internal object PlatformExecutors {
