@@ -6,19 +6,7 @@
 
 [![codecov](https://codecov.io/gh/Miha-x64/reactive-properties/branch/master/graph/badge.svg)](https://codecov.io/gh/Miha-x64/reactive-properties) in module `:properties`, excluding inline functions
 
-# reactive-properties
-
-Properties (subjects) inspired by JavaFX MVVM-like approach.
-* Lightweight
-* Contains both unsynchronized and concurrent (lock-free) implementations
-* MVVM / data-binding for Android and JavaFX
-* Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
-  and [TornadoFX](https://github.com/edvin/tornadofx)
-* Depends only on Kotlin-stdlib
-* [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
-   — problem statement, explanations
-
-## Adding to a Gradle project
+## Adding to a project
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Reactive Properties
 
@@ -29,7 +17,9 @@ repositories {
     ...
     maven { url 'https://dl.bintray.com/miha-x64/maven' }
 }
+```
 
+```
 dependencies {
     // JVM
     compile 'net.aquadc.properties:properties:0.0.2'
@@ -41,6 +31,18 @@ dependencies {
     // also requires Kotlin-stdlib to be added into a project
 }
 ```
+
+# reactive-properties
+
+Properties (subjects) inspired by JavaFX MVVM-like approach.
+* Lightweight
+* Contains both unsynchronized and concurrent (lock-free) implementations
+* MVVM / data-binding for Android and JavaFX
+* Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
+  and [TornadoFX](https://github.com/edvin/tornadofx)
+* Depends only on Kotlin-stdlib
+* [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
+   — problem statement, explanations
 
 ## Alternatives
 
