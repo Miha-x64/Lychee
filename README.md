@@ -6,9 +6,31 @@
 
 [![codecov](https://codecov.io/gh/Miha-x64/reactive-properties/branch/master/graph/badge.svg)](https://codecov.io/gh/Miha-x64/reactive-properties) in module `:properties`, excluding inline functions
 
+## Adding to a project
+
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Reactive Properties
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) Android Bindings
+
+```
+repositories {
+    ...
+    maven { url 'https://dl.bintray.com/miha-x64/maven' }
+}
+```
+
+```
+dependencies {
+    // JVM
+    compile 'net.aquadc.properties:properties:0.0.2'
+
+    // Android + Gradle 4
+    implementation 'net.aquadc.properties:properties:0.0.2'
+    implementation 'net.aquadc.properties:android-bindings:0.0.2'
+
+    // also requires Kotlin-stdlib to be added into a project
+}
+```
 
 # reactive-properties
 
