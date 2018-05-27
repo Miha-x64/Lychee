@@ -32,6 +32,10 @@ Properties (subjects) inspired by JavaFX MVVM-like approach.
    (no license) 
    — theoretical solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
    article, Android-only, depends on Anko and AppCompat
+* [lightningkite/kotlin-anko-observable](https://github.com/lightningkite/kotlin-anko-observable) (no license),
+  based on [lightningkite/kotlin-anko](https://github.com/lightningkite/kotlin-anko) (depends on Anko and AppCompat)
+  and [lightningkite/kotlin-observable](https://github.com/lightningkite/kotlin-observable),
+  [UnknownJoe796/kotlin-components-starter](https://github.com/UnknownJoe796/kotlin-components-starter)
 
 ## Sample
 
