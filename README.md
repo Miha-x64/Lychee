@@ -192,3 +192,67 @@ init {
   volatile <fields>;
 }
 ```
+
+## FAQ
+
+#### What's the purpose of this library?
+
+The main purpose is MVVM/DataBinding, especially in Android, where preserving ViewModel state may be quirky.
+ViewModel/ViewState can be declared as a set of mappings, where some properties' values depend on some other ones.
+
+#### Why not use an existing solution?
+
+* `javafx.beans.property.Property`
+
+  It was the main source of inspiration. But the class hierarchy is too deep and wide,
+  looks like a complicated solution for a simple problem.
+  Has no support for multithreading. Looks like unsubscription won't take effect during notification.
+  
+* `android.util.Property`
+
+  A very simple, single-threaded, non-observable thing for animation. Has `ReflectiveProperty` subclass,
+  which is close to JavaFX concept (every property is a `Property`), but reflective and thus sad.
+
+* `io.reactivex.BehaviorSubject`
+  
+  Has no read-only interface. You can either expose an `Observable` (without `get`) or a `BehaviorSubject` (with `get` and `set`).
+  Has no single-threaded version.
+
+* `LiveData`
+  
+  Confined to `Handler`/`Looper` which limits usage and compicates testing.
+  It's also an abstract class, which leaves no way of creating different implementations.
+
+#### May I rely on source or binary compatibility?
+
+Nope, not now.
+Visible API will mostly stay the same, but implementation and binary interface may be seriously changed.
+Many functions are `inline`, they return instances of `@PublishedApi internal` classes. These classes are [flyweights](https://en.wikipedia.org/wiki/Flyweight_pattern) implementing many interfaces,
+but only one interface should be publicly visible.
+
+#### Where and how shoudld I dispose subscriptions?
+
+When the property is not being observed, it not observes its source and thus not being retained by it.
+Consider the following code:
+
+```kt
+val someGlobalProp = propertyOf(100)
+val mappedProp = someGlobalProp.map { it * 10 }
+// mappedProp has no listeners and thus not observes someGlobalProp
+
+println(mappedProp.value) // value calculated ondemand
+
+mappedProp.addChangeListener { ... }
+// mappedProp now listens for someGlobalProp changes
+// and not eligble for GC until someGlobalProp is not
+
+someGlobalProp.value = 1
+// mappedProp value calculated due to original value change
+// mappedProp's listener was notified
+```
+
+All Android bindings are based on [bindViewTo](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L14)
+which creates a [SafeBinding](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L29).
+It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener` and `ChangeListener`.
+When view gets attached to window, `SafeBinding` is getting subscribed; when view gets detached,
+binding unsubscribes and becomes eligible for garbage collection with the whole view hierarchy.
