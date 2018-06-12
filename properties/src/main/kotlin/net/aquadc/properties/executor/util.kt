@@ -4,7 +4,11 @@ import android.os.Handler
 import android.os.Looper
 import javafx.application.Platform
 import java.util.*
-import java.util.concurrent.*
+import java.util.concurrent.Executor
+import java.util.concurrent.ForkJoinTask
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.ThreadFactory
+import kotlin.concurrent.getOrSet
 
 
 internal object ScheduledDaemonHolder : ThreadFactory {
@@ -19,7 +23,7 @@ internal object ScheduledDaemonHolder : ThreadFactory {
 }
 
 internal object PlatformExecutors {
-    private val executors = ConcurrentHashMap<Thread, Executor>(4)
+    private val executors = ThreadLocal<Executor>()
     private val executorFactories: Array<() -> Executor?>
 
     init {
@@ -68,16 +72,7 @@ internal object PlatformExecutors {
     }
 
     internal fun executorForCurrentThread(): Executor {
-        val thread = Thread.currentThread()
-
-        val ex = executors[thread]
-        if (ex != null) return ex
-
-        val newEx = createForCurrentThread()
-
-        // if putIfAbsent returns non-null value, the executor was set concurrently,
-        // use it and throw away our then
-        return executors.putIfAbsent(thread, newEx) ?: newEx
+        return executors.getOrSet(::createForCurrentThread)
     }
 
     private fun createForCurrentThread(): Executor {
