@@ -1,6 +1,6 @@
 
 buildscript {
-    ext.kotlin_version = '1.2.40'
+    ext.kotlin_version = '1.2.41'
     ext.support_version = '25.4.0'
     ext.build_tools_version = '27.0.3'
 
@@ -16,9 +16,9 @@ buildscript {
         // comment out the following to disable Android modules and work normally with Java modules
         classpath 'com.android.tools.build:gradle:3.1.2'
         classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.2'
-        classpath "org.jetbrains.dokka:dokka-android-gradle-plugin:0.9.16"
+        classpath 'org.jetbrains.dokka:dokka-android-gradle-plugin:0.9.16'
 
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.16"
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.16'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
