@@ -2,6 +2,8 @@ package net.aquadc.properties
 
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.TimeUnit
 
 
 class SubscriptionTest {
@@ -126,6 +128,32 @@ class SubscriptionTest {
         prop.set()
         assertEquals(2, called)
         assertFalse(prop.value)
+    }
+
+    @Test fun confinedUnsubscribe() {
+        var called = false
+        val f = ForkJoinPool.commonPool().submit {
+            val prop = propertyOf("")
+            val deb = prop.debounced(10, TimeUnit.MILLISECONDS)
+            val listener = { _: String, _: String ->
+                called = true
+            }
+            deb.addChangeListener(listener)
+
+            repeat(ForkJoinPool.getCommonPoolParallelism()) {
+                ForkJoinPool.commonPool().execute { Thread.sleep(25) }
+            } // pool is full, our update task will be delayed
+
+            prop.value = "new"
+
+            Thread.sleep(15)
+
+            deb.removeChangeListener(listener)
+        }
+        Thread.sleep(10) // let it start running
+        f.get()
+        Thread.sleep(10)
+        assertFalse(called)
     }
 
 }
