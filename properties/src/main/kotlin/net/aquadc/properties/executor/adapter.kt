@@ -41,13 +41,21 @@ internal class ConsumeOn<in T>(
 /**
  * When invoked, calls [actual] on [executor].
  */
-class ConfinedChangeListener<in T>(
+@PublishedApi
+internal class ConfinedChangeListener<in T>(
         private val executor: Executor,
         @JvmField internal val actual: ChangeListener<T>
 ) : ChangeListener<T> {
 
+    @Volatile @JvmField
+    internal var canceled = false
+
     override fun invoke(old: T, new: T) {
-        executor.execute { actual(old, new) }
+        executor.execute {
+            if (!canceled) {
+                actual(old, new)
+            }
+        }
     }
 
 }
