@@ -134,7 +134,7 @@ inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
  * Single-threaded debounced wrapper will throw exception when created on inappropriate thread.
  * Concurrent debounced wrapper will throw exception when listener gets subscribed from inappropriate thread.
  */
-inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit) =
+inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) =
         if (mayChange) DebouncedProperty(this, delay, unit)
         else this
 
