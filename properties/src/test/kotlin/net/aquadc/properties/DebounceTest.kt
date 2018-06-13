@@ -1,7 +1,7 @@
 package net.aquadc.properties
 
 import com.sun.javafx.application.PlatformImpl
-import javafx.application.Platform
+import net.aquadc.properties.executor.FxApplicationThreadExecutor
 import org.junit.Assert.*
 import org.junit.AssumptionViolatedException
 import org.junit.Test
@@ -34,7 +34,7 @@ class DebounceTest {
         } catch (e: UnsupportedOperationException) {
             throw AssumptionViolatedException("Can't run JavaFX here.", e)
         }
-        test(Executor(Platform::runLater))
+        test(FxApplicationThreadExecutor)
     }
 
     @Test fun onFJ() {
