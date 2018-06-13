@@ -99,7 +99,13 @@ internal class DebouncedProperty<out T>(
      * no matter on which executor it was subscribed.
      */
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        removeChangeListenerWhere { (it as ConfinedChangeListener<*>).actual === onChange }
+        removeChangeListenerWhere {
+            it as ConfinedChangeListener<*>
+            if (it.actual === onChange) {
+                it.canceled = true
+                true
+            } else false
+        }
     }
 
     private class Observer<T>(
