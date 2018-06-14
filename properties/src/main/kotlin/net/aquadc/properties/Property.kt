@@ -1,5 +1,7 @@
 package net.aquadc.properties
 
+import java.util.concurrent.Executor
+
 /**
  * Represents an observable value of type [T].
  * If not concurrent, *every* method will throw [RuntimeException],
@@ -26,10 +28,17 @@ interface Property<out T> {
     val isConcurrent: Boolean
 
     /**
-     * Subscribe on value changes.
-     * Acts like [MutableList.add]: [onChange] will be added in any case.
+     * Subscribe on value changes on current thread.
+     * Acts like [MutableList.add]: [onChange] will be added even if it is already added.
+     * @throws UnsupportedOperationException if this thread's executor cannot be identified
      */
     fun addChangeListener(onChange: ChangeListener<T>)
+
+    /**
+     * Subscribe on value changes on [executor].
+     * Acts like [MutableList.add]: [onChange] will be added even if it is already added.
+     */
+    fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>)
 
     /**
      * Unsubscribe from value changes.

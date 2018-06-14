@@ -2,6 +2,7 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
 import net.aquadc.properties.executor.ScheduledDaemonHolder
@@ -41,7 +42,7 @@ internal class DebouncedProperty<out T>(
         internal set // accessed from inner class
 
     private val observer = Observer(original, this).also {
-        original.addChangeListener(it)
+        original.addUnconfinedChangeListener(it)
     }
 
     internal fun originalChanged(old: @UnsafeVariance T, new: @UnsafeVariance T) {
@@ -80,31 +81,19 @@ internal class DebouncedProperty<out T>(
                 true
             }
 
-    override fun addChangeListener(onChange: (old: T, new: T) -> Unit) =
-            super.addChangeListener(ConfinedChangeListener(
-                    PlatformExecutors.executorForCurrentThread(),
-                    onChange
-            ))
+    override fun addChangeListener(onChange: ChangeListener<T>) {
+        addChangeListenerInternal(ConfinedChangeListener(PlatformExecutors.executorForCurrentThread(), onChange))
+    }
+
+    override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) {
+        addChangeListenerInternal(ConfinedChangeListener(executor, onChange))
+    }
 
     override fun observedStateChangedWLocked(observed: Boolean) {
         if (observed) {
             observer.hard = this
         } else {
             observer.hard = null
-        }
-    }
-
-    /**
-     * Note: this will remove first occurrence of [onChange],
-     * no matter on which executor it was subscribed.
-     */
-    override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) {
-        removeChangeListenerWhere {
-            it as ConfinedChangeListener<*>
-            if (it.actual === onChange) {
-                it.canceled = true
-                true
-            } else false
         }
     }
 

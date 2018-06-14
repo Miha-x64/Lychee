@@ -68,7 +68,7 @@ class LeakTest {
 
         var killMePlease: Property<*>? = createForLeak(original)
         val listener = { _: Any?, _: Any? -> }
-        killMePlease!!.addChangeListener(listener) // start holding new property
+        killMePlease!!.addUnconfinedChangeListener(listener) // start holding new property
         val ref2 = WeakReference(killMePlease)
         killMePlease.removeChangeListener(listener) // stop holding [1]
         @Suppress("UNUSED_VALUE")

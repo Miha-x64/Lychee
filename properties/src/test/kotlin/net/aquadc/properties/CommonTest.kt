@@ -28,12 +28,12 @@ class CommonTest {
     private fun testUnsubscription(controller: MutableProperty<String>, controlled: Property<String>) {
         var called = 0
         val onChange1 = { _: Any?, _: Any? -> called++; Unit }
-        controlled.addChangeListener(onChange1)
+        controlled.addUnconfinedChangeListener(onChange1)
         controller.value = "change"
         Assert.assertEquals(1, called)
 
         val onChange2 = { _: Any?, _: Any? -> called++; Unit }
-        controlled.addChangeListener(onChange2)
+        controlled.addUnconfinedChangeListener(onChange2)
         controller.value = "cone more time"
         Assert.assertEquals(3, called)
 
@@ -42,7 +42,7 @@ class CommonTest {
                 controlled.removeChangeListener(this)
             }
         }
-        controlled.addChangeListener(onChange3)
+        controlled.addUnconfinedChangeListener(onChange3)
         controller.value = "he-he"
         Assert.assertEquals(5, called)
     }
@@ -50,7 +50,7 @@ class CommonTest {
     // no matter which type of property we have, should be called
     private fun testChange(controller: MutableProperty<String>, controlled: Property<String>) {
         var called = 0
-        controlled.addChangeListener { _, _ -> called++; Unit }
+        controlled.addUnconfinedChangeListener { _, _ -> called++; Unit }
         controller.value = controller.value
         assertEquals(1, called)
     }
@@ -59,7 +59,7 @@ class CommonTest {
         val dist = original.distinct(Equals)
         assertEquals(original.value, original.value)
         var called = 0
-        dist.addChangeListener { _, _ -> called++; Unit }
+        dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
         original.value = original.value
         assertEquals(0, called)
         assertEquals(original.value, original.value)
@@ -84,7 +84,7 @@ class CommonTest {
     fun testIdentity(original: MutableProperty<String>) {
         val dist = original.distinct(Identity)
         var called = 0
-        dist.addChangeListener { _, _ -> called++; Unit }
+        dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
         original.value = original.value
         assertEquals(0, called)
         assertEquals(original.value, dist.value)

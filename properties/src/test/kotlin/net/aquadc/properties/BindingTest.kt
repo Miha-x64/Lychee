@@ -1,5 +1,6 @@
 package net.aquadc.properties
 
+import net.aquadc.properties.executor.UnconfinedExecutor
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -24,7 +25,7 @@ class BindingTest {
 
         var new: String? = null
         sample.value = "just bound"
-        mutable.addChangeListener { _, n -> new = n }
+        mutable.addChangeListenerOn(UnconfinedExecutor) { _, n -> new = n }
         mutable.bindTo(sample)
         mutable.bindTo(sample) // binding should be idempotent
         assertEquals("just bound", new)

@@ -4,6 +4,7 @@ package net.aquadc.properties
 
 import android.os.Looper
 import javafx.application.Platform
+import net.aquadc.properties.executor.UnconfinedExecutor
 import net.aquadc.properties.internal.*
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
@@ -176,6 +177,10 @@ inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
     } while (!casValue(prev, next))
 }
 
+
+inline fun <T> Property<T>.addUnconfinedChangeListener(noinline onChange: ChangeListener<T>) {
+    addChangeListenerOn(UnconfinedExecutor, onChange)
+}
 
 //
 // factories

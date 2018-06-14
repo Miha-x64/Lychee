@@ -4,21 +4,25 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.diff.DiffChangeListener
 import net.aquadc.properties.diff.DiffProperty
 import net.aquadc.properties.internal.PropListeners
+import java.util.concurrent.Executor
 
 
 internal abstract class ConcDiffPropNotifier<T, D> : PropListeners<T, D, Any, Pair<T, D>>(null), DiffProperty<T, D> {
 
     final override fun addChangeListener(onChange: ChangeListener<T>) =
-            addChangeListenerInternal(onChange)
+            TODO()
+
+    override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) =
+            TODO()
 
     final override fun addChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
-            addChangeListenerInternal(onChangeWithDiff)
+            TODO()
 
     final override fun removeChangeListener(onChange: ChangeListener<T>) =
-            removeChangeListenerInternal(onChange)
+            TODO()
 
     final override fun removeChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
-            removeChangeListenerInternal(onChangeWithDiff)
+            TODO()
 
     final override fun pack(new: T, diff: D): Pair<T, D> =
             new to diff

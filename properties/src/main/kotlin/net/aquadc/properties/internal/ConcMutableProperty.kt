@@ -3,6 +3,7 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.addUnconfinedChangeListener
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 import kotlin.concurrent.write
 
@@ -47,7 +48,7 @@ internal class ConcMutableProperty<T>(
 
             if (isBeingObserved()) {
                 (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
-                newSample?.addChangeListener(this)
+                newSample?.addUnconfinedChangeListener(this)
             }
         }
 
@@ -58,7 +59,7 @@ internal class ConcMutableProperty<T>(
         val value = valueUpdater<T>().get(this)
         if (value !is Value.Binding) return
 
-        if (observed) value.original.addChangeListener(this)
+        if (observed) value.original.addUnconfinedChangeListener(this)
         else value.original.removeChangeListener(this)
     }
 

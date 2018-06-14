@@ -2,6 +2,7 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.executor.*
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
@@ -49,7 +50,7 @@ internal class MappedProperty<in O, out T>(
         if (observed) {
             val mapped = map(original.value)
             valueUpdater<T>().eagerOrLazySet(this, thread, mapped)
-            original.addChangeListener(originalChanged)
+            original.addUnconfinedChangeListener(originalChanged)
         } else {
             original.removeChangeListener(originalChanged)
             valueUpdater<T>().eagerOrLazySet(this, thread, this as T)

@@ -1,6 +1,5 @@
 package net.aquadc.properties.executor
 
-import android.os.Handler
 import android.os.Looper
 import javafx.application.Platform
 import java.util.*
@@ -23,7 +22,7 @@ internal object ScheduledDaemonHolder : ThreadFactory {
 }
 
 internal object PlatformExecutors {
-    private val executors = ThreadLocal<Executor>()
+    @JvmField internal val executors = ThreadLocal<Executor>()
     private val executorFactories: Array<() -> Executor?>
 
     init {

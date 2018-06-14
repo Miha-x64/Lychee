@@ -3,6 +3,10 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.diff.internal.ConcMutableDiffProperty
+import net.aquadc.properties.executor.ConfinedChangeListener
+import net.aquadc.properties.executor.PlatformExecutors
+import net.aquadc.properties.executor.UnconfinedExecutor
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -278,7 +282,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
         }
     }
 
-    private fun concAddChangeListenerInternal(onChange: LISTENER) {
+    protected fun concAddChangeListenerInternal(onChange: LISTENER) {
         subscriptionLock.read {
             var removedReadLocks = 0
             val old = concStateUpdater().getUndUpdate(this) {
@@ -300,7 +304,7 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
         }
     }
 
-    private fun nonSyncAddChangeListenerInternal(onChange: LISTENER) {
+    protected fun nonSyncAddChangeListenerInternal(onChange: LISTENER) {
         checkThread()
         val listeners = nonSyncListeners
         when (listeners) {
@@ -336,10 +340,6 @@ abstract class PropListeners<out T, in D, LISTENER : Any, UPDATE>(
             }
             else -> throw AssertionError()
         }
-    }
-
-    protected fun removeChangeListenerInternal(onChange: LISTENER) {
-        removeChangeListenerWhere { it === onChange }
     }
 
     internal inline fun removeChangeListenerWhere(predicate: (LISTENER) -> Boolean) {
@@ -491,11 +491,47 @@ abstract class PropNotifier<out T>(thread: Thread?) :
             }
 
     override fun addChangeListener(onChange: ChangeListener<T>) {
-        addChangeListenerInternal(onChange)
+        if (thread == null) {
+            concAddChangeListenerInternal(
+                    ConfinedChangeListener(PlatformExecutors.executorForCurrentThread(), onChange)
+            )
+        } else {
+            nonSyncAddChangeListenerInternal(
+                    onChange // no explicit Executor, will be notified on current thread
+            )
+        }
     }
 
-    override fun removeChangeListener(onChange: ChangeListener<T>) {
-        removeChangeListenerInternal(onChange)
+    override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) {
+        if (thread == null) {
+            concAddChangeListenerInternal(
+                    if (executor === UnconfinedExecutor) onChange else ConfinedChangeListener(executor, onChange)
+            )
+        } else {
+            nonSyncAddChangeListenerInternal(
+                    if (executor === UnconfinedExecutor || executor === PlatformExecutors.executors.get()) onChange
+                    else ConfinedChangeListener(executor, onChange)
+            )
+        }
+    }
+
+    /**
+     * Note: this will remove first occurrence of [onChange],
+     * no matter on which executor it was subscribed.
+     */
+    final override fun removeChangeListener(onChange: ChangeListener<T>) {
+        removeChangeListenerWhere { listener ->
+            when {
+                listener === onChange ->
+                    true
+
+                listener is ConfinedChangeListener<*> && listener.actual === onChange ->
+                    true.also { listener.canceled = true }
+
+                else ->
+                    false
+            }
+        }
     }
 
     final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
