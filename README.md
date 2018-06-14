@@ -62,8 +62,8 @@ Properties (subjects) inspired by JavaFX MVVM-like approach.
 ## Sample
 
 ```kt
-val prop: MutableProperty&lt;Int&gt; = propertyOf(1)
-val mapped: Property&lt;Int&gt; = prop.map { 10 * it }
+val prop: MutableProperty<Int> = propertyOf(1)
+val mapped: Property<Int> = prop.map { 10 * it }
 assertEquals(10, mapped.value)
 
 prop.value = 5
