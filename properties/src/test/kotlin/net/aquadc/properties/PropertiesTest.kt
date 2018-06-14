@@ -14,7 +14,7 @@ class PropertiesTest {
         assertFalse(prop.mayChange)
 
         val onChange = { _: String, _: String -> }
-        assertEquals(Unit, prop.addChangeListener(onChange))
+        assertEquals(Unit, prop.addUnconfinedChangeListener(onChange))
         assertEquals(Unit, prop.removeChangeListener(onChange))
         // they're no-op, just for coverage ;)
     }
@@ -28,7 +28,7 @@ class PropertiesTest {
         var old: String? = null
         var new: String? = null
         val listener: (String, String) -> Unit = { o, n -> old = o; new = n }
-        prop.addChangeListener(listener)
+        prop.addUnconfinedChangeListener(listener)
 
         prop.value = "world"
         assertEquals("hello", old!!)
@@ -59,7 +59,7 @@ class PropertiesTest {
 
         var old = -1
         var new = -1
-        mapped.addChangeListener { o, n -> old = o; new = n }
+        mapped.addUnconfinedChangeListener { o, n -> old = o; new = n }
 
         prop.value = -2
         assertEquals(50, old)
@@ -79,7 +79,7 @@ class PropertiesTest {
 
         var old: String? = null
         var new: String? = null
-        biMapped.addChangeListener { o, n -> old = o; new = n }
+        biMapped.addUnconfinedChangeListener { o, n -> old = o; new = n }
 
         prop1.value = "c"
         assertEquals("b c", biMapped.value)

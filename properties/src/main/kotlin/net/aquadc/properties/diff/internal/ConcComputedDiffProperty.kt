@@ -2,6 +2,7 @@ package net.aquadc.properties.diff.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.executor.Worker
 
 
@@ -39,7 +40,7 @@ internal class ConcComputedDiffProperty<T, D>(
 
     override fun observedStateChangedWLocked(observed: Boolean) {
         if (observed) {
-            original.addChangeListener(this)
+            original.addUnconfinedChangeListener(this)
         } else {
             original.removeChangeListener(this)
         }

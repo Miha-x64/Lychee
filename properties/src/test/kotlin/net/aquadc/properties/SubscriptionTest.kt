@@ -21,11 +21,11 @@ class SubscriptionTest {
         }
 
         val l1 = { _: Boolean, _: Boolean ->
-            prop.addChangeListener(l2)
+            prop.addUnconfinedChangeListener(l2)
             Unit
         }
 
-        prop.addChangeListener(l1)
+        prop.addUnconfinedChangeListener(l1)
 
         prop.value = false
 
@@ -71,9 +71,9 @@ class SubscriptionTest {
             }
         }
 
-        prop.addChangeListener(l1)
-        prop.addChangeListener(l2)
-        prop.addChangeListener(l3)
+        prop.addUnconfinedChangeListener(l1)
+        prop.addUnconfinedChangeListener(l2)
+        prop.addUnconfinedChangeListener(l3)
 
         prop.value = false // l1Called++, l2Called++, remove l2 & l3
         prop.value = false // l1Called++
@@ -101,8 +101,8 @@ class SubscriptionTest {
             if (new != 10) prop.value = 10
         }
 
-        prop.addChangeListener(l1)
-        prop.addChangeListener(l2)
+        prop.addUnconfinedChangeListener(l1)
+        prop.addUnconfinedChangeListener(l2)
 
         prop.value = 1
 
@@ -130,17 +130,20 @@ class SubscriptionTest {
         assertFalse(prop.value)
     }
 
-    @Test fun confinedUnsubscribe() {
-        var called = false
+    @Test fun concConfinedUnsubscribe() = confinedUnsubscribe(true)
+    @Test fun unsConfinedUnsubscribe() = confinedUnsubscribe(false)
+
+    private fun confinedUnsubscribe(concurrent: Boolean) {
+        val called = concurrentPropertyOf(false)
         val f = ForkJoinPool.commonPool().submit {
-            val prop = propertyOf("")
+            val prop = propertyOf("", concurrent)
             val deb = prop.debounced(10, TimeUnit.MILLISECONDS)
             val listener = { _: String, _: String ->
-                called = true
+                called.value = true
             }
             deb.addChangeListener(listener)
 
-            repeat(ForkJoinPool.getCommonPoolParallelism()) {
+            repeat(ForkJoinPool.getCommonPoolParallelism() + 1) {
                 ForkJoinPool.commonPool().execute { Thread.sleep(25) }
             } // pool is full, our update task will be delayed
 
@@ -153,7 +156,7 @@ class SubscriptionTest {
         Thread.sleep(10) // let it start running
         f.get()
         Thread.sleep(10)
-        assertFalse(called)
+        assertFalse(called.value)
     }
 
 }

@@ -2,6 +2,7 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.addUnconfinedChangeListener
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 @PublishedApi
@@ -54,7 +55,7 @@ internal class MultiMappedProperty<in A, out T>(
         if (observed) {
             val value = transform.invoke(List(properties.size) { this.properties[it].value })
             valueUpdater<A, T>().eagerOrLazySet(this, thread, value)
-            properties.forEach { if (it.mayChange) it.addChangeListener(this) }
+            properties.forEach { if (it.mayChange) it.addUnconfinedChangeListener(this) }
         } else {
             properties.forEach { if (it.mayChange) it.removeChangeListener(this) }
             valueUpdater<A, T>().eagerOrLazySet(this, thread, this as T)

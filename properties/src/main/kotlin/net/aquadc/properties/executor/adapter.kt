@@ -41,7 +41,6 @@ internal class ConsumeOn<in T>(
 /**
  * When invoked, calls [actual] on [executor].
  */
-@PublishedApi
 internal class ConfinedChangeListener<in T>(
         private val executor: Executor,
         @JvmField internal val actual: ChangeListener<T>
@@ -57,5 +56,15 @@ internal class ConfinedChangeListener<in T>(
             }
         }
     }
+
+}
+
+/**
+ * Executes given command in-place.
+ */
+object UnconfinedExecutor : Executor {
+
+    override fun execute(command: Runnable) =
+            command.run()
 
 }

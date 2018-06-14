@@ -2,6 +2,7 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
+import net.aquadc.properties.addUnconfinedChangeListener
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
@@ -42,8 +43,8 @@ internal class BiMappedProperty<in A, in B, out T>(
         if (observed) {
             val mapped = transform(a.value, b.value)
             valueUpdater<T>().eagerOrLazySet(this, thread, mapped)
-            if (a.mayChange) a.addChangeListener(this)
-            if (b.mayChange) b.addChangeListener(this)
+            if (a.mayChange) a.addUnconfinedChangeListener(this)
+            if (b.mayChange) b.addUnconfinedChangeListener(this)
         } else {
             if (a.mayChange) a.removeChangeListener(this)
             if (b.mayChange) b.removeChangeListener(this)

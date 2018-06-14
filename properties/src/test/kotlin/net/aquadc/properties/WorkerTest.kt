@@ -78,7 +78,7 @@ class WorkerTest {
                 it.toUpperCase().also { mappedVals.add(it) }
             }
 
-            mapped.addChangeListener { _, new ->
+            mapped.addUnconfinedChangeListener { _, new ->
                 notifiedOn.add(Thread.currentThread())
                 notifications.add(new)
                 lock.release()
