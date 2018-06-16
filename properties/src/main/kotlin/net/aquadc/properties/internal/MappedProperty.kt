@@ -46,7 +46,7 @@ internal class MappedProperty<in O, out T>(
         )
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         if (observed) {
             val mapped = map(original.value)
             valueUpdater<T>().eagerOrLazySet(this, thread, mapped)

@@ -51,7 +51,7 @@ internal class UnsMutableProperty<T>(
         valueChanged(old, new, null)
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         val sample = sample ?: return
 
         if (observed) sample.addChangeListener(this)

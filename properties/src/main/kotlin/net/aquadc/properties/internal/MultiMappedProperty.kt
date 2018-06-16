@@ -51,7 +51,7 @@ internal class MultiMappedProperty<in A, out T>(
         true
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         if (observed) {
             val value = transform.invoke(List(properties.size) { this.properties[it].value })
             valueUpdater<A, T>().eagerOrLazySet(this, thread, value)
