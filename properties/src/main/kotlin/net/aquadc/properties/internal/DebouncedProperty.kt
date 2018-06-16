@@ -86,7 +86,7 @@ internal class DebouncedProperty<out T>(
         addChangeListenerInternal(ConfinedChangeListener(executor, onChange))
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         if (observed) {
             observer.hard = this
         } else {

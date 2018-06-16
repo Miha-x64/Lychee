@@ -10,11 +10,13 @@ package net.aquadc.properties.internal
 @Suppress("UNCHECKED_CAST")
 internal class ConcListeners<out L : Any, out T>(
         @JvmField val listeners: Array<out L?>,
-        @JvmField val pendingValues: Array<out T>
+        @JvmField val pendingValues: Array<out T>,
+        @JvmField val transitioningObservedState: Boolean,
+        @JvmField val nextObservedState: Boolean
 ) {
 
     fun withListener(newListener: @UnsafeVariance L): ConcListeners<L, T> =
-            ConcListeners(listeners.with(newListener) as Array<L?>, pendingValues)
+            ConcListeners(listeners.with(newListener) as Array<L?>, pendingValues, transitioningObservedState, nextObservedState)
 
     fun withoutListenerAt(idx: Int): ConcListeners<L, T> {
         val newListeners = when {
@@ -31,14 +33,14 @@ internal class ConcListeners<out L : Any, out T>(
             // we're not the only listener, not notifying, remove at the specified position
         }
 
-        return if (pendingValues.isEmpty() && newListeners.isEmpty() && pendingValues.isEmpty())
+        return if (pendingValues.isEmpty() && newListeners.isEmpty() && !transitioningObservedState && !nextObservedState)
             NoListeners
         else
-            ConcListeners(newListeners, pendingValues)
+            ConcListeners(newListeners, pendingValues, transitioningObservedState, nextObservedState)
     }
 
     fun withNextValue(newValue: @UnsafeVariance T): ConcListeners<L, T> =
-            ConcListeners(listeners, pendingValues.with(newValue) as Array<out T>)
+            ConcListeners(listeners, pendingValues.with(newValue) as Array<out T>, transitioningObservedState, nextObservedState)
 
     fun next(): ConcListeners<L, T> {
         val listeners = if (this.pendingValues.size == 1) {
@@ -49,7 +51,17 @@ internal class ConcListeners<out L : Any, out T>(
         }
 
         // remove value at 0, that listeners were just notified about
-        return ConcListeners(listeners, pendingValues.copyOfWithout(0, EmptyArray) as Array<out T>)
+        return ConcListeners(listeners, pendingValues.copyOfWithout(0, EmptyArray) as Array<out T>, transitioningObservedState, nextObservedState)
+    }
+
+    fun startTransition(): ConcListeners<L, T> {
+        return ConcListeners(listeners, pendingValues, true, !nextObservedState)
+    }
+
+    fun continueTransition(appliedState: Boolean): ConcListeners<L, T> {
+        check(transitioningObservedState)
+        val done = appliedState == nextObservedState
+        return ConcListeners(listeners, pendingValues, !done, nextObservedState)
     }
 
 
@@ -58,7 +70,7 @@ internal class ConcListeners<out L : Any, out T>(
                 emptyArray<Any?>()
 
         @JvmField val NoListeners =
-                ConcListeners(EmptyArray, EmptyArray) as ConcListeners<Nothing, Nothing>
+                ConcListeners(EmptyArray, EmptyArray, false, false) as ConcListeners<Nothing, Nothing>
     }
 
 }

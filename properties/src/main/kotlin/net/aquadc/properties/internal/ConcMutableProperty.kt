@@ -5,7 +5,6 @@ import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
-import kotlin.concurrent.write
 
 /**
  * Concurrent [MutableProperty] implementation.
@@ -21,8 +20,21 @@ internal class ConcMutableProperty<T>(
     override var value: T
         get() = valueUpdater<T>().get(this).value
         set(newValue) {
-            val old: T = valueUpdater<T>().getAndSet(this, Value.Reference(newValue)).value
-            valueChanged(old, newValue, null)
+            val next: Value<T> = Value.Reference(newValue)
+            var prev: Value<T>
+            do {
+                while (true) {
+                    prev = valueUpdater<T>().get(this)
+                    if (prev === Value.Rebinding) Thread.yield()
+                    else break
+                }
+            } while (!valueUpdater<T>().compareAndSet(this, prev, next))
+
+            if (prev is Value.Binding) {
+                prev.original.removeChangeListener(this)
+            }
+
+            valueChanged(prev.value, newValue, null)
         }
 
     override fun bindTo(sample: Property<T>) {
@@ -36,26 +48,25 @@ internal class ConcMutableProperty<T>(
             newSample = null
         }
 
-        var oldT: T? = null
-        subscriptionLock.write {
-            val oldValue = valueUpdater<T>().getAndSet(this, newValue)
-            oldT = oldValue.value
-
-            if (oldValue is Value.Binding && oldValue.original === newSample) {
-                // nothing changed, don't re-subscribe, don't notify
-                return
-            }
-
-            if (isBeingObserved()) {
-                (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
-                newSample?.addUnconfinedChangeListener(this)
-            }
+        var oldValue: Value<T>
+        while (true) {
+            oldValue = valueUpdater<T>().getAndSet(this, Value.Rebinding)
+            if (oldValue == Value.Rebinding) Thread.yield() // other thread rebinding this property, wait
+            else break
         }
+        // under mutex
 
-        valueChanged(oldT as T, newValue.value, null)
+        if ((oldValue !is Value.Binding || oldValue.original !== newSample) && isBeingObserved()) {
+            (oldValue as? Value.Binding)?.original?.removeChangeListener(this)
+            newSample?.addUnconfinedChangeListener(this)
+        }
+        // end mutex
+        check(valueUpdater<T>().getAndSet(this, newValue) === Value.Rebinding)
+
+        valueChanged(oldValue.value, newValue.value, null)
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         val value = valueUpdater<T>().get(this)
         if (value !is Value.Binding) return
 
@@ -65,7 +76,9 @@ internal class ConcMutableProperty<T>(
 
     override fun casValue(expect: T, update: T): Boolean {
         val actual = valueUpdater<T>().get(this)
-        return if (actual.value === expect && valueUpdater<T>().compareAndSet(this, actual, Value.Reference(update))) {
+        return if (actual !== Value.Rebinding
+                && actual.value === expect
+                && valueUpdater<T>().compareAndSet(this, actual, Value.Reference(update))) {
             valueChanged(expect, update, null)
             true
         } else {
@@ -77,7 +90,7 @@ internal class ConcMutableProperty<T>(
         valueChanged(old, new, null)
     }
 
-    private sealed class Value<T> {
+    private sealed class Value<out T> {
         abstract val value: T
 
         class Reference<T>(override val value: T) : Value<T>()
@@ -85,6 +98,11 @@ internal class ConcMutableProperty<T>(
         class Binding<T>(val original: Property<T>) : Value<T>() {
             override val value: T
                 get() = original.value
+        }
+
+        object Rebinding : Value<Nothing>() {
+            override val value: Nothing
+                get() = throw UnsupportedOperationException()
         }
     }
 

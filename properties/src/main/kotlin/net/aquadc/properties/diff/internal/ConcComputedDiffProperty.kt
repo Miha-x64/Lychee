@@ -38,7 +38,7 @@ internal class ConcComputedDiffProperty<T, D>(
         valueChanged(old, new, diff)
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         if (observed) {
             original.addUnconfinedChangeListener(this)
         } else {

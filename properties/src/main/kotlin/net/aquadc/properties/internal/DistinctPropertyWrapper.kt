@@ -26,7 +26,7 @@ internal class DistinctPropertyWrapper<out T>(
         }
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         if (observed) {
             original.addUnconfinedChangeListener(this)
         } else {

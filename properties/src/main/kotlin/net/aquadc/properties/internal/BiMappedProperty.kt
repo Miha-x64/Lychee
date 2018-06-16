@@ -39,7 +39,7 @@ internal class BiMappedProperty<in A, in B, out T>(
         valueChanged(old, new, null)
     }
 
-    override fun observedStateChangedWLocked(observed: Boolean) {
+    override fun observedStateChanged(observed: Boolean) {
         if (observed) {
             val mapped = transform(a.value, b.value)
             valueUpdater<T>().eagerOrLazySet(this, thread, mapped)
