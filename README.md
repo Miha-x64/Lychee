@@ -230,7 +230,7 @@ Visible API will mostly stay the same, but implementation and binary interface m
 Many functions are `inline`, they return instances of `@PublishedApi internal` classes. These classes are [flyweights](https://en.wikipedia.org/wiki/Flyweight_pattern) implementing many interfaces,
 but only one interface should be publicly visible.
 
-#### Where and how shoudld I dispose subscriptions?
+#### Where and how should I dispose subscriptions?
 
 When the property is not being observed, it not observes its source and thus not being retained by it.
 Consider the following code:
