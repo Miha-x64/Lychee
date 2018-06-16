@@ -230,7 +230,7 @@ class SubscriptionTest {
 
         diff.removeChangeListener(listener)
 
-        Thread.sleep(25)
+        Thread.sleep(30)
         val shouldBeCalled = !confined
         assertEquals(shouldBeCalled, called.value)
         pool.shutdown()

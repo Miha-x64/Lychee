@@ -81,6 +81,12 @@ class LeakTest {
 
     private fun assertGarbage(ref: WeakReference<*>) {
         System.gc()
+        if (ref.get() != null) {
+            // this happens sometimes
+            Thread.yield()
+            System.gc()
+            Thread.yield()
+        }
         assertEquals(null, ref.get())
     }
 
