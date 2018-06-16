@@ -1,8 +1,11 @@
 package net.aquadc.properties
 
+import net.aquadc.properties.diff.calculateDiffOn
+import net.aquadc.properties.executor.InPlaceWorker
+import net.aquadc.properties.executor.UnconfinedExecutor
 import org.junit.Assert.*
 import org.junit.Test
-import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 
@@ -40,6 +43,46 @@ class SubscriptionTest {
 
         l2Called = false
         prop.removeChangeListener(l2)
+
+        prop.value = false
+        assertFalse(l2Called)
+    }
+
+    @Test fun confinedSubscribe() {
+        val prop = concurrentPropertyOf(false)
+
+        var l2Called by concurrentPropertyOf(false)
+
+        val l2 = { _: Boolean, _: Boolean ->
+            l2Called = true
+        }
+
+        val pool = Executors.newSingleThreadExecutor()
+
+        val l1 = { _: Boolean, _: Boolean ->
+            prop.addChangeListenerOn(pool, l2)
+            Unit
+        }
+
+        prop.addUnconfinedChangeListener(l1)
+
+        prop.value = false
+        Thread.sleep(10)
+        assertTrue(l2Called)
+
+        l2Called = false
+        prop.removeChangeListener(l1)
+
+        assertTrue(prop.casValue(false, true))
+        assertFalse(prop.casValue(false, true))
+        Thread.sleep(10)
+        assertTrue(l2Called)
+
+        l2Called = false
+        prop.removeChangeListener(l2)
+
+        prop.value = false
+        Thread.sleep(10)
         assertFalse(l2Called)
     }
 
@@ -130,33 +173,67 @@ class SubscriptionTest {
         assertFalse(prop.value)
     }
 
-    @Test fun concConfinedUnsubscribe() = confinedUnsubscribe(true)
-    @Test fun unsConfinedUnsubscribe() = confinedUnsubscribe(false)
+    @Test fun concConfinedUnsubscribe() = confinedUnsubscribe(true, true)
+    @Test fun unsConfinedUnsubscribe() = confinedUnsubscribe(false, true)
 
-    private fun confinedUnsubscribe(concurrent: Boolean) {
+    @Test fun concUnconfinedUnsubscribe() = confinedUnsubscribe(true, false)
+    @Test fun unsUnconfinedUnsubscribe() = confinedUnsubscribe(false, false)
+
+    private fun confinedUnsubscribe(concurrent: Boolean, confined: Boolean) {
         val called = concurrentPropertyOf(false)
-        val f = ForkJoinPool.commonPool().submit {
-            val prop = propertyOf("", concurrent)
-            val deb = prop.debounced(10, TimeUnit.MILLISECONDS)
-            val listener = { _: String, _: String ->
-                called.value = true
-            }
-            deb.addChangeListener(listener)
-
-            repeat(ForkJoinPool.getCommonPoolParallelism() + 1) {
-                ForkJoinPool.commonPool().execute { Thread.sleep(25) }
-            } // pool is full, our update task will be delayed
-
-            prop.value = "new"
-
-            Thread.sleep(15)
-
-            deb.removeChangeListener(listener)
+        val pool = Executors.newSingleThreadExecutor()
+        val prop = propertyOf("", concurrent)
+        val deb = prop.debounced(10, TimeUnit.MILLISECONDS)
+        val listener = { _: String, _: String ->
+            called.value = true
         }
-        Thread.sleep(10) // let it start running
-        f.get()
-        Thread.sleep(10)
-        assertFalse(called.value)
+
+        deb.addChangeListenerOn(if (confined) pool else UnconfinedExecutor, listener)
+
+        pool.execute {
+            Thread.sleep(25)
+        }
+
+        prop.value = "new"
+
+        Thread.sleep(15)
+
+        deb.removeChangeListener(listener)
+
+        Thread.sleep(25)
+        val shouldBeCalled = !confined
+        assertEquals(shouldBeCalled, called.value)
+        pool.shutdown()
+    }
+
+    @Test fun confinedDiff() = diff(true)
+    @Test fun unconfinedDiff() = diff(false)
+
+    private fun diff(confined: Boolean) {
+        val called = concurrentPropertyOf(false)
+        val pool = Executors.newSingleThreadExecutor()
+        val prop = propertyOf(0)
+        val diff = prop.calculateDiffOn(InPlaceWorker) { old, new -> new - old }
+        val listener = { _: Int, _: Int, _: Int ->
+            called.value = true
+        }
+
+        diff.addChangeListenerOn(if (confined) pool else UnconfinedExecutor, listener)
+
+        pool.execute {
+            Thread.sleep(25)
+        }
+
+        prop.value = 1
+
+        Thread.sleep(15)
+
+        diff.removeChangeListener(listener)
+
+        Thread.sleep(25)
+        val shouldBeCalled = !confined
+        assertEquals(shouldBeCalled, called.value)
+        pool.shutdown()
     }
 
 }

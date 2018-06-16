@@ -1,6 +1,7 @@
 package net.aquadc.properties.executor
 
 import net.aquadc.properties.ChangeListener
+import net.aquadc.properties.diff.DiffChangeListener
 import java.util.concurrent.Executor
 
 internal class MapWhenChanged<in T, U>(
@@ -53,6 +54,27 @@ internal class ConfinedChangeListener<in T>(
         executor.execute {
             if (!canceled) {
                 actual(old, new)
+            }
+        }
+    }
+
+}
+
+/**
+ * When invoked, calls [actual] on [executor].
+ */
+internal class ConfinedDiffChangeListener<in T, in D>(
+        private val executor: Executor,
+        @JvmField internal val actual: DiffChangeListener<T, D>
+) : DiffChangeListener<T, D> {
+
+    @Volatile @JvmField
+    internal var canceled = false
+
+    override fun invoke(old: T, new: T, diff: D) {
+        executor.execute {
+            if (!canceled) {
+                actual(old, new, diff)
             }
         }
     }

@@ -35,7 +35,7 @@ class Contended {
         val prop = concurrentMutableDiffPropertyOf<Int?, Int?>(0)
         val sum = AtomicInteger()
 
-        prop.addChangeListener { _, _, diff ->
+        prop.addUnconfinedChangeListener { _, _, diff ->
             sum.addAndGet(diff!!)
         }
 

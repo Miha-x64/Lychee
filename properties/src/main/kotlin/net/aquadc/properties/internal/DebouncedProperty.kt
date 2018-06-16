@@ -26,11 +26,8 @@ internal class DebouncedProperty<out T>(
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
 
-    private lateinit var executor: Executor
-
     init {
         check(original.mayChange)
-        if (thread !== null) executor = PlatformExecutors.executorForCurrentThread()
     }
 
     @Volatile
