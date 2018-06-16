@@ -15,7 +15,7 @@ class DiffProp {
         val diffProp = prop.calculateDiffOn(InPlaceWorker) { old, new -> new - old }
         var diff = 0
         val listener: DiffChangeListener<Int, Int> = { _, _, d -> diff = d }
-        diffProp.addChangeListener(listener)
+        diffProp.addUnconfinedChangeListener(listener)
 
         prop.value = 100
         assertEquals(90, diff)
@@ -34,7 +34,7 @@ class DiffProp {
         val diff = AtomicInteger()
 
         val listener: DiffChangeListener<Int, Int> = { _, _, d -> diff.set(d) }
-        diffProp.addChangeListener(listener)
+        diffProp.addUnconfinedChangeListener(listener)
 
         prop.value = 100
 

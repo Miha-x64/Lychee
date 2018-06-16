@@ -15,6 +15,7 @@ class PropertiesTest {
 
         val onChange = { _: String, _: String -> }
         assertEquals(Unit, prop.addUnconfinedChangeListener(onChange))
+        assertEquals(Unit, prop.addChangeListener(onChange))
         assertEquals(Unit, prop.removeChangeListener(onChange))
         // they're no-op, just for coverage ;)
     }

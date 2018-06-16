@@ -43,7 +43,7 @@ interface Property<out T> {
     /**
      * Unsubscribe from value changes.
      * Acts like [MutableList.remove]: removes only first occurrence of [onChange], if any.
-     * But checks equality by identity, not by [equals].
+     * But checks equality by identity, not with [equals].
      */
     fun removeChangeListener(onChange: ChangeListener<T>)
 

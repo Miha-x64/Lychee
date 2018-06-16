@@ -5,6 +5,7 @@ package net.aquadc.properties.diff
 import net.aquadc.properties.Property
 import net.aquadc.properties.diff.internal.ConcComputedDiffProperty
 import net.aquadc.properties.diff.internal.ConcMutableDiffProperty
+import net.aquadc.properties.executor.UnconfinedExecutor
 import net.aquadc.properties.executor.Worker
 
 
@@ -24,3 +25,10 @@ inline fun <T, D> concurrentMutableDiffPropertyOf(value: T): MutableDiffProperty
  */
 inline fun <T, D> Property<T>.calculateDiffOn(worker: Worker, noinline calculate: (T, T) -> D): DiffProperty<T, D> =
         ConcComputedDiffProperty(this, calculate, worker)
+
+/**
+ * Observes this property on [UnconfinedExecutor], i. e. on whatever thread.
+ */
+inline fun <T, D> DiffProperty<T, D>.addUnconfinedChangeListener(noinline onChange: DiffChangeListener<T, D>) {
+    addChangeListenerOn(UnconfinedExecutor, onChange)
+}

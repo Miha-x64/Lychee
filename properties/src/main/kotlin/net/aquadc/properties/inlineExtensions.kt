@@ -178,6 +178,9 @@ inline fun <T> MutableProperty<T>.update(updater: (old: T) -> T) {
 }
 
 
+/**
+ * Observes this property on [UnconfinedExecutor], i. e. on whatever thread.
+ */
 inline fun <T> Property<T>.addUnconfinedChangeListener(noinline onChange: ChangeListener<T>) {
     addChangeListenerOn(UnconfinedExecutor, onChange)
 }
