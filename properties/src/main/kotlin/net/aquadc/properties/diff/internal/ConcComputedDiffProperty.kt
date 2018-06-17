@@ -11,7 +11,7 @@ internal class ConcComputedDiffProperty<T, D>(
         private val original: Property<T>,
         private val calculateDiff: (T, T) -> D,
         private val computeOn: Worker
-) : ConcDiffPropNotifier<T, D>(), ChangeListener<T> {
+) : ConcDiffPropNotifier<T, D>(), ChangeListener<T>, (T, T, D) -> Unit {
 
     /*
      * Oh... I don't want to have both single-threaded and concurrent implementations of Diff properties.
@@ -19,21 +19,14 @@ internal class ConcComputedDiffProperty<T, D>(
      */
 
     @Volatile
-    override var value: T = this as T
-        get() {
-            val v = field
-            return if (v === this) original.value else v
-        }
+    override var value: T = original.value
         private set
 
     override fun invoke(old: T, new: T) {
-        computeOn.map2(old, new, calculateDiff) {
-            valueChangedAccess(old, new, it)
-        }
+        computeOn.map2(old, new, calculateDiff, this)
     }
 
-    @Suppress("MemberVisibilityCanBePrivate")
-    internal fun valueChangedAccess(old: T, new: T, diff: D) {
+    override fun invoke(old: T, new: T, diff: D) {
         value = new
         valueChanged(old, new, diff)
     }
