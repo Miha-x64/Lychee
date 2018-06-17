@@ -2,6 +2,8 @@ package net.aquadc.properties.executor
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.diff.DiffChangeListener
+import net.aquadc.properties.internal.Unset
+import net.aquadc.properties.internal.unset
 import java.util.concurrent.Executor
 
 internal class MapWhenChanged<in T, U>(
@@ -21,12 +23,12 @@ internal class ConsumeOn<in T>(
         private val consumer: (T) -> Unit
 ) : (T) -> Unit, Runnable {
 
-    @Volatile @Suppress("UNCHECKED_CAST")
-    private var value: T = this as T
+    @Volatile
+    private var value: T = unset()
     // 'this' means 'unset', should not pass instance of this class to its `invoke` 😅
 
     override fun invoke(value: T) {
-        check(value !== this)
+        check(value !== Unset)
         this.value = value
         consumeOn.execute(this)
     }

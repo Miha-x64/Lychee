@@ -18,7 +18,7 @@ internal class MappedProperty<in O, out T>(
     }
 
     @Volatile @JvmField @Suppress("UNUSED", "MemberVisibilityCanBePrivate") // used from inner class
-    internal var valueRef: @UnsafeVariance T = this as T // 'this' means 'not observed'
+    internal var valueRef: @UnsafeVariance T = unset()
 
     private val originalChanged: ChangeListener<O> = when {
         // simple concurrent binding: notify where changed
@@ -53,7 +53,7 @@ internal class MappedProperty<in O, out T>(
             original.addUnconfinedChangeListener(originalChanged)
         } else {
             original.removeChangeListener(originalChanged)
-            valueUpdater<T>().eagerOrLazySet(this, thread, this as T)
+            valueUpdater<T>().eagerOrLazySet(this, thread, unset())
         }
     }
 
@@ -63,7 +63,7 @@ internal class MappedProperty<in O, out T>(
             val value = valueUpdater<T>().get(this)
 
             // if not observed, calculate on demand
-            return if (value === this) map(original.value) else value
+            return if (value === Unset) map(original.value) else value
         }
 
     private companion object {

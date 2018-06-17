@@ -18,7 +18,7 @@ internal class MultiMappedProperty<in A, out T>(
     private val properties: Array<Property<A>>
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef: T = this as T
+    private var valueRef: T = unset()
 
     init {
         @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
@@ -29,7 +29,7 @@ internal class MultiMappedProperty<in A, out T>(
         get() {
             if (thread != null) checkThread()
             val value = valueUpdater<A, T>().get(this)
-            return if (value === this) transformed() else value
+            return if (value === Unset) transformed() else value
         }
 
     override fun invoke(_old: A, _new: A) {
@@ -58,7 +58,7 @@ internal class MultiMappedProperty<in A, out T>(
             properties.forEach { if (it.mayChange) it.addUnconfinedChangeListener(this) }
         } else {
             properties.forEach { if (it.mayChange) it.removeChangeListener(this) }
-            valueUpdater<A, T>().eagerOrLazySet(this, thread, this as T)
+            valueUpdater<A, T>().eagerOrLazySet(this, thread, unset())
         }
     }
 

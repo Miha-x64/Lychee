@@ -13,7 +13,7 @@ internal class BiMappedProperty<in A, in B, out T>(
 ) : PropNotifier<T>(threadIfNot(a.isConcurrent && b.isConcurrent)), ChangeListener<Any?> {
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef = this as T // this means 'not observed'
+    private var valueRef: T = unset()
     init {
         check(a.mayChange || b.mayChange)
     }
@@ -24,7 +24,7 @@ internal class BiMappedProperty<in A, in B, out T>(
             val value = valueUpdater<T>().get(this)
 
             // if not observed, calculate on demand
-            return if (value === this) transform(a.value, b.value) else value
+            return if (value === Unset) transform(a.value, b.value) else value
         }
 
     override fun invoke(_old: Any?, _new: Any?) {
@@ -48,7 +48,7 @@ internal class BiMappedProperty<in A, in B, out T>(
         } else {
             if (a.mayChange) a.removeChangeListener(this)
             if (b.mayChange) b.removeChangeListener(this)
-            valueUpdater<T>().eagerOrLazySet(this, thread, this as T)
+            valueUpdater<T>().eagerOrLazySet(this, thread, unset())
         }
     }
 
