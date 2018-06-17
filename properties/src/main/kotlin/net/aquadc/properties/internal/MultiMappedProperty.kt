@@ -53,7 +53,7 @@ internal class MultiMappedProperty<in A, out T>(
 
     override fun observedStateChanged(observed: Boolean) {
         if (observed) {
-            val value = transform.invoke(List(properties.size) { this.properties[it].value })
+            val value = transform.invoke(AList(properties.size) { this.properties[it].value })
             valueUpdater<A, T>().eagerOrLazySet(this, thread, value)
             properties.forEach { if (it.mayChange) it.addUnconfinedChangeListener(this) }
         } else {
@@ -63,7 +63,7 @@ internal class MultiMappedProperty<in A, out T>(
     }
 
     private fun transformed(): T =
-            transform(List(properties.size) { this.properties[it].value })
+            transform(AList(properties.size) { this.properties[it].value })
 
     private companion object {
         @JvmField

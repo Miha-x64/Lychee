@@ -78,3 +78,10 @@ internal fun threadIfNot(concurrent: Boolean): Thread? =
 
 @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
 internal inline fun <T> unset(): T = Unset as T
+
+internal inline fun <T> AList(size: Int, init: (Int) -> T): List<T> {
+    val a = arrayOfNulls<Any>(size) // Array(size, init) calls arraylength on itself, this doesn't
+    repeat(size) { a[it] = init(it) }
+    @Suppress("UNCHECKED_CAST")
+    return (a as Array<T>).asList()
+}
