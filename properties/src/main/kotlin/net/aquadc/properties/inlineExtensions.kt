@@ -254,7 +254,7 @@ inline fun <T> immutablePropertyOf(value: T): Property<T> =
 
 
 /**
- * Maps a list of properties into a single [Property].
+ * Maps a list of properties into a single [Property] by transforming a [List] of their values.
  */
 inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
         MultiMappedProperty(this, transform)
