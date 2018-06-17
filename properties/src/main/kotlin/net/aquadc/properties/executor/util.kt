@@ -3,10 +3,7 @@ package net.aquadc.properties.executor
 import android.os.Looper
 import javafx.application.Platform
 import java.util.*
-import java.util.concurrent.Executor
-import java.util.concurrent.ForkJoinTask
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.ThreadFactory
+import java.util.concurrent.*
 import kotlin.concurrent.getOrSet
 
 
@@ -51,11 +48,11 @@ internal object PlatformExecutors {
                         "JavaFxApplicationThreadExecutorFactory(on application thread: ${Platform.isFxApplicationThread()})"
             })
         } catch (ignored: NoClassDefFoundError) {
-            // only certain JDK builds contain JavaFX, Android doesn't
+            // Android and some JDK builds do not contain JavaFX
         }
 
         try {
-            Class.forName("java.util.concurrent.ForkJoinPool", false, null) // ensure class available without loading it
+            ForkJoinTask.getPool() // ensure class available
             facs.add(object : () -> Executor? {
                 override fun invoke(): Executor? =
                         ForkJoinTask.getPool() // ForkJoinPool already implements Executor; may be null
@@ -63,7 +60,7 @@ internal object PlatformExecutors {
                 override fun toString(): String =
                         "ForkJoinPoolExecutorFactory(current pool: ${ForkJoinTask.getPool()})"
             })
-        } catch (ignored: ClassNotFoundException) {
+        } catch (ignored: NoClassDefFoundError) {
             // only JDK 1.7+ and Android 21+ contain FJ
         }
 
