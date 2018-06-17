@@ -15,7 +15,7 @@ interface Worker {
     /**
      * Invokes [map] on [t] and [u], passes returned value to the [callback].
      */
-    fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit)
+    fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (T, U, V) -> Unit)
 
 }
 
@@ -28,8 +28,8 @@ object InPlaceWorker : Worker {
         callback(map(t))
     }
 
-    override fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit) {
-        callback(map(t, u))
+    override fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (T, U, V) -> Unit) {
+        callback(t, u, map(t, u))
     }
 
 }
@@ -45,9 +45,9 @@ class WorkerOnExecutor(private val executor: Executor) : Worker {
         }
     }
 
-    override fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (V) -> Unit) {
+    override fun <T, U, V> map2(t: T, u: U, map: (T, U) -> V, callback: (T, U, V) -> Unit) {
         executor.execute {
-            callback(map(t, u))
+            callback(t, u, map(t, u))
         }
     }
 
