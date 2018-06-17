@@ -17,7 +17,7 @@ internal class MappedProperty<in O, out T>(
         check(original.mayChange)
     }
 
-    @Volatile @JvmField @Suppress("UNUSED", "MemberVisibilityCanBePrivate") // used from inner class
+    @Volatile @JvmField @Suppress("MemberVisibilityCanBePrivate") // used from inner class
     internal var valueRef: @UnsafeVariance T = unset()
 
     private val originalChanged: ChangeListener<O> = when {
