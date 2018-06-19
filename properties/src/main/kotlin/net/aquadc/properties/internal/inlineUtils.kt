@@ -32,3 +32,18 @@ internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.getUndUpdate(obj: T
     } while (!compareAndSet(obj, prev, next))
     return prev
 }
+
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>): Array<Any?> =
+        copyOfWithout(idx, canonicalEmptyArray as Array<Any?>?) as Array<Any?>
+
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>): Array<T> =
+        withoutNulls<T>(canonicalEmptyArray as Array<T>?) as Array<T>
+
+internal inline fun <T> AList(size: Int, init: (Int) -> T): List<T> {
+    val a = arrayOfNulls<Any>(size) // Array(size, init) calls arraylength on itself, this fun doesn't
+    repeat(size) { a[it] = init(it) }
+    @Suppress("UNCHECKED_CAST")
+    return (a as Array<T>).asList()
+}
