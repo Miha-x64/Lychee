@@ -12,10 +12,6 @@ internal fun Array<*>.with(lastElement: Any?): Array<Any?> {
     return new
 }
 
-@JvmName("copyOfWithoutNn")
-internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>): Array<Any?> =
-        copyOfWithout(idx, canonicalEmptyArray as Array<Any?>?) as Array<Any?>
-
 internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>?): Array<Any?>? {
     val oldSize = size
     if (idx == 0 && oldSize == 1) return canonicalEmptyArray
@@ -25,10 +21,6 @@ internal fun Array<*>.copyOfWithout(idx: Int, canonicalEmptyArray: Array<Any?>?)
     System.arraycopy(this, idx+1, new, idx, oldSize-idx-1)
     return new
 }
-
-@JvmName("withoutNullsNn")
-internal fun <T : Any> Array<T?>.withoutNulls(canonicalEmptyArray: Array<T>): Array<T> =
-        withoutNulls<T>(canonicalEmptyArray as Array<T>?) as Array<T>
 
 @Suppress("UNCHECKED_CAST")
 internal fun <T : Any> Array<out T?>.withoutNulls(canonicalEmptyArray: Array<T>?): Array<T>? {
@@ -64,8 +56,6 @@ internal fun <T> Array<T?>.compact(): Int {
     return if (w == size) -1 else w
 }
 
-// why 'arrays'? because 'updaters' file is for inline functions.
-
 internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T, confinedTo: Thread?, value: V) {
     if (confinedTo == null) set(thisRef, value)
     else lazySet(thisRef, value)
@@ -78,10 +68,3 @@ internal fun threadIfNot(concurrent: Boolean): Thread? =
 
 @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
 internal inline fun <T> unset(): T = Unset as T
-
-internal inline fun <T> AList(size: Int, init: (Int) -> T): List<T> {
-    val a = arrayOfNulls<Any>(size) // Array(size, init) calls arraylength on itself, this doesn't
-    repeat(size) { a[it] = init(it) }
-    @Suppress("UNCHECKED_CAST")
-    return (a as Array<T>).asList()
-}
