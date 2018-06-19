@@ -5,7 +5,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
 
 @PublishedApi
-internal class DistinctPropertyWrapper<out T>(
+internal class `Distinct*`<out T>(
         private val original: Property<T>,
         private val areEqual: (T, T) -> Boolean
 ) : PropNotifier<T>(threadIfNot(original.isConcurrent)), ChangeListener<@UnsafeVariance T> {

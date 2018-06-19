@@ -26,28 +26,28 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
  */
 @Suppress("UNCHECKED_CAST")
 inline operator fun Property<Boolean>.not(): Property<Boolean> =
-        map(BoolFunc.And /* any BoolFunc instance represents unary NOT */)
+        map(`BoolFunc-`.And /* any `BoolFunc-` instance represents unary NOT */)
 
 /**
  * Returns a view on [this] && [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.and(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, BoolFunc.And)
+        mapWith(that, `BoolFunc-`.And)
 
 /**
  * Returns a view on [this] || [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.or(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, BoolFunc.Or)
+        mapWith(that, `BoolFunc-`.Or)
 
 /**
  * Returns a view on [this] ^ [that].
  */
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolean> =
-        mapWith(that, BoolFunc.Xor)
+        mapWith(that, `BoolFunc-`.Xor)
 
 /**
  * Sets [this] value to `true`.
@@ -80,33 +80,33 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
  * Returns a property representing [CharSequence.length].
  */
 @Suppress("UNCHECKED_CAST")
-inline val Property<CharSequence>.length: Property<Int> get() = map(CharSeqFunc.Length)
+inline val Property<CharSequence>.length: Property<Int> get() = map(`CharSeqFunc-`.Length)
 
 /**
  * Returns a property representing emptiness ([CharSequence.isEmpty]).
  */
-inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSeqFunc.Empty)
+inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(`CharSeqFunc-`.Empty)
 
 /**
  * Returns a property representing non-emptiness ([CharSequence.isNotEmpty]).
  */
-inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSeqFunc.NotEmpty)
+inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(`CharSeqFunc-`.NotEmpty)
 
 /**
  * Returns a property representing blankness ([CharSequence.isBlank]).
  */
-inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSeqFunc.Blank)
+inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(`CharSeqFunc-`.Blank)
 
 /**
  * Returns a property representing non-blankness ([CharSequence.isNotBlank]).
  */
-inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSeqFunc.NotBlank)
+inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(`CharSeqFunc-`.NotBlank)
 
 /**
  * Returns a property representing a trimmed CharSequence ([CharSequence.trim]).
  */
 @Suppress("UNCHECKED_CAST")
-inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(CharSeqFunc.Trim)
+inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(`CharSeqFunc-`.Trim)
 
 
 //
@@ -123,7 +123,7 @@ inline fun <T> Property<T>.readOnlyView() = map(Just as (T) -> T)
  * Returns a property which notifies its subscribers only when old and new values are not equal.
  */
 inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
-        if (this.mayChange) DistinctPropertyWrapper(this, areEqual) else this
+        if (this.mayChange) `Distinct*`(this, areEqual) else this
 
 /**
  * Returns a debounced wrapper around this property.
@@ -136,7 +136,7 @@ inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
  * Concurrent debounced wrapper will throw exception when listener gets subscribed from inappropriate thread.
  */
 inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) =
-        if (mayChange) DebouncedProperty(this, delay, unit)
+        if (mayChange) `Debounced*`(this, delay, unit)
         else this
 
 /**
@@ -195,57 +195,57 @@ inline fun <T> Property<T>.addUnconfinedChangeListener(noinline onChange: Change
  */
 @Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value, concurrent)"))
 inline fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
-        if (concurrent) ConcMutableProperty(value)
-        else UnsMutableProperty(value)
+        if (concurrent) `ConcMutable*`(value)
+        else `UnsMutable*`(value)
 
 /**
  * Returns new [MutableProperty] with value [value].
  * Returned property is strictly bounded to current thread.
  */
 inline fun <T> propertyOf(value: T): MutableProperty<T> =
-        UnsMutableProperty(value)
+        `UnsMutable*`(value)
 
 /**
  * Returns new [MutableProperty] with value [value].
  * When [concurrent] is true, returns a thread-safe property.
  */
 inline fun <T> propertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
-        if (concurrent) ConcMutableProperty(value)
-        else UnsMutableProperty(value)
+        if (concurrent) `ConcMutable*`(value)
+        else `UnsMutable*`(value)
 
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
 @Deprecated("Use concurrentPropertyOf instead.", ReplaceWith("concurrentPropertyOf(value)"))
 inline fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
-        ConcMutableProperty(value)
+        `ConcMutable*`(value)
 
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
 inline fun <T> concurrentPropertyOf(value: T): MutableProperty<T> =
-        ConcMutableProperty(value)
+        `ConcMutable*`(value)
 
 /**
  * Returns new single-threaded [MutableProperty] with initial value [value].
  */
 @Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value)"))
 inline fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
-        UnsMutableProperty(value)
+        `UnsMutable*`(value)
 
 /**
  * Returns an immutable [Property] representing either `true` or `false`.
  */
 inline fun immutablePropertyOf(value: Boolean): Property<Boolean> = when (value) {
-    true -> ImmutableReferenceProperty.TRUE
-    false -> ImmutableReferenceProperty.FALSE
+    true -> `Immutable*`.TRUE
+    false -> `Immutable*`.FALSE
 }
 
 /**
  * Returns an immutable property representing [value].
  */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =
-        ImmutableReferenceProperty(value)
+        `Immutable*`(value)
 
 
 //
@@ -257,7 +257,7 @@ inline fun <T> immutablePropertyOf(value: T): Property<T> =
  * Maps a list of properties into a single [Property] by transforming a [List] of their values.
  */
 inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
-        MultiMappedProperty(this, transform)
+        `MultiMapped*`(this, transform)
 
 /**
  * Folds a list of properties into a single [Property].
@@ -302,14 +302,14 @@ inline fun <T> Collection<Property<T>>.filterValues(crossinline predicate: (T) -
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsValue(value: T): Property<Boolean> =
-        mapValueList(Contains<T>(value, false) as (List<T>) -> Boolean)
+        mapValueList(`Contains-`<T>(value, false) as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if [this] contains a property holding all [values].
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsAllValues(values: Collection<T>): Property<Boolean> =
-        mapValueList(Contains<T>(values, true) as (List<T>) -> Boolean)
+        mapValueList(`Contains-`<T>(values, true) as (List<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if all properties' values in [this] are conforming to [predicate].

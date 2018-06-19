@@ -5,7 +5,7 @@ import net.aquadc.properties.Property
 import java.util.concurrent.Executor
 
 @PublishedApi
-internal class ImmutableReferenceProperty<out T>(
+internal class `Immutable*`<out T>(
         override val value: T
 ) : Property<T> {
 
@@ -20,8 +20,8 @@ internal class ImmutableReferenceProperty<out T>(
 
     @PublishedApi
     internal companion object {
-        @JvmField val TRUE = ImmutableReferenceProperty(true)
-        @JvmField val FALSE = ImmutableReferenceProperty(false)
+        @JvmField val TRUE = `Immutable*`(true)
+        @JvmField val FALSE = `Immutable*`(false)
     }
 
 }

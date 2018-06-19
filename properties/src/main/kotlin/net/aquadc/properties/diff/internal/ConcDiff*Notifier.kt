@@ -7,11 +7,11 @@ import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.ConfinedDiffChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
 import net.aquadc.properties.executor.UnconfinedExecutor
-import net.aquadc.properties.internal.PropListeners
+import net.aquadc.properties.internal.`*Listeners`
 import java.util.concurrent.Executor
 
 
-internal abstract class ConcDiffPropNotifier<T, D> : PropListeners<T, D, Function<Unit>, Pair<T, D>>(null), DiffProperty<T, D> {
+internal abstract class `ConcDiff*Notifier`<T, D> : `*Listeners`<T, D, Function<Unit>, Pair<T, D>>(null), DiffProperty<T, D> {
 
     final override fun addChangeListener(onChange: ChangeListener<T>) =
             concAddChangeListenerInternal(

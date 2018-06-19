@@ -9,11 +9,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 // I can't use erased types here,
 // because checkcast to (Boolean, Boolean) -> Boolean
 // would fail: https://youtrack.jetbrains.com/issue/KT-24067
-@PublishedApi internal class BoolFunc(
+@PublishedApi internal class `BoolFunc-`(
         private val mode: Int
 ) :
         /* not: */ (Boolean) -> Boolean,
-        /* and: */ (Boolean, Boolean) -> Boolean {
+ /* and|or|xor: */ (Boolean, Boolean) -> Boolean {
 
     // When used as unary function, acts like 'not'.
     override fun invoke(p1: Boolean): Boolean = !p1
@@ -28,9 +28,9 @@ import java.util.concurrent.atomic.AtomicBoolean
     @Suppress("UNCHECKED_CAST")
     @PublishedApi
     internal companion object {
-        @JvmField val And = BoolFunc(1)
-        @JvmField val Or = BoolFunc(2)
-        @JvmField val Xor = BoolFunc(3)
+        @JvmField val And = `BoolFunc-`(1)
+        @JvmField val Or = `BoolFunc-`(2)
+        @JvmField val Xor = `BoolFunc-`(3)
     }
 }
 
@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 // CharSequence
 //
 
-@PublishedApi internal class CharSeqFunc(private val mode: Int) : (Any) -> Any {
+@PublishedApi internal class `CharSeqFunc-`(private val mode: Int) : (Any) -> Any {
     override fun invoke(p1: Any): Any {
         p1 as CharSequence
         return when (mode) {
@@ -56,12 +56,12 @@ import java.util.concurrent.atomic.AtomicBoolean
     @Suppress("UNCHECKED_CAST")
     @PublishedApi
     internal companion object {
-        @JvmField val Empty = CharSeqFunc(0) as (CharSequence) -> Boolean
-        @JvmField val NotEmpty = CharSeqFunc(1) as (CharSequence) -> Boolean
-        @JvmField val Blank = CharSeqFunc(2) as (CharSequence) -> Boolean
-        @JvmField val NotBlank = CharSeqFunc(3) as (CharSequence) -> Boolean
-        @JvmField val Length = CharSeqFunc(4) as (CharSequence) -> Int
-        @JvmField val Trim = CharSeqFunc(5) as (CharSequence) -> CharSequence
+        @JvmField val Empty = `CharSeqFunc-`(0) as (CharSequence) -> Boolean
+        @JvmField val NotEmpty = `CharSeqFunc-`(1) as (CharSequence) -> Boolean
+        @JvmField val Blank = `CharSeqFunc-`(2) as (CharSequence) -> Boolean
+        @JvmField val NotBlank = `CharSeqFunc-`(3) as (CharSequence) -> Boolean
+        @JvmField val Length = `CharSeqFunc-`(4) as (CharSequence) -> Int
+        @JvmField val Trim = `CharSeqFunc-`(5) as (CharSequence) -> CharSequence
     }
 }
 
@@ -71,7 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 //
 
 @Suppress("UNCHECKED_CAST") @PublishedApi
-internal class Contains<T>(private val value: Any?, private val containsAll: Boolean) : (Any) -> Any? {
+internal class `Contains-`<T>(private val value: Any?, private val containsAll: Boolean) : (Any) -> Any? {
 
     override fun invoke(p1: Any): Any? {
         p1 as List<T>

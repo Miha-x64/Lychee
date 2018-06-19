@@ -3,15 +3,15 @@ package net.aquadc.properties
 
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.Worker
-import net.aquadc.properties.internal.BiMappedProperty
-import net.aquadc.properties.internal.ImmutableReferenceProperty
-import net.aquadc.properties.internal.MappedProperty
+import net.aquadc.properties.internal.`BiMapped*`
+import net.aquadc.properties.internal.`Immutable*`
+import net.aquadc.properties.internal.`Mapped*`
 
 /**
  * Returns new property with [transform]ed value which depends on [this] property value.
  */
 fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
-    this.mayChange -> MappedProperty(this, transform, InPlaceWorker)
+    this.mayChange -> `Mapped*`(this, transform, InPlaceWorker)
     else -> immutablePropertyOf(transform(value))
 }
 
@@ -21,7 +21,7 @@ fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
  * it will be called in-place if there's no pre-mapped value.
  */
 fun <T, R> Property<T>.mapOn(worker: Worker, transform: (T) -> R): Property<R> = when {
-    this.mayChange -> MappedProperty(this, transform, worker)
+    this.mayChange -> `Mapped*`(this, transform, worker)
     else -> immutablePropertyOf(transform(value))
 }
 
@@ -30,10 +30,10 @@ fun <T, R> Property<T>.mapOn(worker: Worker, transform: (T) -> R): Property<R> =
  */
 fun <T, U, R> Property<T>.mapWith(that: Property<U>, transform: (T, U) -> R): Property<R> = when {
     this.mayChange || that.mayChange ->
-        BiMappedProperty(this, that, transform)
+        `BiMapped*`(this, that, transform)
 
     else ->
-        ImmutableReferenceProperty(transform(this.value, that.value))
+        `Immutable*`(transform(this.value, that.value))
 }
 
 /**

@@ -14,10 +14,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 /**
  * Notifies subscribers about changes with a delay,
- * swallowing useless updates.
+ * swallowing too frequent updates.
  */
 @PublishedApi
-internal class DebouncedProperty<out T>(
+internal class `Debounced*`<out T>(
         original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
@@ -96,11 +96,11 @@ internal class DebouncedProperty<out T>(
 
     private class Observer<T>(
             private val original: Property<T>,
-            prop: DebouncedProperty<T>
-    ) : WeakReference<DebouncedProperty<T>>(prop), ChangeListener<T> {
+            prop: `Debounced*`<T>
+    ) : WeakReference<`Debounced*`<T>>(prop), ChangeListener<T> {
 
         @JvmField
-        internal var hard: DebouncedProperty<T>? = null
+        internal var hard: `Debounced*`<T>? = null
 
         override fun invoke(old: T, new: T) {
             val actual = get()
@@ -115,22 +115,19 @@ internal class DebouncedProperty<out T>(
 
     }
 
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
-        @JvmField
-        val pendingUpdater: AtomicReferenceFieldUpdater<DebouncedProperty<*>, Pair<*, *>> =
-                AtomicReferenceFieldUpdater.newUpdater(DebouncedProperty::class.java, Pair::class.java, "pending")
+        @JvmField internal val pendingUpdater: AtomicReferenceFieldUpdater<`Debounced*`<*>, Pair<*, *>> =
+                AtomicReferenceFieldUpdater.newUpdater(`Debounced*`::class.java, Pair::class.java, "pending")
 
-        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-        inline fun <T> pendingUpdater() =
-                pendingUpdater as AtomicReferenceFieldUpdater<DebouncedProperty<T>, Pair<T, ScheduledFuture<*>>?>
+        private inline fun <T> pendingUpdater() =
+                pendingUpdater as AtomicReferenceFieldUpdater<`Debounced*`<T>, Pair<T, ScheduledFuture<*>>?>
 
-        @JvmField
-        val valueUpdater: AtomicReferenceFieldUpdater<DebouncedProperty<*>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(DebouncedProperty::class.java, Any::class.java, "value")
+        @JvmField internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced*`<*>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(`Debounced*`::class.java, Any::class.java, "value")
 
-        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-        inline fun <T> valueUpdater() =
-                valueUpdater as AtomicReferenceFieldUpdater<DebouncedProperty<T>, Any?>
+        private inline fun <T> valueUpdater() =
+                valueUpdater as AtomicReferenceFieldUpdater<`Debounced*`<T>, Any?>
     }
 
 }
