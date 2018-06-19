@@ -29,7 +29,7 @@ internal object PlatformExecutors {
             Looper.myLooper() // ensure class available
             facs.add(object : () -> Executor? {
                 override fun invoke(): Executor? =
-                        Looper.myLooper()?.let { myLooper -> Handlecutor(myLooper) }
+                        Looper.myLooper()?.let(::Handlecutor)
 
                 override fun toString(): String =
                         "AndroidCurrentLooperExecutorFactory(current looper: ${Looper.myLooper()})"
@@ -67,9 +67,8 @@ internal object PlatformExecutors {
         executorFactories = facs.toArray(arrayOfNulls(facs.size))
     }
 
-    internal fun executorForCurrentThread(): Executor {
-        return executors.getOrSet(::createForCurrentThread)
-    }
+    internal fun executorForCurrentThread(): Executor =
+            executors.getOrSet(::createForCurrentThread)
 
     private fun createForCurrentThread(): Executor {
         executorFactories.forEach { it()?.let { return it } }

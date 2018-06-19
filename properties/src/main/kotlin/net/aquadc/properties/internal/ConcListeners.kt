@@ -1,7 +1,7 @@
 package net.aquadc.properties.internal
 
 /**
- * This is internal API, despite the class is public.
+ * Represents state of concurrent property — its listeners and queue of values.
  * @property listeners to avoid breaking iteration loop,
  *                     removed listeners becoming nulls while iterating
  * @property pendingValues a list of updates to deliver. If not empty,

@@ -25,7 +25,6 @@ internal class ConsumeOn<in T>(
 
     @Volatile
     private var value: T = unset()
-    // 'this' means 'unset', should not pass instance of this class to its `invoke` 😅
 
     override fun invoke(value: T) {
         check(value !== Unset)
@@ -88,7 +87,7 @@ internal class ConfinedDiffChangeListener<in T, in D>(
  */
 object UnconfinedExecutor : Executor {
 
-    override fun execute(command: Runnable) =
+    override fun execute(command: Runnable): Unit =
             command.run()
 
 }
