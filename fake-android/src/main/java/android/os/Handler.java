@@ -24,4 +24,8 @@ public class Handler {
         throw null;
     }
 
+    public final void removeCallbacks(Runnable r) {
+        throw null;
+    }
+
 }

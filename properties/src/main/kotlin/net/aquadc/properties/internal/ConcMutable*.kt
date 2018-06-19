@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * Concurrent [MutableProperty] implementation.
  */
 @PublishedApi
-internal class ConcMutableProperty<T>(
+internal class `ConcMutable*`<T>(
         value: T
 ) : PropNotifier<T>(null), MutableProperty<T>, ChangeListener<T> {
 
@@ -106,14 +106,13 @@ internal class ConcMutableProperty<T>(
         }
     }
 
-    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
     private companion object {
-        @JvmField
-        val ValueUpdater: AtomicReferenceFieldUpdater<ConcMutableProperty<*>, Value<*>> =
-                AtomicReferenceFieldUpdater.newUpdater(ConcMutableProperty::class.java, Value::class.java, "valueRef")
+        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`ConcMutable*`<*>, Value<*>> =
+                AtomicReferenceFieldUpdater.newUpdater(`ConcMutable*`::class.java, Value::class.java, "valueRef")
 
-        inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<ConcMutableProperty<T>, Value<T>>
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+        private inline fun <T> valueUpdater() =
+                ValueUpdater as AtomicReferenceFieldUpdater<`ConcMutable*`<T>, Value<T>>
     }
 
 }
