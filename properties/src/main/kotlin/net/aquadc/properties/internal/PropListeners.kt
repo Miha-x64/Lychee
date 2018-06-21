@@ -2,7 +2,6 @@ package net.aquadc.properties.internal
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
-import net.aquadc.properties.diff.internal.`ConcMutableDiff*`
 import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
 import net.aquadc.properties.executor.UnconfinedExecutor
@@ -14,10 +13,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 /**
  * Base class containing concurrent props' listeners.
  * Despite class is public, this is private API.
- * Used by [PropNotifier] and [ConcMutableDiff*].
+ * Used by [PropNotifier] and [`ConcMutableDiff-`].
  * @property thread our thread, or null, if this property is concurrent
  */
-abstract class `*Listeners`<out T, in D, LISTENER : Any, UPDATE>(
+abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE>(
         @JvmField internal val thread: Thread?
 ) : Property<T> {
 
@@ -442,16 +441,16 @@ abstract class `*Listeners`<out T, in D, LISTENER : Any, UPDATE>(
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "UNUSED")
     internal companion object {
-        @JvmField internal val updater: AtomicReferenceFieldUpdater<`*Listeners`<*, *, *, *>, Any> =
-                AtomicReferenceFieldUpdater.newUpdater(`*Listeners`::class.java, Any::class.java, "state")
+        @JvmField internal val updater: AtomicReferenceFieldUpdater<`-Listeners`<*, *, *, *>, Any> =
+                AtomicReferenceFieldUpdater.newUpdater(`-Listeners`::class.java, Any::class.java, "state")
 
         @JvmField internal val SingleNull = arrayOfNulls<Any>(1)
 
-        internal inline fun <T, D, LISTENER : Any, PACKED> `*Listeners`<T, D, LISTENER, PACKED>.concStateUpdater() =
-                updater as AtomicReferenceFieldUpdater<`*Listeners`<T, D, LISTENER, PACKED>, ConcListeners<LISTENER, PACKED>>
+        internal inline fun <T, D, LISTENER : Any, PACKED> `-Listeners`<T, D, LISTENER, PACKED>.concStateUpdater() =
+                updater as AtomicReferenceFieldUpdater<`-Listeners`<T, D, LISTENER, PACKED>, ConcListeners<LISTENER, PACKED>>
 
-        internal inline fun <T, D, LISTENER : Any, PACKED> `*Listeners`<T, D, LISTENER, PACKED>.nonSyncPendingUpdater() =
-                updater as AtomicReferenceFieldUpdater<`*Listeners`<T, D, LISTENER, PACKED>, Array<PACKED>?>
+        internal inline fun <T, D, LISTENER : Any, PACKED> `-Listeners`<T, D, LISTENER, PACKED>.nonSyncPendingUpdater() =
+                updater as AtomicReferenceFieldUpdater<`-Listeners`<T, D, LISTENER, PACKED>, Array<PACKED>?>
 
     }
 
@@ -462,7 +461,7 @@ abstract class `*Listeners`<out T, in D, LISTENER : Any, UPDATE>(
  * Despite class is public, this is private API.
  */
 abstract class PropNotifier<out T>(thread: Thread?) :
-        `*Listeners`<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
+        `-Listeners`<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
 
     protected fun isBeingObserved(): Boolean =
             if (thread == null) {

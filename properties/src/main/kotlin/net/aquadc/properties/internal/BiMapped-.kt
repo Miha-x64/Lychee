@@ -6,7 +6,7 @@ import net.aquadc.properties.addUnconfinedChangeListener
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
-internal class `BiMapped*`<in A, in B, out T>(
+internal class `BiMapped-`<in A, in B, out T>(
         private val a: Property<A>,
         private val b: Property<B>,
         private val transform: (A, B) -> T
@@ -53,12 +53,12 @@ internal class `BiMapped*`<in A, in B, out T>(
     }
 
     private companion object {
-        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`BiMapped*`<*, *, *>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(`BiMapped*`::class.java, Any::class.java, "valueRef")
+        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`BiMapped-`<*, *, *>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(`BiMapped-`::class.java, Any::class.java, "valueRef")
 
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         private inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<`BiMapped*`<*, *, T>, T>
+                ValueUpdater as AtomicReferenceFieldUpdater<`BiMapped-`<*, *, T>, T>
     }
 
 }
