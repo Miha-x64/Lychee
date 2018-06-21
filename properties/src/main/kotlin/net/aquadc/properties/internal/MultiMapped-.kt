@@ -6,7 +6,7 @@ import net.aquadc.properties.addUnconfinedChangeListener
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 @PublishedApi
-internal class `MultiMapped*`<in A, out T>(
+internal class `MultiMapped-`<in A, out T>(
         properties: Collection<Property<A>>,
         private val transform: (List<A>) -> T
 ) : PropNotifier<T>(
@@ -66,12 +66,12 @@ internal class `MultiMapped*`<in A, out T>(
             transform(AList(properties.size) { this.properties[it].value })
 
     private companion object {
-        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`MultiMapped*`<*, *>, *> =
-                AtomicReferenceFieldUpdater.newUpdater(`MultiMapped*`::class.java, Any::class.java, "valueRef")
+        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`MultiMapped-`<*, *>, *> =
+                AtomicReferenceFieldUpdater.newUpdater(`MultiMapped-`::class.java, Any::class.java, "valueRef")
 
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         private inline fun <A, T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<`MultiMapped*`<A, T>, T>
+                ValueUpdater as AtomicReferenceFieldUpdater<`MultiMapped-`<A, T>, T>
     }
 
 }

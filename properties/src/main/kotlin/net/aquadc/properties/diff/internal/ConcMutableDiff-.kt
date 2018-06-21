@@ -5,9 +5,9 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
 @PublishedApi
-internal class `ConcMutableDiff*`<T, D>(
+internal class `ConcMutableDiff-`<T, D>(
         value: T
-) : `ConcDiff*Notifier`<T, D>(), MutableDiffProperty<T, D> {
+) : `ConcDiff-Notifier`<T, D>(), MutableDiffProperty<T, D> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: T = value
@@ -28,10 +28,10 @@ internal class `ConcMutableDiff*`<T, D>(
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
         @JvmField val valueUpdater: AtomicReferenceFieldUpdater<*, *> =
-                AtomicReferenceFieldUpdater.newUpdater(`ConcMutableDiff*`::class.java, Any::class.java, "valueRef")
+                AtomicReferenceFieldUpdater.newUpdater(`ConcMutableDiff-`::class.java, Any::class.java, "valueRef")
 
         inline fun <T, D> valueUpdater() =
-                valueUpdater as AtomicReferenceFieldUpdater<`ConcMutableDiff*`<T, D>, T>
+                valueUpdater as AtomicReferenceFieldUpdater<`ConcMutableDiff-`<T, D>, T>
     }
 
 }

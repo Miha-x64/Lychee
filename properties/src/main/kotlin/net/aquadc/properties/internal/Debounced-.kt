@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * swallowing too frequent updates.
  */
 @PublishedApi
-internal class `Debounced*`<out T>(
+internal class `Debounced-`<out T>(
         original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
@@ -96,11 +96,11 @@ internal class `Debounced*`<out T>(
 
     private class Observer<T>(
             private val original: Property<T>,
-            prop: `Debounced*`<T>
-    ) : WeakReference<`Debounced*`<T>>(prop), ChangeListener<T> {
+            prop: `Debounced-`<T>
+    ) : WeakReference<`Debounced-`<T>>(prop), ChangeListener<T> {
 
         @JvmField
-        internal var hard: `Debounced*`<T>? = null
+        internal var hard: `Debounced-`<T>? = null
 
         override fun invoke(old: T, new: T) {
             val actual = get()
@@ -117,17 +117,17 @@ internal class `Debounced*`<out T>(
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
-        @JvmField internal val pendingUpdater: AtomicReferenceFieldUpdater<`Debounced*`<*>, Pair<*, *>> =
-                AtomicReferenceFieldUpdater.newUpdater(`Debounced*`::class.java, Pair::class.java, "pending")
+        @JvmField internal val pendingUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Pair<*, *>> =
+                AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Pair::class.java, "pending")
 
         private inline fun <T> pendingUpdater() =
-                pendingUpdater as AtomicReferenceFieldUpdater<`Debounced*`<T>, Pair<T, ScheduledFuture<*>>?>
+                pendingUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Pair<T, ScheduledFuture<*>>?>
 
-        @JvmField internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced*`<*>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(`Debounced*`::class.java, Any::class.java, "value")
+        @JvmField internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Any::class.java, "value")
 
         private inline fun <T> valueUpdater() =
-                valueUpdater as AtomicReferenceFieldUpdater<`Debounced*`<T>, Any?>
+                valueUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Any?>
     }
 
 }

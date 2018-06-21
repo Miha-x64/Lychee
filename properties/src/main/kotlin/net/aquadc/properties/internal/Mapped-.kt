@@ -7,7 +7,7 @@ import net.aquadc.properties.executor.*
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
-internal class `Mapped*`<in O, out T>(
+internal class `Mapped-`<in O, out T>(
         @JvmField internal val original: Property<@UnsafeVariance O>,
         @JvmField internal val map: (O) -> T,
         mapOn: Worker
@@ -67,12 +67,12 @@ internal class `Mapped*`<in O, out T>(
         }
 
     private companion object {
-        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`Mapped*`<*, *>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(`Mapped*`::class.java, Any::class.java, "valueRef")
+        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`Mapped-`<*, *>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(`Mapped-`::class.java, Any::class.java, "valueRef")
 
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         private inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<`Mapped*`<*, T>, T>
+                ValueUpdater as AtomicReferenceFieldUpdater<`Mapped-`<*, T>, T>
     }
 
 }

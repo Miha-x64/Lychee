@@ -123,7 +123,7 @@ inline fun <T> Property<T>.readOnlyView() = map(Just as (T) -> T)
  * Returns a property which notifies its subscribers only when old and new values are not equal.
  */
 inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
-        if (this.mayChange) `Distinct*`(this, areEqual) else this
+        if (this.mayChange) `Distinct-`(this, areEqual) else this
 
 /**
  * Returns a debounced wrapper around this property.
@@ -136,7 +136,7 @@ inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
  * Concurrent debounced wrapper will throw exception when listener gets subscribed from inappropriate thread.
  */
 inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) =
-        if (mayChange) `Debounced*`(this, delay, unit)
+        if (mayChange) `Debounced-`(this, delay, unit)
         else this
 
 /**
@@ -195,57 +195,57 @@ inline fun <T> Property<T>.addUnconfinedChangeListener(noinline onChange: Change
  */
 @Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value, concurrent)"))
 inline fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
-        if (concurrent) `ConcMutable*`(value)
-        else `UnsMutable*`(value)
+        if (concurrent) `ConcMutable-`(value)
+        else `UnsMutable-`(value)
 
 /**
  * Returns new [MutableProperty] with value [value].
  * Returned property is strictly bounded to current thread.
  */
 inline fun <T> propertyOf(value: T): MutableProperty<T> =
-        `UnsMutable*`(value)
+        `UnsMutable-`(value)
 
 /**
  * Returns new [MutableProperty] with value [value].
  * When [concurrent] is true, returns a thread-safe property.
  */
 inline fun <T> propertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
-        if (concurrent) `ConcMutable*`(value)
-        else `UnsMutable*`(value)
+        if (concurrent) `ConcMutable-`(value)
+        else `UnsMutable-`(value)
 
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
 @Deprecated("Use concurrentPropertyOf instead.", ReplaceWith("concurrentPropertyOf(value)"))
 inline fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
-        `ConcMutable*`(value)
+        `ConcMutable-`(value)
 
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
 inline fun <T> concurrentPropertyOf(value: T): MutableProperty<T> =
-        `ConcMutable*`(value)
+        `ConcMutable-`(value)
 
 /**
  * Returns new single-threaded [MutableProperty] with initial value [value].
  */
 @Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value)"))
 inline fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
-        `UnsMutable*`(value)
+        `UnsMutable-`(value)
 
 /**
  * Returns an immutable [Property] representing either `true` or `false`.
  */
 inline fun immutablePropertyOf(value: Boolean): Property<Boolean> = when (value) {
-    true -> `Immutable*`.TRUE
-    false -> `Immutable*`.FALSE
+    true -> `Immutable-`.TRUE
+    false -> `Immutable-`.FALSE
 }
 
 /**
  * Returns an immutable property representing [value].
  */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =
-        `Immutable*`(value)
+        `Immutable-`(value)
 
 
 //
@@ -257,7 +257,7 @@ inline fun <T> immutablePropertyOf(value: T): Property<T> =
  * Maps a list of properties into a single [Property] by transforming a [List] of their values.
  */
 inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
-        `MultiMapped*`(this, transform)
+        `MultiMapped-`(this, transform)
 
 /**
  * Folds a list of properties into a single [Property].

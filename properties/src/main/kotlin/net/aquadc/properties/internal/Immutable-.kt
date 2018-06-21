@@ -5,7 +5,7 @@ import net.aquadc.properties.Property
 import java.util.concurrent.Executor
 
 @PublishedApi
-internal class `Immutable*`<out T>(
+internal class `Immutable-`<out T>(
         override val value: T
 ) : Property<T> {
 
@@ -20,8 +20,8 @@ internal class `Immutable*`<out T>(
 
     @PublishedApi
     internal companion object {
-        @JvmField val TRUE = `Immutable*`(true)
-        @JvmField val FALSE = `Immutable*`(false)
+        @JvmField val TRUE = `Immutable-`(true)
+        @JvmField val FALSE = `Immutable-`(false)
     }
 
 }

@@ -9,7 +9,7 @@ import net.aquadc.properties.Property
  * Will remember thread it was created on and throw an exception if touched from wrong thread.
  */
 @PublishedApi
-internal class `UnsMutable*`<T>(
+internal class `UnsMutable-`<T>(
         value: T
 ) : PropNotifier<T>(Thread.currentThread()), MutableProperty<T>, ChangeListener<T> {
 
