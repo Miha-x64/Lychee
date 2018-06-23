@@ -1,11 +1,6 @@
 package net.aquadc.properties.internal
 
-import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
-import net.aquadc.properties.executor.ConfinedChangeListener
-import net.aquadc.properties.executor.PlatformExecutors
-import net.aquadc.properties.executor.UnconfinedExecutor
-import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 // I don't like implementation inheritance, but it is more lightweight than composition.
@@ -13,7 +8,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 /**
  * Base class containing concurrent props' listeners.
  * Despite class is public, this is private API.
- * Used by [PropNotifier] and [`ConcMutableDiff-`].
+ * Used by [-Notifier] and [ConcMutableDiff-].
  * @property thread our thread, or null, if this property is concurrent
  */
 abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE>(
@@ -453,83 +448,5 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE>(
                 updater as AtomicReferenceFieldUpdater<`-Listeners`<T, D, LISTENER, PACKED>, Array<PACKED>?>
 
     }
-
-}
-
-/**
- * Base class containing concurrent notification logic.
- * Despite class is public, this is private API.
- */
-abstract class PropNotifier<out T>(thread: Thread?) :
-        `-Listeners`<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
-
-    protected fun isBeingObserved(): Boolean =
-            if (thread == null) {
-                concStateUpdater().get(this).listeners.any { it != null }
-            } else {
-                val lis = nonSyncListeners
-                when (lis) {
-                    null -> false
-                    is Function2<*, *, *> -> true
-                    is Array<*> -> lis.any { it != null }
-                    else -> throw AssertionError()
-                }
-            }
-
-    override fun addChangeListener(onChange: ChangeListener<T>) {
-        if (thread == null) {
-            concAddChangeListenerInternal(
-                    ConfinedChangeListener(PlatformExecutors.executorForCurrentThread(), onChange)
-            )
-        } else {
-            nonSyncAddChangeListenerInternal(
-                    onChange // no explicit Executor, will be notified on current thread
-            )
-        }
-    }
-
-    override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) {
-        if (thread == null) {
-            concAddChangeListenerInternal(
-                    if (executor === UnconfinedExecutor) onChange else ConfinedChangeListener(executor, onChange)
-            )
-        } else {
-            nonSyncAddChangeListenerInternal(
-                    if (executor === UnconfinedExecutor || executor === PlatformExecutors.executors.get()) onChange
-                    else ConfinedChangeListener(executor, onChange)
-            )
-        }
-    }
-
-    /**
-     * Note: this will remove first occurrence of [onChange],
-     * no matter on which executor it was subscribed.
-     */
-    final override fun removeChangeListener(onChange: ChangeListener<T>) {
-        removeChangeListenerWhere { listener ->
-            when {
-                listener === onChange ->
-                    true
-
-                listener is ConfinedChangeListener<*> && listener.actual === onChange ->
-                    true.also { listener.canceled = true }
-
-                else ->
-                    false
-            }
-        }
-    }
-
-    final override fun pack(new: @UnsafeVariance T, diff: Nothing?): T =
-            new
-
-    final override fun unpackValue(packed: @UnsafeVariance T): T =
-            packed
-
-    final override fun unpackDiff(packed: @UnsafeVariance T): Nothing? =
-            null
-
-    final override fun notify(listener: ChangeListener<T>, old: @UnsafeVariance T, new: @UnsafeVariance T, diff: Nothing?): Unit =
-            listener(old, new)
 
 }
