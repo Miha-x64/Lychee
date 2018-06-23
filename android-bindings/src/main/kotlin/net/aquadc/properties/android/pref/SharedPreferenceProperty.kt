@@ -4,7 +4,7 @@ import android.content.SharedPreferences
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
-import net.aquadc.properties.internal.PropNotifier
+import net.aquadc.properties.internal.`-Notifier`
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 /**
@@ -19,7 +19,7 @@ class SharedPreferenceProperty<T>(
         private val key: String,
         private val defaultValue: T,
         private val adapter: PrefAdapter<T>
-) : PropNotifier<T>(null), MutableProperty<T> {
+) : `-Notifier`<T>(null), MutableProperty<T> {
 
     // we need a strong reference because shared prefs holding a weak one
     private val changeListener = object :

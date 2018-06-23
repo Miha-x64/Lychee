@@ -21,7 +21,7 @@ internal class `Debounced-`<out T>(
         original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : PropNotifier<T>(threadIfNot(original.isConcurrent)) {
+) : `-Notifier`<T>(threadIfNot(original.isConcurrent)) {
 
     @Suppress("UNUSED") @Volatile
     private var pending: Pair<T, ScheduledFuture<*>>? = null
