@@ -32,17 +32,20 @@ class MainActivity : Activity() {
             padding = dip(16)
 
             editText {
+                id = 1
                 hint = "Email"
                 bindTextBidirectionally(vm.emailProp)
                 bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
             }
 
             editText {
+                id = 2
                 hint = "Name"
                 bindTextBidirectionally(vm.nameProp)
             }
 
             editText {
+                id = 3
                 hint = "Surname"
                 bindTextBidirectionally(vm.surnameProp)
             }

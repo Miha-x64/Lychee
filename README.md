@@ -84,17 +84,20 @@ verticalLayout {
     padding = dip(16)
 
     editText {
+        id = 1 // let view save its state, focus, etc
         hint = "Email"
         bindTextBidirectionally(vm.emailProp)
         bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
     }
 
     editText {
+        id = 2
         hint = "Name"
         bindTextBidirectionally(vm.nameProp)
     }
 
     editText {
+        id = 3
         hint = "Surname"
         bindTextBidirectionally(vm.surnameProp)
     }
@@ -142,32 +145,47 @@ children.add(JFXButton("Press me, hey, you!").apply {
 Common ViewModel:
 
 ```kt
-val emailProp = propertyOf(userProp.value.email)
-val nameProp = propertyOf(userProp.value.name)
-val surnameProp = propertyOf(userProp.value.surname)
-val buttonClickedProp = propertyOf(false)
+class MainVm(
+        private val userProp: MutableProperty<InMemoryUser>
+) : PersistableProperties {
 
-val emailValidProp = propertyOf(false)
-val buttonEnabledProp = propertyOf(false)
-val buttonTextProp = propertyOf("")
+    // user input
 
-private val editedUser = OnScreenUser(
-        emailProp = emailProp,
-        nameProp = nameProp,
-        surnameProp = surnameProp
-)
+    val emailProp = propertyOf(userProp.value.email)
+    val nameProp = propertyOf(userProp.value.name)
+    val surnameProp = propertyOf(userProp.value.surname)
+    val buttonClickedProp = propertyOf(false).also {
+    // reset flag and perform action — store User being edited into memory
+        it.clearEachAnd {
+            userProp.value = editedUser.snapshot()
+        }
+    }
 
-init {
-    // check equals() every time User on screen on in memory gets changed
-    val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
+    // preserve/restore state of this ViewModel
+    override fun saveOrRestore(d: PropertyIo) {
+        d x emailProp
+        d x nameProp
+        d x surnameProp
+    }
+
+    // a feedback for user actions
+
+    val emailValidProp = emailProp.map { it.contains("@") }
+
+    private val editedUser = OnScreenUser(
+            emailProp = emailProp,
+            nameProp = nameProp,
+            surnameProp = surnameProp
+    )
+
+    // check equals() every time User on screen or in memory gets changed
+    private val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
             .mapValueList { _ -> userProp.value.equals(editedUser) }
 
-    emailValidProp.bindTo(emailProp.map { it.contains("@") })
-    buttonEnabledProp.bindTo(usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid })
-    buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
+    val buttonEnabledProp = usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid }
+    val buttonTextProp = usersEqualProp.map { if (it) "Nothing changed" else "Save changes" }
+    val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
-    buttonClickedProp.clearEachAnd { userProp.value = editedUser.snapshot() }
-    // ^ reset flag and perform action — store User being edited into memory
 }
 ```
 
@@ -197,8 +215,10 @@ init {
 
 #### What's the purpose of this library?
 
-The main purpose is MVVM/DataBinding, especially in Android, where preserving ViewModel state may be quirky.
-ViewModel/ViewState can be declared as a set of mappings, where some properties' values depend on some other ones.
+The main purpose is MVVM/DataBinding, especially in Android,
+where preserving ViewModel state may be quirky.
+ViewModel/ViewState can be declared as a set of mappings,
+where the values of some properties depend on some other ones.
 
 #### Why not use an existing solution?
 
