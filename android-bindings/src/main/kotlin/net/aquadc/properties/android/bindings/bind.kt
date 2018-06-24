@@ -1,24 +1,19 @@
 package net.aquadc.properties.android.bindings
 
-import android.os.Build
 import android.view.View
 import net.aquadc.properties.Property
 
 
 /**
  * Creates new [SafeBinding] and makes it observe [this] View's attached state.
- * View must be detached from window
- * because I don't know any safe ways to check whether it is attached
- * and requires instantaneous binding and subscription or not.
  */
 fun <V : View, T> V.bindViewTo(property: Property<T>, bind: (view: V, new: T) -> Unit) {
-    if (Build.VERSION.SDK_INT >= 19 && isAttachedToWindow) {
-        throw IllegalStateException(
-                "Must bind view before it gets attached. Use onCreateView instead of onViewCreated in Fragments."
-        )
+    val binding = SafeBinding(this, property, bind)
+    if (windowToken != null) {
+        // the view is already attached, catch up with this state
+        binding.onViewAttachedToWindow(this)
     }
-
-    addOnAttachStateChangeListener(SafeBinding(this, property, bind))
+    addOnAttachStateChangeListener(binding)
 }
 
 /**
@@ -26,7 +21,7 @@ fun <V : View, T> V.bindViewTo(property: Property<T>, bind: (view: V, new: T) ->
  * * View gets attached to window
  * * [property]'s value gets changed while View is attached
  */
-class SafeBinding<V : View, in T>(
+private class SafeBinding<V : View, in T>(
         private val view: V,
         private val property: Property<T>,
         private val bind: (V, T) -> Unit
