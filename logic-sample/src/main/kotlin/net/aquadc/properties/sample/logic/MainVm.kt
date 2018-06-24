@@ -15,10 +15,16 @@ class MainVm(
         private val userProp: MutableProperty<InMemoryUser>
 ) : PersistableProperties {
 
+    // user input
+
     val emailProp = propertyOf(userProp.value.email)
     val nameProp = propertyOf(userProp.value.name)
     val surnameProp = propertyOf(userProp.value.surname)
-    val buttonClickedProp = propertyOf(false)
+    val buttonClickedProp = propertyOf(false).also {
+        it.clearEachAnd { // perform action
+            userProp.value = editedUser.snapshot()
+        }
+    }
 
     override fun saveOrRestore(d: PropertyIo) {
         d x emailProp
@@ -26,10 +32,9 @@ class MainVm(
         d x surnameProp
     }
 
-    val emailValidProp = propertyOf(false)
-    val buttonEnabledProp = propertyOf(false)
-    val buttonTextProp = propertyOf("")
-    val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
+    // a feedback for user actions
+
+    val emailValidProp = emailProp.map { it.contains("@") }
 
     private val editedUser = OnScreenUser(
             emailProp = emailProp,
@@ -37,15 +42,11 @@ class MainVm(
             surnameProp = surnameProp
     )
 
-    init {
-        val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
-                .mapValueList { _ -> userProp.value.equals(editedUser) }
+    private val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
+            .mapValueList { _ -> userProp.value.equals(editedUser) }
 
-        emailValidProp.bindTo(emailProp.map { it.contains("@") })
-        buttonEnabledProp.bindTo(usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid })
-        buttonTextProp.bindTo(usersEqualProp.map { if (it) "Nothing changed" else "Save changes" })
-
-        buttonClickedProp.clearEachAnd { userProp.value = editedUser.snapshot() }
-    }
+    val buttonEnabledProp = usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid }
+    val buttonTextProp = usersEqualProp.map { if (it) "Nothing changed" else "Save changes" }
+    val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
 }
