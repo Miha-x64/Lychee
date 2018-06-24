@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.bindings
+package net.aquadc.properties.android.bindings.widget
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
@@ -10,6 +10,7 @@ import android.view.Gravity.*
 import android.view.View
 import android.widget.TextView
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.bindings.bindViewTo
 import kotlin.annotation.AnnotationRetention.SOURCE
 import kotlin.annotation.AnnotationTarget.*
 
@@ -69,12 +70,18 @@ class DrawableBindingStub internal constructor(
     @PublishedApi
     internal fun bind(prop: Property<*>) {
         view.bindViewTo(prop, when (position) {
-            LEFT -> left ?: SetCompoundDrawable(LEFT).also { left = it }
-            TOP -> top ?: SetCompoundDrawable(TOP).also { top = it }
-            RIGHT -> right ?: SetCompoundDrawable(RIGHT).also { right = it }
-            BOTTOM -> bottom ?: SetCompoundDrawable(BOTTOM).also { bottom = it }
-            START -> start ?: SetCompoundDrawable(START).also { start = it }
-            END -> end?: SetCompoundDrawable(END).also { end = it }
+            LEFT -> left
+                    ?: SetCompoundDrawable(LEFT).also { left = it }
+            TOP -> top
+                    ?: SetCompoundDrawable(TOP).also { top = it }
+            RIGHT -> right
+                    ?: SetCompoundDrawable(RIGHT).also { right = it }
+            BOTTOM -> bottom
+                    ?: SetCompoundDrawable(BOTTOM).also { bottom = it }
+            START -> start
+                    ?: SetCompoundDrawable(START).also { start = it }
+            END -> end
+                    ?: SetCompoundDrawable(END).also { end = it }
             else -> throw AssertionError()
         })
     }
