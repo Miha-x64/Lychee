@@ -1,9 +1,10 @@
-package net.aquadc.properties.android.bindings
+package net.aquadc.properties.android.bindings.view
 
 import android.annotation.TargetApi
 import android.view.View
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.bindings.bindViewTo
 import net.aquadc.properties.clear
 import net.aquadc.properties.set
 

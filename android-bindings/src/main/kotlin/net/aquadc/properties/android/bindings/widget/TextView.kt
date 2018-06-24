@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.bindings
+package net.aquadc.properties.android.bindings.widget
 
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
@@ -10,6 +10,7 @@ import android.text.SpannedString
 import android.widget.TextView
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.bindings.bindViewTo
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 
 /**

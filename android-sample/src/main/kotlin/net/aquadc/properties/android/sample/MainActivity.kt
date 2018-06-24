@@ -3,7 +3,11 @@ package net.aquadc.properties.android.sample
 import android.app.Activity
 import android.os.Bundle
 import net.aquadc.properties.android.ParcelPropertiesMemento
-import net.aquadc.properties.android.bindings.*
+import net.aquadc.properties.android.bindings.view.bindEnabledTo
+import net.aquadc.properties.android.bindings.view.setWhenClicked
+import net.aquadc.properties.android.bindings.widget.bindErrorMessageTo
+import net.aquadc.properties.android.bindings.widget.bindTextBidirectionally
+import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.map
 import net.aquadc.properties.sample.logic.MainVm
 import org.jetbrains.anko.*
