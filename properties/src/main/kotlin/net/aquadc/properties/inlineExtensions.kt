@@ -115,18 +115,18 @@ inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(`C
  * Returns a read-only view on this property hiding its original type.
  */
 @Suppress("UNCHECKED_CAST")
-inline fun <T> Property<T>.readOnlyView() = map(Just as (T) -> T)
+inline fun <T> Property<T>.readOnlyView(): Property<T> = map(Just as (T) -> T)
 
 /**
  * Returns a property which notifies its subscribers only when old and new values are not equal.
  */
-inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
+inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean): Property<T> =
         if (this.mayChange) `Distinct-`(this, areEqual) else this
 
 /**
  * Returns a debounced wrapper around this property.
  */
-inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) =
+inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS): Property<T> =
         if (mayChange) `Debounced-`(this, delay, unit)
         else this
 
@@ -335,9 +335,8 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
 /**
  * Returns value of this [Property] when used as a Kotlin property delegate.
  */
-inline operator fun <T> Property<T>.getValue(thisRef: Any?, property: KProperty<*>): T {
-    return value
-}
+inline operator fun <T> Property<T>.getValue(thisRef: Any?, property: KProperty<*>): T
+        = value
 
 /**
  * Sets value of this [MutableProperty] when used as a Kotlin property delegate.
