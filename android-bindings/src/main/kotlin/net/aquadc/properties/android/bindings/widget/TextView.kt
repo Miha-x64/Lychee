@@ -65,9 +65,14 @@ fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
         }
 
         override fun invoke(p1: TextView, p2: String) {
-            mutatingFromChangeListener = true
-            if (!mutatingFromWatcher) p1.text = p2
-            mutatingFromChangeListener = false
+            // we must check this to avoid resetting selection;
+            // note that SpannableStringBuilder calls toString within equals,
+            // so we're not going to be slower
+            if (p1.text?.toString() != p2) {
+                mutatingFromChangeListener = true
+                if (!mutatingFromWatcher) p1.text = p2
+                mutatingFromChangeListener = false
+            }
         }
     }
 
