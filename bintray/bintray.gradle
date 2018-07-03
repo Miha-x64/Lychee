@@ -41,6 +41,9 @@ if (project.hasProperty("android")) { // Android libraries
     }
 }
 
+bintrayUpload.dependsOn assemble
+bintrayUpload.dependsOn sourcesJar
+bintrayUpload.dependsOn javadocJar
 
 artifacts {
     archives javadocJar
