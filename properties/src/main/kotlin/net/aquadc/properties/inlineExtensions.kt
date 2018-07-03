@@ -2,13 +2,11 @@
 @file:JvmName("PropertiesInline")
 package net.aquadc.properties
 
-import android.os.Looper
-import javafx.application.Platform
 import net.aquadc.properties.executor.UnconfinedExecutor
 import net.aquadc.properties.internal.*
-import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KProperty
+
 
 /**
  * Observer for [Property]<T>.
@@ -127,13 +125,6 @@ inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean) =
 
 /**
  * Returns a debounced wrapper around this property.
- * Will work only on threads which can accept tasks:
- * * JavaFX Application thread (via [Platform]);
- * * Android [Looper] thread;
- * * a thread of a [ForkJoinPool].
- *
- * Single-threaded debounced wrapper will throw exception when created on inappropriate thread.
- * Concurrent debounced wrapper will throw exception when listener gets subscribed from inappropriate thread.
  */
 inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) =
         if (mayChange) `Debounced-`(this, delay, unit)
