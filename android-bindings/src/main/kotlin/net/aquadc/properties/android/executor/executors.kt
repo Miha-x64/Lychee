@@ -1,11 +1,25 @@
 package net.aquadc.properties.android.executor
 
 import android.os.Handler
+import android.os.Looper
 import android.os.MessageQueue
 import java.util.concurrent.Executor
 
+
+/**
+ * [Executor] implementation merged with Android's [Handler].
+ * Note: `fake-android` module has a class which mimics this class interface, keep in sync.
+ */
+class Handlecutor(looper: Looper) : Handler(looper), Executor {
+
+    override fun execute(command: Runnable) =
+            check(post(command))
+
+}
+
 /**
  * [Executor] implementation based on Android's [Handler].
+ * If you need new [Handler]/[Executor], prefer [Handlecutor] instead.
  */
 class HandlerExecutor(
         private val handler: Handler
