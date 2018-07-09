@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
  * and in fx-sample it is in JavaFX view.
  */
 class MainVm(
-        private val userProp: MutableProperty<InMemoryUser>
+        private val userProp: MutableProperty<User>
 ) : PersistableProperties {
 
     // user input
@@ -22,7 +22,7 @@ class MainVm(
     val surnameProp = propertyOf(userProp.value.surname)
     val buttonClickedProp = propertyOf(false).also {
         it.clearEachAnd { // perform action
-            userProp.value = editedUser.snapshot()
+            userProp.value = editedUserProp.value
         }
     }
 
@@ -36,17 +36,13 @@ class MainVm(
 
     val emailValidProp = emailProp.map { it.contains("@") }
 
-    private val editedUser = OnScreenUser(
-            emailProp = emailProp,
-            nameProp = nameProp,
-            surnameProp = surnameProp
-    )
+    private val editedUserProp = listOf(emailProp, nameProp, surnameProp).mapValueList { (email, name, surname) ->
+        User(email, name, surname)
+    }
 
-    private val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
-            .mapValueList { _ -> userProp.value.equals(editedUser) }
+    private val usersEqualProp = userProp.equalTo(editedUserProp)
 
     val buttonEnabledProp = usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid }
-    val buttonTextProp = usersEqualProp.map { if (it) "Nothing changed" else "Save changes" }
     val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
 }

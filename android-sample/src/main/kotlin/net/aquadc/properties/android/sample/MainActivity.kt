@@ -35,7 +35,9 @@ class MainActivity : Activity() {
                 id = 1
                 hint = "Email"
                 bindTextBidirectionally(vm.emailProp)
-                bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
+                bindErrorMessageTo(vm.emailValidProp.map {
+                    if (it) null else "E-mail is invalid"
+                })
             }
 
             editText {
@@ -52,7 +54,9 @@ class MainActivity : Activity() {
 
             button {
                 bindEnabledTo(vm.buttonEnabledProp)
-                bindTextTo(vm.buttonTextProp)
+                bindTextTo(vm.buttonEnabledProp.map {
+                    if (it) "Save changes" else "Nothing changed"
+                })
                 setWhenClicked(vm.buttonClickedProp)
             }
 
