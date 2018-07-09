@@ -4,12 +4,12 @@ import javafx.application.Application
 import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.Scene
 import javafx.stage.Stage
-import net.aquadc.properties.sample.logic.InMemoryUser
+import net.aquadc.properties.sample.logic.User
 import net.aquadc.properties.sample.logic.defaultUser
 
 class FxNativeSample : Application() {
 
-    private val userProp = SimpleObjectProperty<InMemoryUser>(defaultUser)
+    private val userProp = SimpleObjectProperty<User>(defaultUser)
 
     override fun start(stage: Stage) {
         val vm = FxViewModel(userProp)

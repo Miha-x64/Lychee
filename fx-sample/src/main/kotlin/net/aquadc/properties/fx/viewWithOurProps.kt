@@ -5,6 +5,7 @@ import com.jfoenix.controls.JFXTextField
 import javafx.geometry.Insets
 import javafx.scene.control.Label
 import javafx.scene.layout.VBox
+import net.aquadc.properties.map
 import net.aquadc.properties.not
 import net.aquadc.properties.sample.logic.MainVm
 import net.aquadc.properties.set
@@ -36,7 +37,9 @@ fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
 
     children.add(JFXButton("Press me, hey, you!").apply {
         disableProperty().bindTo(!vm.buttonEnabledProp)
-        textProperty().bindTo(vm.buttonTextProp)
+        textProperty().bindTo(vm.buttonEnabledProp.map {
+            if (it) "Save changes" else "Nothing changed"
+        })
         setOnAction { vm.buttonClickedProp.set() }
     })
 

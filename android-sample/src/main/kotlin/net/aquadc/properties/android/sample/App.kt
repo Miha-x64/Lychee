@@ -7,13 +7,13 @@ import com.squareup.leakcanary.LeakCanary
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.android.pref.PrefAdapter
 import net.aquadc.properties.android.pref.SharedPreferenceProperty
-import net.aquadc.properties.sample.logic.InMemoryUser
+import net.aquadc.properties.sample.logic.User
 import net.aquadc.properties.sample.logic.defaultUser
 
 
 class App : Application() {
 
-    lateinit var userProp: MutableProperty<InMemoryUser>
+    lateinit var userProp: MutableProperty<User>
 
     override fun onCreate() {
         super.onCreate()
@@ -25,14 +25,14 @@ class App : Application() {
 
         userProp = SharedPreferenceProperty(
                 PreferenceManager.getDefaultSharedPreferences(this), "user", defaultUser,
-                object : PrefAdapter<InMemoryUser> {
-                    override fun read(prefs: SharedPreferences, key: String, default: InMemoryUser) =
-                            InMemoryUser(
+                object : PrefAdapter<User> {
+                    override fun read(prefs: SharedPreferences, key: String, default: User) =
+                            User(
                                     email = prefs.getString("${key}_email", default.email),
                                     name = prefs.getString("${key}_name", default.name),
                                     surname = prefs.getString("${key}_surname", default.surname)
                             )
-                    override fun save(editor: SharedPreferences.Editor, key: String, value: InMemoryUser) {
+                    override fun save(editor: SharedPreferences.Editor, key: String, value: User) {
                         editor
                                 .putString("${key}_email", value.email)
                                 .putString("${key}_name", value.name)

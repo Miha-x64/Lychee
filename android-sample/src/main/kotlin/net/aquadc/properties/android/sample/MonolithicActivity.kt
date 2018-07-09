@@ -8,7 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import net.aquadc.properties.android.simple.SimpleTextWatcher
-import net.aquadc.properties.sample.logic.InMemoryUser
+import net.aquadc.properties.sample.logic.User
 import org.jetbrains.anko.*
 
 class MonolithicActivity : Activity() {
@@ -70,7 +70,7 @@ class MonolithicActivity : Activity() {
         textChanged()
     }
 
-    private fun gatherUser() = InMemoryUser(
+    private fun gatherUser() = User(
             email = emailInput.text.toString(),
             name = nameInput.text.toString(),
             surname = surnameInput.text.toString())
