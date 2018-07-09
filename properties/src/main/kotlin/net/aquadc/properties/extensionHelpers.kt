@@ -34,6 +34,13 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
 }
 
+@PublishedApi internal object `ToBoolFunc-`: (Any?, Any?) -> Any? {
+
+    override fun invoke(p1: Any?, p2: Any?): Any? =
+            p1 == p2
+
+}
+
 
 //
 // CharSequence

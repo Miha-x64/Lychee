@@ -16,7 +16,7 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
 
 
 //
-// Boolean
+// Boolean(s) -> Boolean
 //
 
 /**
@@ -46,6 +46,23 @@ inline infix fun Property<Boolean>.or(that: Property<Boolean>): Property<Boolean
 @Suppress("UNCHECKED_CAST")
 inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolean> =
         mapWith(that, `BoolFunc-`.Xor)
+
+
+//
+// T(s) -> Boolean
+//
+
+/**
+ * Returns a view on [this] == [that].
+ */
+@Suppress("UNCHECKED_CAST")
+inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
+        mapWith(that, `ToBoolFunc-` as (T, T) -> Boolean)
+
+
+//
+// Boolean actions
+//
 
 /**
  * Sets [this] value to `true`.
