@@ -3,11 +3,9 @@ package net.aquadc.properties.internal
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
-import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
 import net.aquadc.properties.executor.ScheduledDaemonHolder
 import java.lang.ref.WeakReference
-import java.util.concurrent.Executor
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
@@ -23,12 +21,14 @@ internal class `Debounced-`<out T>(
         private val unit: TimeUnit
 ) : `-Notifier`<T>(threadIfNot(original.isConcurrent)) {
 
-    @Suppress("UNUSED") @Volatile
-    private var pending: Pair<T, ScheduledFuture<*>>? = null
-
     init {
         check(original.mayChange)
     }
+
+    private val executor = if (thread == null) null else PlatformExecutors.executorForCurrentThread()
+
+    @Suppress("UNUSED") @Volatile
+    private var pending: Pair<T, ScheduledFuture<*>>? = null
 
     @Volatile
     override var value: @UnsafeVariance T = original.value
@@ -61,10 +61,15 @@ internal class `Debounced-`<out T>(
             next = Pair(
                     reallyOld,
                     ScheduledDaemonHolder.scheduledDaemon.schedule({
-                        if (thread === null) value = new
-                        else valueUpdater<T>().lazySet(this, new)
-
-                        valueChanged(reallyOld, new, null)
+                        if (thread === null) {
+                            value = new
+                            valueChanged(reallyOld, new, null)
+                        } else {
+                            executor!!.execute {
+                                valueUpdater<T>().lazySet(this, new)
+                                valueChanged(reallyOld, new, null)
+                            }
+                        }
                     }, delay, unit)
             )
         } while (!casPending(prev, next))
@@ -77,14 +82,6 @@ internal class `Debounced-`<out T>(
                 pendingUpdater<T>().lazySet(this, next)
                 true
             }
-
-    override fun addChangeListener(onChange: ChangeListener<T>) {
-        addChangeListenerInternal(ConfinedChangeListener(PlatformExecutors.executorForCurrentThread(), onChange))
-    }
-
-    override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) {
-        addChangeListenerInternal(ConfinedChangeListener(executor, onChange))
-    }
 
     override fun observedStateChanged(observed: Boolean) {
         if (observed) {
