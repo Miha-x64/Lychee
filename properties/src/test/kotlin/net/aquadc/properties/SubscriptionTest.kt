@@ -6,7 +6,6 @@ import net.aquadc.properties.executor.UnconfinedExecutor
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 
 class SubscriptionTest {
@@ -183,24 +182,22 @@ class SubscriptionTest {
         val called = concurrentPropertyOf(false)
         val pool = Executors.newSingleThreadExecutor()
         val prop = propertyOf("", concurrent)
-        val deb = prop.debounced(10, TimeUnit.MILLISECONDS)
+        val mapped = prop.readOnlyView()
         val listener = { _: String, _: String ->
             called.value = true
         }
 
-        deb.addChangeListenerOn(if (confined) pool else UnconfinedExecutor, listener)
+        mapped.addChangeListenerOn(if (confined) pool else UnconfinedExecutor, listener)
 
-        pool.execute {
-            Thread.sleep(25)
-        }
+        pool.execute { Thread.sleep(10) }
 
         prop.value = "new"
 
-        Thread.sleep(15)
+        Thread.sleep(10)
 
-        deb.removeChangeListener(listener)
+        mapped.removeChangeListener(listener)
 
-        Thread.sleep(25)
+        Thread.sleep(10)
         val shouldBeCalled = !confined
         assertEquals(shouldBeCalled, called.value)
         pool.shutdown()
