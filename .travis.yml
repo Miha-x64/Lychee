@@ -13,12 +13,12 @@ before_install:
   - mkdir "$ANDROID_HOME/licenses" || true
   - echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
   # Codacy code coverage reporter
-  - sudo apt-get install jq
-  - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl -s https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url')
+#  - sudo apt-get install jq
+#  - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl -s https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url')
 
 script:
   - ./gradlew clean :properties:test :fx-bindings:test --info --stacktrace
 
-after_success:
-  - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r properties/build/reports/jacoco/test/jacocoTestReport.xml
-  - bash <(curl -s https://codecov.io/bash)
+#after_success:
+#  - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r properties/build/reports/jacoco/test/jacocoTestReport.xml
+#  - bash <(curl -s https://codecov.io/bash)
