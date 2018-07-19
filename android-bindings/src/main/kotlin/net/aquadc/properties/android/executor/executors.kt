@@ -7,6 +7,22 @@ import java.util.concurrent.Executor
 
 
 /**
+ * A factory which creates an [Executor] for current [Looper].
+ */
+object AndroidCurrentLooperExecutorFactory : () -> Executor? {
+
+    /**
+     * Returns new [Handlecutor], if called on a thread with a [Looper].
+     */
+    override fun invoke(): Executor? =
+            Looper.myLooper()?.let(::Handlecutor)
+
+    override fun toString(): String =
+            "AndroidCurrentLooperExecutorFactory(current looper: ${Looper.myLooper()})"
+
+}
+
+/**
  * [Executor] implementation merged with Android's [Handler].
  * Note: `fake-android` module has a class which mimics this class interface, keep in sync.
  */

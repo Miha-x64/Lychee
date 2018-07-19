@@ -1,6 +1,6 @@
 rootProject.name = 'reactive-properties'
 include ':properties'
-include ':fake-android'
+include ':fake-bindings'
 
 include ':logic-sample'
 

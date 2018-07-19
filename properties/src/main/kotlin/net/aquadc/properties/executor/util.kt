@@ -1,8 +1,7 @@
 package net.aquadc.properties.executor
 
-import android.os.Looper
-import javafx.application.Platform
-import net.aquadc.properties.android.executor.Handlecutor
+import net.aquadc.properties.android.executor.AndroidCurrentLooperExecutorFactory
+import net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
 import java.util.*
 import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinTask
@@ -30,27 +29,13 @@ internal object PlatformExecutors {
         val facs = ArrayList<() -> Executor?>(2)
 
         try {
-            Looper.myLooper() // ensure class available
-            facs.add(object : () -> Executor? {
-                override fun invoke(): Executor? =
-                        Looper.myLooper()?.let(::Handlecutor)
-
-                override fun toString(): String =
-                        "AndroidCurrentLooperExecutorFactory(current looper: ${Looper.myLooper()})"
-            })
+            facs.add(AndroidCurrentLooperExecutorFactory)
         } catch (ignored: NoClassDefFoundError) {
             // only Android has handlers, JDK doesn't
         }
 
         try {
-            Platform.isFxApplicationThread() // ensure class available
-            facs.add(object : () -> Executor? {
-                override fun invoke(): Executor? =
-                        if (Platform.isFxApplicationThread()) FxApplicationThreadExecutor else null
-
-                override fun toString(): String =
-                        "JavaFxApplicationThreadExecutorFactory(on application thread: ${Platform.isFxApplicationThread()})"
-            })
+            facs.add(JavaFxApplicationThreadExecutorFactory)
         } catch (ignored: NoClassDefFoundError) {
             // Android and some JDK builds do not contain JavaFX
         }
