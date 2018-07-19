@@ -199,8 +199,8 @@ class MainVm(
 # bindings to design lib whish has 'provided' scope
 -dontwarn android.support.design.widget.**
 
-# safely checking for JavaFX which is not accessible on Android
--dontwarn javafx.application.Platform
+# bindings to JavaFX
+-dontwarn net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
 
 # keep volatile field names for AtomicFieldUpdater
 -keepclassmembernames class net.aquadc.properties.internal.** {
