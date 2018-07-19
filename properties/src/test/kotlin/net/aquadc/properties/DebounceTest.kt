@@ -28,20 +28,11 @@ class DebounceTest {
                 .addChangeListener { _, _ ->  }
     }
 
-    @Test fun onFxThread() {
-        try {
-            PlatformImpl.startup { }
-        } catch (e: UnsupportedOperationException) {
-            throw AssumptionViolatedException("Can't run JavaFX here.", e)
-        }
-        test(JavaFxApplicationThreadExecutorFactory()!!)
-    }
-
     @Test fun onFJ() {
         test(ForkJoinPool(1))
     }
 
-    private fun test(executor: Executor) {
+    fun test(executor: Executor) {
         val conc = concurrentPropertyOf("old")
         val concDeb = conc.debounced(100, TimeUnit.MILLISECONDS)
 
