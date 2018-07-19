@@ -43,11 +43,17 @@ internal object PlatformExecutors {
         try {
             ForkJoinTask.getPool() // ensure class available
             facs.add(object : () -> Executor? {
-                override fun invoke(): Executor? =
-                        ForkJoinTask.getPool() // ForkJoinPool already implements Executor; may be null
+                override fun invoke(): Executor? {
+                    val pool = ForkJoinTask.getPool() ?: return null
+                    return if (pool.parallelism == 1) pool else null
+                }
 
-                override fun toString(): String =
-                        "ForkJoinPoolExecutorFactory(current pool: ${ForkJoinTask.getPool()})"
+                override fun toString(): String {
+                    val pool = ForkJoinTask.getPool() ?: return "ForkJoinPoolExecutorFactory(currently not on FJ pool)"
+                    val parallelism = pool.parallelism
+                    return "ForkJoinPoolExecutorFactory(current pool: $pool, parallelism=$parallelism" +
+                            if (parallelism != 1) " (unsupported))" else ")"
+                }
             })
         } catch (ignored: NoClassDefFoundError) {
             // only JDK 1.7+ and Android 21+ contain FJ
