@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.sample
+package net.aquadc.propertiessampleapp
 
 import android.app.Activity
 
