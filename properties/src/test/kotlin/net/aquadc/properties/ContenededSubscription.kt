@@ -8,6 +8,7 @@ import org.junit.AssumptionViolatedException
 import org.junit.Test
 import java.util.concurrent.Callable
 import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 
@@ -60,12 +61,12 @@ class ContenededSubscription {
         ForkJoinPool.commonPool().invokeAll(List(Runtime.getRuntime().availableProcessors()) {
             Callable {
                 listeners.forEach {
-                    prop.addChangeListener(it)
+                    prop.addUnconfinedChangeListener(it)
                     Thread.yield()
                     prop.removeChangeListener(it)
                 }
             }
-        }).forEach { it.get() }
+        }).forEach(Future<Unit>::get)
 
         original.value = "new"
         assertEquals(false, randomCalled)
