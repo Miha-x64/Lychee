@@ -29,7 +29,10 @@ class DebounceTest {
         test(ForkJoinPool(1))
     }
 
-    fun test(executor: Executor) {
+    /**
+     * FxDebounceTest has copy-paste of this, keep in sync
+     */
+    private fun test(executor: Executor) {
         val conc = concurrentPropertyOf("old")
         val concDeb = conc.debounced(100, TimeUnit.MILLISECONDS)
 
