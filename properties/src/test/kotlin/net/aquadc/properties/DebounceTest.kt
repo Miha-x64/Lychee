@@ -1,9 +1,6 @@
 package net.aquadc.properties
 
-import com.sun.javafx.application.PlatformImpl
-import net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
 import org.junit.Assert.*
-import org.junit.AssumptionViolatedException
 import org.junit.Test
 import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
