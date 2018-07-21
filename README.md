@@ -22,13 +22,11 @@ repositories {
 ```
 dependencies {
     // JVM
-    compile 'net.aquadc.properties:properties:0.0.2'
+    compile 'net.aquadc.properties:properties:0.0.4'
 
     // Android + Gradle 4
-    implementation 'net.aquadc.properties:properties:0.0.2'
-    implementation 'net.aquadc.properties:android-bindings:0.0.2'
-
-    // also requires Kotlin-stdlib to be added into a project
+    implementation 'net.aquadc.properties:android-bindings:0.0.4'
+    // 'net.aquadc.properties:properties:0.0.4' will be added automatically
 }
 ```
 
