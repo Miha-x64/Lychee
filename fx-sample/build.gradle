@@ -10,6 +10,10 @@ dependencies {
     compile 'com.jfoenix:jfoenix:1.4.0'
     compile project(':fx-bindings')
     compile project(':logic-sample')
+
+    compile 'org.xerial:sqlite-jdbc:3.23.1'
+    compile project(':sql')
+    compile 'com.squareup.okio:okio:1.15.0'
 }
 
 compileKotlin {
