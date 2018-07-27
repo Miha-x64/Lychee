@@ -72,8 +72,15 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             vals.forEachIndexed { idx, x -> statement.setObject(idx + 1, x) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
-            check(keys.next())
-            return keys.getObject(1) as ID
+            val id: ID
+            try {
+                check(keys.next())
+                id = keys.getObject(1) as ID
+            } finally {
+                keys.close()
+            }
+            return id
+            // TODO notify
         }
 
         override fun setSuccessful() {
