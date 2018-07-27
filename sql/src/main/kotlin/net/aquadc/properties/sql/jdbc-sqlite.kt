@@ -41,9 +41,12 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
     private fun onTransactionEnd(successful: Boolean) {
         checkNotNull(transaction)
-        if (successful) connection.commit() else connection.rollback()
-        transaction = null
-        lock.writeLock().unlock()
+        try {
+            if (successful) connection.commit() else connection.rollback()
+            transaction = null
+        } finally {
+            lock.writeLock().unlock()
+        }
     }
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") // using finalization guard
