@@ -16,7 +16,7 @@ abstract class `-Notifier`<out T>(thread: Thread?) :
 
     protected fun isBeingObserved(): Boolean =
             if (thread == null) {
-                concStateUpdater().get(this).listeners.any { it != null }
+                concState().get().listeners.any { it != null }
             } else {
                 val lis = nonSyncListeners
                 when (lis) {
