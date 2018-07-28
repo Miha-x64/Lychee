@@ -10,7 +10,7 @@ internal class `BiMapped-`<in A, in B, out T>(
         private val b: Property<B>,
         private val transform: (A, B) -> T
 ) : `Notifier+1AtomicRef`<T, @UnsafeVariance T>(
-        a.isConcurrent || b.isConcurrent, unset()
+        a.isConcurrent && b.isConcurrent, unset()
 ), ChangeListener<Any?> {
 
     init {
