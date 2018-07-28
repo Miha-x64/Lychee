@@ -38,13 +38,6 @@ fun <T, U, R> Property<T>.mapWith(that: Property<U>, transform: (T, U) -> R): Pr
 }
 
 
-/**
- * Return a new [MutableProperty] with value equal to `forward(original.value)`.
- * When mutated, original property receives `backwards(mapped.value)`.
- */
-fun <T, R> MutableProperty<T>.bind(forward: (T) -> R, backwards: (R) -> T): MutableProperty<R> =
-        `Bound-`(this, forward, backwards)
-
 
 /**
  * Calls [func] for each [Property.value] including initial.
