@@ -11,6 +11,7 @@ typealias IdBound = Any // Serializable in some frameworks
 
 interface Session {
     fun beginTransaction(): Transaction
+    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T>
 }
 
 inline fun Session.transaction(block: (Transaction) -> Unit) {
@@ -34,6 +35,10 @@ interface Transaction : AutoCloseable {
 }
 
 class ColValue<REC : Record<REC, *>, T>(val col: Col<REC, T>, val value: T)
+
+/**
+ * Creates a type-safe mapping from a column to its value.
+ */
 @Suppress("NOTHING_TO_INLINE")
 inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T) = ColValue(this, value)
 
@@ -110,25 +115,30 @@ class Col<REC : Record<REC, *>, T>(
 )
 
 abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
-        val table: Table<REC, ID>,
-        val session: Session,
-        val primaryKey: ID
+        private val table: Table<REC, ID>,
+        private val session: Session,
+        private val primaryKey: ID
 ) {
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID>.toOne(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC> =
             TODO()
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
-            TODO()
+            Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> {
+        val joinField = session.fieldOf(this, primaryKey)
+//        val target = joinField.map { pk -> session.select(foreignTable, pk) }
+        TODO()
+    }
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> =
             TODO()
 
-    operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> = TODO()
+    operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> =
+            session.fieldOf(this, primaryKey)
+
 }
 
-// fixme will not be part of lib API
+// fixme may not be part of lib API
 
 inline fun <reified T> t(): Class<T> = T::class.java

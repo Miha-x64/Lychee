@@ -2,9 +2,13 @@
 
 package net.aquadc.properties.sql
 
+import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.internal.Manager
+import net.aquadc.properties.internal.newManagedProperty
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.Statement
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 // TODO: support dialects
@@ -15,6 +19,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     }
 
     private val lock = ReentrantReadWriteLock()
+    private val recordManager = RecordManager()
 
     // transactional things, guarded by write-lock
     private var transaction: JdbcTransaction? = null
@@ -50,7 +55,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     }
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") // using finalization guard
-    inner class JdbcTransaction : java.lang.Object(),  Transaction {
+    private inner class JdbcTransaction : java.lang.Object(),  Transaction {
 
         private val createdAt = Exception()
         private var thread: Thread? = Thread.currentThread()
@@ -104,6 +109,40 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             check(thread == null) {
                 throw IllegalStateException("unclosed transaction being finalized, originally created at", createdAt)
             }
+        }
+
+    }
+
+    override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T> {
+        val tableCols =
+                recordManager.records.getOrPut(col, ::ConcurrentHashMap) as ConcurrentHashMap<Long, MutableProperty<T>>
+
+        if (id !is Long) TODO("non-long keys support")
+        val pk = id
+
+        return tableCols.getOrPut(pk) {
+            newManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, pk)
+        }
+    }
+
+    private inner class RecordManager : Manager<Col<*, *>, Any?> {
+
+        /**
+         * col: records
+         * record: fields
+         */
+        internal val records = ConcurrentHashMap<Col<*, *>, ConcurrentHashMap<Long, MutableProperty<*>>>()
+
+        override fun getDirty(token: Col<*, *>, id: Long): Any? {
+            TODO("getDirty")
+        }
+
+        override fun getClean(token: Col<*, *>, id: Long): Any? {
+            TODO("getClean")
+        }
+
+        override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?, onTransactionEnd: (newValue: Any?) -> Unit): Boolean {
+            TODO("set")
         }
 
     }
