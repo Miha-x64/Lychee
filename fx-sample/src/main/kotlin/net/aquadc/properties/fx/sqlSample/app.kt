@@ -19,10 +19,10 @@ private fun createNeededTables(conn: Connection) {
         conn.createStatement().use { statement ->
             statement.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='${table.name}'").use {
                 if (it.next()) {
-                    println("the table ${table.name} already exists")
+                    println("the table `${table.name}` already exists")
                 } else {
                     create(statement, table)
-                    println("table ${table.name} was created")
+                    println("table `${table.name}` was created")
                 }
             }
         }
