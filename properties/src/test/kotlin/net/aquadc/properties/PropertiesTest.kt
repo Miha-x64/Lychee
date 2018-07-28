@@ -88,4 +88,23 @@ class PropertiesTest {
         assertEquals("b c", new)
     }
 
+    @Test fun concBidiMapped() = bidiMapped(true)
+    @Test fun unsBidiMapped() = bidiMapped(false)
+    private fun bidiMapped(concurrent: Boolean) {
+        val a = propertyOf(10, concurrent)
+
+        val b = a.bind({ 10 * it }, { it / 10 })
+        assertEquals(100, b.value)
+
+        b.value = 10
+        assertEquals(1, a.value)
+
+        val c = b.bind({ it + 50 }, { it - 50})
+        assertEquals(c.value, 60)
+
+        c.value = 130
+        assertEquals(80, b.value)
+        assertEquals(8, a.value)
+    }
+
 }

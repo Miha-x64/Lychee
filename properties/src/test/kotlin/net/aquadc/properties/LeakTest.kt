@@ -61,7 +61,15 @@ class LeakTest {
     @Test fun leakConcDistinct() =
             leak(concurrentPropertyOf(""), { it.distinct(Identity) })
 
-    private fun leak(original: MutableProperty<String>, createForLeak: (Property<String>) -> Property<*>) {
+    @Test fun leakUnsBidi() = leak(propertyOf("a")) { prop ->
+        prop.bind({ "_$it" }, { it: String -> it.substring(1) })
+    }
+
+    @Test fun leakConcBidi() = leak(concurrentPropertyOf("a")) { prop ->
+        prop.bind({ "_$it" }, { it: String -> it.substring(1) })
+    }
+
+    private fun leak(original: MutableProperty<String>, createForLeak: (MutableProperty<String>) -> Property<*>) {
         val ref1 = WeakReference(createForLeak(original))
         // should never hold new property
         assertGarbage(ref1)

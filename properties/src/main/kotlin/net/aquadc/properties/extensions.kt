@@ -3,6 +3,7 @@ package net.aquadc.properties
 
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.Worker
+import net.aquadc.properties.internal.`Bound-`
 import net.aquadc.properties.internal.`BiMapped-`
 import net.aquadc.properties.internal.`Immutable-`
 import net.aquadc.properties.internal.`Mapped-`
@@ -35,6 +36,15 @@ fun <T, U, R> Property<T>.mapWith(that: Property<U>, transform: (T, U) -> R): Pr
     else ->
         `Immutable-`(transform(this.value, that.value))
 }
+
+
+/**
+ * Return a new [MutableProperty] with value equal to `forward(original.value)`.
+ * When mutated, original property receives `backwards(mapped.value)`.
+ */
+fun <T, R> MutableProperty<T>.bind(forward: (T) -> R, backwards: (R) -> T): MutableProperty<R> =
+        `Bound-`(this, forward, backwards)
+
 
 /**
  * Calls [func] for each [Property.value] including initial.
