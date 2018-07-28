@@ -189,7 +189,7 @@ class SubscriptionTest {
 
         mapped.addChangeListenerOn(if (confined) pool else UnconfinedExecutor, listener)
 
-        pool.execute { Thread.sleep(10) }
+        pool.execute { Thread.sleep(20) }
 
         prop.value = "new"
 

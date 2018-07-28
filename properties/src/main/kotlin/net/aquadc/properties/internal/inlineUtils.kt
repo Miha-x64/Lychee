@@ -1,35 +1,35 @@
 package net.aquadc.properties.internal
 
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+import java.util.concurrent.atomic.AtomicReference
 
-// UpdatersKt class wont't ever be loaded because it fully consists of inline functions
+// InlineUtilsKt class wont't ever be loaded because it fully consists of inline functions
 
-internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.update(zis: T, update: (V) -> V) {
+internal inline fun <V> AtomicReference<V>.update(update: (V) -> V) {
     var prev: V
     var next: V
     do {
-        prev = get(zis)
+        prev = get()
         next = update(prev)
-    } while (!compareAndSet(zis, prev, next))
+    } while (!compareAndSet(prev, next))
 }
 
-internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.updateUndGet(zis: T, update: (V) -> V): V {
+internal inline fun <V> AtomicReference<V>.updateUndGet(update: (V) -> V): V {
     var prev: V
     var next: V
     do {
-        prev = get(zis)
+        prev = get()
         next = update(prev)
-    } while (!compareAndSet(zis, prev, next))
+    } while (!compareAndSet(prev, next))
     return next
 }
 
-internal inline fun <T, V> AtomicReferenceFieldUpdater<T, V>.getUndUpdate(obj: T, update: (V) -> V): V {
+internal inline fun <V> AtomicReference<V>.getUndUpdate(update: (V) -> V): V {
     var prev: V
     var next: V
     do {
-        prev = get(obj)
+        prev = get()
         next = update(prev)
-    } while (!compareAndSet(obj, prev, next))
+    } while (!compareAndSet(prev, next))
     return prev
 }
 
