@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * This is a [-Notifier] with extra [AtomicReferenceFieldUpdater].
  * @param REF type of extra atomic ref
  */
-abstract class `Notifier+1AtomicRef`<out T, REF>
+internal abstract class `Notifier+1AtomicRef`<out T, REF>
 internal constructor(concurrent: Boolean, initialRef: REF)
     : `-Notifier`<T>(concurrent) {
 

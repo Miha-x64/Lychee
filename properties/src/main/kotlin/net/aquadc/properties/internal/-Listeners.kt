@@ -7,11 +7,10 @@ import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Base class containing concurrent props' listeners.
- * Despite class is public, this is private API.
  * Used by [-Notifier] and [ConcMutableDiff-].
  * @property thread our thread, or null, if this property is concurrent
  */
-abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReference<Any?>, Property<T> {
+internal abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReference<Any?>, Property<T> {
 
     @JvmField internal val thread: Thread?
 
