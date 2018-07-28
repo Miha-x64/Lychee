@@ -11,7 +11,7 @@ import net.aquadc.properties.Property
 @PublishedApi
 internal class `UnsMutable-`<T>(
         value: T
-) : `-Notifier`<T>(Thread.currentThread()), MutableProperty<T>, ChangeListener<T> {
+) : `-Notifier`<T>(true), MutableProperty<T>, ChangeListener<T> {
 
     var valueRef: T = value
 

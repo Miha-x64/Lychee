@@ -8,7 +8,7 @@ import net.aquadc.properties.addUnconfinedChangeListener
 internal class `Distinct-`<out T>(
         private val original: Property<T>,
         private val areEqual: (T, T) -> Boolean
-) : `-Notifier`<T>(threadIfNot(original.isConcurrent)), ChangeListener<@UnsafeVariance T> {
+) : `-Notifier`<T>(original.isConcurrent), ChangeListener<@UnsafeVariance T> {
 
     init {
         check(original.mayChange)

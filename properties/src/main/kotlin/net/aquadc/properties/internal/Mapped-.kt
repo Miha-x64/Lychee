@@ -11,7 +11,7 @@ internal class `Mapped-`<in O, out T>(
         @JvmField internal val original: Property<@UnsafeVariance O>,
         @JvmField internal val map: (O) -> T,
         mapOn: Worker
-) : `-Notifier`<T>(threadIfNot(original.isConcurrent)) {
+) : `-Notifier`<T>(original.isConcurrent) {
 
     init {
         check(original.mayChange)

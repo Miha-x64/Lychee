@@ -19,7 +19,7 @@ internal class `Debounced-`<out T>(
         original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : `-Notifier`<T>(threadIfNot(original.isConcurrent)) {
+) : `-Notifier`<T>(original.isConcurrent) {
 
     init {
         check(original.mayChange)
