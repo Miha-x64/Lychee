@@ -1,6 +1,7 @@
 rootProject.name = 'reactive-properties'
 include ':properties'
 include ':fake-bindings'
+include ':sql'
 
 include ':logic-sample'
 
