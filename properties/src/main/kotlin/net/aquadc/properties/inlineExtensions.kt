@@ -135,6 +135,13 @@ inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(`C
 inline fun <T> Property<T>.readOnlyView(): Property<T> = map(Just as (T) -> T)
 
 /**
+ * Returns a new [MutableProperty] with value equal to `forward(original.value)`.
+ * When mutated, original property receives `backwards(mapped.value)`.
+ */
+inline fun <T, R> MutableProperty<T>.bind(noinline forward: (T) -> R, noinline backwards: (R) -> T): MutableProperty<R> =
+        `Bound-`(this, forward, backwards)
+
+/**
  * Returns a property which notifies its subscribers only when old and new values are not equal.
  */
 inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean): Property<T> =
