@@ -19,16 +19,15 @@ internal class `Debounced-`<out T>(
         original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : `-Notifier`<T>(original.isConcurrent) {
+) : `Notifier+1AtomicRef`<T, Pair<@UnsafeVariance T, ScheduledFuture<*>>?>(
+        original.isConcurrent, null
+) {
 
     init {
         check(original.mayChange)
     }
 
     private val executor = if (thread == null) null else PlatformExecutors.executorForCurrentThread()
-
-    @Suppress("UNUSED") @Volatile
-    private var pending: Pair<T, ScheduledFuture<*>>? = null
 
     @Volatile
     override var value: @UnsafeVariance T = original.value
@@ -46,7 +45,7 @@ internal class `Debounced-`<out T>(
         var prev: Pair<T, ScheduledFuture<*>>?
         var next: Pair<T, ScheduledFuture<*>>
         do {
-            prev = pendingUpdater<T>().get(this)
+            prev = pendingUpdater().get(this)
 
             // swallow intermediate values
             val reallyOld = if (prev == null) old else {
@@ -77,9 +76,9 @@ internal class `Debounced-`<out T>(
 
     private fun casPending(prev: Pair<T, ScheduledFuture<*>>?, next: Pair<T, ScheduledFuture<*>>): Boolean =
             if (thread === null) {
-                pendingUpdater<T>().compareAndSet(this, prev, next)
+                pendingUpdater().compareAndSet(this, prev, next)
             } else {
-                pendingUpdater<T>().lazySet(this, next)
+                pendingUpdater().lazySet(this, next)
                 true
             }
 
@@ -114,11 +113,8 @@ internal class `Debounced-`<out T>(
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private companion object {
-        @JvmField internal val pendingUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Pair<*, *>> =
-                AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Pair::class.java, "pending")
-
-        private inline fun <T> pendingUpdater() =
-                pendingUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Pair<T, ScheduledFuture<*>>?>
+        private inline fun <T> `Debounced-`<T>.pendingUpdater() =
+                refUpdater()
 
         @JvmField internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
                 AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Any::class.java, "value")

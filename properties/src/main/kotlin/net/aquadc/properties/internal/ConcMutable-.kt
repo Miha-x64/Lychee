@@ -12,10 +12,9 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 @PublishedApi
 internal class `ConcMutable-`<T>(
         value: T
-) : `-Notifier`<T>(true), MutableProperty<T>, ChangeListener<T> {
-
-    @Volatile @Suppress("UNUSED")
-    private var valueRef: Value<T> = Value.Reference(value)
+) : `Notifier+1AtomicRef`<T, Any?>(
+        true, Value.Reference(value)
+), MutableProperty<T>, ChangeListener<T> {
 
     override var value: T
         get() = valueUpdater<T>().get(this).value
@@ -106,13 +105,8 @@ internal class `ConcMutable-`<T>(
         }
     }
 
-    private companion object {
-        @JvmField internal val ValueUpdater: AtomicReferenceFieldUpdater<`ConcMutable-`<*>, Value<*>> =
-                AtomicReferenceFieldUpdater.newUpdater(`ConcMutable-`::class.java, Value::class.java, "valueRef")
-
-        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-        private inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<`ConcMutable-`<T>, Value<T>>
-    }
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+    private inline fun <T> valueUpdater() =
+            refUpdater() as AtomicReferenceFieldUpdater<`ConcMutable-`<T>, Value<T>>
 
 }
