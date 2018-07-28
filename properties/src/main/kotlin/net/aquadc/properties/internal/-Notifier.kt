@@ -11,8 +11,11 @@ import java.util.concurrent.Executor
  * Base class containing concurrent notification logic.
  * Despite class is public, this is private API.
  */
-abstract class `-Notifier`<out T>(thread: Thread?) :
-        `-Listeners`<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(thread) {
+abstract class `-Notifier`<out T>(
+        concurrent: Boolean
+) : `-Listeners`<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(
+        if (concurrent) null else Thread.currentThread()
+) {
 
     protected fun isBeingObserved(): Boolean =
             if (thread == null) {

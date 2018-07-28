@@ -10,7 +10,7 @@ internal class `MultiMapped-`<in A, out T>(
         properties: Collection<Property<A>>,
         private val transform: (List<A>) -> T
 ) : `-Notifier`<T>(
-        threadIfNot(properties.any { it.isConcurrent && it.mayChange })
+        properties.any { it.isConcurrent && it.mayChange }
         // if at least one property is concurrent, we must be ready that
         // it will notify us from a random thread
 ), ChangeListener<A> {

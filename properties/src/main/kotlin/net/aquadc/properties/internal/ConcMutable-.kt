@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 @PublishedApi
 internal class `ConcMutable-`<T>(
         value: T
-) : `-Notifier`<T>(null), MutableProperty<T>, ChangeListener<T> {
+) : `-Notifier`<T>(true), MutableProperty<T>, ChangeListener<T> {
 
     @Volatile @Suppress("UNUSED")
     private var valueRef: Value<T> = Value.Reference(value)

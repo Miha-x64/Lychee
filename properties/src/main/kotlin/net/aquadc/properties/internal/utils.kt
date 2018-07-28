@@ -61,9 +61,6 @@ internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T,
     else lazySet(thisRef, value)
 }
 
-internal fun threadIfNot(concurrent: Boolean): Thread? =
-        if (concurrent) null else Thread.currentThread()
-
 @JvmField internal val Unset = Any()
 
 @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
