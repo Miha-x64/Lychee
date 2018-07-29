@@ -6,8 +6,6 @@ import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.scene.Scene
 import javafx.stage.Stage
-import net.aquadc.properties.fx.fx
-import net.aquadc.properties.mapWith
 import net.aquadc.properties.sql.*
 import java.sql.Connection
 import java.sql.DriverManager
@@ -27,7 +25,7 @@ class SqliteApp : Application() {
                         override fun updateItem(item: Human?, empty: Boolean) {
                             super.updateItem(item, empty)
                             if (item != null) {
-                                textProperty().bind(item.name.mapWith(item.surname) { n, s -> "$n $s" }.fx())
+                                textProperty().set(item.name.value + ' ' + item.surname.value)
                             }
                         }
                     } }
