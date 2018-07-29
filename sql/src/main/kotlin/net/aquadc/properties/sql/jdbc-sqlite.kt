@@ -14,6 +14,7 @@ import java.sql.Statement
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
@@ -129,7 +130,9 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     override fun <REC : Record<REC, ID>, ID : IdBound> select(
             table: Table<REC, ID>, condition: WhereCondition<out REC>
     ): Property<List<REC>> { // TODO DiffProperty
-        val primaryKeys = cachedSelectStmt(selectStatements, false, table, condition).fetchAll<ID>()
+        val primaryKeys = cachedSelectStmt(selectStatements, false, table, condition)
+                .fetchAll<ID>()
+                .toTypedArray<Any>() as Array<ID>
 
         return Selection(this, table, condition, primaryKeys)
                 .let(::propertyOf)
@@ -268,15 +271,12 @@ private fun PreparedStatement.bind(params: ArrayList<Any>) {
         setObject(i + 1, params[i])
 }
 
-private fun <T> ResultSet.fetchAll(): Array<T> {
-    val values = arrayOfNulls<Any>(fetchSize)
-    var idx = 0
+private fun <T> ResultSet.fetchAll(): List<T> {
+    val values = ArrayList<Any>()
     while (next())
-        values[idx++] = getObject(1)
+        values.add(getObject(1))
     close()
-
-    check(idx == values.size)
-    return values as Array<T>
+    return values as List<T>
 }
 
 fun <T> ResultSet.fetchSingle(): T {
