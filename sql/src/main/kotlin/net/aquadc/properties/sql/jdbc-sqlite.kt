@@ -9,10 +9,12 @@ import net.aquadc.properties.internal.newManagedProperty
 import net.aquadc.properties.propertyOf
 import java.sql.Connection
 import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.sql.Statement
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
 // TODO: support dialects
@@ -84,13 +86,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             vals.forEachIndexed { idx, x -> statement.setObject(idx + 1, x) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
-            val id: ID
-            try {
-                check(keys.next())
-                id = keys.getObject(1) as ID
-            } finally {
-                keys.close()
-            }
+            val id: ID = keys.fetchSingle()
             return id
         }
 
@@ -119,40 +115,53 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
     }
 
+
     override fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC? {
         val localId = localId(table, id)
         val records = recordManager.entities.getOrPut(table, ::ConcurrentHashMap) as ConcurrentHashMap<Long, REC>
         return records.getOrPut(localId) { table.create(this, id) } // TODO: check whether exists
     }
 
+
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
     private val selections = Vector<MutableProperty<out Selection<*, *>>>() // coding like in 1995, yay!
 
     override fun <REC : Record<REC, ID>, ID : IdBound> select(
-            table: Table<REC, ID>, condition: WhereCondition<REC>
+            table: Table<REC, ID>, condition: WhereCondition<out REC>
     ): Property<List<REC>> { // TODO DiffProperty
-        val query = selectQuery(table, condition)
-        val params = ArrayList<Any>()
-        condition.appendValuesTo(params)
+        val primaryKeys = cachedSelectStmt(selectStatements, false, table, condition).fetchAll<ID>()
 
-        val stmtCache = selectStatements.getOrSet(::HashMap)
-        val stmt = stmtCache.getOrPut(query) { connection.prepareStatement(query) }
-        for (i in params.indices) {
-            stmt.setObject(i + 1, params[i])
-        }
-        val rs = stmt.executeQuery()
-        val primaryKeys = arrayOfNulls<Any>(rs.fetchSize)
-        var idx = 0
-        while (rs.next())
-            primaryKeys[idx++] = rs.getObject(1)
-        rs.close()
-        check(idx == primaryKeys.size)
-        primaryKeys as Array<ID>
-
-        val prop = propertyOf(Selection(this, table, condition, primaryKeys))
-        selections.add(prop)
-        return prop
+        return Selection(this, table, condition, primaryKeys)
+                .let(::propertyOf)
+                .also { selections.add(it) }
     }
+
+
+    private val countStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
+    private val counts = Vector<MutableProperty<Long>>() // coding like in 1995, yay!
+
+    override fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long> {
+        return cachedSelectStmt(countStatements, true, table, condition)
+                .fetchSingle<Number>()
+                .let { propertyOf(it.toLong()) }
+                .also { counts.add(it) }
+    }
+
+
+    private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
+            statements: ThreadLocal<HashMap<String, PreparedStatement>>,
+            count: Boolean,
+            table: Table<REC, ID>, condition: WhereCondition<out REC>
+    ): ResultSet {
+        val query = selectQuery(count, table, condition)
+
+        return statements
+                .getOrSet(::HashMap)
+                .getOrPut(query) { connection.prepareStatement(query) }
+                .also { it.bind(ArrayList<Any>().also(condition::appendValuesTo)) }
+                .executeQuery()
+    }
+
 
     override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(
             table: Table<REC, ID>, col: Col<REC, T>, id: ID
@@ -217,9 +226,19 @@ private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array
                 .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                 .toString()
 
-private fun <REC : Record<REC, *>> selectQuery(table: Table<REC, *>, condition: WhereCondition<REC>): String =
-        StringBuilder("SELECT ").appendName(table.idCol.name).append(" FROM ").appendName(table.name)
-                .append(" WHERE ").let(condition::appendTo).toString()
+private fun <REC : Record<REC, *>> selectQuery(count: Boolean, table: Table<REC, *>, condition: WhereCondition<out REC>): String {
+    val sb = StringBuilder("SELECT ")
+            .let { if (count) it.append("COUNT(*)") else it.appendName(table.idCol.name) }
+            .append(" FROM ").appendName(table.name)
+            .append(" WHERE ")
+
+    val afterWhere = sb.length
+    condition.appendTo(sb)
+
+    if (sb.length == afterWhere) sb.append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
+
+    return sb.toString()
+}
 
 private fun StringBuilder.appendName(name: String) =
         append('"').append(name.replace("\"", "\"\"")).append('"')
@@ -242,4 +261,29 @@ private fun StringBuilder.appendPlaceholders(count: Int): StringBuilder {
     setLength(length - 2) // trim comma
 
     return this
+}
+
+private fun PreparedStatement.bind(params: ArrayList<Any>) {
+    for (i in params.indices)
+        setObject(i + 1, params[i])
+}
+
+private fun <T> ResultSet.fetchAll(): Array<T> {
+    val values = arrayOfNulls<Any>(fetchSize)
+    var idx = 0
+    while (next())
+        values[idx++] = getObject(1)
+    close()
+
+    check(idx == values.size)
+    return values as Array<T>
+}
+
+fun <T> ResultSet.fetchSingle(): T {
+    try {
+        check(next())
+        return getObject(1) as T
+    } finally {
+        close()
+    }
 }
