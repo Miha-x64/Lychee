@@ -113,21 +113,40 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
     }
 
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T> {
+    override fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC? {
+        val localId = localId(table, id)
+        val records = recordManager.entities.getOrPut(table, ::ConcurrentHashMap) as ConcurrentHashMap<Long, REC>
+        return records.getOrPut(localId) { table.create(this, id) } // TODO: check whether exists
+    }
+
+    override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(
+            table: Table<REC, ID>, col: Col<REC, T>, id: ID
+    ): MutableProperty<T> {
         val tableCols =
                 recordManager.records.getOrPut(col, ::ConcurrentHashMap) as ConcurrentHashMap<Long, MutableProperty<T>>
 
-        if (id !is Long) TODO("non-long keys support")
-        val pk = id
+        val localId = localId(table, id)
 
-        return tableCols.getOrPut(pk) {
-            newManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, pk)
+        return tableCols.getOrPut(localId) {
+            newManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, localId)
         }
+    }
+
+    private fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
+        is Int -> id.toLong()
+        is Long -> id
+        else -> TODO("${id.javaClass} keys support")
     }
 
     private inner class RecordManager : Manager<Col<*, *>, Any?> {
 
-        /**
+        /*
+         * table: records
+         * recordId: record
+         */
+        internal val entities = ConcurrentHashMap<Table<*, *>, ConcurrentHashMap<Long, Any>>()
+
+        /*
          * col: records
          * record: fields
          */

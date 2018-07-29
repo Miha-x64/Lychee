@@ -4,6 +4,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.bind
 import java.util.*
 
 
@@ -11,7 +12,9 @@ typealias IdBound = Any // Serializable in some frameworks
 
 interface Session {
     fun beginTransaction(): Transaction
-    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T>
+
+    fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC?
+    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(table: Table<REC, ID>, col: Col<REC, T>, id: ID): MutableProperty<T>
 }
 
 inline fun Session.transaction(block: (Transaction) -> Unit) {
@@ -24,6 +27,9 @@ inline fun Session.transaction(block: (Transaction) -> Unit) {
     }
 }
 
+fun <REC : Record<REC, ID>, ID : IdBound> Session.require(table: Table<REC, ID>, id: ID): REC =
+        find(table, id) ?: throw IllegalStateException("No record found in `${table.name}` for ID $id")
+
 interface Transaction : AutoCloseable {
 
     val session: Session
@@ -34,13 +40,6 @@ interface Transaction : AutoCloseable {
 
 }
 
-class ColValue<REC : Record<REC, *>, T>(val col: Col<REC, T>, val value: T)
-
-/**
- * Creates a type-safe mapping from a column to its value.
- */
-@Suppress("NOTHING_TO_INLINE")
-inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T) = ColValue(this, value)
 
 abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         val name: String,
@@ -107,37 +106,52 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
 }
 
-class Col<REC : Record<REC, *>, T>(
+
+class Col<REC : Record<REC, *>, out T>(
         val isPrimaryKey: Boolean,
         val name: String,
-        val javaType: Class<T>,
+        val javaType: Class<out T>,
         val isNullable: Boolean
 )
+
 
 abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
         private val table: Table<REC, ID>,
         private val session: Session,
         private val primaryKey: ID
 ) {
+
+    @Suppress("UNCHECKED_CAST") // id is not nullable, so ForeREC won't be, too
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID>.toOne(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC> =
-            TODO()
+            toOneNullable(foreignTable) as MutableProperty<ForeREC>
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> {
-        val joinField = session.fieldOf(this, primaryKey)
-//        val target = joinField.map { pk -> session.select(foreignTable, pk) }
-        TODO()
+        val joinField = session.fieldOf(table, this, primaryKey)
+        return joinField.bind(
+                { id -> if (id == null) null else session.require(foreignTable, id) },
+                { it?.primaryKey }
+        )
     }
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> =
+            Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> = // TODO: diffProperty
             TODO()
 
     operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> =
-            session.fieldOf(this, primaryKey)
+            session.fieldOf(table, this, primaryKey)
 
 }
+
+
+class ColValue<REC : Record<REC, *>, T>(val col: Col<REC, T>, val value: T)
+
+/**
+ * Creates a type-safe mapping from a column to its value.
+ */
+@Suppress("NOTHING_TO_INLINE")
+inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T) = ColValue(this, value)
 
 // fixme may not be part of lib API
 
