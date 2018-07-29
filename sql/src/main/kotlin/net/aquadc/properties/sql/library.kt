@@ -14,7 +14,9 @@ interface Session {
     fun beginTransaction(): Transaction
 
     fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC?
-    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<REC>): Property<List<REC>>
+    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<List<REC>>
+    fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long>
+
     fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(table: Table<REC, ID>, col: Col<REC, T>, id: ID): MutableProperty<T>
 }
 
@@ -30,6 +32,13 @@ inline fun Session.transaction(block: (Transaction) -> Unit) {
 
 fun <REC : Record<REC, ID>, ID : IdBound> Session.require(table: Table<REC, ID>, id: ID): REC =
         find(table, id) ?: throw IllegalStateException("No record found in `${table.name}` for ID $id")
+
+fun <REC : Record<REC, ID>, ID : IdBound> Session.select(table: Table<REC, ID>): Property<List<REC>> =
+        select(table, WhereCondition.Empty)
+
+fun <REC : Record<REC, ID>, ID : IdBound> Session.count(table: Table<REC, ID>): Property<Long> =
+        count(table, WhereCondition.Empty)
+
 
 interface Transaction : AutoCloseable {
 

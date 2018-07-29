@@ -46,8 +46,9 @@ private fun create(statement: Statement, table: Table<*, *>) {
 }
 
 private fun fillIfEmpty(session: Session) {
-    // todo check whether empty
-    session.transaction { transaction ->
-        transaction.insertHuman("Stephen", "Hawking", null)
+    if (session.count(HumanTable).value == 0L) {
+        session.transaction { transaction ->
+            transaction.insertHuman("Stephen", "Hawking", null)
+        }
     }
 }
