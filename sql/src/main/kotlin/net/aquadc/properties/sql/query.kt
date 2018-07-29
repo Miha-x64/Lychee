@@ -43,6 +43,11 @@ interface WhereCondition<REC : Record<REC, *>> {
 
     }
 
+    object Empty : WhereCondition<Nothing> {
+        override fun appendTo(builder: StringBuilder): StringBuilder = builder
+        override fun appendValuesTo(target: MutableList<Any>) = Unit
+    }
+
     // TODO: composite conditions
 
 }
