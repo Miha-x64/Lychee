@@ -138,8 +138,14 @@ inline fun <T> Property<T>.readOnlyView(): Property<T> = map(Just as (T) -> T)
  * Returns a new [MutableProperty] with value equal to `forward(original.value)`.
  * When mutated, original property receives `backwards(mapped.value)`.
  */
-inline fun <T, R> MutableProperty<T>.bind(noinline forward: (T) -> R, noinline backwards: (R) -> T): MutableProperty<R> =
-        `Bound-`(this, forward, backwards)
+inline fun <T, R> MutableProperty<T>.bind(
+        crossinline forward: (T) -> R,
+        crossinline backwards: (R) -> T
+): MutableProperty<R> =
+        `Bound-`(this, object : `Bound-`.TwoWay<T, R> {
+            override fun invoke(p1: T): R = forward.invoke(p1)
+            override fun backwards(arg: R): T = backwards.invoke(arg)
+        })
 
 /**
  * Returns a property which notifies its subscribers only when old and new values are not equal.
