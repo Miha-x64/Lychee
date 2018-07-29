@@ -14,6 +14,7 @@ interface Session {
     fun beginTransaction(): Transaction
 
     fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC?
+    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<REC>): Property<List<REC>>
     fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(table: Table<REC, ID>, col: Col<REC, T>, id: ID): MutableProperty<T>
 }
 
@@ -127,17 +128,15 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
             toOneNullable(foreignTable) as MutableProperty<ForeREC>
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> {
-        val joinField = session.fieldOf(table, this, primaryKey)
-        return joinField.bind(
-                { id -> if (id == null) null else session.require(foreignTable, id) },
-                { it?.primaryKey }
-        )
-    }
+            Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
+            session.fieldOf(table, this, primaryKey).bind(
+                    { id -> if (id == null) null else session.require(foreignTable, id) },
+                    { it?.primaryKey }
+            )
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> = // TODO: diffProperty
-            TODO()
+            Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> =
+            session.select(foreignTable, this eq primaryKey)
 
     operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> =
             session.fieldOf(table, this, primaryKey)
