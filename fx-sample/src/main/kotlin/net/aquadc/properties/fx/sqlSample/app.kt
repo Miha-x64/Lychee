@@ -1,17 +1,51 @@
 package net.aquadc.properties.fx.sqlSample
 
+import com.jfoenix.controls.JFXListCell
+import com.jfoenix.controls.JFXListView
+import javafx.application.Application
+import javafx.collections.FXCollections
+import javafx.scene.Scene
+import javafx.stage.Stage
+import net.aquadc.properties.fx.fx
+import net.aquadc.properties.mapWith
 import net.aquadc.properties.sql.*
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.Statement
 
 
-fun main(args: Array<String>) {
-    DriverManager.getConnection("jdbc:sqlite:sample.db").use { conn ->
-        createNeededTables(conn)
-        val sess = JdbcSqliteSession(conn)
-        fillIfEmpty(sess)
+class SqliteApp : Application() {
+
+    private val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also(::createNeededTables)
+    private val sess = JdbcSqliteSession(connection).also(::fillIfEmpty)
+
+    override fun start(stage: Stage) {
+        stage.scene = Scene(
+                JFXListView<Human>().apply {
+                    items = FXCollections.observableArrayList(sess.select(HumanTable).value)
+                    setCellFactory { object : JFXListCell<Human>() {
+                        override fun updateItem(item: Human?, empty: Boolean) {
+                            super.updateItem(item, empty)
+                            if (item != null) {
+                                textProperty().bind(item.name.mapWith(item.surname) { n, s -> "$n $s" }.fx())
+                            }
+                        }
+                    } }
+                },
+                400.0, 600.0)
+        stage.show()
     }
+
+    override fun stop() {
+        connection.close()
+    }
+
+    companion object {
+        @JvmStatic fun main(args: Array<String>) {
+            launch(SqliteApp::class.java)
+        }
+    }
+
 }
 
 private fun createNeededTables(conn: Connection) {
@@ -49,6 +83,8 @@ private fun fillIfEmpty(session: Session) {
     if (session.count(HumanTable).value == 0L) {
         session.transaction { transaction ->
             transaction.insertHuman("Stephen", "Hawking", null)
+            transaction.insertHuman("Albert", "Einstein", null)
+            transaction.insertHuman("Dmitri", "Mendeleev", null)
         }
     }
 }
