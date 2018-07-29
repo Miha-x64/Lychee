@@ -3,15 +3,20 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.Property
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.newManagedProperty
+import net.aquadc.properties.propertyOf
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.Statement
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.getOrSet
 
 // TODO: support dialects
+// TODO: evicting stale objects
 class JdbcSqliteSession(private val connection: Connection) : Session {
 
     init {
@@ -49,6 +54,8 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         try {
             if (successful) connection.commit() else connection.rollback()
             transaction = null
+
+            // TODO notify
         } finally {
             lock.writeLock().unlock()
         }
@@ -85,7 +92,6 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
                 keys.close()
             }
             return id
-            // TODO notify
         }
 
         override fun setSuccessful() {
@@ -117,6 +123,35 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         val localId = localId(table, id)
         val records = recordManager.entities.getOrPut(table, ::ConcurrentHashMap) as ConcurrentHashMap<Long, REC>
         return records.getOrPut(localId) { table.create(this, id) } // TODO: check whether exists
+    }
+
+    private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
+    private val selections = Vector<MutableProperty<out Selection<*, *>>>() // coding like in 1995, yay!
+
+    override fun <REC : Record<REC, ID>, ID : IdBound> select(
+            table: Table<REC, ID>, condition: WhereCondition<REC>
+    ): Property<List<REC>> { // TODO DiffProperty
+        val query = selectQuery(table, condition)
+        val params = ArrayList<Any>()
+        condition.appendValuesTo(params)
+
+        val stmtCache = selectStatements.getOrSet(::HashMap)
+        val stmt = stmtCache.getOrPut(query) { connection.prepareStatement(query) }
+        for (i in params.indices) {
+            stmt.setObject(i + 1, params[i])
+        }
+        val rs = stmt.executeQuery()
+        val primaryKeys = arrayOfNulls<Any>(rs.fetchSize)
+        var idx = 0
+        while (rs.next())
+            primaryKeys[idx++] = rs.getObject(1)
+        rs.close()
+        check(idx == primaryKeys.size)
+        primaryKeys as Array<ID>
+
+        val prop = propertyOf(Selection(this, table, condition, primaryKeys))
+        selections.add(prop)
+        return prop
     }
 
     override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(
@@ -177,11 +212,14 @@ private fun <REC : Record<REC, *>> scatter(
     }
 }
 
-private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array<Col<REC, *>>): String {
-    return StringBuilder("INSERT INTO ").appendName(table.name)
-            .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
-            .toString()
-}
+private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array<Col<REC, *>>): String =
+        StringBuilder("INSERT INTO ").appendName(table.name)
+                .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
+                .toString()
+
+private fun <REC : Record<REC, *>> selectQuery(table: Table<REC, *>, condition: WhereCondition<REC>): String =
+        StringBuilder("SELECT ").appendName(table.idCol.name).append(" FROM ").appendName(table.name)
+                .append(" WHERE ").let(condition::appendTo).toString()
 
 private fun StringBuilder.appendName(name: String) =
         append('"').append(name.replace("\"", "\"\"")).append('"')
