@@ -17,8 +17,8 @@ object HumanTable : Table<Human, Long>("people", t()) {
     override fun create(session: Session, id: Long): Human = Human(session, id)
 }
 fun Transaction.insertHuman(name: String, surname: String, spouseId: Long?): Human =
-        HumanTable.create(
-                session,
+        session.require(
+                HumanTable,
                 insert(HumanTable, HumanTable.Name - name, HumanTable.Surname - surname, HumanTable.SpouseId - spouseId)
         )
 
