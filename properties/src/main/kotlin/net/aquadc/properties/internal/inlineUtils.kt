@@ -48,5 +48,5 @@ internal inline fun <T> AList(size: Int, init: (Int) -> T): List<T> {
     return (a as Array<T>).asList()
 }
 
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATED")
 internal inline fun <T> unset(): T = Unset as T
