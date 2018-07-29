@@ -61,5 +61,9 @@ internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T,
     else lazySet(thisRef, value)
 }
 
-@JvmField internal val Unset = Any()
-
+/**
+ * Despite this class is public, it is a private API. Don't ever touch this. Never.
+ * Seriously. You're were warned.
+ */
+@[JvmField JvmSynthetic Deprecated("Damn, don't touch this. Really.")]
+val Unset: Any = Any()

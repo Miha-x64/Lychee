@@ -5,6 +5,7 @@ package net.aquadc.properties.sql
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import net.aquadc.properties.internal.Manager
+import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.newManagedProperty
 import net.aquadc.properties.propertyOf
 import java.sql.Connection
@@ -130,7 +131,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     override fun <REC : Record<REC, ID>, ID : IdBound> select(
             table: Table<REC, ID>, condition: WhereCondition<out REC>
     ): Property<List<REC>> { // TODO DiffProperty
-        val primaryKeys = cachedSelectStmt(selectStatements, false, table, condition)
+        val primaryKeys = cachedSelectStmt(selectStatements, table.idCol, table, condition)
                 .fetchAll<ID>()
                 .toTypedArray<Any>() as Array<ID>
 
@@ -144,7 +145,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     private val counts = Vector<MutableProperty<Long>>() // coding like in 1995, yay!
 
     override fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long> {
-        return cachedSelectStmt(countStatements, true, table, condition)
+        return cachedSelectStmt(countStatements, null, table, condition)
                 .fetchSingle<Number>()
                 .let { propertyOf(it.toLong()) }
                 .also { counts.add(it) }
@@ -153,10 +154,10 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
     private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
             statements: ThreadLocal<HashMap<String, PreparedStatement>>,
-            count: Boolean,
+            column: Col<REC, *>?,
             table: Table<REC, ID>, condition: WhereCondition<out REC>
     ): ResultSet {
-        val query = selectQuery(count, table, condition)
+        val query = selectQuery(column, table, condition)
 
         return statements
                 .getOrSet(::HashMap)
@@ -199,12 +200,25 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
          */
         internal val records = ConcurrentHashMap<Col<*, *>, ConcurrentHashMap<Long, MutableProperty<*>>>()
 
+        private val statements = ThreadLocal<HashMap<String, PreparedStatement>>()
+
+        @Suppress("UPPER_BOUND_VIOLATED")
+        private val reusableCond = ThreadLocal<WhereCondition.ColCond<Any, Any>>()
+
         override fun getDirty(token: Col<*, *>, id: Long): Any? {
-            TODO("getDirty")
+            return Unset // todo
         }
 
+        @Suppress("UPPER_BOUND_VIOLATED")
         override fun getClean(token: Col<*, *>, id: Long): Any? {
-            TODO("getClean")
+            val condition = reusableCond.getOrSet {
+                WhereCondition.ColCond<Any, Any>(token as Col<Any, Any>, " = ?", Unset)
+            }
+            condition.col = token.table.idCol as Col<Any, Any>
+            condition.valueOrValues = id
+
+            return cachedSelectStmt<Any, Any>(statements, token as Col<Any, *>, token.table as Table<Any, Any>, condition)
+                    .fetchSingle()
         }
 
         override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?, onTransactionEnd: (newValue: Any?) -> Unit): Boolean {
@@ -229,9 +243,9 @@ private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array
                 .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                 .toString()
 
-private fun <REC : Record<REC, *>> selectQuery(count: Boolean, table: Table<REC, *>, condition: WhereCondition<out REC>): String {
+private fun <REC : Record<REC, *>> selectQuery(column: Col<REC, *>?, table: Table<REC, *>, condition: WhereCondition<out REC>): String {
     val sb = StringBuilder("SELECT ")
-            .let { if (count) it.append("COUNT(*)") else it.appendName(table.idCol.name) }
+            .let { if (column == null) it.append("COUNT(*)") else it.appendName(column.name) }
             .append(" FROM ").appendName(table.name)
             .append(" WHERE ")
 

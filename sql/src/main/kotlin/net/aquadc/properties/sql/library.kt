@@ -107,7 +107,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
     @PublishedApi internal fun <T> col0(pk: Boolean, name: String, type: Class<T>, nullable: Boolean): Col<REC, T> {
         val cols = tmp().first
-        val col = Col<REC, T>(pk, name, type, nullable)
+        val col = Col<REC, T>(this, pk, name, type, nullable)
         cols.add(col)
         return col
     }
@@ -118,6 +118,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
 
 class Col<REC : Record<REC, *>, out T>(
+        val table: Table<REC, *>,
         val isPrimaryKey: Boolean,
         val name: String,
         val javaType: Class<out T>,
@@ -138,7 +139,7 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
-            session.fieldOf(table, this, primaryKey).bind(
+            session.fieldOf(this@Record.table, this, primaryKey).bind(
                     { id -> if (id == null) null else session.require(foreignTable, id) },
                     { it?.primaryKey }
             )
@@ -148,7 +149,7 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
             session.select(foreignTable, this eq primaryKey)
 
     operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> =
-            session.fieldOf(table, this, primaryKey)
+            session.fieldOf(this@Record.table, this, primaryKey)
 
 }
 

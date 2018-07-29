@@ -14,10 +14,10 @@ interface WhereCondition<REC : Record<REC, *>> {
 
     class ColCond<REC : Record<REC, *>, T> : WhereCondition<REC> {
 
-        private val col: Col<REC, T>
+        @JvmField @JvmSynthetic internal var col: Col<REC, T>
         private val op: String
         private val singleValue: Boolean
-        private val valueOrValues: Any
+        @JvmField @JvmSynthetic internal var valueOrValues: Any
 
         constructor(col: Col<REC, T>, op: String, value: Any) {
             this.col = col
