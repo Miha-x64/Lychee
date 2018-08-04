@@ -60,8 +60,10 @@ internal class `UnsMutable-`<T>(
 
     override fun casValue(expect: T, update: T): Boolean {
         checkThread()
-        dropBinding()
-        return if (valueRef === expect) {
+        val sample = sample
+        val actual = if (sample == null) valueRef else sample.value
+        return if (expect === actual) {
+            dropBinding()
             valueRef = update
             valueChanged(expect, update, null)
             true
