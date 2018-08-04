@@ -2,6 +2,7 @@ package net.aquadc.properties.fx.sqlSample
 
 import com.jfoenix.controls.JFXListCell
 import com.jfoenix.controls.JFXListView
+import com.jfoenix.controls.JFXTextField
 import javafx.application.Application
 import javafx.beans.binding.Bindings
 import javafx.beans.property.ReadOnlyObjectProperty
@@ -15,9 +16,8 @@ import javafx.scene.control.ListView
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
+import net.aquadc.properties.*
 import net.aquadc.properties.fx.fx
-import net.aquadc.properties.map
-import net.aquadc.properties.mapWith
 import net.aquadc.properties.sql.*
 import java.sql.Connection
 import java.sql.DriverManager
@@ -31,6 +31,7 @@ class SqliteApp : Application() {
     private val sess = JdbcSqliteSession(connection).also(::fillIfEmpty)
 
     override fun start(stage: Stage) {
+        stage.title = "Sample SQLite application"
         stage.scene = Scene(
                 HBox().apply {
 
@@ -49,17 +50,35 @@ class SqliteApp : Application() {
                         padding = Insets(10.0, 10.0, 10.0, 10.0)
 
                         val selProp: ReadOnlyObjectProperty<Human?> = listView.selectionModel.selectedItemProperty()
-                        children += Label().apply {
+                        val namePatch = propertyOf(mapOf<Human, String>())
+                        namePatch.debounced(300L).onEach { new ->
+                            if (new.isNotEmpty() && namePatch.casValue(new, mapOf())) {
+                                sess.transaction {
+                                    new.forEach { (human, newName) ->
+                                        human.nameProp.value = newName
+                                    }
+                                }
+                            }
+                        }
+
+                        children += JFXTextField().apply {
                             val nameProp = SimpleStringProperty()
                             selProp.addListener { _, _, it ->
                                 nameProp.unbind()
                                 if (it == null) nameProp.set("")
                                 else nameProp.bind(it.nameProp.fx())
                             }
-                            textProperty().bind(nameProp)
+                            disableProperty().bind(selProp.isNull)
+                            selProp.addListener { _, _, human ->
+                                text = human?.nameProp?.value ?: ""
+                            }
+                            textProperty().addListener { _, _, newText ->
+                                namePatch += selProp.value!! to newText
+                            }
                         }
 
                         children += Label().apply {
+                            padding = Insets(10.0, 0.0, 0.0, 0.0)
                             val conditionersProp = SimpleStringProperty()
                             selProp.addListener { _, _, sel ->
                                 conditionersProp.unbind()
