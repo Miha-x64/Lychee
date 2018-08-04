@@ -17,7 +17,7 @@ interface Session {
     fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<List<REC>>
     fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long>
 
-    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(table: Table<REC, ID>, col: Col<REC, T>, id: ID): MutableProperty<T>
+    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T>
 }
 
 inline fun Session.transaction(block: (Transaction) -> Unit) {
@@ -141,7 +141,7 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
-            session.fieldOf(this@Record.table, this, primaryKey).bind(
+            session.fieldOf(this, primaryKey).bind(
                     { id -> if (id == null) null else session.require(foreignTable, id) },
                     { it?.primaryKey }
             )
@@ -151,7 +151,7 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
             session.select(foreignTable, this eq primaryKey)
 
     operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> =
-            session.fieldOf(this@Record.table, this, primaryKey)
+            session.fieldOf(this, primaryKey)
 
 }
 

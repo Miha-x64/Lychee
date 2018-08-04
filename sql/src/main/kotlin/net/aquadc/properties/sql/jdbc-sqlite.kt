@@ -4,9 +4,9 @@ package net.aquadc.properties.sql
 
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
-import net.aquadc.properties.internal.newManagedProperty
 import net.aquadc.properties.propertyOf
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -55,12 +55,20 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     }
 
     private fun onTransactionEnd(successful: Boolean) {
-        checkNotNull(transaction)
+        val transaction = transaction ?: throw AssertionError()
         try {
             if (successful) connection.commit() else connection.rollback()
-            transaction = null
+            this.transaction = null
 
-            // TODO notify
+            transaction.updated?.forEach { (col, pkToVal) ->
+                pkToVal.forEach { (pk, value) ->
+                    @Suppress("UPPER_BOUND_VIOLATED")
+                    fieldOfInternal<Any?, Any?, Any?>(col as Col<Any?, Any?>, pk).commit(value)
+                }
+            }
+            transaction.inserted?.forEach { (table, pk) ->
+                // todo
+            }
         } finally {
             lock.writeLock().unlock()
         }
@@ -196,17 +204,19 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
                 .executeQuery()
     }
 
+    override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T> =
+            fieldOfInternal(col, id) // just erase type
 
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(
-            table: Table<REC, ID>, col: Col<REC, T>, id: ID
-    ): MutableProperty<T> {
+    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOfInternal(
+            col: Col<REC, T>, id: ID
+    ): ManagedProperty<T, Col<REC, T>> {
         val tableCols =
-                recordManager.records.getOrPut(col, ::ConcurrentHashMap) as ConcurrentHashMap<Long, MutableProperty<T>>
+                recordManager.records.getOrPut(col, ::ConcurrentHashMap) as ConcurrentHashMap<Long, ManagedProperty<T, Col<REC, T>>>
 
-        val localId = localId(table, id)
+        val localId = localId(col.table as Table<REC, ID>, id)
 
         return tableCols.getOrPut(localId) {
-            newManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, localId)
+            ManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, localId)
         }
     }
 
@@ -232,7 +242,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
          * col: records
          * record: fields
          */
-        internal val records = ConcurrentHashMap<Col<*, *>, ConcurrentHashMap<Long, MutableProperty<*>>>()
+        internal val records = ConcurrentHashMap<Col<*, *>, ConcurrentHashMap<Long, ManagedProperty<*, *>>>()
 
         private val statements = ThreadLocal<HashMap<String, PreparedStatement>>()
 
@@ -260,7 +270,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         }
 
         @Suppress("UPPER_BOUND_VIOLATED")
-        override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?, onTransactionEnd: (newValue: Any?) -> Unit): Boolean {
+        override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?): Boolean {
             val transaction = transaction ?: throw IllegalStateException("This can be performed only within a transaction")
             getDirty(token, id).let {
                 if (it === Unset) {
