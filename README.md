@@ -56,6 +56,7 @@ Properties (subjects) inspired by JavaFX MVVM-like approach.
   based on [lightningkite/kotlin-anko](https://github.com/lightningkite/kotlin-anko) (depends on Anko and AppCompat)
   and [lightningkite/kotlin-observable](https://github.com/lightningkite/kotlin-observable),
   [UnknownJoe796/kotlin-components-starter](https://github.com/UnknownJoe796/kotlin-components-starter)
+* [MarcinMoskala/KotlinAndroidViewBindings](https://github.com/MarcinMoskala/KotlinAndroidViewBindings)
 
 ## Sample
 
