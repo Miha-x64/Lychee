@@ -33,16 +33,17 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     // transactional things, guarded by write-lock
     private var transaction: JdbcTransaction? = null
     private val insertStatements = HashMap<Pair<Table<*, *>, List<Col<*, *>>>, PreparedStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *>, Col<*, *>>, PreparedStatement>()
 
-    private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement {
-        val cacheKey = Pair(table, cols.asList())
-        val cached = insertStatements[cacheKey]
-        if (cached != null) return cached
+    private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement =
+            insertStatements.getOrPut(Pair(table, cols.asList())) {
+                connection.prepareStatement(insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
+            }
 
-        val stmt = connection.prepareStatement(insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
-        insertStatements[cacheKey] = stmt
-        return stmt
-    }
+    private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): PreparedStatement =
+            updateStatements.getOrPut(Pair(table, col)) {
+                connection.prepareStatement(updateQuery(table, col))
+            }
 
     override fun beginTransaction(): Transaction {
         val wLock = lock.writeLock()
@@ -75,6 +76,12 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         override val session: Session
             get() = this@JdbcSqliteSession
 
+        // table : primary keys
+        internal var inserted: HashMap<Table<*, *>, ArrayList<Any>>? = null
+
+        // column : primary key : value
+        internal var updated: HashMap<Col<*, *>, HashMap<Any, Any?>>? = null
+
         override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, vararg contentValues: ColValue<REC, *>): ID {
             checkOpenAndThread()
 
@@ -89,7 +96,30 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
             val id: ID = keys.fetchSingle()
+
+            inserted ?: HashMap<Table<*, *>, ArrayList<Any>>().also { inserted = it }
+                    .getOrPut(table, ::ArrayList)
+                    .add(id)
+
+            // writes all insertion fields as updates
+            val updated = updated ?: HashMap<Col<*, *>, HashMap<Any, Any?>>().also { updated = it }
+            contentValues.forEach {
+                updated.getOrPut(it.col, ::HashMap)[it.col] = it.value
+            }
+
             return id
+        }
+
+        override fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T) {
+            checkOpenAndThread()
+
+            val statement = updateStatementWLocked(table, column)
+            statement.setObject(1, value)
+            statement.setObject(2, id)
+            check(statement.executeUpdate() == 1)
+
+            (updated ?: HashMap<Col<*, *>, HashMap<Any, Any?>>().also { updated = it })
+                    .getOrPut(column, ::HashMap)[id] = value
         }
 
         override fun setSuccessful() {
@@ -186,6 +216,10 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         else -> TODO("${id.javaClass} keys support")
     }
 
+    private fun <ID : IdBound> dbId(table: Table<*, ID>, localId: Long): ID =
+            localId as ID
+
+
     private inner class RecordManager : Manager<Col<*, *>, Any?> {
 
         /*
@@ -206,7 +240,11 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         private val reusableCond = ThreadLocal<WhereCondition.ColCond<Any, Any>>()
 
         override fun getDirty(token: Col<*, *>, id: Long): Any? {
-            return Unset // todo
+            val transaction = transaction ?: return Unset
+
+            val thisCol = transaction.updated?.get(token) ?: return Unset
+            val primaryKey = dbId(token.table, id)
+            return if (thisCol.containsKey(primaryKey)) thisCol[primaryKey] else Unset
         }
 
         @Suppress("UPPER_BOUND_VIOLATED")
@@ -221,8 +259,10 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
                     .fetchSingle()
         }
 
+        @Suppress("UPPER_BOUND_VIOLATED")
         override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?, onTransactionEnd: (newValue: Any?) -> Unit): Boolean {
-            TODO("set")
+            transaction!!.update<Any?, Any?, Any?>(token.table as Table<Any?, Any?>, dbId<Any?>(token.table, id), token as Col<Any?, Any?>, update) // TODO: check expected
+            return true
         }
 
     }
@@ -241,6 +281,11 @@ private fun <REC : Record<REC, *>> scatter(
 private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array<Col<REC, *>>): String =
         StringBuilder("INSERT INTO ").appendName(table.name)
                 .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
+                .toString()
+
+private fun <REC : Record<REC, *>> updateQuery(table: Table<REC, *>, col: Col<REC, *>): String =
+        StringBuilder("UPDATE ").appendName(table.name)
+                .append(" SET ").appendName(col.name).append(" = ? WHERE ").appendName(table.idCol.name).append(" = ?;")
                 .toString()
 
 private fun <REC : Record<REC, *>> selectQuery(column: Col<REC, *>?, table: Table<REC, *>, condition: WhereCondition<out REC>): String {

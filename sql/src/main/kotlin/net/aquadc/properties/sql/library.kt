@@ -46,6 +46,8 @@ interface Transaction : AutoCloseable {
 
     fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, vararg contentValues: ColValue<REC, *>): ID
 
+    fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T)
+
     fun setSuccessful()
 
 }
@@ -129,7 +131,7 @@ class Col<REC : Record<REC, *>, out T>(
 abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
         private val table: Table<REC, ID>,
         private val session: Session,
-        private val primaryKey: ID
+        val primaryKey: ID
 ) {
 
     @Suppress("UNCHECKED_CAST") // id is not nullable, so ForeREC won't be, too
