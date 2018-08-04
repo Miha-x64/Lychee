@@ -14,13 +14,13 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
         // comment out the following to disable Android modules and work normally with Java modules
-//        classpath 'com.android.tools.build:gradle:3.1.3'
-//        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.2'
-//        classpath 'org.jetbrains.dokka:dokka-android-gradle-plugin:0.9.16'
+        classpath 'com.android.tools.build:gradle:3.1.3'
+        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.2'
+        classpath 'org.jetbrains.dokka:dokka-android-gradle-plugin:0.9.17'
 
-        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.16'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.1'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
 
