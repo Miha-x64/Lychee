@@ -1,16 +1,18 @@
 package net.aquadc.properties.internal
 
+import android.support.annotation.RestrictTo
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 
 /**
  * A property whose value can be changed inside a transaction.
  */
-@PublishedApi internal class ManagedProperty<T, TOKN>(
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+class ManagedProperty<T, TOKN>(
         private val manager: Manager<TOKN, T>,
         private val token: TOKN,
         private val id: Long
-) : `Notifier+1AtomicRef`<T, T>(true, unset()), MutableProperty<T>, (@ParameterName("newValue") T) -> Unit {
+) : `Notifier+1AtomicRef`<T, T>(true, unset()), MutableProperty<T> {
 
     override var value: T
         get() {
@@ -45,7 +47,7 @@ import net.aquadc.properties.Property
         val clean = if (ref === Unset) manager.getClean(token, id) else Unset
         // after mutating dirty state we won't be able to see the clean one, so preserve it
 
-        val success = manager.set(token, id, expect, update, this)
+        val success = manager.set(token, id, expect, update)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
@@ -54,7 +56,7 @@ import net.aquadc.properties.Property
         return success
     }
 
-    override fun invoke(newValue: T) {
+    fun commit(newValue: T) {
         if (newValue !== Unset) {
             // the transaction was committed
 
@@ -82,12 +84,7 @@ interface Manager<TOKN, T> {
 
     /**
      * Set, if [expected] === [Unset]; CAS otherwise.
-     * @param onTransactionEnd will be invoked after transaction end;
-     *   param newValue: new value, if transaction was committed, or [Unset], if it was rolled back
      * @return if write was successful; simple sets are always successful, even if current value is already equal to [update].
      */
-    fun set(token: TOKN, id: Long, expected: Any?, update: T, onTransactionEnd: (newValue: T) -> Unit): Boolean
+    fun set(token: TOKN, id: Long, expected: Any?, update: T): Boolean
 }
-
-inline fun <T, TOKN> newManagedProperty(manager: Manager<TOKN, T>, token: TOKN, id: Long): MutableProperty<T> =
-        ManagedProperty(manager, token, id)
