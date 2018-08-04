@@ -45,7 +45,7 @@ import net.aquadc.properties.Property
         val clean = if (ref === Unset) manager.getClean(token, id) else Unset
         // after mutating dirty state we won't be able to see the clean one, so preserve it
 
-        val success = manager.set(token, id, expect, value, this)
+        val success = manager.set(token, id, expect, update, this)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
