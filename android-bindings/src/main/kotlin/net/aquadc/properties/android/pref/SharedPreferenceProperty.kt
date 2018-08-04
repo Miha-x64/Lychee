@@ -19,7 +19,7 @@ class SharedPreferenceProperty<T>(
         private val key: String,
         private val defaultValue: T,
         private val adapter: PrefAdapter<T>
-) : `-Notifier`<T>(null), MutableProperty<T> {
+) : `-Notifier`<T>(true), MutableProperty<T> {
 
     // we need a strong reference because shared prefs holding a weak one
     private val changeListener = object :

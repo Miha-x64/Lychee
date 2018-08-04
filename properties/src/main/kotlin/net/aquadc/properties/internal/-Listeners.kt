@@ -1,5 +1,6 @@
 package net.aquadc.properties.internal
 
+import android.support.annotation.RestrictTo
 import net.aquadc.properties.Property
 import java.util.concurrent.atomic.AtomicReference
 
@@ -8,10 +9,13 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * Base class containing concurrent props' listeners.
  * Used by [-Notifier] and [ConcMutableDiff-].
- * @property thread our thread, or null, if this property is concurrent
  */
-internal abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReference<Any?>, Property<T> {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReference<Any?>, Property<T> {
 
+    /**
+     * our thread, or null, if this property is concurrent
+     */
     @JvmField internal val thread: Thread?
 
     /**
