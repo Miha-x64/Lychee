@@ -12,26 +12,24 @@ object HumanTable : Table<Human, Long>("people", t()) {
     val Id = idCol("_id")
     val Name = col<String>("name")
     val Surname = col<String>("surname")
-    val SpouseId = nullableCol<Long>("spouse_id")
 
     override fun create(session: Session, id: Long): Human = Human(session, id)
 }
-fun Transaction.insertHuman(name: String, surname: String, spouseId: Long?): Human =
+fun Transaction.insertHuman(name: String, surname: String): Human =
         session.require(
                 HumanTable,
-                insert(HumanTable, HumanTable.Name - name, HumanTable.Surname - surname, HumanTable.SpouseId - spouseId)
+                insert(HumanTable, HumanTable.Name - name, HumanTable.Surname - surname)
         )
 
 class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, session, id) {
-    val name = HumanTable.Name()
-    val surname = HumanTable.Surname()
-    val spouse = HumanTable.SpouseId toOneNullable HumanTable
-    val cars = CarTable.OwnerId toMany CarTable
+    val nameProp = HumanTable.Name()
+    val surnameProp = HumanTable.Surname()
+    val carsProp = CarTable.OwnerId toMany CarTable
 
     private val leftFriends = FriendTable.RightId toMany FriendTable
     private val rightFriends = FriendTable.LeftId toMany FriendTable
     val friends = leftFriends.mapWith(rightFriends) { l, r ->
-        l.map(Friendship::left) + r.map(Friendship::right)
+        l.map(Friendship::leftProp) + r.map(Friendship::rightProp)
     } // TODO: a query like `SELECT * FROM friends WHERE left = ? OR right = ?`
 }
 
@@ -46,9 +44,11 @@ object CarTable : Table<Car, Long>("cars", t()) {
 }
 
 class Car(session: Session, id: Long) : Record<Car, Long>(CarTable, session, id) {
-    val owner = CarTable.OwnerId toOne HumanTable
+    val ownerProp = CarTable.OwnerId toOne HumanTable
+    val conditionerModelProp = CarTable.ConditionerModel()
 }
-
+fun Transaction.insertCar(owner: Human): Car =
+        session.require(CarTable, insert(CarTable, CarTable.OwnerId - owner.primaryKey))
 
 
 object FriendTable : Table<Friendship, Long>("friends", t()) {
@@ -60,6 +60,6 @@ object FriendTable : Table<Friendship, Long>("friends", t()) {
 }
 
 class Friendship(session: Session, id: Long) : Record<Friendship, Long>(FriendTable, session, id) {
-    val left = FriendTable.LeftId toOne HumanTable
-    val right = FriendTable.RightId toOne HumanTable
+    val leftProp = FriendTable.LeftId toOne HumanTable
+    val rightProp = FriendTable.RightId toOne HumanTable
 }
