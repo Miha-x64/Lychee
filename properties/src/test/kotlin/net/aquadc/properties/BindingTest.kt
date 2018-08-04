@@ -1,7 +1,7 @@
 package net.aquadc.properties
 
 import net.aquadc.properties.executor.UnconfinedExecutor
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Test
 
 
@@ -42,6 +42,13 @@ class BindingTest {
 
         newSample.value = "bound to this"
         assertEquals("bound to this", mutable.value)
+
+        assertFalse(mutable.casValue("bound to dis", "whatever"))
+        assertTrue(mutable.casValue("bound to this", "whatever"))
+        assertEquals("whatever", mutable.value)
+
+        newSample.value = "should not propagate to 'mutable'"
+        assertEquals("whatever", mutable.value)
     }
 
     @Test fun concBindingToImmutable() = bindingToImmutable(true)
