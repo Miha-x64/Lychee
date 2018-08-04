@@ -40,7 +40,7 @@ internal fun <T : Any> Array<out T?>.withoutNulls(canonicalEmptyArray: Array<T>?
 /**
  * Compacts array, where null means 'empty'.
  * @return index of first empty index after compaction, or -1, if none
- * @implNote copied from [java.util.ArrayList]
+ * @implNote copied from [java.util.ArrayList.batchRemove]
  */
 internal fun <T> Array<T?>.compact(): Int {
     var head = 0
