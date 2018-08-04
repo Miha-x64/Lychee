@@ -1,5 +1,6 @@
 package net.aquadc.properties.internal
 
+import android.support.annotation.RestrictTo
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
@@ -10,7 +11,8 @@ import java.util.concurrent.Executor
 /**
  * Base class containing concurrent notification logic.
  */
-internal abstract class `-Notifier`<out T>(
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+abstract class `-Notifier`<out T>(
         concurrent: Boolean
 ) : `-Listeners`<T, Nothing?, ChangeListener<@UnsafeVariance T>, @UnsafeVariance T>(
         if (concurrent) null else Thread.currentThread()
