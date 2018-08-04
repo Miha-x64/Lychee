@@ -261,7 +261,15 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
         @Suppress("UPPER_BOUND_VIOLATED")
         override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?, onTransactionEnd: (newValue: Any?) -> Unit): Boolean {
-            transaction!!.update<Any?, Any?, Any?>(token.table as Table<Any?, Any?>, dbId<Any?>(token.table, id), token as Col<Any?, Any?>, update) // TODO: check expected
+            val transaction = transaction ?: throw IllegalStateException("This can be performed only within a transaction")
+            getDirty(token, id).let {
+                if (it === Unset) {
+                    if (getClean(token, id) === update) return true
+                } else {
+                    if (it === update) return true
+                }
+            }
+            transaction.update<Any?, Any?, Any?>(token.table as Table<Any?, Any?>, dbId<Any?>(token.table, id), token as Col<Any?, Any?>, update) // TODO: check expected
             return true
         }
 
