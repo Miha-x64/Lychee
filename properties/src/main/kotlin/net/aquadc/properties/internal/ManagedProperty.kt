@@ -84,7 +84,7 @@ interface Manager<TOKN, T> {
      * Set, if [expected] === [Unset]; CAS otherwise.
      * @param onTransactionEnd will be invoked after transaction end;
      *   param newValue: new value, if transaction was committed, or [Unset], if it was rolled back
-     * @return if write was successful; simple sets are always successful.
+     * @return if write was successful; simple sets are always successful, even if current value is already equal to [update].
      */
     fun set(token: TOKN, id: Long, expected: Any?, update: T, onTransactionEnd: (newValue: T) -> Unit): Boolean
 }
