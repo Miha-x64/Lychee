@@ -61,10 +61,14 @@ class ManagedProperty<T, TOKN>(
             // the transaction was committed
 
             val oldValue = ref
-            check(oldValue !== Unset) // we've saved it earlier
             ref = newValue
 
-            valueChanged(oldValue, newValue, null)
+            valueChanged(
+                    // when just created, oldValue === Unset, so just say we've changed from 'new' to 'new'
+                    if (oldValue === Unset) newValue else oldValue,
+                    newValue,
+                    null
+            )
         }
     }
 
