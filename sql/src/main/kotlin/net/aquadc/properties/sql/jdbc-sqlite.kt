@@ -61,9 +61,12 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             this.transaction = null
 
             transaction.updated?.forEach { (col, pkToVal) ->
-                pkToVal.forEach { (pk, value) ->
+                pkToVal.forEach { (localId, value) ->
                     @Suppress("UPPER_BOUND_VIOLATED")
-                    fieldOfInternal<Any?, Any?, Any?>(col as Col<Any?, Any?>, pk).commit(value)
+                    (recordManager.entities[col.table]?.get(localId) as Record<Any?, IdBound>?)
+                            ?.fields
+                            ?.get(col.ordinal)
+                            ?.commit(value)
                 }
             }
             transaction.inserted?.forEach { (table, pk) ->
@@ -87,8 +90,8 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         // table : primary keys
         internal var inserted: HashMap<Table<*, *>, ArrayList<Any>>? = null
 
-        // column : primary key : value
-        internal var updated: HashMap<Col<*, *>, HashMap<Any, Any?>>? = null
+        // column : localId : value
+        internal var updated: HashMap<Col<*, *>, HashMap<Long, Any?>>? = null
 
         override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, vararg contentValues: ColValue<REC, *>): ID {
             checkOpenAndThread()
@@ -110,9 +113,9 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
                     .add(id)
 
             // writes all insertion fields as updates
-            val updated = updated ?: HashMap<Col<*, *>, HashMap<Any, Any?>>().also { updated = it }
+            val updated = updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it }
             contentValues.forEach {
-                updated.getOrPut(it.col, ::HashMap)[it.col] = it.value
+                updated.getOrPut(it.col, ::HashMap)[localId(it.col.table as Table<*, ID>, id)] = it.value
             }
 
             return id
@@ -126,8 +129,8 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             statement.setObject(2, id)
             check(statement.executeUpdate() == 1)
 
-            (updated ?: HashMap<Col<*, *>, HashMap<Any, Any?>>().also { updated = it })
-                    .getOrPut(column, ::HashMap)[id] = value
+            (updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it })
+                    .getOrPut(column, ::HashMap)[localId(table, id)] = value
         }
 
         override fun setSuccessful() {
@@ -204,20 +207,9 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
                 .executeQuery()
     }
 
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T> =
-            fieldOfInternal(col, id) // just erase type
-
-    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOfInternal(
-            col: Col<REC, T>, id: ID
-    ): ManagedProperty<T, Col<REC, T>> {
-        val tableCols =
-                recordManager.records.getOrPut(col, ::ConcurrentHashMap) as ConcurrentHashMap<Long, ManagedProperty<T, Col<REC, T>>>
-
+    override fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<T, Col<REC, T>> {
         val localId = localId(col.table as Table<REC, ID>, id)
-
-        return tableCols.getOrPut(localId) {
-            ManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, localId)
-        }
+        return ManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, localId)
     }
 
     private fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
@@ -236,13 +228,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
          * table: records
          * recordId: record
          */
-        internal val entities = ConcurrentHashMap<Table<*, *>, ConcurrentHashMap<Long, Any>>()
-
-        /*
-         * col: records
-         * record: fields
-         */
-        internal val records = ConcurrentHashMap<Col<*, *>, ConcurrentHashMap<Long, ManagedProperty<*, *>>>()
+        internal val entities = ConcurrentHashMap<Table<*, *>, ConcurrentHashMap<Long, Record<*, *>>>()
 
         private val statements = ThreadLocal<HashMap<String, PreparedStatement>>()
 

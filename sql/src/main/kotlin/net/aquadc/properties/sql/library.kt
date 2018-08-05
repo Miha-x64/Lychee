@@ -5,6 +5,7 @@ package net.aquadc.properties.sql
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import net.aquadc.properties.bind
+import net.aquadc.properties.internal.ManagedProperty
 import java.util.*
 
 
@@ -17,7 +18,11 @@ interface Session {
     fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<List<REC>>
     fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long>
 
-    fun <REC : Record<REC, ID>, ID : IdBound, T> fieldOf(col: Col<REC, T>, id: ID): MutableProperty<T>
+    /**
+     * TODO KDoc
+     * Note: returned [Property] is not managed itself, but only when it is within a [Record].
+     */
+    fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<T, Col<REC, T>>
 }
 
 inline fun Session.transaction(block: (Transaction) -> Unit) {
@@ -109,7 +114,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
     @PublishedApi internal fun <T> col0(pk: Boolean, name: String, type: Class<T>, nullable: Boolean): Col<REC, T> {
         val cols = tmp().first
-        val col = Col<REC, T>(this, pk, name, type, nullable)
+        val col = Col<REC, T>(this, pk, name, type, nullable, cols.size)
         cols.add(col)
         return col
     }
@@ -124,15 +129,25 @@ class Col<REC : Record<REC, *>, out T>(
         val isPrimaryKey: Boolean,
         val name: String,
         val javaType: Class<out T>,
-        val isNullable: Boolean
+        val isNullable: Boolean,
+        val ordinal: Int
 )
 
 
+/**
+ * Represents an active record — a container with some properties.
+ */
 abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
         private val table: Table<REC, ID>,
         private val session: Session,
         val primaryKey: ID
 ) {
+
+    @JvmField @JvmSynthetic
+    internal val fields = table.columns.mapToArray { session.createFieldOf(it, primaryKey) }
+
+    operator fun <T> get(col: Col<REC, T>): MutableProperty<T> =
+            fields[col.ordinal] as MutableProperty<T>
 
     @Suppress("UNCHECKED_CAST") // id is not nullable, so ForeREC won't be, too
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
@@ -141,7 +156,7 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
-            session.fieldOf(this, primaryKey).bind(
+            session.createFieldOf(this, primaryKey).bind(
                     { id -> if (id == null) null else session.require(foreignTable, id) },
                     { it?.primaryKey }
             )
@@ -149,9 +164,6 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> =
             session.select(foreignTable, this eq primaryKey)
-
-    operator fun <U> Col<REC, U>.invoke(): MutableProperty<U> =
-            session.fieldOf(this, primaryKey)
 
 }
 
@@ -167,3 +179,11 @@ inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T) = ColV
 // fixme may not be part of lib API
 
 inline fun <reified T> t(): Class<T> = T::class.java
+
+inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
+    val array = arrayOfNulls<R>(size)
+    for (i in indices) {
+        array[i] = transform(this[i])
+    }
+    return array as Array<R>
+}
