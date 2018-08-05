@@ -22,8 +22,8 @@ fun Transaction.insertHuman(name: String, surname: String): Human =
         )
 
 class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, session, id) {
-    val nameProp = HumanTable.Name()
-    val surnameProp = HumanTable.Surname()
+    val nameProp get() = this[HumanTable.Name]
+    val surnameProp get() = this[HumanTable.Surname]
     val carsProp = CarTable.OwnerId toMany CarTable
 
     private val leftFriends = FriendTable.RightId toMany FriendTable
@@ -45,7 +45,7 @@ object CarTable : Table<Car, Long>("cars", t()) {
 
 class Car(session: Session, id: Long) : Record<Car, Long>(CarTable, session, id) {
     val ownerProp = CarTable.OwnerId toOne HumanTable
-    val conditionerModelProp = CarTable.ConditionerModel()
+    val conditionerModelProp get() = this[CarTable.ConditionerModel]
 }
 fun Transaction.insertCar(owner: Human): Car =
         session.require(CarTable, insert(CarTable, CarTable.OwnerId - owner.primaryKey))
