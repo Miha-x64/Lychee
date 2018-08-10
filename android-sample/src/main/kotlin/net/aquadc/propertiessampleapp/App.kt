@@ -7,8 +7,8 @@ import com.squareup.leakcanary.LeakCanary
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.android.pref.PrefAdapter
 import net.aquadc.properties.android.pref.SharedPreferenceProperty
-import net.aquadc.properties.sample.logic.User
-import net.aquadc.properties.sample.logic.defaultUser
+import net.aquadc.propertiesSampleLogic.User
+import net.aquadc.propertiesSampleLogic.defaultUser
 
 
 class App : Application() {

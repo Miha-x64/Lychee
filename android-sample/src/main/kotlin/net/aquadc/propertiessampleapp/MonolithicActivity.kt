@@ -8,7 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import net.aquadc.properties.android.simple.SimpleTextWatcher
-import net.aquadc.properties.sample.logic.User
+import net.aquadc.propertiesSampleLogic.User
 import org.jetbrains.anko.*
 
 class MonolithicActivity : Activity() {

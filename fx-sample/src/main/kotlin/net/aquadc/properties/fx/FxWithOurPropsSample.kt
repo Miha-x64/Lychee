@@ -4,8 +4,8 @@ import javafx.application.Application
 import javafx.scene.Scene
 import javafx.stage.Stage
 import net.aquadc.properties.concurrentPropertyOf
-import net.aquadc.properties.sample.logic.MainVm
-import net.aquadc.properties.sample.logic.defaultUser
+import net.aquadc.propertiesSampleLogic.MainVm
+import net.aquadc.propertiesSampleLogic.defaultUser
 
 class FxWithOurPropsSample : Application() {
 

@@ -1,4 +1,4 @@
-package net.aquadc.properties.sample.logic
+package net.aquadc.propertiesSampleLogic
 
 
 data class User(

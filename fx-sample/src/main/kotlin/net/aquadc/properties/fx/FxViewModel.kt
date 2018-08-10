@@ -5,7 +5,7 @@ import javafx.beans.binding.StringBinding
 import javafx.beans.binding.When
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
-import net.aquadc.properties.sample.logic.User
+import net.aquadc.propertiesSampleLogic.User
 import java.util.concurrent.Callable
 
 class FxViewModel(
