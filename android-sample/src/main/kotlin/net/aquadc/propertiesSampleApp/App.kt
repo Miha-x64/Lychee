@@ -1,4 +1,4 @@
-package net.aquadc.propertiessampleapp
+package net.aquadc.propertiesSampleApp
 
 import android.app.Application
 import android.content.SharedPreferences
