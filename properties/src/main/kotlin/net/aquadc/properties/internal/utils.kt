@@ -69,7 +69,7 @@ internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T,
 val Unset: Any = Any()
 
 @[JvmField JvmSynthetic] internal val RefUpdater: AtomicReferenceFieldUpdater<*, *> =
-        AtomicReferenceFieldUpdater.newUpdater(`Notifier+1AtomicRef`::class.java, Any::class.java, "ref")
+        AtomicReferenceFieldUpdater.newUpdater(`Notifier-1AtomicRef`::class.java, Any::class.java, "ref")
 
 @[JvmField JvmSynthetic] internal val SingleNull = arrayOfNulls<Any>(1)
 

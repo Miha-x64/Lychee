@@ -19,7 +19,7 @@ internal class `Debounced-`<out T>(
         original: Property<T>,
         private val delay: Long,
         private val unit: TimeUnit
-) : `Notifier+1AtomicRef`<T, Pair<@UnsafeVariance T, ScheduledFuture<*>>?>(
+) : `Notifier-1AtomicRef`<T, Pair<@UnsafeVariance T, ScheduledFuture<*>>?>(
         original.isConcurrent, null
 ) {
 

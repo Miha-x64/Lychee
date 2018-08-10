@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * @param REF type of extra atomic ref
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-abstract class `Notifier+1AtomicRef`<out T, REF>
+abstract class `Notifier-1AtomicRef`<out T, REF>
 internal constructor(concurrent: Boolean, initialRef: REF)
     : `-Notifier`<T>(concurrent) {
 
@@ -17,6 +17,6 @@ internal constructor(concurrent: Boolean, initialRef: REF)
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     internal inline fun refUpdater() =
-            RefUpdater as AtomicReferenceFieldUpdater<`Notifier+1AtomicRef`<@UnsafeVariance T, REF>, REF>
+            RefUpdater as AtomicReferenceFieldUpdater<`Notifier-1AtomicRef`<@UnsafeVariance T, REF>, REF>
 
 }
