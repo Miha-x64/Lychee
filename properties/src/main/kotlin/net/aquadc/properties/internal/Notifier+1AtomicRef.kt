@@ -15,13 +15,8 @@ internal constructor(concurrent: Boolean, initialRef: REF)
     @Volatile @Suppress("unused")
     protected var ref: REF = initialRef
 
-    internal companion object {
-        @JvmField internal val RefUpdater: AtomicReferenceFieldUpdater<*, *> =
-                AtomicReferenceFieldUpdater.newUpdater(`Notifier+1AtomicRef`::class.java, Any::class.java, "ref")
-
-        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-        internal inline fun <T, REF> `Notifier+1AtomicRef`<out T, REF>.refUpdater() =
-                RefUpdater as AtomicReferenceFieldUpdater<`Notifier+1AtomicRef`<out T, REF>, REF>
-    }
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+    internal inline fun refUpdater() =
+            RefUpdater as AtomicReferenceFieldUpdater<`Notifier+1AtomicRef`<@UnsafeVariance T, REF>, REF>
 
 }

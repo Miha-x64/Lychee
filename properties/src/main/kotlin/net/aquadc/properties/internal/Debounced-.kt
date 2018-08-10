@@ -111,16 +111,12 @@ internal class `Debounced-`<out T>(
 
     }
 
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun pendingUpdater() =
+            refUpdater()
+
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-    private companion object {
-        private inline fun <T> `Debounced-`<T>.pendingUpdater() =
-                refUpdater()
-
-        @JvmField internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Any::class.java, "value")
-
-        private inline fun <T> valueUpdater() =
-                valueUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Any?>
-    }
+    private inline fun <T> valueUpdater() =
+            valueUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Any?>
 
 }

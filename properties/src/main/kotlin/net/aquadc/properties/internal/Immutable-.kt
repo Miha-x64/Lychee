@@ -18,10 +18,4 @@ internal class `Immutable-`<out T>(
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) = Unit
 
-    @PublishedApi
-    internal companion object {
-        @JvmField val TRUE = `Immutable-`(true)
-        @JvmField val FALSE = `Immutable-`(false)
-    }
-
 }
