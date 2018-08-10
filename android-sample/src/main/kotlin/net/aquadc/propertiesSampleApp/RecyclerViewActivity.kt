@@ -1,4 +1,4 @@
-package net.aquadc.propertiessampleapp
+package net.aquadc.propertiesSampleApp
 
 import android.app.Activity
 import android.os.Bundle
