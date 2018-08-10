@@ -156,7 +156,7 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
-            session.createFieldOf(this, primaryKey).bind(
+            this@Record[this@toOneNullable].bind(
                     { id -> if (id == null) null else session.require(foreignTable, id) },
                     { it?.primaryKey }
             )
