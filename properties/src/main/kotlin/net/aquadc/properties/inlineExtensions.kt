@@ -258,8 +258,8 @@ inline fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
  * Returns an immutable [Property] representing either `true` or `false`.
  */
 inline fun immutablePropertyOf(value: Boolean): Property<Boolean> = when (value) {
-    true -> `Immutable-`.TRUE
-    false -> `Immutable-`.FALSE
+    true -> TRUE
+    false -> FALSE
 }
 
 /**

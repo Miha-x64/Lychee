@@ -26,7 +26,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
      * }
      */
     internal constructor(thread: Thread?) : super(
-            if (thread == null) ConcListeners.NoListeners else null
+            if (thread == null) NoListeners else null
     ) {
         this.thread = thread
     }
@@ -185,7 +185,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         }
 
         @Suppress("UNCHECKED_CAST") // this means 'don't notify directly, add to the queue!'
-        nonSyncPending().lazySet(ConcListeners.EmptyArray as Array<UPDATE>)
+        nonSyncPending().lazySet(EmptyArray as Array<UPDATE>)
         // pendingValues is empty array now
 
         // now we own notification process
@@ -443,15 +443,11 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     internal open fun observedStateChanged(observed: Boolean) {}
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-    internal companion object {
-        @JvmField internal val SingleNull = arrayOfNulls<Any>(1)
+    internal inline fun concState() =
+            this as AtomicReference<ConcListeners<LISTENER, UPDATE>>
 
-        internal inline fun <T, D, LISTENER : Any, PACKED> `-Listeners`<T, D, LISTENER, PACKED>.concState() =
-                this as AtomicReference<ConcListeners<LISTENER, PACKED>>
-
-        internal inline fun <T, D, LISTENER : Any, PACKED> `-Listeners`<T, D, LISTENER, PACKED>.nonSyncPending() =
-                this as AtomicReference<Array<PACKED>?>
-
-    }
+    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+    internal inline fun nonSyncPending() =
+            this as AtomicReference<Array<UPDATE>?>
 
 }

@@ -64,13 +64,4 @@ internal class ConcListeners<out L : Any, out T>(
         return ConcListeners(listeners, pendingValues, !done, nextObservedState)
     }
 
-
-    internal companion object {
-        @JvmField val EmptyArray =
-                emptyArray<Any?>()
-
-        @JvmField val NoListeners =
-                ConcListeners(EmptyArray, EmptyArray, false, false) as ConcListeners<Nothing, Nothing>
-    }
-
 }
