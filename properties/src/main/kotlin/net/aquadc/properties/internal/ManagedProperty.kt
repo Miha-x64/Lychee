@@ -12,7 +12,7 @@ class ManagedProperty<T, TOKN>(
         private val manager: Manager<TOKN, T>,
         private val token: TOKN,
         private val id: Long
-) : `Notifier+1AtomicRef`<T, T>(true, unset()), MutableProperty<T> {
+) : `Notifier-1AtomicRef`<T, T>(true, unset()), MutableProperty<T> {
 
     override var value: T
         get() {

@@ -8,7 +8,7 @@ import net.aquadc.properties.addUnconfinedChangeListener
 internal class `MultiMapped-`<in A, out T>(
         properties: Collection<Property<A>>,
         private val transform: (List<A>) -> T
-) : `Notifier+1AtomicRef`<T, @UnsafeVariance T>(
+) : `Notifier-1AtomicRef`<T, @UnsafeVariance T>(
         properties.any { it.isConcurrent && it.mayChange }, unset()
         // if at least one property is concurrent, we must be ready that
         // it will notify us from a random thread

@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 @PublishedApi
 internal class `ConcMutable-`<T>(
         value: T
-) : `Notifier+1AtomicRef`<T, Any?>(
+) : `Notifier-1AtomicRef`<T, Any?>(
         true, value
 ), MutableProperty<T>, ChangeListener<T> {
 

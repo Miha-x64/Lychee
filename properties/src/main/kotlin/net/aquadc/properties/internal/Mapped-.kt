@@ -10,7 +10,7 @@ internal open class `Mapped-`<in O, out T>(
         @JvmField internal val original: Property<@UnsafeVariance O>,
         @JvmField internal val map: (O) -> T,
         mapOn: Worker
-) : `Notifier+1AtomicRef`<T, @UnsafeVariance T>(original.isConcurrent, unset()) {
+) : `Notifier-1AtomicRef`<T, @UnsafeVariance T>(original.isConcurrent, unset()) {
 
     init {
         check(original.mayChange)
