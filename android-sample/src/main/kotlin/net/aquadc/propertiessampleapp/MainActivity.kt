@@ -9,7 +9,7 @@ import net.aquadc.properties.android.bindings.widget.bindErrorMessageTo
 import net.aquadc.properties.android.bindings.widget.bindTextBidirectionally
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.map
-import net.aquadc.properties.sample.logic.MainVm
+import net.aquadc.propertiesSampleLogic.MainVm
 import org.jetbrains.anko.*
 
 /**

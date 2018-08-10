@@ -4,8 +4,8 @@ import javafx.application.Application
 import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.Scene
 import javafx.stage.Stage
-import net.aquadc.properties.sample.logic.User
-import net.aquadc.properties.sample.logic.defaultUser
+import net.aquadc.propertiesSampleLogic.User
+import net.aquadc.propertiesSampleLogic.defaultUser
 
 class FxNativeSample : Application() {
 

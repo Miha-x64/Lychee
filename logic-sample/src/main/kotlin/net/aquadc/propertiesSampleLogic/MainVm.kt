@@ -1,4 +1,4 @@
-package net.aquadc.properties.sample.logic
+package net.aquadc.propertiesSampleLogic
 
 import net.aquadc.properties.*
 import net.aquadc.properties.persistence.PersistableProperties
