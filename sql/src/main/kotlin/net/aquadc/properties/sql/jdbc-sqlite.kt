@@ -34,6 +34,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     private var transaction: JdbcTransaction? = null
     private val insertStatements = HashMap<Pair<Table<*, *>, List<Col<*, *>>>, PreparedStatement>()
     private val updateStatements = HashMap<Pair<Table<*, *>, Col<*, *>>, PreparedStatement>()
+    private val deleteStatements = HashMap<Table<*, *>, PreparedStatement>()
 
     private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement =
             insertStatements.getOrPut(Pair(table, cols.asList())) {
@@ -43,6 +44,11 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): PreparedStatement =
             updateStatements.getOrPut(Pair(table, col)) {
                 connection.prepareStatement(updateQuery(table, col))
+            }
+
+    private fun <REC : Record<REC, *>> deleteStatementWLocked(table: Table<REC, *>): PreparedStatement =
+            deleteStatements.getOrPut(table) {
+                connection.prepareStatement(deleteQuery(table))
             }
 
     override fun beginTransaction(): Transaction {
@@ -93,6 +99,9 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         // column : localId : value
         internal var updated: HashMap<Col<*, *>, HashMap<Long, Any?>>? = null
 
+        // table : primary keys
+        internal var deleted: HashMap<Table<*, *>, ArrayList<Any>>? = null
+
         override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, vararg contentValues: ColValue<REC, *>): ID {
             checkOpenAndThread()
 
@@ -131,6 +140,19 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
             (updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it })
                     .getOrPut(column, ::HashMap)[localId(table, id)] = value
+        }
+
+        override fun <REC : Record<REC, ID>, ID : IdBound> delete(record: REC) {
+            checkOpenAndThread()
+            check(session === record.session)
+
+            val statement = deleteStatementWLocked(record.table)
+            statement.setObject(1, record.primaryKey)
+            check(statement.executeUpdate() == 1)
+
+            (deleted ?: HashMap<Table<*, *>, ArrayList<Any>>().also { deleted = it })
+                    .getOrPut(record.table, ::ArrayList)
+                    .add(record.primaryKey)
         }
 
         override fun setSuccessful() {
@@ -219,7 +241,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     }
 
     private fun <ID : IdBound> dbId(table: Table<*, ID>, localId: Long): ID =
-            localId as ID
+            localId as ID // todo
 
 
     private inner class RecordManager : Manager<Col<*, *>, Any?> {
@@ -290,6 +312,11 @@ private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array
 private fun <REC : Record<REC, *>> updateQuery(table: Table<REC, *>, col: Col<REC, *>): String =
         StringBuilder("UPDATE ").appendName(table.name)
                 .append(" SET ").appendName(col.name).append(" = ? WHERE ").appendName(table.idCol.name).append(" = ?;")
+                .toString()
+
+private fun <REC : Record<REC, *>> deleteQuery(table: Table<REC, *>): String =
+        StringBuilder("DELETE FROM ").appendName(table.name)
+                .append(" WHERE ").appendName(table.idCol.name).append(" = ?;")
                 .toString()
 
 private fun <REC : Record<REC, *>> selectQuery(column: Col<REC, *>?, table: Table<REC, *>, condition: WhereCondition<out REC>): String {
