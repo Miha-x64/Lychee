@@ -1,5 +1,6 @@
 package net.aquadc.properties.fx.sqlSample
 
+import com.jfoenix.controls.JFXButton
 import com.jfoenix.controls.JFXListCell
 import com.jfoenix.controls.JFXListView
 import com.jfoenix.controls.JFXTextField
@@ -13,8 +14,7 @@ import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.control.ListView
-import javafx.scene.layout.HBox
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.stage.Stage
 import net.aquadc.properties.*
 import net.aquadc.properties.fx.fx
@@ -51,7 +51,7 @@ class SqliteApp : Application() {
 
                         val selProp: ReadOnlyObjectProperty<Human?> = listView.selectionModel.selectedItemProperty()
                         val namePatch = propertyOf(mapOf<Human, String>())
-                        namePatch.debounced(300L).onEach { new ->
+                        namePatch.debounced(1000L).onEach { new ->
                             if (new.isNotEmpty() && namePatch.casValue(new, mapOf())) {
                                 sess.transaction {
                                     new.forEach { (human, newName) ->
@@ -61,6 +61,8 @@ class SqliteApp : Application() {
                             }
                         }
 
+                        val actionsDisabledProp = selProp.isNull
+
                         children += JFXTextField().apply {
                             val nameProp = SimpleStringProperty()
                             selProp.addListener { _, _, it ->
@@ -68,7 +70,7 @@ class SqliteApp : Application() {
                                 if (it == null) nameProp.set("")
                                 else nameProp.bind(it.nameProp.fx())
                             }
-                            disableProperty().bind(selProp.isNull)
+                            disableProperty().bind(actionsDisabledProp)
                             selProp.addListener { _, _, human ->
                                 text = human?.nameProp?.value ?: ""
                             }
@@ -92,6 +94,29 @@ class SqliteApp : Application() {
                                 }
                             }
                             textProperty().bind(conditionersProp)
+                        }
+
+                        children += JFXButton("Delete").apply {
+                            disableProperty().bind(actionsDisabledProp)
+
+                            setOnMouseClicked { _ ->
+                                sess.transaction {
+                                    it.delete(selProp.value!!)
+                                }
+                            }
+                        }
+
+                        children += Pane().apply {
+                            isFillHeight = true
+                            VBox.setVgrow(this, Priority.ALWAYS)
+                        }
+
+                        children += JFXButton("Create new").apply {
+                            setOnMouseClicked { _ ->
+                                sess.transaction {
+                                    /*listView.selectionModel.select(*/it.insertHuman("", "")/*)*/
+                                }
+                            }
                         }
                     }
 
