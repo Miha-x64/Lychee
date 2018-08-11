@@ -68,9 +68,6 @@ internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T,
 @[JvmField JvmSynthetic Deprecated("Damn, don't touch this. Really.")]
 val Unset: Any = Any()
 
-@[JvmField JvmSynthetic] internal val RefUpdater: AtomicReferenceFieldUpdater<*, *> =
-        AtomicReferenceFieldUpdater.newUpdater(`Notifier-1AtomicRef`::class.java, Any::class.java, "ref")
-
 @[JvmField JvmSynthetic] internal val SingleNull = arrayOfNulls<Any>(1)
 
 @[JvmField JvmSynthetic] internal val EmptyArray =
@@ -78,9 +75,6 @@ val Unset: Any = Any()
 
 @[JvmField JvmSynthetic] internal val NoListeners =
         ConcListeners(EmptyArray, EmptyArray, false, false) as ConcListeners<Nothing, Nothing>
-
-@[JvmField JvmSynthetic] internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
-        AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Any::class.java, "value")
 
 @[JvmField JvmSynthetic PublishedApi] internal val TRUE = `Immutable-`(true)
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)
