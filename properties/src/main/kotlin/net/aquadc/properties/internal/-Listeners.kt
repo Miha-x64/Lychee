@@ -262,7 +262,9 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
 
     internal fun checkThread() {
         if (Thread.currentThread() !== thread)
-            throw RuntimeException("${Thread.currentThread()} is not allowed to touch this property since it was created in $thread.")
+            throw RuntimeException("${Thread.currentThread()} is not allowed to touch this Property: " +
+                    "it is single-threaded and confined to $thread. " +
+                    "For concurrent access, use concurrentPropertyOf(…)")
     }
 
     protected fun addChangeListenerInternal(onChange: LISTENER) {
