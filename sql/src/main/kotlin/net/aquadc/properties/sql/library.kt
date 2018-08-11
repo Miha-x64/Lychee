@@ -53,6 +53,8 @@ interface Transaction : AutoCloseable {
 
     fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T)
 
+    fun <REC : Record<REC, ID>, ID : IdBound> delete(record: REC)
+
     fun setSuccessful()
 
 }
@@ -138,8 +140,8 @@ class Col<REC : Record<REC, *>, out T>(
  * Represents an active record — a container with some properties.
  */
 abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
-        private val table: Table<REC, ID>,
-        private val session: Session,
+        internal val table: Table<REC, ID>,
+        internal val session: Session,
         val primaryKey: ID
 ) {
 
