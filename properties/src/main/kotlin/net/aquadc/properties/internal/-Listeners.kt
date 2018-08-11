@@ -267,14 +267,6 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                     "For concurrent access, use concurrentPropertyOf(…)")
     }
 
-    protected fun addChangeListenerInternal(onChange: LISTENER) {
-        if (thread == null) {
-            concAddChangeListenerInternal(onChange)
-        } else {
-            nonSyncAddChangeListenerInternal(onChange)
-        }
-    }
-
     protected fun concAddChangeListenerInternal(onChange: LISTENER) {
         val old = concState().getUndUpdate {
             it.withListener(onChange)
