@@ -119,4 +119,9 @@ internal class `Debounced-`<out T>(
     private inline fun <T> valueUpdater() =
             valueUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Any?>
 
+    private companion object {
+        private val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
+                AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Any::class.java, "value")
+    }
+
 }
