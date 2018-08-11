@@ -74,7 +74,7 @@ val Unset: Any = Any()
         emptyArray<Any?>()
 
 @[JvmField JvmSynthetic] internal val NoListeners =
-        ConcListeners(EmptyArray, EmptyArray, false, false) as ConcListeners<Nothing, Nothing>
+        ConcListeners(EmptyArray, EmptyArray, false, false, false) as ConcListeners<Nothing, Nothing>
 
 @[JvmField JvmSynthetic PublishedApi] internal val TRUE = `Immutable-`(true)
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)

@@ -399,16 +399,25 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     }
 
     private fun concChangeObservedStateTo(obsState: Boolean) {
-        val firsState = concState().getUndUpdate { prev ->
+        var prev: ConcListeners<LISTENER, UPDATE>
+        var next: ConcListeners<LISTENER, UPDATE>
+        do {
+            prev = concState().get()
+            while (prev.transitionLocked) {
+                // if we can't transition for external reasons (e. g. in ConcMutableProperty), just wait until this ends
+                Thread.yield()
+                prev = concState().get()
+            }
+
             if (prev.nextObservedState == obsState) {
                 // do nothing if we're either transitioning to current state or already there
                 return
             }
 
-            prev.startTransition()
-        }
+            next = prev.startTransition()
+        } while (!concState().compareAndSet(prev, next))
 
-        if (firsState.transitioningObservedState) {
+        if (prev.transitioningObservedState) {
             // do nothing if this method is already on the stack somewhere
             return
         }
@@ -433,7 +442,30 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         }
     }
 
-    /*...not overridden in [ConcMutableDiffProperty], because it is not mapped and cannot be bound. */
+    /* intentionally does not contain try..catch */
+    internal inline fun withLockedTransition(block: () -> Unit) {
+        while (!tryLockTransition()) Thread.yield()
+        block()
+        unlockTransition()
+    }
+
+    internal fun tryLockTransition(): Boolean {
+        val prev = concState().get()
+        if (prev.transitionLocked || prev.transitioningObservedState) {
+            return false
+        }
+
+        return concState().compareAndSet(prev, prev.flippedTransitionLock())
+    }
+
+    internal fun unlockTransition() {
+        val old = concState().getAndUpdate(ConcListeners<LISTENER, UPDATE>::flippedTransitionLock)
+        check(old.transitionLocked)
+    }
+
+    /*...not overridden in [ConcMutableDiffProperty], because it is not mapped and cannot be bound.
+     * This callback can be called only once at a time (i. e. under mutex) for a single property,
+     * and with transitionLocked=false */
     internal open fun observedStateChanged(observed: Boolean) {}
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")

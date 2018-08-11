@@ -16,47 +16,45 @@ internal class `ConcMutable-`<T>(
         true, value
 ), MutableProperty<T>, ChangeListener<T> {
 
-    override var value: T // field: T | Binding<T> | rebinding()
+    override var value: T // field: T | Binding<T>
         get() {
-            var value: Any?
-            do { value = valueUpdater().get(this) } while (value === rebinding())
-            return if (value is Binding<*>) (value as Binding<T>).original.value else value as T
+            val value = valueUpdater().get(this)
+            return if (value is Binding<*>) {
+                value as Binding<T>
+                val retValue: T
+                if (!isBeingObserved()) {
+                    // we're not observed, so stale value may be remembered — update it
+                    retValue = value.original.value
+                    (value as Binding<T>).ourValue = retValue
+                    retValue
+                } else {
+                    value.ourValue as T
+                }
+            } else {
+                value as T
+            }
         }
         set(newValue) {
             while (!casValue(value, newValue)) Thread.yield()
         }
 
     override fun bindTo(sample: Property<T>) {
-        val newValue: Any?
-        val newSample: Property<T>?
-        if (sample.mayChange) {
-            newValue = Binding(sample)
-            newSample = sample
-        } else {
-            newValue = sample.value
-            newSample = null
+        val newValOrBinding: Any? = if (sample.mayChange) Binding(sample, sample.value) else sample.value
+        val oldValOrBinding = valueUpdater().get(this)
+
+        val prevValue = if (oldValOrBinding is Binding<*>) (oldValOrBinding as Binding<T>).original.value else oldValOrBinding as T
+        val newValue = if (newValOrBinding is Binding<*>) (newValOrBinding as Binding<T>).original.value else newValOrBinding as T
+
+        withLockedTransition { // 'observed' state should not be changed concurrently
+            if (isBeingObserved()) {
+                (oldValOrBinding as? Binding<T>)?.original?.removeChangeListener(this)
+                (newValOrBinding as? Binding<T>)?.original?.addUnconfinedChangeListener(this)
+            }
+            (newValOrBinding as? Binding<T>)?.ourValue = newValue
+            valueUpdater().set(this, newValOrBinding)
         }
 
-        var oldValue: Any?
-        while (true) {
-            oldValue = valueUpdater().getAndSet(this, rebinding())
-            if (oldValue === rebinding()) Thread.yield() // other thread rebinding this property, wait
-            else break
-        }
-        // under mutex
-
-        // fixme: potential concurrent bug, #40
-        if ((oldValue !is Binding<*> || oldValue.original !== newSample) && isBeingObserved()) {
-            (oldValue as? Binding<T>)?.original?.removeChangeListener(this)
-            newSample?.addUnconfinedChangeListener(this)
-        }
-        // end mutex
-        check(valueUpdater().getAndSet(this, newValue) === rebinding())
-
-        val prevValue = if (oldValue is Binding<*>) (oldValue as Binding<T>).original.value else oldValue as T
-        val newValueValue = if (newValue is Binding<*>) (newValue as Binding<T>).original.value else newValue as T
-
-        valueChanged(prevValue, newValueValue, null)
+        valueChanged(prevValue, newValue, null)
     }
 
     override fun observedStateChanged(observed: Boolean) {
@@ -70,48 +68,45 @@ internal class `ConcMutable-`<T>(
 
     override fun casValue(expect: T, update: T): Boolean {
         val prevValOrBind = valueUpdater().get(this)
-        if (prevValOrBind === rebinding()) return false
 
         val prevValue: T
         val realExpect: Any?
         if (prevValOrBind is Binding<*>) {
             prevValOrBind as Binding<T>
-            if (!valueUpdater().compareAndSet(this, prevValOrBind, rebinding())) return false
+            if (!tryLockTransition()) return false
 
             // under mutex
-            prevValue = prevValOrBind.original.value
+            prevValue = prevValOrBind.ourValue as T // hmm, where's my smart-cast?
             if (prevValue !== expect) {
                 // under mutex (no update from Sample allowed) we understand that sample's value !== expected
-                check(valueUpdater().compareAndSet(this, rebinding(), prevValOrBind))
-                // so just revert and report failure
+                unlockTransition()
+                // so just report failure
                 return false
             }
-            realExpect = rebinding()
+
             prevValOrBind.original.removeChangeListener(this)
+            unlockTransition()
+            realExpect = prevValOrBind
         } else {
             prevValue = prevValOrBind as T
             realExpect = expect
         }
 
-        val success = valueUpdater().compareAndSet(this, realExpect, update) // end mutex
+        val success = valueUpdater().compareAndSet(this, realExpect, update)
         if (success) {
             valueChanged(prevValue, update, null)
-        } else if (realExpect === rebinding()) {
-            // if we're set a mutex, we must release it; if it is not set, there's a program error
-            throw AssertionError()
         }
         return success
     }
 
     override fun invoke(old: T, new: T) {
-        while (value === rebinding()) Thread.yield()
-        valueChanged(old, new, null)
+        withLockedTransition {
+            (valueUpdater().get(this) as? Binding<T>)?.ourValue = new
+            valueChanged(old, new, null)
+        }
     }
 
-    private class Binding<T>(val original: Property<T>)
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun rebinding() = Unset
+    private class Binding<T>(val original: Property<T>, @Volatile var ourValue: T)
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     private inline fun valueUpdater() =
