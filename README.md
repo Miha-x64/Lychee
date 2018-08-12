@@ -32,10 +32,13 @@ dependencies {
 
 # reactive-properties
 
-Properties (subjects) inspired by JavaFX MVVM-like approach.
-* Lightweight
-* Contains both unsynchronized and concurrent (lock-free) implementations
-* MVVM / data-binding for Android and JavaFX
+Properties (subjects) inspired by JavaFX MVVM-like approach. A `Property` provides functionality similar to `BehaviorSubject` in RxJava, or `Property` in JavaFX, or `LiveData` in Android Arch.
+
+* Simple and easy-to-use
+* Lightweight: core + android-bindings are <1000 methods, also highly optimized for runtime
+* Extensive: not confined to Android, JavaFX or whatever
+* Contains both single-threaded and concurrent (lock-free) implementations
+* Provides MVVM / data-binding for Android and JavaFX
 * Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
   and [TornadoFX](https://github.com/edvin/tornadofx)
 * Depends only on Kotlin-stdlib
