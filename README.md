@@ -239,7 +239,7 @@ where the values of some properties depend on some other ones.
 
 * `LiveData`
   
-  Confined to `Handler`/`Looper` which limits usage and compicates testing.
+  Confined to `Handler`/`Looper` which limits usage and complicates testing.
   It's also an abstract class, which leaves no way of creating different implementations.
 
 #### May I rely on source or binary compatibility?
