@@ -60,11 +60,11 @@ internal class `Debounced-`<out T>(
             next = Pair(
                     reallyOld,
                     ScheduledDaemonHolder.scheduledDaemon.schedule({
-                        if (thread === null) {
+                        if (executor === null) { // && thread === null && isConcurrent
                             value = new
                             valueChanged(reallyOld, new, null)
-                        } else {
-                            executor!!.execute {
+                        } else { // deliver from scheduled pool to our thread
+                            executor.execute {
                                 valueUpdater<T>().lazySet(this, new)
                                 valueChanged(reallyOld, new, null)
                             }
