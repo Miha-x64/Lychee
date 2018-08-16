@@ -34,7 +34,15 @@ internal class `Bound-`<T, R>(
     private inline val orig get() = original as MutableProperty<T>
     private inline val mapping get() = map as TwoWay<T, R>
 
+    /**
+     * Represents a function which can be un-applied.
+     * For example, when `invoke(arg) = 10 * arg`, `backwards(arg) = arg / 10`.
+     */
     interface TwoWay<T, R> : (T) -> R {
+
+        /**
+         * Represents an action opposite to invoking this function.
+         */
         fun backwards(arg: R): T
     }
 
