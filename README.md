@@ -245,6 +245,11 @@ where the values of some properties depend on some other ones.
   Confined to `Handler`/`Looper` which limits usage and complicates testing.
   It's also an abstract class, which leaves no way of creating different implementations.
 
+* XML data-binding
+
+  Uses XML layouts (inflexible) and code generation (sucks in many ways).
+  Ties layouts to hard-coded Java classes, which kills XML reusability.
+
 #### May I rely on source or binary compatibility?
 
 Nope, not now.
