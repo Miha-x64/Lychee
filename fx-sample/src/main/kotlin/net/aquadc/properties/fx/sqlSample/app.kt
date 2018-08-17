@@ -53,9 +53,9 @@ class SqliteApp : Application() {
                         val namePatch = propertyOf(mapOf<Human, String>())
                         namePatch.debounced(1000L).onEach { new ->
                             if (new.isNotEmpty() && namePatch.casValue(new, mapOf())) {
-                                sess.transaction {
+                                sess.withTransaction {
                                     new.forEach { (human, newName) ->
-                                        human.nameProp.value = newName
+                                        human.nameProp.set(newName)
                                     }
                                 }
                             }
@@ -100,8 +100,8 @@ class SqliteApp : Application() {
                             disableProperty().bind(actionsDisabledProp)
 
                             setOnMouseClicked { _ ->
-                                sess.transaction {
-                                    it.delete(selProp.value!!)
+                                sess.withTransaction {
+                                    delete(selProp.value!!)
                                 }
                             }
                         }
@@ -113,8 +113,8 @@ class SqliteApp : Application() {
 
                         children += JFXButton("Create new").apply {
                             setOnMouseClicked { _ ->
-                                sess.transaction {
-                                    /*listView.selectionModel.select(*/it.insertHuman("", "")/*)*/
+                                sess.withTransaction {
+                                    /*listView.selectionModel.select(*/insertHuman("", "")/*)*/
                                 }
                             }
                         }
@@ -190,19 +190,19 @@ private fun create(statement: Statement, table: Table<*, *>) {
 
 private fun fillIfEmpty(session: Session) {
     if (session.count(HumanTable).value == 0L) {
-        session.transaction { transaction ->
-            transaction.insertHuman("Stephen", "Hawking")
-            val relativist = transaction.insertHuman("Albert", "Einstein")
-            transaction.insertHuman("Dmitri", "Mendeleev")
-            val electrician = transaction.insertHuman("Nikola", "Tesla")
+        session.withTransaction {
+            insertHuman("Stephen", "Hawking")
+            val relativist = insertHuman("Albert", "Einstein")
+            insertHuman("Dmitri", "Mendeleev")
+            val electrician = insertHuman("Nikola", "Tesla")
 
             // don't know anything about their friendship, just a sample
-            transaction.insert(FriendTable,
+            insert(FriendTable,
                     FriendTable.LeftId - relativist.primaryKey, FriendTable.RightId - electrician.primaryKey
             )
 
-            val car = transaction.insertCar(electrician)
-            car.conditionerModelProp.value = "the coolest air cooler"
+            val car = insertCar(electrician)
+            car.conditionerModelProp.set("the coolest air cooler")
         }
     }
 }

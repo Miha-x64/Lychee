@@ -7,31 +7,36 @@ import net.aquadc.properties.executor.InPlaceWorker
  * Bidirectional mapping.
  */
 @PublishedApi
-internal class `Bound-`<T, R>(
-        original: MutableProperty<T>,
+internal class `Bound-`<TRANSACTION, T, R>(
+        original: Property<T>, // = MutableProperty | TransactionalProperty
         map: TwoWay<T, R>
-) : `Mapped-`<T, R>(original, map, InPlaceWorker), MutableProperty<R>, ChangeListener<R> {
+) : `Mapped-`<T, R>(original, map, InPlaceWorker), MutableProperty<R>, TransactionalProperty<TRANSACTION, R>, ChangeListener<R> {
 
     override var value: R
         get() = super.value
         set(value) {
-            orig.value = mapping.backwards(value)
+            mOrig.value = mapping.backwards(value)
         }
 
+    override fun setValue(transaction: TRANSACTION, value: R) {
+        tOrig.setValue(transaction, mapping.backwards(value))
+    }
+
     override fun bindTo(sample: Property<R>) {
-        orig.bindTo(sample.map(mapping::backwards))
-        //                            ^^
+        mOrig.bindTo(sample.map(mapping::backwards))
+        //                             ^^
         // extra allocation, but this is an extremely rare case
     }
 
     override fun casValue(expect: R, update: R): Boolean =
-            orig.casValue(mapping.backwards(expect), mapping.backwards(update))
+            mOrig.casValue(mapping.backwards(expect), mapping.backwards(update))
 
     override fun invoke(old: R, new: R) {
         value = new
     }
 
-    private inline val orig get() = original as MutableProperty<T>
+    private inline val mOrig get() = original as MutableProperty<T>
+    private inline val tOrig get() = original as TransactionalProperty<TRANSACTION, T>
     private inline val mapping get() = map as TwoWay<T, R>
 
     /**
