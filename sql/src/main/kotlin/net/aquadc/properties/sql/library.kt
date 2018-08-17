@@ -2,14 +2,16 @@
 
 package net.aquadc.properties.sql
 
-import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import java.util.*
 
 
 typealias IdBound = Any // Serializable in some frameworks
+
+typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
 interface Session {
     fun beginTransaction(): Transaction
@@ -22,10 +24,10 @@ interface Session {
      * TODO KDoc
      * Note: returned [Property] is not managed itself, but only when it is within a [Record].
      */
-    fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<T, Col<REC, T>>
+    fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T, Col<REC, T>>
 }
 
-inline fun Session.transaction(block: (Transaction) -> Unit) {
+inline fun Session.withTransaction(block: Transaction.() -> Unit) {
     val transaction = beginTransaction()
     try {
         block(transaction)
@@ -56,6 +58,10 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<REC, ID>, ID : IdBound> delete(record: REC)
 
     fun setSuccessful()
+
+    fun <T> SqlProperty<T>.set(new: T) {
+        this.setValue(this@Transaction, new)
+    }
 
 }
 
@@ -148,16 +154,16 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
     @JvmField @JvmSynthetic
     internal val fields = table.columns.mapToArray { session.createFieldOf(it, primaryKey) }
 
-    operator fun <T> get(col: Col<REC, T>): MutableProperty<T> =
-            fields[col.ordinal] as MutableProperty<T>
+    operator fun <T> get(col: Col<REC, T>): SqlProperty<T> =
+            fields[col.ordinal] as SqlProperty<T>
 
     @Suppress("UNCHECKED_CAST") // id is not nullable, so ForeREC won't be, too
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<REC, ForeID>.toOne(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC> =
-            toOneNullable(foreignTable) as MutableProperty<ForeREC>
+            Col<REC, ForeID>.toOne(foreignTable: Table<ForeREC, ForeID>): SqlProperty<ForeREC> =
+            toOneNullable(foreignTable) as SqlProperty<ForeREC>
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): MutableProperty<ForeREC?> =
+            Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): SqlProperty<ForeREC?> =
             this@Record[this@toOneNullable].bind(
                     { id -> if (id == null) null else session.require(foreignTable, id) },
                     { it?.primaryKey }

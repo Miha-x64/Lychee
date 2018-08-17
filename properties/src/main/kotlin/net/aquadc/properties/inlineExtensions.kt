@@ -142,6 +142,19 @@ inline fun <T, R> MutableProperty<T>.bind(
         crossinline forward: (T) -> R,
         crossinline backwards: (R) -> T
 ): MutableProperty<R> =
+        `Bound-`<Nothing, T, R>(this, object : `Bound-`.TwoWay<T, R> {
+            override fun invoke(p1: T): R = forward.invoke(p1)
+            override fun backwards(arg: R): T = backwards.invoke(arg)
+        })
+
+/**
+ * Returns a new [TransactionalProperty] with value equal to `forward(original.value)`.
+ * When mutated, original property receives `backwards(mapped.value)`.
+ */
+inline fun <TRANSACTION, T, R> TransactionalProperty<TRANSACTION, T>.bind(
+        crossinline forward: (T) -> R,
+        crossinline backwards: (R) -> T
+): TransactionalProperty<TRANSACTION, R> =
         `Bound-`(this, object : `Bound-`.TwoWay<T, R> {
             override fun invoke(p1: T): R = forward.invoke(p1)
             override fun backwards(arg: R): T = backwards.invoke(arg)

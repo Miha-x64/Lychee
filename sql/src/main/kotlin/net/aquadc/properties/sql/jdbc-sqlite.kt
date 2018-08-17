@@ -166,7 +166,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         }
 
 
-        private fun checkOpenAndThread() {
+        internal fun checkOpenAndThread() {
             check(thread == Thread.currentThread()) {
                 if (thread == null) "this transaction was already closed" else "called from wrong thread"
             }
@@ -229,9 +229,9 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
                 .executeQuery()
     }
 
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<T, Col<REC, T>> {
+    override fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T, Col<REC, T>> {
         val localId = localId(col.table as Table<REC, ID>, id)
-        return ManagedProperty(recordManager as Manager<Col<REC, T>, T>, col, localId)
+        return ManagedProperty(recordManager as Manager<Transaction, Col<REC, T>, T>, col, localId)
     }
 
     private fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
@@ -244,7 +244,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
             localId as ID // todo
 
 
-    private inner class RecordManager : Manager<Col<*, *>, Any?> {
+    private inner class RecordManager : Manager<Transaction, Col<*, *>, Any?> {
 
         /*
          * table: records
@@ -278,17 +278,24 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         }
 
         @Suppress("UPPER_BOUND_VIOLATED")
-        override fun set(token: Col<*, *>, id: Long, expected: Any?, update: Any?): Boolean {
-            val transaction = transaction ?: throw IllegalStateException("This can be performed only within a transaction")
-            getDirty(token, id).let {
-                if (it === Unset) {
-                    if (getClean(token, id) === update) return true
-                } else {
-                    if (it === update) return true
-                }
+        override fun set(transaction: Transaction, token: Col<*, *>, id: Long, update: Any?) {
+            val ourTransact = this@JdbcSqliteSession.transaction
+            if (transaction !== ourTransact) {
+                if (ourTransact === null)
+                    throw IllegalStateException("This can be performed only within a transaction")
+                else
+                    throw IllegalStateException("Wrong transaction: requested $transaction, but session's is $ourTransact")
             }
-            transaction.update<Any?, Any?, Any?>(token.table as Table<Any?, Any?>, dbId<Any?>(token.table, id), token as Col<Any?, Any?>, update) // TODO: check expected
-            return true
+            ourTransact.checkOpenAndThread()
+
+            val dirty = getDirty(token, id)
+            val cleanEquals = dirty === Unset && getClean(token, id) === update
+            if (dirty === update || cleanEquals) {
+                return
+            }
+
+            transaction.update<Any?, Any?, Any?>(
+                    token.table as Table<Any?, Any?>, dbId<Any?>(token.table, id), token as Col<Any?, Any?>, update)
         }
 
     }

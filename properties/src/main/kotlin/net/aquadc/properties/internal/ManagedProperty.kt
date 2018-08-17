@@ -1,20 +1,19 @@
 package net.aquadc.properties.internal
 
 import android.support.annotation.RestrictTo
-import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.Property
+import net.aquadc.properties.TransactionalProperty
 
 /**
  * A property whose value can be changed inside a transaction.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class ManagedProperty<T, TOKN>(
-        private val manager: Manager<TOKN, T>,
+class ManagedProperty<TRANSACTION, T, TOKN>(
+        private val manager: Manager<TRANSACTION, TOKN, T>,
         private val token: TOKN,
         private val id: Long
-) : `Notifier-1AtomicRef`<T, T>(true, unset()), MutableProperty<T> {
+) : `Notifier-1AtomicRef`<T, T>(true, unset()), TransactionalProperty<TRANSACTION, T> {
 
-    override var value: T
+    override val value: T
         get() {
             // check for uncommitted changes
             val dirty = manager.getDirty(token, id)
@@ -28,32 +27,16 @@ class ManagedProperty<T, TOKN>(
             refUpdater().lazySet(this, clean)
             return clean
         }
-        set(value) {
-            check(casValue(Unset as T, value))
-        }
 
-    /**
-     * This doesn't work for such properties for consistency reasons:
-     * (1) normal concurrent in-memory property can be mutated from any thread, it's not a problem,
-     *     but when the property is bound to a database field, it can be mutated only in a transaction,
-     *     making such binding dangerous and unpredictable;
-     * (2) transactions should be short, and property binding looks like a long-term thing.
-     */
-    override fun bindTo(sample: Property<T>): Nothing {
-        throw UnsupportedOperationException("This is possible to implement but looks very questionable.")
-    }
-
-    override fun casValue(expect: T, update: T): Boolean {
+    override fun setValue(transaction: TRANSACTION, value: T) {
         val clean = if (ref === Unset) manager.getClean(token, id) else Unset
         // after mutating dirty state we won't be able to see the clean one, so preserve it
 
-        val success = manager.set(token, id, expect, update)
+        manager.set(transaction, token, id, value)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
         if (clean !== Unset) ref = clean as T // mutated successfully, preserve clean
-
-        return success
     }
 
     fun commit(newValue: T) {
@@ -74,7 +57,11 @@ class ManagedProperty<T, TOKN>(
 
 }
 
-interface Manager<TOKN, T> {
+/**
+ * A manager of a property, e. g. a database session.
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+interface Manager<TRANSACTION, TOKN, T> {
 
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
@@ -87,8 +74,8 @@ interface Manager<TOKN, T> {
     fun getClean(token: TOKN, id: Long): T
 
     /**
-     * Set, if [expected] === [Unset]; CAS otherwise.
-     * @return if write was successful; simple sets are always successful, even if current value is already equal to [update].
+     * Sets 'dirty' value during [transaction].
      */
-    fun set(token: TOKN, id: Long, expected: Any?, update: T): Boolean
+    fun set(transaction: TRANSACTION, token: TOKN, id: Long, update: T)
+
 }
