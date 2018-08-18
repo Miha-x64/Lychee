@@ -37,8 +37,14 @@ class SqliteApp : Application() {
 
                     val hBox = this
 
+                    val humanListProp = sess.select(HumanTable)
+                    val humanList = FXCollections.observableArrayList(humanListProp.value)
+                    humanListProp.addChangeListener { _, new ->
+                        humanList.clear()
+                        humanList.addAll(new)
+                    }
                     val listView = JFXListView<Human>().apply {
-                        items = FXCollections.observableArrayList(sess.select(HumanTable).value)
+                        items = humanList
                         setCellFactory(::createListCell)
                         prefWidthProperty().bind(hBox.widthProperty().multiply(.4))
                     }
@@ -75,7 +81,9 @@ class SqliteApp : Application() {
                                 text = human?.nameProp?.value ?: ""
                             }
                             textProperty().addListener { _, _, newText ->
-                                namePatch += selProp.value!! to newText
+                                selProp.value?.let {
+                                    namePatch += it to newText
+                                }
                             }
                         }
 
@@ -113,9 +121,11 @@ class SqliteApp : Application() {
 
                         children += JFXButton("Create new").apply {
                             setOnMouseClicked { _ ->
-                                sess.withTransaction {
-                                    /*listView.selectionModel.select(*/insertHuman("", "")/*)*/
-                                }
+                                listView.selectionModel.select(
+                                        sess.withTransaction {
+                                            insertHuman("", "")
+                                        }
+                                )
                             }
                         }
                     }
