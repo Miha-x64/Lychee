@@ -17,7 +17,7 @@ interface Session {
     fun beginTransaction(): Transaction
 
     fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC?
-    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<List<REC>>
+    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC> /* TODO: order */): Property<List<REC>>
     fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long>
 
     /**
@@ -27,11 +27,12 @@ interface Session {
     fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T, Col<REC, T>>
 }
 
-inline fun Session.withTransaction(block: Transaction.() -> Unit) {
+inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
     val transaction = beginTransaction()
     try {
-        block(transaction)
+        val r = block(transaction)
         transaction.setSuccessful()
+        return r
     } finally {
         transaction.close()
     }

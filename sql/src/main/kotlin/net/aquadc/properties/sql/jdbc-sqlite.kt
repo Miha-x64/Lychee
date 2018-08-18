@@ -21,6 +21,7 @@ import kotlin.concurrent.getOrSet
 
 // TODO: support dialects
 // TODO: evicting stale objects
+// TODO: prop concurrency mode instead of hardcoded propertyOf()
 class JdbcSqliteSession(private val connection: Connection) : Session {
 
     init {
@@ -63,23 +64,44 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     private fun onTransactionEnd(successful: Boolean) {
         val transaction = transaction ?: throw AssertionError()
         try {
-            if (successful) connection.commit() else connection.rollback()
+            if (successful) {
+                connection.commit()
+            } else {
+                connection.rollback()
+            }
             this.transaction = null
 
-            transaction.updated?.forEach { (col, pkToVal) ->
-                pkToVal.forEach { (localId, value) ->
-                    @Suppress("UPPER_BOUND_VIOLATED")
-                    (recordManager.entities[col.table]?.get(localId) as Record<Any?, IdBound>?)
-                            ?.fields
-                            ?.get(col.ordinal)
-                            ?.commit(value)
-                }
-            }
-            transaction.inserted?.forEach { (table, pk) ->
-                // todo
+            if (successful) {
+                deliverChanges(transaction)
             }
         } finally {
             lock.writeLock().unlock()
+        }
+    }
+
+    private fun deliverChanges(transaction: JdbcTransaction) {
+        transaction.updated?.forEach { (col, pkToVal) ->
+            pkToVal.forEach { (localId, value) ->
+                @Suppress("UPPER_BOUND_VIOLATED")
+                (recordManager.entities[col.table]?.get(localId) as Record<Any?, IdBound>?)
+                        ?.fields
+                        ?.get(col.ordinal)
+                        ?.commit(value)
+            }
+        }
+        val ins = transaction.inserted
+        val del = transaction.deleted
+        if (ins != null || del != null) {
+            val changedTables = (ins?.keys ?: emptySet<Table<*, *>>()) + (del?.keys ?: emptySet())
+            @Suppress("UPPER_BOUND_VIOLATED")
+            selections.forEach {
+                it as MutableProperty<Selection<Any, IdBound>>
+                val sel = it.value
+                if (sel.table in changedTables) {
+                    it.value =
+                            Selection<Any, IdBound>(this@JdbcSqliteSession, sel.table, sel.condition, fetchPrimaryKeys<Any, IdBound>(sel.table, sel.condition))
+                }
+            }
         }
     }
 
@@ -194,13 +216,18 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
     override fun <REC : Record<REC, ID>, ID : IdBound> select(
             table: Table<REC, ID>, condition: WhereCondition<out REC>
     ): Property<List<REC>> { // TODO DiffProperty
-        val primaryKeys = cachedSelectStmt(selectStatements, table.idCol, table, condition)
-                .fetchAll<ID>()
-                .toTypedArray<Any>() as Array<ID>
+        val primaryKeys = fetchPrimaryKeys(table, condition) // TODO: lazy
 
         return Selection(this, table, condition, primaryKeys)
                 .let(::propertyOf)
                 .also { selections.add(it) }
+    }
+
+    private fun <REC : Record<REC, ID>, ID : IdBound> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> {
+        val primaryKeys = cachedSelectStmt(selectStatements, table.idCol, table, condition)
+                .fetchAll<ID>()
+                .toTypedArray<Any>() as Array<ID>
+        return primaryKeys
     }
 
 

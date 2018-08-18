@@ -3,8 +3,8 @@ package net.aquadc.properties.sql
 
 class Selection<E : Record<E, ID>, ID : IdBound>(
         private val session: Session,
-        private val table: Table<E, ID>,
-        private val condition: WhereCondition<out E>,
+        @JvmField internal val table: Table<E, ID>,
+        @JvmField internal val condition: WhereCondition<out E>,
         private val primaryKeys: Array<ID>
 ) : AbstractList<E>() {
 
