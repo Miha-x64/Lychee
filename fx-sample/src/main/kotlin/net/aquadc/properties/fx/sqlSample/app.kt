@@ -19,6 +19,7 @@ import javafx.stage.Stage
 import net.aquadc.properties.*
 import net.aquadc.properties.fx.fx
 import net.aquadc.properties.sql.*
+import net.aquadc.properties.sql.dialect.SqliteDialect
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.Statement
@@ -28,7 +29,7 @@ import java.util.concurrent.Callable
 class SqliteApp : Application() {
 
     private val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also(::createNeededTables)
-    private val sess = JdbcSqliteSession(connection).also(::fillIfEmpty)
+    private val sess = JdbcSession(connection, SqliteDialect).also(::fillIfEmpty)
 
     override fun start(stage: Stage) {
         stage.titleProperty().bind(
