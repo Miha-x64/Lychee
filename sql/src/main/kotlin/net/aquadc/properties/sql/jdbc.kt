@@ -8,6 +8,7 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.propertyOf
+import net.aquadc.properties.sql.dialect.Dialect
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -19,11 +20,11 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
-// TODO: support dialects
 // TODO: evicting stale objects
 // TODO: prop concurrency mode instead of hardcoded propertyOf()
-class JdbcSqliteSession(
-        private val connection: Connection
+class JdbcSession(
+        private val connection: Connection,
+        private val dialect: Dialect
 ) : Session {
 
     init {
@@ -50,17 +51,17 @@ class JdbcSqliteSession(
 
     private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement =
             insertStatements.getOrPut(Pair(table, cols.asList())) {
-                connection.prepareStatement(insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
+                connection.prepareStatement(dialect.insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
             }
 
     private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): PreparedStatement =
             updateStatements.getOrPut(Pair(table, col)) {
-                connection.prepareStatement(updateQuery(table, col))
+                connection.prepareStatement(dialect.updateFieldQuery(table, col))
             }
 
     private fun <REC : Record<REC, *>> deleteStatementWLocked(table: Table<REC, *>): PreparedStatement =
             deleteStatements.getOrPut(table) {
-                connection.prepareStatement(deleteQuery(table))
+                connection.prepareStatement(dialect.deleteRecordQuery(table))
             }
 
     override fun beginTransaction(): Transaction {
@@ -129,7 +130,7 @@ class JdbcSqliteSession(
         private var isSuccessful = false
 
         override val session: Session
-            get() = this@JdbcSqliteSession
+            get() = this@JdbcSession
 
         // table : primary keys
         internal var inserted: HashMap<Table<*, *>, ArrayList<Any>>? = null
@@ -235,7 +236,8 @@ class JdbcSqliteSession(
     private fun <ID : IdBound> dbId(table: Table<*, ID>, localId: Long): ID =
             localId as ID // todo
 
-    override fun toString(): String = "JdbcSqliteSession($connection)"
+    override fun toString(): String =
+            "JdbcSession(connection=$connection, dialect=${dialect.javaClass.simpleName})"
 
     @Suppress("UPPER_BOUND_VIOLATED")
     private inline val Dao<*, *>.erased
@@ -247,12 +249,15 @@ class JdbcSqliteSession(
 
         private val records = ConcurrentHashMap<Long, REC>()
 
+        // SELECT <field> WHERE _id = ?
         private val singleSelectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
         @Suppress("UPPER_BOUND_VIOLATED") private val reusableCond = ThreadLocal<WhereCondition.ColCond<Any, Any?>>()
 
+        // SELECT COUNT(*) WHERE ...
         private val countStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
         private val counts = ConcurrentHashMap<WhereCondition<out REC>, MutableProperty<Long>>()
 
+        // SELECT _id WHERE ...
         private val selectionStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
         private val selections = Vector<MutableProperty<Selection<REC, ID>>>() // coding like in 1995, yay!
 
@@ -286,7 +291,9 @@ class JdbcSqliteSession(
                 column: Col<REC, *>?,
                 table: Table<REC, ID>, condition: WhereCondition<out REC>
         ): ResultSet {
-            val query = selectQuery(column, table, condition)
+            val query =
+                    if (column == null) dialect.selectCountQuery(table, condition)
+                    else dialect.selectFieldQuery(column, table, condition)
 
             return statements
                     .getOrSet(::HashMap)
@@ -300,7 +307,7 @@ class JdbcSqliteSession(
 
         override fun find(id: ID): REC? {
             val localId = localId(table, id)
-            return records.getOrPut<Long, REC>(localId) { table.create(this@JdbcSqliteSession, id) } // TODO: check whether exists
+            return records.getOrPut<Long, REC>(localId) { table.create(this@JdbcSession, id) } // TODO: check whether exists
         }
 
         override fun select(condition: WhereCondition<out REC>): Property<List<REC>> {
@@ -347,7 +354,7 @@ class JdbcSqliteSession(
 
         override fun <T> set(transaction: Transaction, column: Manager.Column<T>, id: Long, update: T) {
             column as Col<REC, T>
-            val ourTransact = this@JdbcSqliteSession.transaction
+            val ourTransact = this@JdbcSession.transaction
             if (transaction !== ourTransact) {
                 if (ourTransact === null)
                     throw IllegalStateException("This can be performed only within a transaction")
@@ -367,7 +374,7 @@ class JdbcSqliteSession(
 
         // endregion Manager implementation
 
-        override fun toString(): String = "Dao(for $table in ${this@JdbcSqliteSession})"
+        override fun toString(): String = "Dao(for $table in ${this@JdbcSession})"
 
         @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
         private inline fun <T> unset(): T =
@@ -384,58 +391,6 @@ private fun <REC : Record<REC, *>> scatter(
         colsToFill[i] = pair.col
         valsToFill[i] = pair.value
     }
-}
-
-private fun <REC : Record<REC, *>> insertQuery(table: Table<REC, *>, cols: Array<Col<REC, *>>): String =
-        StringBuilder("INSERT INTO ").appendName(table.name)
-                .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
-                .toString()
-
-private fun <REC : Record<REC, *>> updateQuery(table: Table<REC, *>, col: Col<REC, *>): String =
-        StringBuilder("UPDATE ").appendName(table.name)
-                .append(" SET ").appendName(col.name).append(" = ? WHERE ").appendName(table.idCol.name).append(" = ?;")
-                .toString()
-
-private fun <REC : Record<REC, *>> deleteQuery(table: Table<REC, *>): String =
-        StringBuilder("DELETE FROM ").appendName(table.name)
-                .append(" WHERE ").appendName(table.idCol.name).append(" = ?;")
-                .toString()
-
-private fun <REC : Record<REC, *>> selectQuery(column: Col<REC, *>?, table: Table<REC, *>, condition: WhereCondition<out REC>): String {
-    val sb = StringBuilder("SELECT ")
-            .let { if (column == null) it.append("COUNT(*)") else it.appendName(column.name) }
-            .append(" FROM ").appendName(table.name)
-            .append(" WHERE ")
-
-    val afterWhere = sb.length
-    condition.appendTo(sb)
-
-    if (sb.length == afterWhere) sb.append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
-
-    return sb.toString()
-}
-
-private fun StringBuilder.appendName(name: String) =
-        append('"').append(name.replace("\"", "\"\"")).append('"')
-
-private fun <REC : Record<REC, *>> StringBuilder.appendNames(cols: Array<Col<REC, *>>): StringBuilder {
-    if (cols.isEmpty()) return this
-
-    cols.forEach {  col ->
-        appendName(col.name).append(", ")
-    }
-    setLength(length - 2) // trim comma
-
-    return this
-}
-
-private fun StringBuilder.appendPlaceholders(count: Int): StringBuilder {
-    if (count == 0) return this
-
-    repeat(count) { append("?, ") }
-    setLength(length - 2) // trim comma
-
-    return this
 }
 
 private fun PreparedStatement.bind(params: ArrayList<Any>) {
