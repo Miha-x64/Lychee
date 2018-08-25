@@ -22,14 +22,16 @@ import kotlin.concurrent.getOrSet
 // TODO: support dialects
 // TODO: evicting stale objects
 // TODO: prop concurrency mode instead of hardcoded propertyOf()
-class JdbcSqliteSession(private val connection: Connection) : Session {
+class JdbcSqliteSession(
+        private val connection: Connection
+) : Session {
 
     init {
         connection.autoCommit = false
     }
 
     private val lock = ReentrantReadWriteLock()
-    private val recordManager = RecordManager()
+    private val recordManager = RecordManager() // todo: Map<Table, RecordManager/DAO>
 
     // transactional things, guarded by write-lock
     private var transaction: JdbcTransaction? = null
@@ -178,6 +180,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
         }
 
         override fun setSuccessful() {
+            checkOpenAndThread()
             isSuccessful = true
         }
 
@@ -189,13 +192,13 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
 
         internal fun checkOpenAndThread() {
-            check(thread == Thread.currentThread()) {
-                if (thread == null) "this transaction was already closed" else "called from wrong thread"
+            check(thread === Thread.currentThread()) {
+                if (thread === null) "this transaction was already closed" else "called from wrong thread"
             }
         }
 
         override fun finalize() {
-            check(thread == null) {
+            check(thread === null) {
                 throw IllegalStateException("unclosed transaction being finalized, originally created at", createdAt)
             }
         }
@@ -215,7 +218,7 @@ class JdbcSqliteSession(private val connection: Connection) : Session {
 
     override fun <REC : Record<REC, ID>, ID : IdBound> select(
             table: Table<REC, ID>, condition: WhereCondition<out REC>
-    ): Property<List<REC>> { // TODO DiffProperty
+    ): Property<List<REC>> {
         val primaryKeys = fetchPrimaryKeys(table, condition) // TODO: lazy
 
         return Selection(this, table, condition, primaryKeys)

@@ -16,8 +16,9 @@ typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 interface Session {
     fun beginTransaction(): Transaction
 
-    fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC?
-    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC> /* TODO: order */): Property<List<REC>>
+    fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID /* TODO fields to prefetch */): REC?
+    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC>
+            /* TODO: order */ /* TODO fields to prefetch */): Property<List<REC>> // TODO DiffProperty
     fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long>
 
     /**
@@ -96,7 +97,6 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
             if (!set.add(col)) {
                 throw IllegalStateException("duplicate column: `$name`.`${col.name}`")
             }
-            // TODO: check whether this col type supported by the given database
         }
 
         _idCol = idCol ?: throw IllegalStateException("table `$name` must have a primary key column")
@@ -115,7 +115,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
     protected inline fun <reified T> nullableCol(name: String): Col<REC, T?> =
             col0(false, name, T::class.java as Class<T?>, true)
 
-    protected inline fun <reified T : Any> col(name: String): Col<REC, T>
+    protected inline fun <reified T : Any> col(name: String /* TODO converter */): Col<REC, T>
             = col0(false, name, T::class.java, false)
 
     protected fun idCol(name: String): Col<REC, ID> =
