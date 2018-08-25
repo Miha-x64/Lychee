@@ -6,6 +6,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
+import net.aquadc.properties.internal.Manager
 import java.util.*
 
 
@@ -14,18 +15,24 @@ typealias IdBound = Any // Serializable in some frameworks
 typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
 interface Session {
-    fun beginTransaction(): Transaction
 
-    fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID /* TODO fields to prefetch */): REC?
-    fun <REC : Record<REC, ID>, ID : IdBound> select(table: Table<REC, ID>, condition: WhereCondition<out REC>
-            /* TODO: order */ /* TODO fields to prefetch */): Property<List<REC>> // TODO DiffProperty
-    fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long>
+    operator fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): Dao<REC, ID>
+
+    fun beginTransaction(): Transaction
 
     /**
      * TODO KDoc
-     * Note: returned [Property] is not managed itself, but only when it is within a [Record].
+     * Note: returned [Property] is not managed itself, [Record]s are.
      */
-    fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T, Col<REC, T>>
+    fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T>
+}
+
+interface Dao<REC : Record<REC, ID>, ID : IdBound> {
+    fun find(id: ID /* TODO fields to prefetch */): REC?
+    fun select(condition: WhereCondition<out REC>/* TODO: order, prefetch */): Property<List<REC>> // TODO DiffProperty
+    fun count(condition: WhereCondition<out REC>): Property<Long>
+
+    // why they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 }
 
 inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
@@ -39,14 +46,14 @@ inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
     }
 }
 
-fun <REC : Record<REC, ID>, ID : IdBound> Session.require(table: Table<REC, ID>, id: ID): REC =
-        find(table, id) ?: throw IllegalStateException("No record found in `${table.name}` for ID $id")
+fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.require(id: ID): REC =
+        find(id) ?: throw IllegalStateException("No record found in `$this` for ID $id")
 
-fun <REC : Record<REC, ID>, ID : IdBound> Session.select(table: Table<REC, ID>): Property<List<REC>> =
-        select(table, WhereCondition.Empty)
+fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.select(): Property<List<REC>> =
+        select(WhereCondition.Empty)
 
-fun <REC : Record<REC, ID>, ID : IdBound> Session.count(table: Table<REC, ID>): Property<Long> =
-        count(table, WhereCondition.Empty)
+fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.count(): Property<Long> =
+        count(WhereCondition.Empty)
 
 
 interface Transaction : AutoCloseable {
@@ -100,6 +107,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         }
 
         _idCol = idCol ?: throw IllegalStateException("table `$name` must have a primary key column")
+        //                ^ note: isManaged also relies on the fact that record has at least one field.
         val frozen = Collections.unmodifiableList(tmpCols)
         tmp = null
         frozen
@@ -133,18 +141,21 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 }
 
 
-class Col<REC : Record<REC, *>, out T>(
+class Col<REC : Record<REC, *>, T>(
         val table: Table<REC, *>,
         val isPrimaryKey: Boolean,
         val name: String,
         val javaType: Class<out T>,
         val isNullable: Boolean,
         val ordinal: Int
-)
+) : Manager.Column<T> {
+    override fun toString(): String = table.name + '.' + name
+}
 
 
 /**
  * Represents an active record — a container with some properties.
+ * TODO: should I provide subclassing-less API, too?
  */
 abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
         internal val table: Table<REC, ID>,
@@ -153,26 +164,30 @@ abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
 ) {
 
     @JvmField @JvmSynthetic
-    internal val fields = table.columns.mapToArray { session.createFieldOf(it, primaryKey) }
+    internal val fields: Array<ManagedProperty<Transaction, out Any?>> =
+            table.columns.mapToArray { session.createFieldOf(it, primaryKey) }
 
     operator fun <T> get(col: Col<REC, T>): SqlProperty<T> =
             fields[col.ordinal] as SqlProperty<T>
 
+    val isManaged: Boolean
+        get() = fields[0].isManaged
+
     @Suppress("UNCHECKED_CAST") // id is not nullable, so ForeREC won't be, too
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID>.toOne(foreignTable: Table<ForeREC, ForeID>): SqlProperty<ForeREC> =
-            toOneNullable(foreignTable) as SqlProperty<ForeREC>
+            (this as Col<REC, ForeID?>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
             Col<REC, ForeID?>.toOneNullable(foreignTable: Table<ForeREC, ForeID>): SqlProperty<ForeREC?> =
             this@Record[this@toOneNullable].bind(
-                    { id -> if (id == null) null else session.require(foreignTable, id) },
-                    { it?.primaryKey }
+                    { id: ForeID? -> if (id == null) null else session[foreignTable].require(id) },
+                    { it: ForeREC? -> it?.primaryKey }
             )
 
     infix fun <ForeREC : Record<ForeREC, ForeID>, ForeID : IdBound>
-            Col<ForeREC, ForeID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> =
-            session.select(foreignTable, this eq primaryKey)
+            Col<ForeREC, ID>.toMany(foreignTable: Table<ForeREC, ForeID>): Property<List<ForeREC>> =
+            session[foreignTable].select(this eq primaryKey)
 
 }
 
