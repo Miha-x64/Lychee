@@ -16,8 +16,7 @@ object HumanTable : Table<Human, Long>("people", t()) {
     override fun create(session: Session, id: Long): Human = Human(session, id)
 }
 fun Transaction.insertHuman(name: String, surname: String): Human =
-        session.require(
-                HumanTable,
+        session[HumanTable].require(
                 insert(HumanTable, HumanTable.Name - name, HumanTable.Surname - surname)
         )
 
@@ -48,7 +47,7 @@ class Car(session: Session, id: Long) : Record<Car, Long>(CarTable, session, id)
     val conditionerModelProp get() = this[CarTable.ConditionerModel]
 }
 fun Transaction.insertCar(owner: Human): Car =
-        session.require(CarTable, insert(CarTable, CarTable.OwnerId - owner.primaryKey))
+        session[CarTable].require(insert(CarTable, CarTable.OwnerId - owner.primaryKey))
 
 
 object FriendTable : Table<Friendship, Long>("friends", t()) {

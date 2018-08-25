@@ -31,13 +31,15 @@ class SqliteApp : Application() {
     private val sess = JdbcSqliteSession(connection).also(::fillIfEmpty)
 
     override fun start(stage: Stage) {
-        stage.title = "Sample SQLite application"
+        stage.titleProperty().bind(
+                sess[HumanTable].count().fx().map { "Sample SQLite application ($it records)" }
+        )
         stage.scene = Scene(
                 HBox().apply {
 
                     val hBox = this
 
-                    val humanListProp = sess.select(HumanTable)
+                    val humanListProp = sess[HumanTable].select()
                     val humanList = FXCollections.observableArrayList(humanListProp.value)
                     humanListProp.addChangeListener { _, new ->
                         humanList.clear()
@@ -61,7 +63,9 @@ class SqliteApp : Application() {
                             if (new.isNotEmpty() && namePatch.casValue(new, mapOf())) {
                                 sess.withTransaction {
                                     new.forEach { (human, newName) ->
-                                        human.nameProp.set(newName)
+                                        if (human.isManaged) { // if it was just deleted, ignore
+                                            human.nameProp.set(newName)
+                                        }
                                     }
                                 }
                             }
@@ -122,9 +126,7 @@ class SqliteApp : Application() {
                         children += JFXButton("Create new").apply {
                             setOnMouseClicked { _ ->
                                 listView.selectionModel.select(
-                                        sess.withTransaction {
-                                            insertHuman("", "")
-                                        }
+                                    sess.withTransaction { insertHuman("", "") }
                                 )
                             }
                         }
@@ -199,7 +201,7 @@ private fun create(statement: Statement, table: Table<*, *>) {
 }
 
 private fun fillIfEmpty(session: Session) {
-    if (session.count(HumanTable).value == 0L) {
+    if (session[HumanTable].count().value == 0L) {
         session.withTransaction {
             insertHuman("Stephen", "Hawking")
             val relativist = insertHuman("Albert", "Einstein")

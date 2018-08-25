@@ -31,7 +31,16 @@ class JdbcSqliteSession(
     }
 
     private val lock = ReentrantReadWriteLock()
-    private val recordManager = RecordManager() // todo: Map<Table, RecordManager/DAO>
+    private val daos = ConcurrentHashMap<Table<*, *>, Dao<*, *>>()
+
+    private fun <REC : Record<REC, ID>, ID : IdBound> ConcurrentHashMap<Table<*, *>, Dao<*, *>>
+            .forTable(table: Table<REC, ID>) =
+            daos.getOrPut(table, { Dao(table) }) as Dao<REC, ID>
+
+    override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): net.aquadc.properties.sql.Dao<REC, ID> =
+            daos.forTable(table)
+
+    // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: JdbcTransaction? = null
@@ -81,28 +90,33 @@ class JdbcSqliteSession(
         }
     }
 
+    // endregion transactions and modifying statements
+
     private fun deliverChanges(transaction: JdbcTransaction) {
+        val del = transaction.deleted
+        del?.forEach { (table, localIDs) ->
+            @Suppress("UPPER_BOUND_VIOLATED")
+            val man = daos.forTable<Any, IdBound>(table.erased)
+            localIDs.forEach(man::dropManagement)
+        }
+        // Deletions first! Now we're not going to disturb souls of dead records & properties.
+
+        // value changes
         transaction.updated?.forEach { (col, pkToVal) ->
             pkToVal.forEach { (localId, value) ->
-                @Suppress("UPPER_BOUND_VIOLATED")
-                (recordManager.entities[col.table]?.get(localId) as Record<Any?, IdBound>?)
-                        ?.fields
-                        ?.get(col.ordinal)
-                        ?.commit(value)
+                daos.get(col.table)?.erased?.commitValue(localId, col.erased, value)
+                Unit
             }
         }
+
+        // structure changes
         val ins = transaction.inserted
-        val del = transaction.deleted
         if (ins != null || del != null) {
             val changedTables = (ins?.keys ?: emptySet<Table<*, *>>()) + (del?.keys ?: emptySet())
+
             @Suppress("UPPER_BOUND_VIOLATED")
-            selections.forEach {
-                it as MutableProperty<Selection<Any, IdBound>>
-                val sel = it.value
-                if (sel.table in changedTables) {
-                    it.value =
-                            Selection<Any, IdBound>(this@JdbcSqliteSession, sel.table, sel.condition, fetchPrimaryKeys<Any, IdBound>(sel.table, sel.condition))
-                }
+            changedTables.forEach { table ->
+                daos.forTable<Any, IdBound>(table.erased).onStructuralChange()
             }
         }
     }
@@ -121,10 +135,10 @@ class JdbcSqliteSession(
         internal var inserted: HashMap<Table<*, *>, ArrayList<Any>>? = null
 
         // column : localId : value
-        internal var updated: HashMap<Col<*, *>, HashMap<Long, Any?>>? = null
+        internal var updated: UpdatesHashMap? = null
 
-        // table : primary keys
-        internal var deleted: HashMap<Table<*, *>, ArrayList<Any>>? = null
+        // table : local IDs
+        internal var deleted: HashMap<Table<*, *>, ArrayList<Long>>? = null
 
         override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, vararg contentValues: ColValue<REC, *>): ID {
             checkOpenAndThread()
@@ -133,9 +147,8 @@ class JdbcSqliteSession(
             val vals = arrayOfNulls<Any>(size)
             val cols = arrayOfNulls<Col<REC, *>>(size)
             scatter(contentValues, colsToFill = cols, valsToFill = vals)
-            cols as Array<Col<REC, *>> // non-nulls, I PROVE IT
 
-            val statement = insertStatementWLocked(table, cols)
+            val statement = insertStatementWLocked(table, cols.hopeNoNulls)
             vals.forEachIndexed { idx, x -> statement.setObject(idx + 1, x) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
@@ -146,9 +159,9 @@ class JdbcSqliteSession(
                     .add(id)
 
             // writes all insertion fields as updates
-            val updated = updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it }
+            val updated = updated ?: UpdatesHashMap().also { updated = it }
             contentValues.forEach {
-                updated.getOrPut(it.col, ::HashMap)[localId(it.col.table as Table<*, ID>, id)] = it.value
+                updated.put(it, localId(it.col.table as Table<REC, ID>, id))
             }
 
             return id
@@ -174,9 +187,9 @@ class JdbcSqliteSession(
             statement.setObject(1, record.primaryKey)
             check(statement.executeUpdate() == 1)
 
-            (deleted ?: HashMap<Table<*, *>, ArrayList<Any>>().also { deleted = it })
+            (deleted ?: HashMap<Table<*, *>, ArrayList<Long>>().also { deleted = it })
                     .getOrPut(record.table, ::ArrayList)
-                    .add(record.primaryKey)
+                    .add(localId(record.table, record.primaryKey))
         }
 
         override fun setSuccessful() {
@@ -198,7 +211,7 @@ class JdbcSqliteSession(
         }
 
         override fun finalize() {
-            check(thread === null) {
+            if (thread !== null) {
                 throw IllegalStateException("unclosed transaction being finalized, originally created at", createdAt)
             }
         }
@@ -206,62 +219,11 @@ class JdbcSqliteSession(
     }
 
 
-    override fun <REC : Record<REC, ID>, ID : IdBound> find(table: Table<REC, ID>, id: ID): REC? {
+    override fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T> {
+        val table = col.table as Table<REC, ID>
         val localId = localId(table, id)
-        val records = recordManager.entities.getOrPut(table, ::ConcurrentHashMap) as ConcurrentHashMap<Long, REC>
-        return records.getOrPut(localId) { table.create(this, id) } // TODO: check whether exists
-    }
-
-
-    private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val selections = Vector<MutableProperty<out Selection<*, *>>>() // coding like in 1995, yay!
-
-    override fun <REC : Record<REC, ID>, ID : IdBound> select(
-            table: Table<REC, ID>, condition: WhereCondition<out REC>
-    ): Property<List<REC>> {
-        val primaryKeys = fetchPrimaryKeys(table, condition) // TODO: lazy
-
-        return Selection(this, table, condition, primaryKeys)
-                .let(::propertyOf)
-                .also { selections.add(it) }
-    }
-
-    private fun <REC : Record<REC, ID>, ID : IdBound> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> {
-        val primaryKeys = cachedSelectStmt(selectStatements, table.idCol, table, condition)
-                .fetchAll<ID>()
-                .toTypedArray<Any>() as Array<ID>
-        return primaryKeys
-    }
-
-
-    private val countStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val counts = Vector<MutableProperty<Long>>() // coding like in 1995, yay!
-
-    override fun <REC : Record<REC, ID>, ID : IdBound> count(table: Table<REC, ID>, condition: WhereCondition<out REC>): Property<Long> {
-        return cachedSelectStmt(countStatements, null, table, condition)
-                .fetchSingle<Number>()
-                .let { propertyOf(it.toLong()) }
-                .also { counts.add(it) }
-    }
-
-
-    private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
-            statements: ThreadLocal<HashMap<String, PreparedStatement>>,
-            column: Col<REC, *>?,
-            table: Table<REC, ID>, condition: WhereCondition<out REC>
-    ): ResultSet {
-        val query = selectQuery(column, table, condition)
-
-        return statements
-                .getOrSet(::HashMap)
-                .getOrPut(query) { connection.prepareStatement(query) }
-                .also { it.bind(ArrayList<Any>().also(condition::appendValuesTo)) }
-                .executeQuery()
-    }
-
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T, Col<REC, T>> {
-        val localId = localId(col.table as Table<REC, ID>, id)
-        return ManagedProperty(recordManager as Manager<Transaction, Col<REC, T>, T>, col, localId)
+        val manager = daos.forTable(table)
+        return ManagedProperty<Transaction, T>(manager, col, localId)
     }
 
     private fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
@@ -273,42 +235,118 @@ class JdbcSqliteSession(
     private fun <ID : IdBound> dbId(table: Table<*, ID>, localId: Long): ID =
             localId as ID // todo
 
+    override fun toString(): String = "JdbcSqliteSession($connection)"
 
-    private inner class RecordManager : Manager<Transaction, Col<*, *>, Any?> {
+    @Suppress("UPPER_BOUND_VIOLATED")
+    private inline val Dao<*, *>.erased
+        get() = this as Dao<Any, IdBound>
 
-        /*
-         * table: records
-         * recordId: record
-         */
-        internal val entities = ConcurrentHashMap<Table<*, *>, ConcurrentHashMap<Long, Record<*, *>>>()
+    private inner class Dao<REC : Record<REC, ID>, ID : IdBound>(
+            private val table: Table<REC, ID>
+    ) : net.aquadc.properties.sql.Dao<REC, ID>, Manager<Transaction> {
 
-        private val statements = ThreadLocal<HashMap<String, PreparedStatement>>()
+        private val records = ConcurrentHashMap<Long, REC>()
 
-        @Suppress("UPPER_BOUND_VIOLATED")
-        private val reusableCond = ThreadLocal<WhereCondition.ColCond<Any, Any>>()
+        private val singleSelectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
+        @Suppress("UPPER_BOUND_VIOLATED") private val reusableCond = ThreadLocal<WhereCondition.ColCond<Any, Any?>>()
 
-        override fun getDirty(token: Col<*, *>, id: Long): Any? {
-            val transaction = transaction ?: return Unset
+        private val countStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
+        private val counts = ConcurrentHashMap<WhereCondition<out REC>, MutableProperty<Long>>()
 
-            val thisCol = transaction.updated?.get(token) ?: return Unset
-            val primaryKey = dbId(token.table, id)
-            return if (thisCol.containsKey(primaryKey)) thisCol[primaryKey] else Unset
+        private val selectionStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
+        private val selections = Vector<MutableProperty<Selection<REC, ID>>>() // coding like in 1995, yay!
+
+        internal fun <T> commitValue(localId: Long, column: Col<REC, T>, value: T) {
+            (records[localId]?.fields?.get(column.ordinal) as ManagedProperty<Transaction, T>?)?.commit(value)
         }
 
-        @Suppress("UPPER_BOUND_VIOLATED")
-        override fun getClean(token: Col<*, *>, id: Long): Any? {
-            val condition = reusableCond.getOrSet {
-                WhereCondition.ColCond<Any, Any>(token as Col<Any, Any>, " = ?", Unset)
+        internal fun dropManagement(localId: Long) {
+            records.remove(localId)?.fields?.forEach(ManagedProperty<*, *>::dropManagement)
+        }
+
+        internal fun onStructuralChange() {
+            selections.forEach {
+                val sel = it.value
+                it.value = Selection(this, sel.condition, fetchPrimaryKeys(table, sel.condition))
             }
-            condition.col = token.table.idCol as Col<Any, Any>
-            condition.valueOrValues = id
+            counts.forEach { (condition, prop) ->
+                prop.value = cachedSelectStmt(countStatements, null, table, condition).fetchSingle<Number>().toLong()
+            }
+        }
 
-            return cachedSelectStmt<Any, Any>(statements, token as Col<Any, *>, token.table as Table<Any, Any>, condition)
-                    .fetchSingle()
+        private fun <REC : Record<REC, ID>, ID : IdBound> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> {
+            val primaryKeys = cachedSelectStmt(selectionStatements, table.idCol, table, condition)
+                    .fetchAll<ID>()
+                    .toTypedArray<Any>() as Array<ID>
+            return primaryKeys
+        }
+
+        private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
+                statements: ThreadLocal<HashMap<String, PreparedStatement>>,
+                column: Col<REC, *>?,
+                table: Table<REC, ID>, condition: WhereCondition<out REC>
+        ): ResultSet {
+            val query = selectQuery(column, table, condition)
+
+            return statements
+                    .getOrSet(::HashMap)
+                    .getOrPut(query) { connection.prepareStatement(query) }
+                    .also { it.bind(ArrayList<Any>().also(condition::appendValuesTo)) }
+                    .executeQuery()
+        }
+
+
+        // region Dao implementation
+
+        override fun find(id: ID): REC? {
+            val localId = localId(table, id)
+            return records.getOrPut<Long, REC>(localId) { table.create(this@JdbcSqliteSession, id) } // TODO: check whether exists
+        }
+
+        override fun select(condition: WhereCondition<out REC>): Property<List<REC>> {
+            val primaryKeys = fetchPrimaryKeys(table, condition) // TODO: lazy
+
+            return Selection(this, condition, primaryKeys)
+                    .let(::propertyOf)
+                    .also { selections.add(it) }
+        }
+
+        override fun count(condition: WhereCondition<out REC>): Property<Long> =
+                counts.getOrPut(condition) {
+                    cachedSelectStmt(countStatements, null, table, condition)
+                            .fetchSingle<Number>().toLong()
+                            .let(::propertyOf)
+                }
+
+        // endregion Dao implementation
+
+        // region Manager implementation
+
+        override fun <T> getDirty(column: Manager.Column<T>, id: Long): T {
+            val transaction = transaction ?: return unset()
+
+            val thisCol = transaction.updated?.getFor(column as Col<REC, T>) ?: return unset()
+            // we've created this column, we can cast it to original type
+
+            val localId = id
+            return if (thisCol.containsKey(localId)) thisCol[localId] as T else unset()
+            // 'as T' is safe since thisCol won't contain non-T value
         }
 
         @Suppress("UPPER_BOUND_VIOLATED")
-        override fun set(transaction: Transaction, token: Col<*, *>, id: Long, update: Any?) {
+        override fun <T> getClean(column: Manager.Column<T>, id: Long): T {
+            val col = column as Col<Any, Any?>
+            val condition = reusableCond.getOrSet {
+                WhereCondition.ColCond<Any, Any?>(col, " = ?", Unset)
+            }
+            condition.col = col.table.idCol as Col<Any, Any?>
+            condition.valueOrValues = dbId(col.table, id)
+
+            return cachedSelectStmt<Any, Any>(singleSelectStatements, col, col.table as Table<Any, Any>, condition).fetchSingle()
+        }
+
+        override fun <T> set(transaction: Transaction, column: Manager.Column<T>, id: Long, update: T) {
+            column as Col<REC, T>
             val ourTransact = this@JdbcSqliteSession.transaction
             if (transaction !== ourTransact) {
                 if (ourTransact === null)
@@ -318,15 +356,22 @@ class JdbcSqliteSession(
             }
             ourTransact.checkOpenAndThread()
 
-            val dirty = getDirty(token, id)
-            val cleanEquals = dirty === Unset && getClean(token, id) === update
+            val dirty = getDirty(column, id)
+            val cleanEquals = dirty === Unset && getClean(column, id) === update
             if (dirty === update || cleanEquals) {
                 return
             }
 
-            transaction.update<Any?, Any?, Any?>(
-                    token.table as Table<Any?, Any?>, dbId<Any?>(token.table, id), token as Col<Any?, Any?>, update)
+            transaction.update<REC, ID, T>(column.table as Table<REC, ID>, dbId(column.table, id), column, update)
         }
+
+        // endregion Manager implementation
+
+        override fun toString(): String = "Dao(for $table in ${this@JdbcSqliteSession})"
+
+        @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+        private inline fun <T> unset(): T =
+                Unset as T
 
     }
 
