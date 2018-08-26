@@ -7,6 +7,8 @@ import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.util.*
 
 
@@ -75,6 +77,22 @@ interface Transaction : AutoCloseable {
 }
 
 
+interface Converter<T> {
+    val javaType: Class<out T>
+    val sqlType: String
+    val isNullable: Boolean
+
+    /**
+     * @param index is 0-based
+     */
+    fun bind(statement: PreparedStatement, index: Int, value: T)
+
+    /**
+     * @param index is 0-based
+     */
+    fun get(resultSet: ResultSet, index: Int): T
+}
+
 abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         val name: String,
         type: Class<ID>
@@ -122,19 +140,18 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         get() = _idCol ?: columns.let { _ -> _idCol!! }
 
 
-    @Suppress("UNCHECKED_CAST") // casting Class<T> to Class<T?> looks safe :)
-    protected inline fun <reified T> nullableCol(name: String): Col<REC, T?> =
-            col0(false, name, T::class.java as Class<T?>, true)
+    @Suppress("NOTHING_TO_INLINE")
+    protected inline infix fun <T> Converter<T>.col(name: String): Col<REC, T> =
+            col0(false, name, this)
 
-    protected inline fun <reified T : Any> col(name: String /* TODO converter */): Col<REC, T>
-            = col0(false, name, T::class.java, false)
+    @Suppress("NOTHING_TO_INLINE")
+    protected inline infix fun Converter<ID>.idCol(name: String): Col<REC, ID> =
+            col0(true, name, this)
 
-    protected fun idCol(name: String): Col<REC, ID> =
-            col0(pk = true, name = name, type = tmpType(), nullable = false)
-
-    @PublishedApi internal fun <T> col0(pk: Boolean, name: String, type: Class<T>, nullable: Boolean): Col<REC, T> {
+    @PublishedApi internal fun <T> col0(pk: Boolean, name: String, converter: Converter<T>): Col<REC, T> {
+        if (pk) check(!converter.isNullable) // ID : IdBound, but let me check twice
         val cols = tmpCols()
-        val col = Col(this, pk, name, type, nullable, cols.size)
+        val col = Col(this, pk, name, converter, cols.size)
         cols.add(col)
         return col
     }
@@ -149,8 +166,7 @@ class Col<REC : Record<REC, *>, T>(
         val table: Table<REC, *>,
         val isPrimaryKey: Boolean,
         val name: String,
-        val javaType: Class<out T>,
-        val isNullable: Boolean,
+        val converter: Converter<T>,
         val ordinal: Int
 ) : Manager.Column<T> {
     override fun toString(): String = table.name + '.' + name

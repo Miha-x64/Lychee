@@ -1,15 +1,16 @@
 package net.aquadc.properties.sql
 // @see package org.greenrobot.greendao.query;
 
+import net.aquadc.properties.sql.dialect.Dialect
 import java.lang.StringBuilder
-import java.util.*
+import java.sql.PreparedStatement
 
 
 interface WhereCondition<REC : Record<REC, *>> {
 
-    fun appendTo(builder: StringBuilder): StringBuilder
+    fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder
 
-    fun appendValuesTo(target: MutableList<Any>)
+    fun bindValuesTo(statement: PreparedStatement, offset: Int)
 
 
     class ColCond<REC : Record<REC, *>, T> : WhereCondition<REC> {
@@ -33,19 +34,22 @@ interface WhereCondition<REC : Record<REC, *>> {
             this.valueOrValues = values
         }
 
-        override fun appendTo(builder: StringBuilder): StringBuilder = // TODO: dialect support
-                builder.append(col.name.replace("\"", "\"\"")).append(op)
+        override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder =
+                with(dialect) { builder.appendName(col.name) }.append(op)
 
-        override fun appendValuesTo(target: MutableList<Any>) {
-            if (singleValue) target.add(valueOrValues)
-            else Collections.addAll(target, valueOrValues as Array<*>)
+        override fun bindValuesTo(statement: PreparedStatement, offset: Int) {
+            val conv = col.converter
+            if (singleValue) conv.bind(statement, offset, valueOrValues as T)
+            else (valueOrValues as Array<T>).forEachIndexed { index, value ->
+                conv.bind(statement, offset + index, value)
+            }
         }
 
     }
 
     object Empty : WhereCondition<Nothing> {
-        override fun appendTo(builder: StringBuilder): StringBuilder = builder
-        override fun appendValuesTo(target: MutableList<Any>) = Unit
+        override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder = builder
+        override fun bindValuesTo(statement: PreparedStatement, offset: Int) = Unit
     }
 
     // TODO: composite conditions

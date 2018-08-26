@@ -19,7 +19,7 @@ import javafx.stage.Stage
 import net.aquadc.properties.*
 import net.aquadc.properties.fx.fx
 import net.aquadc.properties.sql.*
-import net.aquadc.properties.sql.dialect.SqliteDialect
+import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.Statement
@@ -190,9 +190,9 @@ private fun create(statement: Statement, table: Table<*, *>) {
     val idCol = table.idCol
     check(table.columns.isNotEmpty())
     table.columns.forEach { col ->
-        sb.append(col.name).append(' ').append(Java2SQLite[col.javaType]!!)
+        sb.append(col.name).append(' ').append(col.converter.javaType)
         if (col === idCol) sb.append(" PRIMARY KEY")
-        else if (!col.isNullable) sb.append(" NOT NULL")
+        else if (!col.converter.isNullable) sb.append(" NOT NULL")
         sb.append(", ")
     }
     sb.setLength(sb.length - 2) // trim last comma

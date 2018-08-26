@@ -1,6 +1,7 @@
-package net.aquadc.properties.sql.dialect
+package net.aquadc.properties.sql.dialect.sqlite
 
 import net.aquadc.properties.sql.*
+import net.aquadc.properties.sql.dialect.Dialect
 
 /**
  * Implements SQLite [Dialect].
@@ -25,7 +26,7 @@ object SqliteDialect : Dialect {
                 .append(" WHERE ")
 
         val afterWhere = sb.length
-        condition.appendTo(sb)
+        condition.appendSqlTo(this, sb)
 
         if (sb.length == afterWhere) sb.append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
 
@@ -42,7 +43,7 @@ object SqliteDialect : Dialect {
                     .append(" WHERE ").appendName(table.idCol.name).append(" = ?;")
                     .toString()
 
-    private fun StringBuilder.appendName(name: String) =
+    override fun StringBuilder.appendName(name: String): StringBuilder =
             append('"').append(name.replace("\"", "\"\"")).append('"')
 
     private fun <REC : Record<REC, *>> StringBuilder.appendNames(cols: Array<Col<REC, *>>): StringBuilder {
