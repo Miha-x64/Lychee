@@ -159,9 +159,10 @@ class Col<REC : Record<REC, *>, T>(
 
 /**
  * Represents an active record — a container with some properties.
+ * Subclass it to provide your own getters and/or computed/foreign properties.
  * TODO: should I provide subclassing-less API, too?
  */
-abstract class Record<REC : Record<REC, ID>, ID : IdBound>(
+open class Record<REC : Record<REC, ID>, ID : IdBound>(
         internal val table: Table<REC, ID>,
         internal val session: Session,
         val primaryKey: ID
