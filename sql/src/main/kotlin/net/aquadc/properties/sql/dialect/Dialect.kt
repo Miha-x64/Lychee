@@ -4,6 +4,7 @@ import net.aquadc.properties.sql.Col
 import net.aquadc.properties.sql.Record
 import net.aquadc.properties.sql.Table
 import net.aquadc.properties.sql.WhereCondition
+import java.lang.StringBuilder
 
 /**
  * Represents an SQL dialect. Provides functions for building queries.
@@ -34,5 +35,10 @@ interface Dialect {
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`
      */
     fun <REC : Record<REC, *>> deleteRecordQuery(table: Table<REC, *>): String
+
+    /**
+     * Appends quoted and escaped table or column name.
+     */
+    fun StringBuilder.appendName(name: String): StringBuilder
 
 }

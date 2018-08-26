@@ -20,5 +20,5 @@ internal inline val Table<*, *>.erased
 internal inline val Col<*, *>.erased
     get() = this as Col<Any, Any?>
 
-internal inline val <T : Any> Array<T?>.hopeNoNulls
-    get() = this as Array<T>
+internal inline val Converter<*>.erased
+    get() = this as Converter<Any?>

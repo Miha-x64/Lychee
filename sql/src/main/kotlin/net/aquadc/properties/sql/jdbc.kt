@@ -9,6 +9,7 @@ import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.sql.dialect.Dialect
+import net.aquadc.properties.sql.dialect.sqlite.long
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -146,14 +147,15 @@ class JdbcSession(
 
             val size = contentValues.size
             val vals = arrayOfNulls<Any>(size)
-            val cols = arrayOfNulls<Col<REC, *>>(size)
+            var cols = arrayOfNulls<Col<REC, *>>(size)
             scatter(contentValues, colsToFill = cols, valsToFill = vals)
+            cols as Array<Col<REC, *>>
 
-            val statement = insertStatementWLocked(table, cols.hopeNoNulls)
-            vals.forEachIndexed { idx, x -> statement.setObject(idx + 1, x) }
+            val statement = insertStatementWLocked(table, cols)
+            cols.forEachIndexed { idx, col -> col.converter.erased.bind(statement, idx, vals[idx]) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
-            val id: ID = keys.fetchSingle()
+            val id: ID = keys.fetchSingle(table.idCol.converter)
 
             inserted ?: HashMap<Table<*, *>, ArrayList<Any>>().also { inserted = it }
                     .getOrPut(table, ::ArrayList)
@@ -172,8 +174,8 @@ class JdbcSession(
             checkOpenAndThread()
 
             val statement = updateStatementWLocked(table, column)
-            statement.setObject(1, value)
-            statement.setObject(2, id)
+            column.converter.bind(statement, 0, value)
+            table.idCol.converter.bind(statement, 1, id)
             check(statement.executeUpdate() == 1)
 
             (updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it })
@@ -184,13 +186,14 @@ class JdbcSession(
             checkOpenAndThread()
             check(session === record.session)
 
-            val statement = deleteStatementWLocked(record.table)
-            statement.setObject(1, record.primaryKey)
+            val table = record.table
+            val statement = deleteStatementWLocked(table)
+            table.idCol.converter.bind(statement, 0, record.primaryKey)
             check(statement.executeUpdate() == 1)
 
             (deleted ?: HashMap<Table<*, *>, ArrayList<Long>>().also { deleted = it })
-                    .getOrPut(record.table, ::ArrayList)
-                    .add(localId(record.table, record.primaryKey))
+                    .getOrPut(table, ::ArrayList)
+                    .add(localId(table, record.primaryKey))
         }
 
         override fun setSuccessful() {
@@ -275,13 +278,14 @@ class JdbcSession(
                 it.value = Selection(this, sel.condition, fetchPrimaryKeys(table, sel.condition))
             }
             counts.forEach { (condition, prop) ->
-                prop.value = cachedSelectStmt(countStatements, null, table, condition).fetchSingle<Number>().toLong()
+                prop.value = cachedSelectStmt(countStatements, null, table, condition).fetchSingle(long)
             }
         }
 
         private fun <REC : Record<REC, ID>, ID : IdBound> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> {
-            val primaryKeys = cachedSelectStmt(selectionStatements, table.idCol, table, condition)
-                    .fetchAll<ID>()
+            val idCol = table.idCol
+            val primaryKeys = cachedSelectStmt(selectionStatements, idCol, table, condition)
+                    .fetchAll<ID>(idCol.converter)
                     .toTypedArray<Any>() as Array<ID>
             return primaryKeys
         }
@@ -289,7 +293,8 @@ class JdbcSession(
         private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
                 statements: ThreadLocal<HashMap<String, PreparedStatement>>,
                 column: Col<REC, *>?,
-                table: Table<REC, ID>, condition: WhereCondition<out REC>
+                table: Table<REC, ID>,
+                condition: WhereCondition<out REC>
         ): ResultSet {
             val query =
                     if (column == null) dialect.selectCountQuery(table, condition)
@@ -298,7 +303,7 @@ class JdbcSession(
             return statements
                     .getOrSet(::HashMap)
                     .getOrPut(query) { connection.prepareStatement(query) }
-                    .also { it.bind(ArrayList<Any>().also(condition::appendValuesTo)) }
+                    .also { condition.bindValuesTo(it, 0) }
                     .executeQuery()
         }
 
@@ -321,7 +326,7 @@ class JdbcSession(
         override fun count(condition: WhereCondition<out REC>): Property<Long> =
                 counts.getOrPut(condition) {
                     cachedSelectStmt(countStatements, null, table, condition)
-                            .fetchSingle<Number>().toLong()
+                            .fetchSingle(long)
                             .let(::propertyOf)
                 }
 
@@ -342,14 +347,14 @@ class JdbcSession(
 
         @Suppress("UPPER_BOUND_VIOLATED")
         override fun <T> getClean(column: Manager.Column<T>, id: Long): T {
-            val col = column as Col<Any, Any?>
-            val condition = reusableCond.getOrSet {
-                WhereCondition.ColCond<Any, Any?>(col, " = ?", Unset)
+            val col = column as Col<REC, T>
+            val condition = (reusableCond as ThreadLocal<WhereCondition.ColCond<REC, ID>>).getOrSet {
+                WhereCondition.ColCond(table.idCol, " = ?", Unset)
             }
-            condition.col = col.table.idCol as Col<Any, Any?>
+            condition.col = table.idCol
             condition.valueOrValues = dbId(col.table, id)
 
-            return cachedSelectStmt<Any, Any>(singleSelectStatements, col, col.table as Table<Any, Any>, condition).fetchSingle()
+            return cachedSelectStmt<ID, REC>(singleSelectStatements, col, table, condition).fetchSingle(col.converter)
         }
 
         override fun <T> set(transaction: Transaction, column: Manager.Column<T>, id: Long, update: T) {
@@ -393,23 +398,18 @@ private fun <REC : Record<REC, *>> scatter(
     }
 }
 
-private fun PreparedStatement.bind(params: ArrayList<Any>) {
-    for (i in params.indices)
-        setObject(i + 1, params[i])
-}
-
-private fun <T> ResultSet.fetchAll(): List<T> {
-    val values = ArrayList<Any>()
+private fun <T> ResultSet.fetchAll(converter: Converter<T>): List<T> {
+    val values = ArrayList<Any?>()
     while (next())
-        values.add(getObject(1))
+        values.add(converter.get(this, 0))
     close()
     return values as List<T>
 }
 
-fun <T> ResultSet.fetchSingle(): T {
+fun <T> ResultSet.fetchSingle(converter: Converter<T>): T {
     try {
         check(next())
-        return getObject(1) as T
+        return converter.get(this, 0)
     } finally {
         close()
     }
