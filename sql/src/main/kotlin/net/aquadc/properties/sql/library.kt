@@ -80,25 +80,26 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         type: Class<ID>
 ) {
 
-    private var tmp: Pair<ArrayList<Col<REC, *>>, Class<ID>>? = Pair(ArrayList(), type)
-    // todo: check what's more mem-efficient — one or two fields
+    private var tmpCols: ArrayList<Col<REC, *>>? = ArrayList()
+    private var tmpType: Class<ID>? = type
 
     /**
      * {@implNote
-     *   on concurrent access, we might null out [tmp] while it's getting accessed,
+     *   on concurrent access, we might null out [tmpCols] and [tmpType] while it's getting accessed,
      *   so let it be synchronized (it's default [lazy] mode).
      * }
      */
     val columns: List<Col<REC, *>> by lazy {
         var idCol: Col<REC, ID>? = null
         val set = HashSet<Col<REC, *>>()
-        val tmpCols = tmp!!.first
-        for (i in tmpCols.indices) {
-            val col = tmpCols[i]
+        val cols = tmpCols!!
+        for (i in cols.indices) {
+            val col = cols[i]
             if (col.isPrimaryKey) {
                 if (idCol != null) {
                     throw  IllegalStateException("duplicate primary key `$name`.`${col.name}`, already have `${idCol.name}`")
                 }
+                @Suppress("UNCHECKED_CAST") // we know type of primary key col in advance
                 idCol = col as Col<REC, ID>
             }
             if (!set.add(col)) {
@@ -108,8 +109,9 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
         _idCol = idCol ?: throw IllegalStateException("table `$name` must have a primary key column")
         //                ^ note: isManaged also relies on the fact that record has at least one field.
-        val frozen = Collections.unmodifiableList(tmpCols)
-        tmp = null
+        val frozen = Collections.unmodifiableList(cols)
+        tmpCols = null
+        tmpType = null
         frozen
     }
 
@@ -120,6 +122,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         get() = _idCol ?: columns.let { _ -> _idCol!! }
 
 
+    @Suppress("UNCHECKED_CAST") // casting Class<T> to Class<T?> looks safe :)
     protected inline fun <reified T> nullableCol(name: String): Col<REC, T?> =
             col0(false, name, T::class.java as Class<T?>, true)
 
@@ -127,16 +130,17 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
             = col0(false, name, T::class.java, false)
 
     protected fun idCol(name: String): Col<REC, ID> =
-            col0(pk = true, name = name, type = tmp().second, nullable = false)
+            col0(pk = true, name = name, type = tmpType(), nullable = false)
 
     @PublishedApi internal fun <T> col0(pk: Boolean, name: String, type: Class<T>, nullable: Boolean): Col<REC, T> {
-        val cols = tmp().first
-        val col = Col<REC, T>(this, pk, name, type, nullable, cols.size)
+        val cols = tmpCols()
+        val col = Col(this, pk, name, type, nullable, cols.size)
         cols.add(col)
         return col
     }
 
-    private fun tmp() = tmp ?: throw IllegalStateException("table `$name` is already initialized")
+    private fun tmpCols() = tmpCols ?: throw IllegalStateException("table `$name` is already initialized")
+    private fun tmpType() = tmpType ?: throw IllegalStateException("table `$name` is already initialized")
 
 }
 
@@ -209,5 +213,6 @@ inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
     for (i in indices) {
         array[i] = transform(this[i])
     }
+    @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
     return array as Array<R>
 }
