@@ -7,6 +7,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
+import net.aquadc.properties.map
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.sqlite.long
@@ -223,13 +224,6 @@ class JdbcSession(
     }
 
 
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T> {
-        val table = col.table as Table<REC, ID>
-        val localId = localId(table, id)
-        val manager = daos.forTable(table)
-        return ManagedProperty<Transaction, T>(manager, col, localId)
-    }
-
     private fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
         is Int -> id.toLong()
         is Long -> id
@@ -258,11 +252,11 @@ class JdbcSession(
 
         // SELECT COUNT(*) WHERE ...
         private val countStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-        private val counts = ConcurrentHashMap<WhereCondition<out REC>, MutableProperty<Long>>()
+        private val counts = ConcurrentHashMap<WhereCondition<out REC>, MutableProperty<WhereCondition<out REC>>>()
 
         // SELECT _id WHERE ...
         private val selectionStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-        private val selections = Vector<MutableProperty<Selection<REC, ID>>>() // coding like in 1995, yay!
+        private val selections = Vector<MutableProperty<WhereCondition<out REC>>>() // coding like in 1995, yay! TODO: deduplication
 
         internal fun <T> commitValue(localId: Long, column: Col<REC, T>, value: T) {
             (records[localId]?.fields?.get(column.ordinal) as ManagedProperty<Transaction, T>?)?.commit(value)
@@ -273,21 +267,14 @@ class JdbcSession(
         }
 
         internal fun onStructuralChange() {
-            selections.forEach {
-                val sel = it.value
-                it.value = Selection(this, sel.condition, fetchPrimaryKeys(table, sel.condition))
-            }
-            counts.forEach { (condition, prop) ->
-                prop.value = cachedSelectStmt(countStatements, null, table, condition).fetchSingle(long)
-            }
-        }
+            // TODO: trigger this only if something has changed
 
-        private fun <REC : Record<REC, ID>, ID : IdBound> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> {
-            val idCol = table.idCol
-            val primaryKeys = cachedSelectStmt(selectionStatements, idCol, table, condition)
-                    .fetchAll<ID>(idCol.converter)
-                    .toTypedArray<Any>() as Array<ID>
-            return primaryKeys
+            selections.forEach {
+                it.value = it.value
+            }
+            counts.forEach { (_, it) ->
+                it.value = it.value
+            }
         }
 
         private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
@@ -315,22 +302,37 @@ class JdbcSession(
             return records.getOrPut<Long, REC>(localId) { table.create(this@JdbcSession, id) } // TODO: check whether exists
         }
 
-        override fun select(condition: WhereCondition<out REC>): Property<List<REC>> {
-            val primaryKeys = fetchPrimaryKeys(table, condition) // TODO: lazy
-
-            return Selection(this, condition, primaryKeys)
-                    .let(::propertyOf)
-                    .also { selections.add(it) }
-        }
+        override fun select(condition: WhereCondition<out REC>): Property<List<REC>> =
+                propertyOf(condition)
+                        .also { selections.add(it) }
+                        .map(Query(this))
 
         override fun count(condition: WhereCondition<out REC>): Property<Long> =
                 counts.getOrPut(condition) {
-                    cachedSelectStmt(countStatements, null, table, condition)
-                            .fetchSingle(long)
-                            .let(::propertyOf)
-                }
+                    propertyOf(condition)
+                }.map(Count(this)) // todo cache, too
 
         // endregion Dao implementation
+
+        // region low-level Dao implementation
+
+        override fun fetchPrimaryKeys(condition: WhereCondition<out REC>): Array<ID> =
+                table.idCol.let { idCol ->
+                    cachedSelectStmt(selectionStatements, idCol, table, condition)
+                            .fetchAll(idCol.converter)
+                            .toTypedArray<Any>() as Array<ID>
+                }
+
+        override fun fetchCount(condition: WhereCondition<out REC>): Long =
+                cachedSelectStmt(countStatements, null, table, condition).fetchSingle(long)
+
+        override fun <T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T> {
+            val localId = localId(table, id)
+            val manager = daos.forTable(table)
+            return ManagedProperty<Transaction, T>(manager, col, localId)
+        }
+
+        // endregion low-level Dao implementation
 
         // region Manager implementation
 

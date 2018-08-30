@@ -22,19 +22,24 @@ interface Session {
 
     fun beginTransaction(): Transaction
 
-    /**
-     * TODO KDoc
-     * Note: returned [Property] is not managed itself, [Record]s are.
-     */
-    fun <REC : Record<REC, ID>, ID : IdBound, T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T>
 }
 
 interface Dao<REC : Record<REC, ID>, ID : IdBound> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
     fun select(condition: WhereCondition<out REC>/* TODO: order, prefetch */): Property<List<REC>> // TODO DiffProperty
     fun count(condition: WhereCondition<out REC>): Property<Long>
+    // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
-    // why they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
+    // low-level functions, may be moved
+
+    fun fetchPrimaryKeys(condition: WhereCondition<out REC> /* TODO order */): Array<ID>
+    fun fetchCount(condition: WhereCondition<out REC>): Long
+
+    /**
+     * TODO KDoc
+     * Note: returned [Property] is not managed itself, [Record]s are.
+     */
+    fun <T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T>
 }
 
 inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
@@ -186,7 +191,9 @@ open class Record<REC : Record<REC, ID>, ID : IdBound>(
 
     @JvmField @JvmSynthetic
     internal val fields: Array<ManagedProperty<Transaction, out Any?>> =
-            table.columns.mapToArray { session.createFieldOf(it, primaryKey) }
+            session[table].let { dao ->
+                table.columns.mapToArray { dao.createFieldOf(it, primaryKey) }
+            }
 
     operator fun <T> get(col: Col<REC, T>): SqlProperty<T> =
             fields[col.ordinal] as SqlProperty<T>
