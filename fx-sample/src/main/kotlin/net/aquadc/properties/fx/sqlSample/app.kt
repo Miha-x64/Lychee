@@ -124,11 +124,19 @@ class SqliteApp : Application() {
                             VBox.setVgrow(this, Priority.ALWAYS)
                         }
 
-                        children += JFXButton("Create new").apply {
-                            setOnMouseClicked { _ ->
-                                listView.selectionModel.select(
-                                    sess.withTransaction { insertHuman("", "") }
-                                )
+                        children += HBox().apply {
+                            children += JFXButton("Create new").apply {
+                                setOnMouseClicked { _ ->
+                                    listView.selectionModel.select(
+                                            sess.withTransaction { insertHuman("", "") }
+                                    )
+                                }
+                            }
+
+                            children += JFXButton("Dump debug info").apply {
+                                setOnMouseClicked { _ ->
+                                    println(StringBuilder().also(sess::dump).toString())
+                                }
                             }
                         }
                     }

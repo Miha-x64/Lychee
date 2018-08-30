@@ -294,6 +294,33 @@ class JdbcSession(
                     .executeQuery()
         }
 
+        fun dump(prefix: String, sb: StringBuilder) {
+            sb.append(prefix).append("records\n")
+            records.forEach { (localId, rec) ->
+                sb.append(prefix).append(" ").append(localId).append(" : ").append(rec).append("\n")
+            }
+
+            sb.append(prefix).append("counts\n")
+            counts.keys.forEach { cond ->
+                sb.append(prefix).append(" ").let { cond.appendSqlTo(dialect, it) }.append("\n")
+            }
+
+            sb.append(prefix).append("selections\n")
+            selections.forEach { sel ->
+                sb.append(prefix).append(" ").let { sel.value.appendSqlTo(dialect, it) }.append("\n")
+            }
+
+            arrayOf(
+                    "single select statements" to singleSelectStatements,
+                    "count statements" to countStatements,
+                    "selection statements" to selectionStatements
+            ).forEach { (name, stmts) ->
+                sb.append(prefix).append(name).append(" (for current thread)\n")
+                stmts.get()?.keys?.forEach { sql ->
+                    sb.append(prefix).append(" ").append(sql).append("\n")
+                }
+            }
+        }
 
         // region Dao implementation
 
@@ -387,6 +414,25 @@ class JdbcSession(
         private inline fun <T> unset(): T =
                 Unset as T
 
+    }
+
+    fun dump(sb: StringBuilder) {
+        sb.append("DAOs\n")
+        daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
+            sb.append(" ").append(table.name).append("\n")
+            dao.dump("  ", sb)
+        }
+
+        arrayOf(
+                "insert statements" to insertStatements,
+                "update statements" to updateStatements,
+                "delete statements" to deleteStatements
+        ).forEach { (text, stmts) ->
+            sb.append(text).append('\n')
+            stmts.keys.forEach {
+                sb.append(' ').append(it).append('\n')
+            }
+        }
     }
 
 }
