@@ -130,6 +130,8 @@ inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(`C
 
 /**
  * Returns a read-only view on this property hiding its original type.
+ * Such [Property] cannot be cast to [MutableProperty], which may be used to defend properties
+ * exposed via public interface of a module.
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Property<T>.readOnlyView(): Property<T> = map(Just as (T) -> T)
