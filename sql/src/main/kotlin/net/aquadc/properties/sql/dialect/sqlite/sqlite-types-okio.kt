@@ -19,5 +19,6 @@ private class ByteStringConverter(
 
 }
 
+@Suppress("UNCHECKED_CAST")
 val byteString: Converter<ByteString> = ByteStringConverter(false) as Converter<ByteString>
 val nullableByteString: Converter<ByteString?> = ByteStringConverter(true)
