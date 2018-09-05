@@ -28,11 +28,8 @@ class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, sessio
     val surnameProp get() = this[HumanTable.Surname]
     val carsProp = CarTable.OwnerId toMany CarTable
 
-    private val leftFriends = FriendTable.RightId toMany FriendTable
-    private val rightFriends = FriendTable.LeftId toMany FriendTable
-    val friends = leftFriends.mapWith(rightFriends) { l, r ->
-        l.map(Friendship::leftProp) + r.map(Friendship::rightProp)
-    } // TODO: a query like `SELECT * FROM friends WHERE left = ? OR right = ?`
+    val friends = session[FriendTable]
+            .select((FriendTable.LeftId eq id) or (FriendTable.RightId eq id))
 }
 
 

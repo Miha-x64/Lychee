@@ -2,6 +2,7 @@ package net.aquadc.properties.sql.dialect.sqlite
 
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
+import net.aquadc.properties.sql.dialect.appendPlaceholders
 
 /**
  * Implements SQLite [Dialect].
@@ -52,15 +53,6 @@ object SqliteDialect : Dialect {
         cols.forEach { col ->
             appendName(col.name).append(", ")
         }
-        setLength(length - 2) // trim comma
-
-        return this
-    }
-
-    private fun StringBuilder.appendPlaceholders(count: Int): StringBuilder {
-        if (count == 0) return this
-
-        repeat(count) { append("?, ") }
         setLength(length - 2) // trim comma
 
         return this

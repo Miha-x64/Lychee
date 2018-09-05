@@ -10,7 +10,8 @@ This implies:
 
 
 #### Thanks
-* GreenDAO for typed queries and performance tricks
-* Kwery for the `Table` idea
-* Anko for the other way of thinking
-* @y2k for help in API design
+* GreenDAO for [Query Builder](https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/DaoCore/src/main/java/org/greenrobot/greendao/Property.java)
+  and performance tricks
+* [Kwery](https://github.com/andrewoma/kwery) for the `Table` idea
+* [Anko](https://github.com/Kotlin/anko/wiki/Anko-SQLite) for the other way of thinking
+* [@y2k](https://github.com/y2k) for help in API design

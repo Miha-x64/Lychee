@@ -248,7 +248,7 @@ class JdbcSession(
 
         // SELECT <field> WHERE _id = ?
         private val singleSelectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-        @Suppress("UPPER_BOUND_VIOLATED") private val reusableCond = ThreadLocal<WhereCondition.ColCond<Any, Any?>>()
+        @Suppress("UPPER_BOUND_VIOLATED") private val reusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
         // SELECT COUNT(*) WHERE ...
         private val countStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
@@ -377,8 +377,8 @@ class JdbcSession(
         @Suppress("UPPER_BOUND_VIOLATED")
         override fun <T> getClean(column: Manager.Column<T>, id: Long): T {
             val col = column as Col<REC, T>
-            val condition = (reusableCond as ThreadLocal<WhereCondition.ColCond<REC, ID>>).getOrSet {
-                WhereCondition.ColCond(table.idCol, " = ?", Unset)
+            val condition = (reusableCond as ThreadLocal<ColCond<REC, ID>>).getOrSet {
+                ColCond(table.idCol, " = ?", Unset)
             }
             condition.col = table.idCol
             condition.valueOrValues = dbId(col.table, id)
