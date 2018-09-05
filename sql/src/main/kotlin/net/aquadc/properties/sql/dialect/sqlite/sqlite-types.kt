@@ -14,7 +14,7 @@ internal abstract class SimpleConverter<T>(
         override val isNullable: Boolean
 ) : Converter<T>
 
-private class NumberConverter<T>(
+private class BasicConverter<T>(
         javaType: Class<out T>,
         sqlType: String,
         isNullable: Boolean
@@ -23,13 +23,10 @@ private class NumberConverter<T>(
     override fun bind(statement: PreparedStatement, index: Int, value: T) {
         val i = 1 + index
         return when (value) {
-            is Boolean -> statement.setBoolean(i, value)
-            is Byte,
-            is Short -> statement.setInt(i, (value as Number).toInt())
-            is Int -> statement.setInt(i, value)
-            is Long -> statement.setLong(i, value)
-            is Float -> statement.setFloat(i, value)
-            is Double -> statement.setDouble(i, value)
+            is Boolean, is Short, is Int, is Long, is Float, is Double,
+            is String,
+            is ByteArray -> statement.setObject(i, value)
+            is Byte -> statement.setInt(i, value.toInt())
             null -> statement.setNull(i, Types.NULL)
             else -> throw AssertionError()
         }
@@ -46,70 +43,44 @@ private class NumberConverter<T>(
             t<Long>() -> resultSet.getLong(i)
             t<Float>() -> resultSet.getFloat(i)
             t<Double>() -> resultSet.getDouble(i)
+            t<String>() -> resultSet.getString(i)
+            t<ByteArray>() -> resultSet.getBytes(i)
             else -> throw AssertionError()
         } as T
     }
 
 }
 
-val bool: Converter<Boolean> = NumberConverter(t<Boolean>(), "INTEGER", false)
-val nullableBool: Converter<Boolean?> = NumberConverter(t<Boolean>(), "INTEGER", true)
+val bool: Converter<Boolean> = BasicConverter(t<Boolean>(), "INTEGER", false)
+val nullableBool: Converter<Boolean?> = BasicConverter(t<Boolean>(), "INTEGER", true)
 
-val byte: Converter<Byte> = NumberConverter(t<Byte>(), "INTEGER", false)
-val nullableByte: Converter<Byte?> = NumberConverter(t<Byte>(), "INTEGER", true)
+val byte: Converter<Byte> = BasicConverter(t<Byte>(), "INTEGER", false)
+val nullableByte: Converter<Byte?> = BasicConverter(t<Byte>(), "INTEGER", true)
 
-val short: Converter<Short> = NumberConverter(t<Short>(), "INTEGER", false)
-val nullableShort: Converter<Short?> = NumberConverter(t<Short>(), "INTEGER", true)
+val short: Converter<Short> = BasicConverter(t<Short>(), "INTEGER", false)
+val nullableShort: Converter<Short?> = BasicConverter(t<Short>(), "INTEGER", true)
 
-val int: Converter<Int> = NumberConverter(t<Int>(), "INTEGER", false)
-val nullableInt: Converter<Int?> = NumberConverter(t<Int>(), "INTEGER", true)
+val int: Converter<Int> = BasicConverter(t<Int>(), "INTEGER", false)
+val nullableInt: Converter<Int?> = BasicConverter(t<Int>(), "INTEGER", true)
 
-val long: Converter<Long> = NumberConverter(t<Long>(), "INTEGER", false)
-val nullableLong: Converter<Long?> = NumberConverter(t<Long>(), "INTEGER", true)
+val long: Converter<Long> = BasicConverter(t<Long>(), "INTEGER", false)
+val nullableLong: Converter<Long?> = BasicConverter(t<Long>(), "INTEGER", true)
 
-val float: Converter<Float> = NumberConverter(t<Float>(), "REAL", false)
-val nullableFloat: Converter<Float?> = NumberConverter(t<Float>(), "REAL", true)
+val float: Converter<Float> = BasicConverter(t<Float>(), "REAL", false)
+val nullableFloat: Converter<Float?> = BasicConverter(t<Float>(), "REAL", true)
 
-val double: Converter<Double> = NumberConverter(t<Double>(), "REAL", false)
-val nullableDouble: Converter<Double?> = NumberConverter(t<Double>(), "REAL", true)
+val double: Converter<Double> = BasicConverter(t<Double>(), "REAL", false)
+val nullableDouble: Converter<Double?> = BasicConverter(t<Double>(), "REAL", true)
 
-
-private class StringConverter(
-        isNullable: Boolean
-) : SimpleConverter<String?>(t<String>(), "TEXT", isNullable) {
-
-    override fun bind(statement: PreparedStatement, index: Int, value: String?) {
-        statement.setString(1 + index, value)
-    }
-
-    override fun get(resultSet: ResultSet, index: Int): String? =
-            resultSet.getString(1 + index)
-
-}
-
-val string: Converter<String> = StringConverter(false) as Converter<String>
-val nullableString: Converter<String?> = StringConverter(false)
-
-
-private class BytesConverter(
-        isNullable: Boolean
-) : SimpleConverter<ByteArray?>(ByteArray::class.java, "BLOB", isNullable) {
-
-    override fun bind(statement: PreparedStatement, index: Int, value: ByteArray?) {
-        statement.setBytes(1 + index, value)
-    }
-
-    override fun get(resultSet: ResultSet, index: Int): ByteArray? =
-            resultSet.getBytes(1 + index)
-
-}
+val string: Converter<String> = BasicConverter(t<String>(), "TEXT", false)
+val nullableString: Converter<String?> = BasicConverter(t<String>(), "TEXT", true)
 
 @Deprecated("Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
         "Consider using immutable ByteString instead.", ReplaceWith("byteString"))
-val bytes: Converter<ByteArray> = BytesConverter(false) as Converter<ByteArray>
+val bytes: Converter<ByteArray> = BasicConverter(t<ByteArray>(), "BLOB", false)
 
 @Deprecated("Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
         "Consider using immutable ByteString instead.", ReplaceWith("nullableByteString"))
-val nullableBytes: Converter<ByteArray?> = BytesConverter(true)
+val nullableBytes: Converter<ByteArray?> = BasicConverter(t<ByteArray>(), "BLOB", true)
 
 // TODO: Date, etc
