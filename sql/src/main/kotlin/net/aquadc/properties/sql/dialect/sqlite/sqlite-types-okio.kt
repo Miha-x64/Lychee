@@ -1,6 +1,7 @@
 package net.aquadc.properties.sql.dialect.sqlite
 
 import net.aquadc.properties.sql.Converter
+import net.aquadc.properties.sql.t
 import okio.ByteString
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -8,7 +9,7 @@ import java.sql.ResultSet
 
 private class ByteStringConverter(
         isNullable: Boolean
-) : SimpleConverter<ByteString?>(ByteString::class.java, "BLOB", isNullable) {
+) : SimpleConverter<ByteString?>(t(), "BLOB", isNullable) {
 
     override fun bind(statement: PreparedStatement, index: Int, value: ByteString?) {
         statement.setBytes(1 + index, value?.toByteArray())
