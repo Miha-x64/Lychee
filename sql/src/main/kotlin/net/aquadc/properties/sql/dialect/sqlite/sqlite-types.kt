@@ -9,13 +9,13 @@ import java.sql.Types
 
 
 internal abstract class SimpleConverter<T>(
-        override val javaType: Class<out T>,
+        override val javaType: Class<T>,
         override val sqlType: String,
         override val isNullable: Boolean
 ) : Converter<T>
 
 private class BasicConverter<T>(
-        javaType: Class<out T>,
+        javaType: Class<T>,
         sqlType: String,
         isNullable: Boolean
 ) : SimpleConverter<T>(javaType, sqlType, isNullable) {
@@ -51,36 +51,38 @@ private class BasicConverter<T>(
 
 }
 
-val bool: Converter<Boolean> = BasicConverter(t<Boolean>(), "INTEGER", false)
-val nullableBool: Converter<Boolean?> = BasicConverter(t<Boolean>(), "INTEGER", true)
+val bool: Converter<Boolean> = BasicConverter(t(), "INTEGER", false)
+val nullableBool: Converter<Boolean?> = BasicConverter(t(), "INTEGER", true)
 
-val byte: Converter<Byte> = BasicConverter(t<Byte>(), "INTEGER", false)
-val nullableByte: Converter<Byte?> = BasicConverter(t<Byte>(), "INTEGER", true)
+val byte: Converter<Byte> = BasicConverter(t(), "INTEGER", false)
+val nullableByte: Converter<Byte?> = BasicConverter(t(), "INTEGER", true)
 
-val short: Converter<Short> = BasicConverter(t<Short>(), "INTEGER", false)
-val nullableShort: Converter<Short?> = BasicConverter(t<Short>(), "INTEGER", true)
+val short: Converter<Short> = BasicConverter(t(), "INTEGER", false)
+val nullableShort: Converter<Short?> = BasicConverter(t(), "INTEGER", true)
 
-val int: Converter<Int> = BasicConverter(t<Int>(), "INTEGER", false)
-val nullableInt: Converter<Int?> = BasicConverter(t<Int>(), "INTEGER", true)
+val int: Converter<Int> = BasicConverter(t(), "INTEGER", false)
+val nullableInt: Converter<Int?> = BasicConverter(t(), "INTEGER", true)
 
-val long: Converter<Long> = BasicConverter(t<Long>(), "INTEGER", false)
-val nullableLong: Converter<Long?> = BasicConverter(t<Long>(), "INTEGER", true)
+val long: Converter<Long> = BasicConverter(t(), "INTEGER", false)
+val nullableLong: Converter<Long?> = BasicConverter(t(), "INTEGER", true)
 
-val float: Converter<Float> = BasicConverter(t<Float>(), "REAL", false)
-val nullableFloat: Converter<Float?> = BasicConverter(t<Float>(), "REAL", true)
+val float: Converter<Float> = BasicConverter(t(), "REAL", false)
+val nullableFloat: Converter<Float?> = BasicConverter(t(), "REAL", true)
 
-val double: Converter<Double> = BasicConverter(t<Double>(), "REAL", false)
-val nullableDouble: Converter<Double?> = BasicConverter(t<Double>(), "REAL", true)
+val double: Converter<Double> = BasicConverter(t(), "REAL", false)
+val nullableDouble: Converter<Double?> = BasicConverter(t(), "REAL", true)
 
-val string: Converter<String> = BasicConverter(t<String>(), "TEXT", false)
-val nullableString: Converter<String?> = BasicConverter(t<String>(), "TEXT", true)
+val string: Converter<String> = BasicConverter(t(), "TEXT", false)
+val nullableString: Converter<String?> = BasicConverter(t(), "TEXT", true)
 
 @Deprecated("Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
         "Consider using immutable ByteString instead.", ReplaceWith("byteString"))
-val bytes: Converter<ByteArray> = BasicConverter(t<ByteArray>(), "BLOB", false)
+val bytes: Converter<ByteArray> = BasicConverter(t(), "BLOB", false)
 
 @Deprecated("Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
         "Consider using immutable ByteString instead.", ReplaceWith("nullableByteString"))
-val nullableBytes: Converter<ByteArray?> = BasicConverter(t<ByteArray>(), "BLOB", true)
+val nullableBytes: Converter<ByteArray?> = BasicConverter(t(), "BLOB", true)
 
-// TODO: Date, etc
+
+// Date is not supported because it's mutable and the most parts of it are deprecated 20+ years ago.
+// TODO: To be considered...
