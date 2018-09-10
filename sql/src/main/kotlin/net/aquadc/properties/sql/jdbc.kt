@@ -10,7 +10,10 @@ import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.map
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.sql.dialect.Dialect
-import net.aquadc.properties.sql.dialect.sqlite.long
+import net.aquadc.struct.converter.long
+import net.aquadc.struct.Field
+import net.aquadc.struct.StructDef
+import net.aquadc.struct.converter.JdbcConverter
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -23,7 +26,7 @@ import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
 // TODO: evicting stale objects
-// TODO: prop concurrency mode instead of hardcoded propertyOf()
+// TODO: prop concurrency mode instead of hardcoded propertyOf() and ConcurrentHashMap()
 class JdbcSession(
         private val connection: Connection,
         private val dialect: Dialect
@@ -36,12 +39,11 @@ class JdbcSession(
     private val lock = ReentrantReadWriteLock()
     private val daos = ConcurrentHashMap<Table<*, *>, Dao<*, *>>()
 
-    private fun <REC : Record<REC, ID>, ID : IdBound> ConcurrentHashMap<Table<*, *>, Dao<*, *>>
-            .forTable(table: Table<REC, ID>) =
-            daos.getOrPut(table, { Dao(table) }) as Dao<REC, ID>
+    private fun <REC : Record<REC, ID>, ID : IdBound> forTable(table: Table<REC, ID>) =
+            daos.getOrPut(table) { Dao(table) } as Dao<REC, ID>
 
     override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): net.aquadc.properties.sql.Dao<REC, ID> =
-            daos.forTable(table)
+            forTable(table)
 
     // region transactions and modifying statements
 
@@ -99,7 +101,7 @@ class JdbcSession(
         val del = transaction.deleted
         del?.forEach { (table, localIDs) ->
             @Suppress("UPPER_BOUND_VIOLATED")
-            val man = daos.forTable<Any, IdBound>(table.erased)
+            val man = forTable<Any, IdBound>(table.erased)
             localIDs.forEach(man::dropManagement)
         }
         // Deletions first! Now we're not going to disturb souls of dead records & properties.
@@ -107,7 +109,7 @@ class JdbcSession(
         // value changes
         transaction.updated?.forEach { (col, pkToVal) ->
             pkToVal.forEach { (localId, value) ->
-                daos.get(col.table)?.erased?.commitValue(localId, col.erased, value)
+                daos.get(col.structDef)?.erased?.commitValue(localId, col.erased, value)
                 Unit
             }
         }
@@ -119,7 +121,7 @@ class JdbcSession(
 
             @Suppress("UPPER_BOUND_VIOLATED")
             changedTables.forEach { table ->
-                daos.forTable<Any, IdBound>(table.erased).onStructuralChange()
+                forTable<Any, IdBound>(table.erased).onStructuralChange()
             }
         }
     }
@@ -148,7 +150,7 @@ class JdbcSession(
 
             val size = contentValues.size
             val vals = arrayOfNulls<Any>(size)
-            var cols = arrayOfNulls<Col<REC, *>>(size)
+            val cols = arrayOfNulls<Col<REC, *>>(size)
             scatter(contentValues, colsToFill = cols, valsToFill = vals)
             cols as Array<Col<REC, *>>
 
@@ -156,7 +158,7 @@ class JdbcSession(
             cols.forEachIndexed { idx, col -> col.converter.erased.bind(statement, idx, vals[idx]) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
-            val id: ID = keys.fetchSingle(table.idCol.converter)
+            val id: ID = keys.fetchSingle(table.idColConverter)
 
             inserted ?: HashMap<Table<*, *>, ArrayList<Any>>().also { inserted = it }
                     .getOrPut(table, ::ArrayList)
@@ -165,7 +167,7 @@ class JdbcSession(
             // writes all insertion fields as updates
             val updated = updated ?: UpdatesHashMap().also { updated = it }
             contentValues.forEach {
-                updated.put(it, localId(it.col.table as Table<REC, ID>, id))
+                updated.put(it, localId(it.col.structDef, id))
             }
 
             return id
@@ -176,7 +178,7 @@ class JdbcSession(
 
             val statement = updateStatementWLocked(table, column)
             column.converter.bind(statement, 0, value)
-            table.idCol.converter.bind(statement, 1, id)
+            table.idColConverter.bind(statement, 1, id)
             check(statement.executeUpdate() == 1)
 
             (updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it })
@@ -189,7 +191,7 @@ class JdbcSession(
 
             val table = record.table
             val statement = deleteStatementWLocked(table)
-            table.idCol.converter.bind(statement, 0, record.primaryKey)
+            table.idColConverter.bind(statement, 0, record.primaryKey)
             check(statement.executeUpdate() == 1)
 
             (deleted ?: HashMap<Table<*, *>, ArrayList<Long>>().also { deleted = it })
@@ -224,13 +226,13 @@ class JdbcSession(
     }
 
 
-    private fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
+    private fun <ID : IdBound> localId(table: StructDef<*, *>, id: ID): Long = when (id) {
         is Int -> id.toLong()
         is Long -> id
         else -> TODO("${id.javaClass} keys support")
     }
 
-    private fun <ID : IdBound> dbId(table: Table<*, ID>, localId: Long): ID =
+    private fun <ID : IdBound> dbId(table: StructDef<*, *>, localId: Long): ID =
             localId as ID // todo
 
     override fun toString(): String =
@@ -279,18 +281,27 @@ class JdbcSession(
 
         private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
                 statements: ThreadLocal<HashMap<String, PreparedStatement>>,
-                column: Col<REC, *>?,
+                columnName: String?,
                 table: Table<REC, ID>,
                 condition: WhereCondition<out REC>
         ): ResultSet {
             val query =
-                    if (column == null) dialect.selectCountQuery(table, condition)
-                    else dialect.selectFieldQuery(column, table, condition)
+                    if (columnName == null) dialect.selectCountQuery(table, condition)
+                    else dialect.selectFieldQuery(columnName, table, condition)
 
             return statements
                     .getOrSet(::HashMap)
                     .getOrPut(query) { connection.prepareStatement(query) }
-                    .also { condition.bindValuesTo(it, 0) }
+                    .also { stmt ->
+                        val list = ArrayList<Pair<String, Any>>()
+                        condition.appendValuesTo(list)
+                        list.forEachIndexed { idx, (name, value) ->
+                            val conv =
+                                    if (name == table.idColName) table.idColConverter
+                                    else table.fields.first { it.name == name }.converter
+                            (conv as JdbcConverter<Any>).bind(stmt, idx, value)
+                        }
+                    }
                     .executeQuery()
         }
 
@@ -344,18 +355,16 @@ class JdbcSession(
         // region low-level Dao implementation
 
         override fun fetchPrimaryKeys(condition: WhereCondition<out REC>): Array<ID> =
-                table.idCol.let { idCol ->
-                    cachedSelectStmt(selectionStatements, idCol, table, condition)
-                            .fetchAll(idCol.converter)
-                            .toTypedArray<Any>() as Array<ID>
-                }
+                cachedSelectStmt(selectionStatements, table.idColName, table, condition)
+                        .fetchAll(table.idColConverter)
+                        .toTypedArray<Any>() as Array<ID>
 
         override fun fetchCount(condition: WhereCondition<out REC>): Long =
                 cachedSelectStmt(countStatements, null, table, condition).fetchSingle(long)
 
         override fun <T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T> {
             val localId = localId(table, id)
-            val manager = daos.forTable(table)
+            val manager = forTable(table)
             return ManagedProperty<Transaction, T>(manager, col, localId)
         }
 
@@ -363,7 +372,7 @@ class JdbcSession(
 
         // region Manager implementation
 
-        override fun <T> getDirty(column: Manager.Column<T>, id: Long): T {
+        override fun <T> getDirty(column: Field<*, T, *>, id: Long): T {
             val transaction = transaction ?: return unset()
 
             val thisCol = transaction.updated?.getFor(column as Col<REC, T>) ?: return unset()
@@ -375,18 +384,18 @@ class JdbcSession(
         }
 
         @Suppress("UPPER_BOUND_VIOLATED")
-        override fun <T> getClean(column: Manager.Column<T>, id: Long): T {
+        override fun <T> getClean(column: Field<*, T, *>, id: Long): T {
             val col = column as Col<REC, T>
             val condition = (reusableCond as ThreadLocal<ColCond<REC, ID>>).getOrSet {
-                ColCond(table.idCol, " = ?", Unset)
+                ColCond(table.fields[0] as Col<REC, ID>, " = ?", Unset)
             }
-            condition.col = table.idCol
-            condition.valueOrValues = dbId(col.table, id)
+            condition.colName = table.idColName
+            condition.valueOrValues = dbId(col.structDef, id)
 
-            return cachedSelectStmt<ID, REC>(singleSelectStatements, col, table, condition).fetchSingle(col.converter)
+            return cachedSelectStmt<ID, REC>(singleSelectStatements, col.name, table, condition).fetchSingle(col.converter)
         }
 
-        override fun <T> set(transaction: Transaction, column: Manager.Column<T>, id: Long, update: T) {
+        override fun <T> set(transaction: Transaction, column: Field<*, T, *>, id: Long, update: T) {
             column as Col<REC, T>
             val ourTransact = this@JdbcSession.transaction
             if (transaction !== ourTransact) {
@@ -403,7 +412,8 @@ class JdbcSession(
                 return
             }
 
-            transaction.update<REC, ID, T>(column.table as Table<REC, ID>, dbId(column.table, id), column, update)
+            val table1 = column.structDef
+            transaction.update<REC, ID, T>(table1 as Table<REC, ID>, dbId(table1, id), column, update)
         }
 
         // endregion Manager implementation
@@ -446,7 +456,7 @@ private fun <REC : Record<REC, *>> scatter(
     }
 }
 
-private fun <T> ResultSet.fetchAll(converter: Converter<T>): List<T> {
+private fun <T> ResultSet.fetchAll(converter: JdbcConverter<T>): List<T> {
     val values = ArrayList<Any?>()
     while (next())
         values.add(converter.get(this, 0))
@@ -454,7 +464,7 @@ private fun <T> ResultSet.fetchAll(converter: Converter<T>): List<T> {
     return values as List<T>
 }
 
-fun <T> ResultSet.fetchSingle(converter: Converter<T>): T {
+fun <T> ResultSet.fetchSingle(converter: JdbcConverter<T>): T {
     try {
         check(next())
         return converter.get(this, 0)

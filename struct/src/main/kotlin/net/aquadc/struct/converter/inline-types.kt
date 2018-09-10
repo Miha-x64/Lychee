@@ -1,7 +1,6 @@
 // this is still SQLite-specific since it uses "TEXT" to store enum names :)
-package net.aquadc.properties.sql.dialect.sqlite
+package net.aquadc.struct.converter
 
-import net.aquadc.properties.sql.Converter
 import java.lang.AssertionError
 
 
@@ -11,34 +10,34 @@ import java.lang.AssertionError
  *         throws an exception if there's no such enum constant
  * asString: Java's `Enum::name`
  */
-inline fun <reified E : Enum<E>> enum(): Converter<E> =
-        EnumConverter(E::class.java, "TEXT")
+inline fun <reified E : Enum<E>> enum(): UniversalConverter<E> =
+        EnumConverter(E::class.java, DataTypes.SmallString)
 
 /**
  * Creates a converter for [E] enum type.
  * [values] sample: `E.values()`
- * [prop] sample: `E::name`
+ * [nameProp] sample: `E::name`
  * [default] sample: `{ E.UNKNOWN }`
  */
 inline fun <reified E : Enum<E>> enum(
         values: Array<E>,
-        crossinline prop: (E) -> String,
+        crossinline nameProp: (E) -> String,
         crossinline default: (String) -> E = {
             throw AssertionError("No enum constant with custom name $it in type ${E::class.java.name}")
         }
-): Converter<E> =
-        object : EnumConverter<E>(E::class.java, "TEXT") {
+): UniversalConverter<E> =
+        object : EnumConverter<E>(E::class.java, DataTypes.SmallString) {
 
             private val lookup =
-                    values.associateByTo(HashMap(values.size), prop).also { check(it.size == values.size) {
-                        "there were duplicate names, check values of 'prop' for each enum constant passed in 'values'"
+                    values.associateByTo(HashMap(values.size), nameProp).also { check(it.size == values.size) {
+                        "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
             override fun lookup(name: String): E =
                     lookup[name] ?: default(name)
 
-            override fun asString(value: E): String =
-                    prop(value)
+            override fun toString(value: E): String =
+                    nameProp(value)
 
         }
 
@@ -50,13 +49,13 @@ inline fun <reified E : Enum<E>> enum(
 inline fun <reified E : Enum<E>> enum(
         crossinline lookup: (String) -> E,
         crossinline asString: (E) -> String
-): Converter<E> =
-        object : EnumConverter<E>(E::class.java, "TEXT") {
+): UniversalConverter<E> =
+        object : EnumConverter<E>(E::class.java, DataTypes.SmallString) {
 
             override fun lookup(name: String): E =
                     lookup.invoke(name)
 
-            override fun asString(value: E): String =
+            override fun toString(value: E): String =
                     asString.invoke(value)
 
         }

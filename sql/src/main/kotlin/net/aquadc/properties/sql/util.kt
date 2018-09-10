@@ -1,6 +1,7 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.properties.sql
 
+import net.aquadc.struct.converter.JdbcConverter
 
 
 internal typealias UpdatesHashMap = HashMap<Col<*, *>, HashMap<Long, Any?>>
@@ -20,5 +21,5 @@ internal inline val Table<*, *>.erased
 internal inline val Col<*, *>.erased
     get() = this as Col<Any, Any?>
 
-internal inline val Converter<*>.erased
-    get() = this as Converter<Any?>
+internal inline val JdbcConverter<*>.erased
+    get() = this as JdbcConverter<Any?>

@@ -4,6 +4,7 @@ import net.aquadc.properties.sql.Col
 import net.aquadc.properties.sql.Record
 import net.aquadc.properties.sql.Table
 import net.aquadc.properties.sql.WhereCondition
+import net.aquadc.struct.converter.DataType
 import java.lang.StringBuilder
 
 /**
@@ -19,7 +20,7 @@ interface Dialect {
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
-    fun <REC : Record<REC, *>> selectFieldQuery(column: Col<REC, *>, table: Table<REC, *>, condition: WhereCondition<out REC>): String
+    fun <REC : Record<REC, *>> selectFieldQuery(columnName: String?, table: Table<REC, *>, condition: WhereCondition<out REC>): String
 
     /**
      * Constructs an SQL query like `SELECT COUNT(*) from <table> WHERE <condition>`
@@ -40,5 +41,10 @@ interface Dialect {
      * Appends quoted and escaped table or column name.
      */
     fun StringBuilder.appendName(name: String): StringBuilder
+
+    /**
+     * Returns SQL data type for the given [DataType] instance.
+     */
+    fun nameOf(dataType: DataType): String
 
 }

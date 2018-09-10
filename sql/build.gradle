@@ -10,7 +10,7 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib"
     compile project(':properties')
-    compileOnly 'com.squareup.okio:okio:1.15.0'
+    compile project(':struct')
 }
 
 compileKotlin {
