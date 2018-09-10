@@ -19,6 +19,7 @@ import javafx.stage.Stage
 import net.aquadc.properties.*
 import net.aquadc.properties.fx.fx
 import net.aquadc.properties.sql.*
+import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import java.sql.Connection
 import java.sql.DriverManager
@@ -28,8 +29,9 @@ import java.util.concurrent.Callable
 
 class SqliteApp : Application() {
 
-    private val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also(::createNeededTables)
-    private val sess = JdbcSession(connection, SqliteDialect).also(::fillIfEmpty)
+    private val dialect = SqliteDialect
+    private val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also { createNeededTables(it, dialect) }
+    private val sess = JdbcSession(connection, dialect).also(::fillIfEmpty)
 
     override fun start(stage: Stage) {
         stage.titleProperty().bind(
@@ -178,14 +180,14 @@ private inline fun <T, R> ObservableValue<T>.map(crossinline transform: (T) -> R
         Bindings.createObjectBinding(Callable<R> { transform(value) }, this)
 
 
-private fun createNeededTables(conn: Connection) {
+private fun createNeededTables(conn: Connection, dialect: Dialect) {
     Tables.forEach { table ->
         conn.createStatement().use { statement ->
             statement.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='${table.name}'").use {
                 if (it.next()) {
                     println("the table `${table.name}` already exists")
                 } else {
-                    create(statement, table)
+                    create(statement, dialect, table)
                     println("table `${table.name}` was created")
                 }
             }
@@ -193,14 +195,12 @@ private fun createNeededTables(conn: Connection) {
     }
 }
 
-private fun create(statement: Statement, table: Table<*, *>) {
+private fun create(statement: Statement, dialect: Dialect, table: Table<*, *>) {
     val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-    val idCol = table.idCol
-    check(table.columns.isNotEmpty())
-    table.columns.forEach { col ->
-        sb.append(col.name).append(' ').append(col.converter.javaType)
-        if (col === idCol) sb.append(" PRIMARY KEY")
-        else if (!col.converter.isNullable) sb.append(" NOT NULL")
+    sb.append(table.idColName).append(' ').append(dialect.nameOf(table.idColConverter.dataType)).append(" PRIMARY KEY, ")
+    table.fields.forEach { col ->
+        sb.append(col.name).append(' ').append(dialect.nameOf(col.converter.dataType))
+        if (!col.converter.isNullable) sb.append(" NOT NULL")
         sb.append(", ")
     }
     sb.setLength(sb.length - 2) // trim last comma

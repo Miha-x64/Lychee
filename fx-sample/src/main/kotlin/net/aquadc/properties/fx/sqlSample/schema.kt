@@ -2,17 +2,15 @@
 
 package net.aquadc.properties.fx.sqlSample
 
-import net.aquadc.properties.mapWith
 import net.aquadc.properties.sql.*
-import net.aquadc.properties.sql.dialect.sqlite.long
-import net.aquadc.properties.sql.dialect.sqlite.nullableString
-import net.aquadc.properties.sql.dialect.sqlite.string
+import net.aquadc.struct.converter.long
+import net.aquadc.struct.converter.nullableString
+import net.aquadc.struct.converter.string
 
 
 val Tables = arrayOf(HumanTable, CarTable, FriendTable)
 
-object HumanTable : Table<Human, Long>("people", t()) {
-    val Id = long idCol "_id"
+object HumanTable : Table<Human, Long>("people", long, "_id") {
     val Name = string col "name"
     val Surname = string col "surname"
 
@@ -34,8 +32,7 @@ class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, sessio
 
 
 
-object CarTable : Table<Car, Long>("cars", t()) {
-    val Id = long idCol "_id"
+object CarTable : Table<Car, Long>("cars", long, "_id") {
     val OwnerId = long col "owner_id"
     val ConditionerModel = nullableString col "conditioner_model"
 
@@ -50,8 +47,7 @@ fun Transaction.insertCar(owner: Human): Car =
         session[CarTable].require(insert(CarTable, CarTable.OwnerId - owner.primaryKey))
 
 
-object FriendTable : Table<Friendship, Long>("friends", t()) {
-    val Id = long idCol "_id"
+object FriendTable : Table<Friendship, Long>("friends", long, "_id") {
     val LeftId = long col "left"
     val RightId = long col "right"
 

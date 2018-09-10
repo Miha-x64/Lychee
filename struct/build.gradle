@@ -1,0 +1,19 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    compileOnly 'com.squareup.okio:okio:1.15.0'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '1.6'
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '1.6'
+}

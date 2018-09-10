@@ -3,7 +3,7 @@ package net.aquadc.properties.sql
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
 import java.lang.StringBuilder
-import java.sql.PreparedStatement
+import java.util.*
 
 
 /**
@@ -19,17 +19,16 @@ interface WhereCondition<REC : Record<REC, *>> {
     fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder
 
     /**
-     * Binds contained values to a [statement].
-     * @return number of values bound
+     * Appends contained colName-value-pairs to the given [list].
      */
-    fun bindValuesTo(statement: PreparedStatement, offset: Int): Int
+    fun appendValuesTo(list: ArrayList<Pair<@ParameterName("colName") String, @ParameterName("value") Any>>)
 
     /**
      * Represents an absence of any conditions.
      */
     object Empty : WhereCondition<Nothing> {
         override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-        override fun bindValuesTo(statement: PreparedStatement, offset: Int): Int = 0
+        override fun appendValuesTo(list: ArrayList<Pair<String, Any>>) = Unit
     }
 
 }
@@ -37,40 +36,31 @@ interface WhereCondition<REC : Record<REC, *>> {
 internal class ColCond<REC : Record<REC, *>, T> : WhereCondition<REC> {
 
     // mutable for internal code, he-he
-    @JvmField @JvmSynthetic internal var col: Col<REC, T>
+    @JvmField @JvmSynthetic internal var colName: String
     private val op: CharSequence
     private val singleValue: Boolean
-    @JvmField @JvmSynthetic internal var valueOrValues: Any
+    @JvmField @JvmSynthetic internal var valueOrValues: Any // if (singleValue) Any else Array<Any>
 
     constructor(col: Col<REC, T>, op: CharSequence, value: Any) {
-        this.col = col
+        this.colName = col.name
         this.op = op
         this.singleValue = true
         this.valueOrValues = value
     }
 
     constructor(col: Col<REC, T>, op: CharSequence, values: Array<Any>) {
-        this.col = col
+        this.colName = col.name
         this.op = op
         this.singleValue = false
         this.valueOrValues = values
     }
 
     override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder =
-            with(dialect) { builder.appendName(col.name) }.append(op)
+            with(dialect) { builder.appendName(colName) }.append(op)
 
-    override fun bindValuesTo(statement: PreparedStatement, offset: Int): Int {
-        val conv = col.converter
-        return if (singleValue) {
-            conv.bind(statement, offset, valueOrValues as T)
-            1
-        } else {
-            val v = valueOrValues as Array<T>
-            v.forEachIndexed { index, value ->
-                conv.bind(statement, offset + index, value)
-            }
-            v.size
-        }
+    override fun appendValuesTo(list: ArrayList<Pair<String, Any>>) {
+        if (singleValue) list.add(colName to valueOrValues)
+        else (valueOrValues as Array<out Any>).forEach { value -> list.add(colName to value) }
     }
 
 }
@@ -89,9 +79,9 @@ internal class BiCond<REC : Record<REC, *>>(
                 .append(')')
     }
 
-    override fun bindValuesTo(statement: PreparedStatement, offset: Int): Int {
-        val movedBy = left.bindValuesTo(statement, offset)
-        return movedBy + right.bindValuesTo(statement, offset + movedBy)
+    override fun appendValuesTo(list: ArrayList<Pair<String, Any>>) {
+        left.appendValuesTo(list)
+        right.appendValuesTo(list)
     }
 
 }
