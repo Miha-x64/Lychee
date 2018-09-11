@@ -60,7 +60,7 @@ class JdbcSession(
 
         override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, cols: Array<Col<REC, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
-            cols.forEachIndexed { idx, col -> col.converter.erased.bind(statement, idx, vals[idx]) }
+            cols.forEachIndexed { idx, col -> (col.converter as JdbcConverter<*>).erased.bind(statement, idx, vals[idx]) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
             return keys.fetchSingle(table.idColConverter)
@@ -73,7 +73,7 @@ class JdbcSession(
 
         override fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
-            column.converter.bind(statement, 0, value)
+            (column.converter as JdbcConverter<T>).bind(statement, 0, value)
             table.idColConverter.bind(statement, 1, id)
             check(statement.executeUpdate() == 1)
         }
@@ -145,7 +145,7 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
-                select(column.name, table, condition).fetchSingle(column.converter)
+                select(column.name, table, condition).fetchSingle(column.converter as JdbcConverter<T>)
 
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> =
                 select(table.idColName, table, condition)

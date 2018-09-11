@@ -82,7 +82,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         override val name: String,
         val idColConverter: JdbcConverter<ID>,
         val idColName: String
-) : StructDef<REC, JdbcConverter<*>> {
+) : StructDef<REC> {
 
     private var tmpCols: ArrayList<Col<REC, *>>? = ArrayList()
 
@@ -121,7 +121,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
     @PublishedApi
     internal fun <T> col0(name: String, converter: JdbcConverter<T>): Col<REC, T> {
         val cols = tmpCols()
-        val col = Field<REC, T, JdbcConverter<T>>(this as StructDef<REC, JdbcConverter<T>>, name, converter, cols.size)
+        val col = Field<REC, T>(this as StructDef<REC>, name, converter, cols.size)
         cols.add(col)
         return col
     }
@@ -131,7 +131,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 }
 
 
-typealias Col<REC, T> = Field<REC, T, out JdbcConverter<T>>
+typealias Col<REC, T> = Field<REC, T>
 
 
 /**
@@ -155,10 +155,10 @@ open class Record<REC : Record<REC, ID>, ID : IdBound>(
             }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-    private inline fun <T> propOf(field: Field<REC, T, *>): SqlProperty<T> =
+    private inline fun <T> propOf(field: Field<REC, T>): SqlProperty<T> =
             fields[field.ordinal] as SqlProperty<T>
 
-    override fun <T> getValue(field: Field<REC, T, *>): T =
+    override fun <T> getValue(field: Field<REC, T>): T =
             propOf(field).value
 
     operator fun <T> get(col: Col<REC, T>): SqlProperty<T> =
