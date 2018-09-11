@@ -42,7 +42,7 @@ class SqliteApp : Application() {
 
                     val hBox = this
 
-                    val humanListProp = sess[HumanTable].select()
+                    val humanListProp = sess[HumanTable].selectAll()
                     val humanList = FXCollections.observableArrayList(humanListProp.value)
                     humanListProp.addChangeListener { _, new ->
                         humanList.clear()

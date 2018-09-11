@@ -13,6 +13,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.getOrSet
 
+// TODO: evicting stale records, counts, and selections
 internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         private val session: Session,
         private val lowSession: LowLevelSession,
@@ -65,7 +66,6 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         selections.forEach { sel ->
             sb.append(prefix).append(" ").let { sel.value.appendSqlTo(dialect, it) }.append("\n")
         }
-
 
     }
 
