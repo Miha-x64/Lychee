@@ -15,7 +15,6 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
-// TODO: evicting stale objects
 // TODO: prop concurrency mode instead of hardcoded propertyOf() and ConcurrentHashMap()
 class JdbcSession(
         private val connection: Connection,
@@ -31,7 +30,7 @@ class JdbcSession(
     private fun <REC : Record<REC, ID>, ID : IdBound> forTable(table: Table<REC, ID>) =
             lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as Dao<REC, ID>
 
-    override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): net.aquadc.properties.sql.Dao<REC, ID> =
+    override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): Dao<REC, ID> =
             forTable(table)
 
     // region transactions and modifying statements
@@ -144,6 +143,14 @@ class JdbcSession(
                         .fetchAll(table.idColConverter)
                         .toTypedArray<Any>() as Array<ID>
 
+        private fun <T> ResultSet.fetchAll(converter: JdbcConverter<T>): List<T> {
+            val values = ArrayList<Any?>()
+            while (next())
+                values.add(converter.get(this, 0))
+            close()
+            return values as List<T>
+        }
+
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(table: Table<REC, ID>, condition: WhereCondition<out REC>): Long =
                 cachedSelectStmt(null, table, condition).fetchSingle(long)
 
@@ -196,21 +203,13 @@ class JdbcSession(
         }
     }
 
-}
-
-private fun <T> ResultSet.fetchAll(converter: JdbcConverter<T>): List<T> {
-    val values = ArrayList<Any?>()
-    while (next())
-        values.add(converter.get(this, 0))
-    close()
-    return values as List<T>
-}
-
-fun <T> ResultSet.fetchSingle(converter: JdbcConverter<T>): T {
-    try {
-        check(next())
-        return converter.get(this, 0)
-    } finally {
-        close()
+    private fun <T> ResultSet.fetchSingle(converter: JdbcConverter<T>): T {
+        try {
+            check(next())
+            return converter.get(this, 0)
+        } finally {
+            close()
+        }
     }
+
 }

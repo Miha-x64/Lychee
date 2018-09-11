@@ -52,7 +52,7 @@ inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
 fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.require(id: ID): REC =
         find(id) ?: throw IllegalStateException("No record found in `$this` for ID $id")
 
-fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.select(): Property<List<REC>> =
+fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.selectAll(): Property<List<REC>> =
         select(WhereCondition.Empty)
 
 fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.count(): Property<Long> =
