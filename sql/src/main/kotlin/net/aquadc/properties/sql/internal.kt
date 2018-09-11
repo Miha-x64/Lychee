@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 
 internal interface LowLevelSession {
+    fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean
     fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, cols: Array<Col<REC, *>>, vals: Array<Any?>): ID
     fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T)
     fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long
@@ -23,4 +24,7 @@ internal interface LowLevelSession {
     ): Long
 
     val transaction: RealTransaction?
+
+    fun <REC : Record<REC, *>, T : Any> reusableCond(table: Table<REC, *>, colName: String, value: T): ColCond<REC, T>
+
 }

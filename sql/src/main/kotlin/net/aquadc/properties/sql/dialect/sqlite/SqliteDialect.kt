@@ -15,7 +15,7 @@ object SqliteDialect : Dialect {
                     .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                     .toString()
 
-    override fun <REC : Record<REC, *>> selectFieldQuery(columnName: String?, table: Table<REC, *>, condition: WhereCondition<out REC>): String =
+    override fun <REC : Record<REC, *>> selectFieldQuery(columnName: String, table: Table<REC, *>, condition: WhereCondition<out REC>): String =
             selectQuery(columnName, table, condition)
 
     override fun <REC : Record<REC, *>> selectCountQuery(table: Table<REC, *>, condition: WhereCondition<out REC>): String =
