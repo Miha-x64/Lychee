@@ -44,6 +44,15 @@ class JdbcSession(
 
     private val lowLevel = object : LowLevelSession {
 
+        override fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean {
+            val count = select(null, table, reusableCond(table, table.idColName, primaryKey)).fetchSingle(long)
+            return when (count) {
+                0L -> false
+                1L -> true
+                else -> throw AssertionError()
+            }
+        }
+
         private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement =
                 insertStatements.getOrPut(Pair(table, cols.asList())) {
                     connection.prepareStatement(dialect.insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
@@ -110,7 +119,7 @@ class JdbcSession(
             }
         }
 
-        private fun <ID : IdBound, REC : Record<REC, ID>> cachedSelectStmt(
+        private fun <ID : IdBound, REC : Record<REC, ID>> select(
                 columnName: String?,
                 table: Table<REC, ID>,
                 condition: WhereCondition<out REC>
@@ -136,10 +145,10 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
-                cachedSelectStmt(column.name, table, condition).fetchSingle(column.converter)
+                select(column.name, table, condition).fetchSingle(column.converter)
 
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> =
-                cachedSelectStmt(table.idColName, table, condition)
+                select(table.idColName, table, condition)
                         .fetchAll(table.idColConverter)
                         .toTypedArray<Any>() as Array<ID>
 
@@ -152,10 +161,21 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(table: Table<REC, ID>, condition: WhereCondition<out REC>): Long =
-                cachedSelectStmt(null, table, condition).fetchSingle(long)
+                select(null, table, condition).fetchSingle(long)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
+
+        @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
+
+        override fun <REC : Record<REC, *>, T : Any> reusableCond(table: Table<REC, *>, colName: String, value: T): ColCond<REC, T> {
+            val condition = (localReusableCond as ThreadLocal<ColCond<REC, T>>).getOrSet {
+                ColCond(table.fields[0] as Col<REC, T>, " = ?", value)
+            }
+            condition.colName = colName
+            condition.valueOrValues = value
+            return condition
+        }
 
     }
 

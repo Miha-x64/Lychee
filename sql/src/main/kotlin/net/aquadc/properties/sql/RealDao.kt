@@ -23,9 +23,6 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
 
     private val records = ConcurrentHashMap<Long, REC>()
 
-    // SELECT <field> WHERE _id = ?
-    @Suppress("UPPER_BOUND_VIOLATED") private val reusableCond = ThreadLocal<ColCond<Any, Any?>>()
-
     // SELECT COUNT(*) WHERE ...
     private val counts = ConcurrentHashMap<WhereCondition<out REC>, MutableProperty<WhereCondition<out REC>>>()
 
@@ -72,8 +69,9 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     // region Dao implementation
 
     override fun find(id: ID): REC? {
+        if (!lowSession.exists(table, id)) return null
         val localId = lowSession.localId(table, id)
-        return records.getOrPut<Long, REC>(localId) { table.create(session, id) } // TODO: check whether exists
+        return records.getOrPut<Long, REC>(localId) { table.create(session, id) }
     }
 
     override fun select(condition: WhereCondition<out REC>): Property<List<REC>> =
@@ -113,12 +111,8 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     @Suppress("UPPER_BOUND_VIOLATED")
     override fun <T> getClean(column: Field<*, T, *>, id: Long): T {
         val col = column as Col<REC, T>
-        val condition = (reusableCond as ThreadLocal<ColCond<REC, ID>>).getOrSet {
-            ColCond(table.fields[0] as Col<REC, ID>, " = ?", Unset)
-        }
-        condition.colName = table.idColName
-        condition.valueOrValues = lowSession.primaryKey(table, id)
-
+        val primaryKey = lowSession.primaryKey(table, id)
+        val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(col, table, condition)
     }
 

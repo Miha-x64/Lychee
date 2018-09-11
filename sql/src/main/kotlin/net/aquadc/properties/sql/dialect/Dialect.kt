@@ -20,7 +20,7 @@ interface Dialect {
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
-    fun <REC : Record<REC, *>> selectFieldQuery(columnName: String?, table: Table<REC, *>, condition: WhereCondition<out REC>): String
+    fun <REC : Record<REC, *>> selectFieldQuery(columnName: String, table: Table<REC, *>, condition: WhereCondition<out REC>): String
 
     /**
      * Constructs an SQL query like `SELECT COUNT(*) from <table> WHERE <condition>`
