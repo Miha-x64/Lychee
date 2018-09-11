@@ -97,7 +97,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
 
     // region Manager implementation
 
-    override fun <T> getDirty(column: Field<*, T, *>, id: Long): T {
+    override fun <T> getDirty(column: Field<*, T>, id: Long): T {
         val transaction = lowSession.transaction ?: return unset()
 
         val thisCol = transaction.updated?.getFor(column as Col<REC, T>) ?: return unset()
@@ -109,14 +109,14 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(column: Field<*, T, *>, id: Long): T {
+    override fun <T> getClean(column: Field<*, T>, id: Long): T {
         val col = column as Col<REC, T>
         val primaryKey = lowSession.primaryKey(table, id)
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(col, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, column: Field<*, T, *>, id: Long, update: T) {
+    override fun <T> set(transaction: Transaction, column: Field<*, T>, id: Long, update: T) {
         column as Col<REC, T>
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
