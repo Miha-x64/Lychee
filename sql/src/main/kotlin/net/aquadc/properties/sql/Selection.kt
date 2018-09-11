@@ -2,20 +2,23 @@ package net.aquadc.properties.sql
 
 
 internal class Query<E : Record<E, ID>, ID : IdBound>(
-        private val dao: Dao<E, ID>
+        private val dao: Dao<E, ID>,
+        private val table: Table<E, ID>,
+        private val lowSession: LowLevelSession
 ): (WhereCondition<out E>) -> Selection<E, ID> {
 
     override fun invoke(condition: WhereCondition<out E>): Selection<E, ID> =
-            Selection(dao, dao.fetchPrimaryKeys(condition))
+            Selection(dao, lowSession.fetchPrimaryKeys(table, condition))
 
 }
 
 internal class Count<E : Record<E, ID>, ID : IdBound>(
-        private val dao: Dao<E, ID>
+        private val table: Table<E, ID>,
+        private val lowSession: LowLevelSession
 ): (WhereCondition<out E>) -> Long {
 
     override fun invoke(condition: WhereCondition<out E>): Long =
-            dao.fetchCount(condition)
+            lowSession.fetchCount(table, condition)
 
 }
 

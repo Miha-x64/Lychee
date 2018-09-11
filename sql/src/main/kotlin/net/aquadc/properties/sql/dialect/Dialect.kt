@@ -35,7 +35,7 @@ interface Dialect {
     /**
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`
      */
-    fun <REC : Record<REC, *>> deleteRecordQuery(table: Table<REC, *>): String
+    fun deleteRecordQuery(table: Table<*, *>): String
 
     /**
      * Appends quoted and escaped table or column name.

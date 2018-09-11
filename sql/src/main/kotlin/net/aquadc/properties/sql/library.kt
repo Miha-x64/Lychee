@@ -31,11 +31,6 @@ interface Dao<REC : Record<REC, ID>, ID : IdBound> {
     fun count(condition: WhereCondition<out REC>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
-    // low-level functions, may be moved
-
-    fun fetchPrimaryKeys(condition: WhereCondition<out REC> /* TODO order */): Array<ID>
-    fun fetchCount(condition: WhereCondition<out REC>): Long
-
     /**
      * TODO KDoc
      * Note: returned [Property] is not managed itself, [Record]s are.
@@ -116,7 +111,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         frozen
     }
 
-    abstract fun create(session: Session, id: ID): REC
+    abstract fun create(session: Session, id: ID): REC // TODO: rename: instantiate, instantiateRecord, createRecord, newRecord
 
 
     @Suppress("NOTHING_TO_INLINE")
