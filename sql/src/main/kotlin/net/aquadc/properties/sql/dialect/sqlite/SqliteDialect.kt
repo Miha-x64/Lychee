@@ -40,7 +40,7 @@ object SqliteDialect : Dialect {
                     .append(" SET ").appendName(col.name).append(" = ? WHERE ").appendName(table.idColName).append(" = ?;")
                     .toString()
 
-    override fun <REC : Record<REC, *>> deleteRecordQuery(table: Table<REC, *>): String =
+    override fun deleteRecordQuery(table: Table<*, *>): String =
             StringBuilder("DELETE FROM ").appendName(table.name)
                     .append(" WHERE ").appendName(table.idColName).append(" = ?;")
                     .toString()
