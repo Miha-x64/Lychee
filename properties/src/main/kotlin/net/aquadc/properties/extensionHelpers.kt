@@ -34,9 +34,9 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
 }
 
-@PublishedApi internal class `ToBoolFunc-`(
+@PublishedApi internal class ToBoolFunc1(
         private val mode: Int
-): (Any?) -> Boolean, (Any?, Any?) -> Boolean {
+): (Any?) -> Boolean {
 
     override fun invoke(p1: Any?): Boolean = when (mode) {
         1 -> p1 === null
@@ -44,16 +44,17 @@ import java.util.concurrent.atomic.AtomicBoolean
         else -> throw AssertionError()
     }
 
+    @PublishedApi internal companion object {
+        @JvmField val IsNull = ToBoolFunc1(1)
+        @JvmField val IsNotNull = ToBoolFunc1(2)
+    }
+
+}
+
+@PublishedApi internal object ToBoolFunc2: (Any?, Any?) -> Boolean {
+
     override fun invoke(p1: Any?, p2: Any?): Boolean =
             p1 == p2
-
-    @PublishedApi internal companion object {
-        @JvmField val IsNull = `ToBoolFunc-`(1)
-        @JvmField val IsNotNull = `ToBoolFunc-`(2)
-
-        inline val Eq: (Any?, Any?) -> Boolean
-            get() = IsNull // IsNotNull works, too
-    }
 
 }
 
@@ -111,6 +112,15 @@ internal class `Contains-`<T>(private val value: Any?, private val containsAll: 
 @PublishedApi
 internal object Just : (Any?) -> Any? {
     override fun invoke(p1: Any?): Any? = p1
+}
+
+@PublishedApi
+internal object ToPair : (Any?, Any?) -> Any? {
+
+    // will be merged with any other class after Kotlin bug fix
+
+    override fun invoke(p1: Any?, p2: Any?): Any? =
+            Pair(p1, p2)
 }
 
 /**
