@@ -28,6 +28,11 @@ interface Dialect {
     fun <REC : Record<REC, *>> selectCountQuery(table: Table<REC, *>, condition: WhereCondition<out REC>): String
 
     /**
+     * Appends WHERE clause (without WHERE itself) to the [builder].
+     */
+    fun <REC : Record<REC, *>> appendWhereClause(builder: StringBuilder, condition: WhereCondition<out REC>): StringBuilder
+
+    /**
      *  Construcs an SQL query like `UPDATE <table> SET <col> = ?`
      */
     fun <REC : Record<REC, *>> updateFieldQuery(table: Table<REC, *>, col: Col<REC, *>): String
