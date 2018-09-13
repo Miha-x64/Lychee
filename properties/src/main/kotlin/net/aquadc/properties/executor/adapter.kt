@@ -52,9 +52,14 @@ internal class ConfinedChangeListener<in T>(
     internal var canceled = false
 
     override fun invoke(old: T, new: T) {
-        executor.execute {
-            if (!canceled) {
-                actual(old, new)
+        if (PlatformExecutors.executors.get() === executor) {
+            // call listener in-place, copying non-synhronized properties' behaviour and creating less overhead
+            actual(old, new)
+        } else {
+            executor.execute {
+                if (!canceled) {
+                    actual(old, new)
+                }
             }
         }
     }
