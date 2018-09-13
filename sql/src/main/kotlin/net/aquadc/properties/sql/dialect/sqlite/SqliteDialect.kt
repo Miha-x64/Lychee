@@ -27,12 +27,15 @@ object SqliteDialect : Dialect {
                 .append(" FROM ").appendName(table.name)
                 .append(" WHERE ")
 
-        val afterWhere = sb.length
-        condition.appendSqlTo(this, sb)
+        return appendWhereClause(sb, condition).toString()
+    }
 
-        if (sb.length == afterWhere) sb.append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
+    override fun <REC : Record<REC, *>> appendWhereClause(builder: StringBuilder, condition: WhereCondition<out REC>): StringBuilder {
+        val afterWhere = builder.length
+        condition.appendSqlTo(this, builder)
 
-        return sb.toString()
+        if (builder.length == afterWhere) builder.append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
+        return builder
     }
 
     override fun <REC : Record<REC, *>> updateFieldQuery(table: Table<REC, *>, col: Col<REC, *>): String =
