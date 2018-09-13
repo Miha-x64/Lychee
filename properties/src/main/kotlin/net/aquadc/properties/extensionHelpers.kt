@@ -34,10 +34,26 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
 }
 
-@PublishedApi internal object `ToBoolFunc-`: (Any?, Any?) -> Any? {
+@PublishedApi internal class `ToBoolFunc-`(
+        private val mode: Int
+): (Any?) -> Boolean, (Any?, Any?) -> Boolean {
 
-    override fun invoke(p1: Any?, p2: Any?): Any? =
+    override fun invoke(p1: Any?): Boolean = when (mode) {
+        1 -> p1 === null
+        2 -> p1 !== null
+        else -> throw AssertionError()
+    }
+
+    override fun invoke(p1: Any?, p2: Any?): Boolean =
             p1 == p2
+
+    @PublishedApi internal companion object {
+        @JvmField val IsNull = `ToBoolFunc-`(1)
+        @JvmField val IsNotNull = `ToBoolFunc-`(2)
+
+        inline val Eq: (Any?, Any?) -> Boolean
+            get() = IsNull // IsNotNull works, too
+    }
 
 }
 
