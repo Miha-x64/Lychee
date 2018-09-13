@@ -21,9 +21,9 @@ import net.aquadc.properties.fx.fx
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.propertiesSampleLogic.sql.*
 import java.sql.Connection
 import java.sql.DriverManager
-import java.sql.Statement
 import java.util.concurrent.Callable
 
 
@@ -187,26 +187,12 @@ private fun createNeededTables(conn: Connection, dialect: Dialect) {
                 if (it.next()) {
                     println("the table `${table.name}` already exists")
                 } else {
-                    create(statement, dialect, table)
+                    statement.execute(dialect.createTable(table))
                     println("table `${table.name}` was created")
                 }
             }
         }
     }
-}
-
-private fun create(statement: Statement, dialect: Dialect, table: Table<*, *>) {
-    val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-    sb.append(table.idColName).append(' ').append(dialect.nameOf(table.idColConverter.dataType)).append(" PRIMARY KEY, ")
-    table.fields.forEach { col ->
-        sb.append(col.name).append(' ').append(dialect.nameOf(col.converter.dataType))
-        if (!col.converter.isNullable) sb.append(" NOT NULL")
-        sb.append(", ")
-    }
-    sb.setLength(sb.length - 2) // trim last comma
-    sb.append(");")
-
-    statement.execute(sb.toString())
 }
 
 private fun fillIfEmpty(session: Session) {

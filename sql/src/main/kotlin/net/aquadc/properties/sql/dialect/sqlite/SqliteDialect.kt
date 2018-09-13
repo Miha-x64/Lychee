@@ -66,4 +66,16 @@ object SqliteDialect : Dialect {
         is DataType.Blob -> "BLOB"
     }
 
+    override fun createTable(table: Table<*, *>): String {
+        val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
+                .append(table.idColName).append(' ').append(nameOf(table.idColConverter.dataType)).append(" PRIMARY KEY, ")
+        table.fields.forEach { col ->
+            sb.append(col.name).append(' ').append(nameOf(col.converter.dataType))
+            if (!col.converter.isNullable) sb.append(" NOT NULL")
+            sb.append(", ")
+        }
+        sb.setLength(sb.length - 2) // trim last comma
+        return sb.append(");").toString()
+    }
+
 }
