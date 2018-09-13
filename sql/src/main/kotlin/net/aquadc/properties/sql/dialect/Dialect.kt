@@ -47,4 +47,9 @@ interface Dialect {
      */
     fun nameOf(dataType: DataType): String
 
+    /**
+     * Returns an SQL query to create the given [table].
+     */
+    fun createTable(table: Table<*, *>): String
+
 }
