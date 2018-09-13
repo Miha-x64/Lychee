@@ -2,6 +2,8 @@ package net.aquadc.properties.fx
 
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
+import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import javafx.beans.property.Property as FxProperty
@@ -62,3 +64,25 @@ fun <T> Property<T>.fx(): ObservableValue<T> {
     return prop
 }
 
+/**
+ * Returns [ObservableList] view on this [Property] of [List].
+ * @implNote this naïve implementation updates [ObservableList] fully
+ */
+fun <T> Property<List<T>>.fxList(): ObservableList<T> {
+    val list = FXCollections.observableArrayList(value)
+    addChangeListener { _, new ->
+        list.clear()
+        list.addAll(new)
+    }
+    return list
+}
+
+/**
+ * Binds [this] value to [that] value.
+ */
+fun <T> MutableProperty<T>.bindTo(that: ObservableValue<T>) {
+    value = that.value
+    that.addListener { _, _, new ->
+        this.value = new
+    }
+}
