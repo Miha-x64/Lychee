@@ -57,8 +57,19 @@ inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolea
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
-        mapWith(that, `ToBoolFunc-` as (T, T) -> Boolean)
+        mapWith(that, `ToBoolFunc-`.Eq as (T, T) -> Boolean)
 
+/**
+ * Returns a view on `this === null`.
+ */
+inline fun <T : Any> Property<T?>.isNull(): Property<Boolean> =
+        map(`ToBoolFunc-`.IsNull)
+
+/**
+ * Returns a view on `this !== null`.
+ */
+inline fun <T : Any> Property<T?>.isNotNull(): Property<Boolean> =
+        map(`ToBoolFunc-`.IsNotNull)
 
 //
 // Boolean actions
@@ -174,6 +185,11 @@ inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean): Prope
 inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS): Property<T> =
         if (mayChange) `Debounced-`(this, delay, unit)
         else this
+
+
+//
+// Concurrent
+//
 
 /**
  * Inline copy of [java.util.concurrent.atomic.AtomicReference.getAndUpdate].
