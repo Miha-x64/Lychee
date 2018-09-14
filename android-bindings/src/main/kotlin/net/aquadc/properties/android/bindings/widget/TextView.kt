@@ -27,23 +27,47 @@ fun TextView.bindTextTo(textResProperty: Property<Int>) =
         bindViewTo(textResProperty, SetText)
 
 private object SetText : (TextView, Any) -> Unit {
-    override fun invoke(p1: TextView, p2: Any) = when (p2) {
-        is CharSequence -> p1.text = p2
-        is Int -> p1.setText(p2)
-        else -> throw AssertionError()
+    override fun invoke(p1: TextView, p2: Any) {
+        when (p2) {
+            is CharSequence -> if (p1.text?.toString() != p2) p1.text = p2
+            is Int -> p1.setText(p2)
+            else -> throw AssertionError()
+        }
     }
 }
 
 /**
- * Binds [textProperty] to text via [android.text.TextWatcher].
+ * Binds [textProperty] of [CharSequence] to text via [android.text.TextWatcher].
  */
-fun TextView.bindToText(textProperty: MutableProperty<CharSequence>) {
+fun TextView.bindToText(textProperty: MutableProperty<in CharSequence>) {
+    textProperty.value = SpannedString(text)
+    addTextChangedListener(PropertySettingWatcher(1, textProperty))
+}
+
+/**
+ * Binds [textProperty] of [String] to text via [android.text.TextWatcher].
+ */
+@JvmName("bindToString")
+fun TextView.bindToText(textProperty: MutableProperty<in String>) {
     textProperty.value = text.toString()
-    addTextChangedListener(object : SimpleTextWatcher() {
-        override fun afterTextChanged(s: Editable) {
-            textProperty.value = SpannedString(s)
+    @Suppress("UNCHECKED_CAST")
+    addTextChangedListener(PropertySettingWatcher(2, textProperty as MutableProperty<in CharSequence>))
+}
+
+
+private class PropertySettingWatcher(
+        private val mode: Int,
+        private val property: MutableProperty<in CharSequence>
+) : SimpleTextWatcher() {
+
+    override fun afterTextChanged(s: Editable) {
+        property.value = when (mode) {
+            1 -> SpannedString(s)
+            2 -> s.toString()
+            else -> throw AssertionError()
         }
-    })
+    }
+
 }
 
 /**
