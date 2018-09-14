@@ -23,7 +23,7 @@ internal class `Bound-`<TRANSACTION, T, R>(
     }
 
     override fun bindTo(sample: Property<R>) {
-        mOrig.bindTo(sample.map(mapping::backwards))
+        mOrig.bindTo(sample.map(Backwards(mapping)))
         //                             ^^
         // extra allocation, but this is an extremely rare case
     }
@@ -49,6 +49,13 @@ internal class `Bound-`<TRANSACTION, T, R>(
          * Represents an action opposite to invoking this function.
          */
         fun backwards(arg: R): T
+    }
+
+    private class Backwards<T, R>(
+            private val twoWay: TwoWay<T, R>
+    ) : (R) -> T {
+        override fun invoke(p1: R): T =
+                twoWay.backwards(p1)
     }
 
 }
