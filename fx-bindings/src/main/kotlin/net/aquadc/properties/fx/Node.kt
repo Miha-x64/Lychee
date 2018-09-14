@@ -7,7 +7,7 @@ import net.aquadc.properties.Property
  * Binds [Node.visibleProperty] to [visibleProperty].
  */
 fun Node.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>) {
-    visibleProperty().bindTo(visibleProperty)
+    visibleProperty().bind(visibleProperty.fx())
 }
 
 /**
@@ -15,6 +15,6 @@ fun Node.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>) {
  */
 fun Node.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>) {
     // As suggested in https://stackoverflow.com/a/28559958/3050249
-    managedProperty().bindTo(visibleProperty)
-    visibleProperty().bindTo(visibleProperty)
+    managedProperty().bind(visibleProperty.fx())
+    visibleProperty().bind(visibleProperty.fx())
 }
