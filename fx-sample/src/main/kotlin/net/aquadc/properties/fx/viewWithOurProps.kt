@@ -17,7 +17,7 @@ fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
 
     children.add(JFXTextField().apply {
         promptText = "Email"
-        textProperty().bindBidirectionally(vm.emailProp)
+        textProperty().bindBidirectional(vm.emailProp.fx())
     })
 
     children.add(Label().apply {
@@ -27,24 +27,24 @@ fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
 
     children.add(JFXTextField().apply {
         promptText = "Name"
-        textProperty().bindBidirectionally(vm.nameProp)
+        textProperty().bindBidirectional(vm.nameProp.fx())
     })
 
     children.add(JFXTextField().apply {
         promptText = "Surname"
-        textProperty().bindBidirectionally(vm.surnameProp)
+        textProperty().bindBidirectional(vm.surnameProp.fx())
     })
 
     children.add(JFXButton("Press me, hey, you!").apply {
-        disableProperty().bindTo(!vm.buttonEnabledProp)
-        textProperty().bindTo(vm.buttonEnabledProp.map {
+        disableProperty().bind((!vm.buttonEnabledProp).fx())
+        textProperty().bind(vm.buttonEnabledProp.map {
             if (it) "Save changes" else "Nothing changed"
-        })
+        }.fx())
         setOnAction { vm.buttonClickedProp.set() }
     })
 
     children.add(Label().apply {
-        textProperty().bindTo(vm.debouncedEmail)
+        textProperty().bind(vm.debouncedEmail.fx())
     })
 
 }
