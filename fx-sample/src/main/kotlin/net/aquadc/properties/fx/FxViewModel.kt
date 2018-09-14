@@ -23,7 +23,7 @@ class FxViewModel(
         surnameProp = SimpleStringProperty(currentUser.surname)
     }
 
-    val onScreenUserProp =
+    private val onScreenUserProp =
             Bindings.createObjectBinding(Callable<User> {
                 User(emailProp.value, nameProp.value, surnameProp.value)
             }, emailProp, nameProp, surnameProp)

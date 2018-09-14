@@ -112,7 +112,7 @@ fun TextView.bindHintTo(hintProperty: Property<CharSequence>) =
         bindViewTo(hintProperty, SetHint)
 
 /**
- * Binds hint to [hintProperty] via [TextView.setHint].
+ * Binds hint to [hintResProperty] via [TextView.setHint].
  */
 @JvmName("bindHintResTo")
 fun TextView.bindHintTo(hintResProperty: Property<Int>) =
@@ -188,7 +188,7 @@ internal fun Resources.getDrawableCompat(@DrawableRes id: Int): Drawable? =
         }
 
 /**
- * A tuple of two [Int]s for [net.aquadc.properties.android.bindings.bindErrorMessageAndIconTo].
+ * A tuple of two [Int]s for [net.aquadc.properties.android.bindings.widget.bindErrorMessageAndIconTo].
  */
 class MessageAndIconRes(
         @JvmField @StringRes val messageRes: Int,

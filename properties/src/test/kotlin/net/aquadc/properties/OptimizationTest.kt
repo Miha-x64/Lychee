@@ -26,7 +26,7 @@ class OptimizationTest {
 
     @Test fun concSimpleMap() = simpleMap(true, `Mapped-`::class.java)
     @Test fun unsSimpleMap() = simpleMap(false, `Mapped-`::class.java)
-    fun simpleMap(concurrent: Boolean, mapsTo: Class<*>) {
+    private fun simpleMap(concurrent: Boolean, mapsTo: Class<*>) {
         val prop = propertyOf("hey", concurrent)
         val mapped = prop.map { "$it!" }
         assertTrue("mapped is ${mapped.javaClass}", mapsTo.isInstance(mapped))
@@ -34,7 +34,7 @@ class OptimizationTest {
 
     @Test fun concSimpleMapWith() = simpleMapWith(true, `BiMapped-`::class.java)
     @Test fun unsSimpleMapWith() = simpleMapWith(false, `BiMapped-`::class.java)
-    fun simpleMapWith(concurrent: Boolean, mapsTo: Class<*>) {
+    private fun simpleMapWith(concurrent: Boolean, mapsTo: Class<*>) {
         val prop0 = propertyOf("hey", concurrent)
         val prop1 = propertyOf("hey", concurrent)
         assertTrue(mapsTo.isInstance(prop0.mapWith(prop1) { a, b -> "$a $b" }))

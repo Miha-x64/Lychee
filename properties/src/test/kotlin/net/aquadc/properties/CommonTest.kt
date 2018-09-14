@@ -81,7 +81,7 @@ class CommonTest {
     @Test fun change() = testAll(::testChange)
 
     // different props have different identity, so we are going to test only mutable and mapped
-    fun testIdentity(original: MutableProperty<String>) {
+    private fun testIdentity(original: MutableProperty<String>) {
         val dist = original.distinct(Identity)
         var called = 0
         dist.addUnconfinedChangeListener { _, _ -> called++; Unit }

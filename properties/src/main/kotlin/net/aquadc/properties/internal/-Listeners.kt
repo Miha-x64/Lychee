@@ -459,7 +459,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     }
 
     internal fun unlockTransition() {
-        val old = concState().getAndUpdate(ConcListeners<LISTENER, UPDATE>::flippedTransitionLock)
+        val old = concState().getUndUpdate(ConcListeners<LISTENER, UPDATE>::flippedTransitionLock)
         check(old.transitionLocked)
     }
 
