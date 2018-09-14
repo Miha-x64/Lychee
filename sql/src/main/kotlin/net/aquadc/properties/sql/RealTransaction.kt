@@ -99,7 +99,7 @@ internal class RealTransaction(
         // value changes
         updated?.forEach { (col, pkToVal) ->
             pkToVal.forEach { (localId, value) ->
-                lowSession.daos.get(col.structDef)?.erased?.commitValue(localId, col.erased, value)
+                lowSession.daos[col.structDef]?.erased?.commitValue(localId, col.erased, value)
                 Unit
             }
         }

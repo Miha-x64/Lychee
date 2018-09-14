@@ -13,7 +13,7 @@ internal class `UnsMutable-`<T>(
         value: T
 ) : `-Notifier`<T>(false), MutableProperty<T>, ChangeListener<T> {
 
-    var valueRef: T = value
+    private var valueRef: T = value
 
     override var value: T
         get() {
