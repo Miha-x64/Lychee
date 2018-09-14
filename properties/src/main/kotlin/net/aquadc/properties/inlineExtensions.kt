@@ -190,7 +190,7 @@ inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILL
  * Returns a property of both [this] and [that] values which gets updated when either [this] or [that] gets updated.
  */
 @Suppress("UNCHECKED_CAST")
-fun <T, U> Property<T>.zipWith(that: Property<U>): Property<Pair<T, U>> =
+inline fun <T, U> Property<T>.zipWith(that: Property<U>): Property<Pair<T, U>> =
         mapWith(that, ToPair as (T, U) -> Pair<T, U>)
 
 
