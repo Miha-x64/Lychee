@@ -1,17 +1,13 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.Property
+import net.aquadc.properties.*
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
-import net.aquadc.properties.map
-import net.aquadc.properties.propertyOf
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.struct.Field
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.getOrSet
 
 // TODO: evicting stale records, counts, and selections
 internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
@@ -75,13 +71,13 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     }
 
     override fun select(condition: WhereCondition<out REC>): Property<List<REC>> =
-            propertyOf(condition)
+            concurrentPropertyOf(condition)
                     .also { selections.add(it) }
                     .map(Query(this, table, lowSession))
 
     override fun count(condition: WhereCondition<out REC>): Property<Long> =
             counts.getOrPut(condition) {
-                propertyOf(condition)
+                concurrentPropertyOf(condition)
             }.map(Count(table, lowSession)) // todo cache, too
 
     // endregion Dao implementation
