@@ -107,4 +107,31 @@ class PropertiesTest {
         assertEquals(8, a.value)
     }
 
+    @Test fun concFlatMapped() = flatMapped(true)
+    @Test fun unsFlatMapped() = flatMapped(false)
+    private fun flatMapped(concurrent: Boolean) {
+        val props = listOf(
+                propertyOf("zero", concurrent),
+                propertyOf("one", concurrent),
+                propertyOf("two", concurrent),
+                propertyOf("three", concurrent))
+
+        val prop = propertyOf(1, concurrent)
+        val flat = prop.flatMap { props[it] }
+        assertEquals("one", flat.value)
+
+        prop.value = 0
+        assertEquals("zero", flat.value)
+
+        props[0].value = "oh"
+        assertEquals("oh", flat.value)
+
+        var _old = ""; var _new = ""
+        flat.addUnconfinedChangeListener { old, new -> _old = old; _new = new }
+
+        props[0].value = "null"
+        assertEquals("oh", _old)
+        assertEquals("null", _new)
+    }
+
 }

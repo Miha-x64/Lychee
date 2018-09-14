@@ -69,3 +69,15 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
         func(value)
     }
 }
+
+
+
+/**
+ * Returns a property which has value equal to the value of property returned by `transform(this.value)` when
+ * [this] has not `null` value, or [default] otherwise.
+ * @see flatMap
+ */
+fun <T : Any, U> Property<T?>.flatMapNotNullOrDefault(default: U, transform: (T) -> Property<U>): Property<U> {
+    val fallbackProp = immutablePropertyOf(default)
+    return flatMap { if (it == null) fallbackProp else transform(it) }
+}

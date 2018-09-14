@@ -193,6 +193,12 @@ inline fun <T> Property<T>.debounced(delay: Long, unit: TimeUnit = TimeUnit.MILL
 inline fun <T, U> Property<T>.zipWith(that: Property<U>): Property<Pair<T, U>> =
         mapWith(that, ToPair as (T, U) -> Pair<T, U>)
 
+/**
+ * Returns a property which has value equal to the value of property returned by `transform(this.value)`.
+ * @see flatMapNotNullOrDefault
+ */
+fun <T, U> Property<T>.flatMap(transform: (T) -> Property<U>): Property<U> =
+        `FlatMapped-`(this, transform)
 
 
 //

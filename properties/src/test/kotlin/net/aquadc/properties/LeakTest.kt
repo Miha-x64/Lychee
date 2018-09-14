@@ -14,13 +14,13 @@ class LeakTest {
     private val pool = ForkJoinPool(1)
 
     @Test fun definitelyWillPass() =
-            leak(propertyOf(""), { propertyOf("") })
+            leak(propertyOf("")) { propertyOf("") }
 
     @Test fun leakUnsBound() =
-            leak(propertyOf(""), { propertyOf("").apply { bindTo(it) } })
+            leak(propertyOf("")) { propertyOf("").apply { bindTo(it) } }
 
     @Test fun leakConcBound() =
-            leak(concurrentPropertyOf(""), { concurrentPropertyOf("").apply { bindTo(it) } })
+            leak(concurrentPropertyOf("")) { concurrentPropertyOf("").apply { bindTo(it) } }
 
     @Test fun leakUnsMap() =
             leak(propertyOf(""), Property<Any>::readOnlyView)
@@ -29,37 +29,37 @@ class LeakTest {
             leak(concurrentPropertyOf(""), Property<Any>::readOnlyView)
 
     @Test fun leakUnsBiMap() =
-            leak(propertyOf(""), { it.mapWith(propertyOf("")) { a, b -> a + b } })
+            leak(propertyOf("")) { it.mapWith(propertyOf("")) { a, b -> a + b } }
 
     @Test fun leakConcBiMap() =
-            leak(concurrentPropertyOf(""), { it.mapWith(concurrentPropertyOf("")) { a, b -> a + b } })
+            leak(concurrentPropertyOf("")) { it.mapWith(concurrentPropertyOf("")) { a, b -> a + b } }
 
     @Test fun leakUnsMultiMap() =
-            leak(propertyOf(""), { listOf(it).mapValueList { it } })
+            leak(propertyOf("")) { prop -> listOf(prop).mapValueList { it } }
 
     @Test fun leakConcMultiMap() =
-            leak(concurrentPropertyOf(""), { listOf(it).mapValueList { it } })
+            leak(concurrentPropertyOf("")) { prop -> listOf(prop).mapValueList { it } }
 
     @Test fun leakDiff() =
-            leak(propertyOf(""), { it.calculateDiffOn(InPlaceWorker, { _, _ -> "" }) })
+            leak(propertyOf("")) { it.calculateDiffOn(InPlaceWorker) { _, _ -> "" } }
 
     @Test fun leakUnsDebounced() {
         pool.submit {
-            leak(propertyOf(""), { it.debounced(0, TimeUnit.MILLISECONDS) })
+            leak(propertyOf("")) { it.debounced(0, TimeUnit.MILLISECONDS) }
         }.get()
     }
 
     @Test fun leakConcDebounced() {
         pool.submit {
-            leak(concurrentPropertyOf(""), { it.debounced(0, TimeUnit.MILLISECONDS) })
+            leak(concurrentPropertyOf("")) { it.debounced(0, TimeUnit.MILLISECONDS) }
         }.get()
     }
 
     @Test fun leakUnsDistinct() =
-            leak(propertyOf(""), { it.distinct(Identity) })
+            leak(propertyOf("")) { it.distinct(Identity) }
 
     @Test fun leakConcDistinct() =
-            leak(concurrentPropertyOf(""), { it.distinct(Identity) })
+            leak(concurrentPropertyOf("")) { it.distinct(Identity) }
 
     @Test fun leakUnsBidi() = leak(propertyOf("a")) { prop ->
         prop.bind({ "_$it" }, { it: String -> it.substring(1) })
@@ -67,6 +67,14 @@ class LeakTest {
 
     @Test fun leakConcBidi() = leak(concurrentPropertyOf("a")) { prop ->
         prop.bind({ "_$it" }, { it: String -> it.substring(1) })
+    }
+
+    @Test fun leakUnsFlat() = leak(propertyOf("")) { prop ->
+        prop.flatMap { immutablePropertyOf(it) }
+    }
+
+    @Test fun leakConcFlat() = leak(propertyOf("")) { prop ->
+        prop.flatMap { immutablePropertyOf(it) }
     }
 
     private fun leak(original: MutableProperty<String>, createForLeak: (MutableProperty<String>) -> Property<*>) {
