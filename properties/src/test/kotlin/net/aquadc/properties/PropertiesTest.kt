@@ -107,9 +107,11 @@ class PropertiesTest {
         assertEquals(8, a.value)
     }
 
-    @Test fun concFlatMapped() = flatMapped(true)
-    @Test fun unsFlatMapped() = flatMapped(false)
-    private fun flatMapped(concurrent: Boolean) {
+    @Test fun concFlatMapped() = flatMapped(true, false)
+    @Test fun unsFlatMapped() = flatMapped(false, false)
+    @Test fun concObsFlatMapped() = flatMapped(true, true)
+    @Test fun unsObsFlatMapped() = flatMapped(false, true)
+    private fun flatMapped(concurrent: Boolean, observed: Boolean) {
         val props = listOf(
                 propertyOf("zero", concurrent),
                 propertyOf("one", concurrent),
@@ -118,6 +120,9 @@ class PropertiesTest {
 
         val prop = propertyOf(1, concurrent)
         val flat = prop.flatMap { props[it] }
+
+        if (observed) flat.addUnconfinedChangeListener { _, _ ->  }
+
         assertEquals("one", flat.value)
 
         prop.value = 0
