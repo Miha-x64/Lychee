@@ -56,10 +56,10 @@ class LeakTest {
     }
 
     @Test fun leakUnsDistinct() =
-            leak(propertyOf("")) { it.distinct(Identity) }
+            leak(propertyOf("")) { it.distinct(byIdentity()) }
 
     @Test fun leakConcDistinct() =
-            leak(concurrentPropertyOf("")) { it.distinct(Identity) }
+            leak(concurrentPropertyOf("")) { it.distinct(byIdentity()) }
 
     @Test fun leakUnsBidi() = leak(propertyOf("a")) { prop ->
         prop.bind({ "_$it" }, { it: String -> it.substring(1) })

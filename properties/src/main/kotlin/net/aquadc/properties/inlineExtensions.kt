@@ -57,7 +57,7 @@ inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolea
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
-        mapWith(that, ToBoolFunc2 as (T, T) -> Boolean)
+        mapWith(that, ToBoolFunc2.Equality)
 
 /**
  * Returns a view on `this === null`.
@@ -70,6 +70,79 @@ inline fun <T : Any> Property<T?>.isNull(): Property<Boolean> =
  */
 inline fun <T : Any> Property<T?>.isNotNull(): Property<Boolean> =
         map(ToBoolFunc1.IsNotNull)
+
+/**
+ * Compares objects by their identity.
+ */
+inline fun byIdentity(): (Any?, Any?) -> Boolean =
+        ToBoolFunc2.Identity
+
+/**
+ * Compares objects with [Any.equals] operator function.
+ */
+inline fun byEquality(): (Any?, Any?) -> Boolean =
+        ToBoolFunc2.Equality
+
+/**
+ * Compares [Boolean] arrays with [java.util.Arrays.equals].
+ */
+inline fun byBooleanArraysEquality(): (BooleanArray, BooleanArray) -> Boolean =
+        ToBoolFunc2.Booleans
+
+/**
+ * Compares [Byte] arrays with [java.util.Arrays.equals].
+ */
+inline fun byByteArraysEquality(): (ByteArray, ByteArray) -> Boolean =
+        ToBoolFunc2.Bytes
+
+/**
+ * Compares [Short] arrays with [java.util.Arrays.equals].
+ */
+inline fun byShortArraysEquality(): (ShortArray, ShortArray) -> Boolean =
+        ToBoolFunc2.Shorts
+
+/**
+ * Compares [Char] arrays with [java.util.Arrays.equals].
+ */
+inline fun byCharArraysEquality(): (CharArray, CharArray) -> Boolean =
+        ToBoolFunc2.Chars
+
+/**
+ * Compares [Int] arrays with [java.util.Arrays.equals].
+ */
+inline fun byIntArraysEquality(): (IntArray, IntArray) -> Boolean =
+        ToBoolFunc2.Ints
+
+/**
+ * Compares [Long] arrays with [java.util.Arrays.equals].
+ */
+inline fun byLongArraysEquality(): (LongArray, LongArray) -> Boolean =
+        ToBoolFunc2.Longs
+
+/**
+ * Compares [Float] arrays with [java.util.Arrays.equals].
+ */
+inline fun byFloatArraysEquality(): (FloatArray, FloatArray) -> Boolean =
+        ToBoolFunc2.Floats
+
+/**
+ * Compares [Double] arrays with [java.util.Arrays.equals].
+ */
+inline fun byDoubleArraysEquality(): (DoubleArray, DoubleArray) -> Boolean =
+        ToBoolFunc2.Doubles
+
+/**
+ * Compares reference arrays with [java.util.Arrays.equals].
+ */
+inline fun byArraysEquality(): (Array<out Any?>, Array<out Any?>) -> Boolean =
+        ToBoolFunc2.Objects
+
+/**
+ * Compares reference arrays with [java.util.Arrays.deepEquals].
+ */
+inline fun byArraysDeepEquality(): (Array<out Any?>, Array<out Any?>) -> Boolean =
+        ToBoolFunc2.ObjectsDeep
+
 
 //
 // Boolean actions
@@ -324,6 +397,8 @@ inline fun <T> immutablePropertyOf(value: T): Property<T> =
  */
 inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
         `MultiMapped-`(this, transform)
+
+// TODO: Collection<Property<T>>.valueList corner case
 
 /**
  * Folds a list of properties into a single [Property].
