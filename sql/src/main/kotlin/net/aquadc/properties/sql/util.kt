@@ -1,6 +1,7 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.properties.sql
 
+import net.aquadc.struct.converter.AndroidSqliteConverter
 import net.aquadc.struct.converter.JdbcConverter
 
 
@@ -23,3 +24,6 @@ internal inline val Col<*, *>.erased
 
 internal inline val JdbcConverter<*>.erased
     get() = this as JdbcConverter<Any?>
+
+internal inline val AndroidSqliteConverter<*>.erased
+    get() = this as AndroidSqliteConverter<Any?>

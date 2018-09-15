@@ -2,12 +2,12 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
 }
 
-
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    compileOnly files("$android_sdk_dir/platforms/android-$target_android_version/android.jar")
     compile "org.jetbrains.kotlin:kotlin-stdlib"
     compile project(':properties')
     compile project(':struct')

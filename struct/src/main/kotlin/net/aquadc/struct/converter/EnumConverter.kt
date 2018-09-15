@@ -1,5 +1,7 @@
 package net.aquadc.struct.converter
 
+import android.database.Cursor
+import android.database.sqlite.SQLiteStatement
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
@@ -9,14 +11,18 @@ import java.sql.ResultSet
 ) : SimpleConverter<E>(dataType, false) {
 
     override fun bind(statement: PreparedStatement, index: Int, value: E) {
-        statement.setString(1 + index, toString(value))
+        statement.setString(1 + index, asString(value))
     }
 
     override fun get(resultSet: ResultSet, index: Int): E =
             lookup(resultSet.getString(1 + index))
 
-    override fun toString(value: E): String = value.name
-    override fun get(cursor: Nothing, index: Int): E = cursor
+
+    override fun bind(statement: SQLiteStatement, index: Int, value: E) {
+        statement.bindString(1 + index, asString(value))
+    }
+    override fun asString(value: E): String = value.name
+    override fun get(cursor: Cursor, index: Int): E = lookup(cursor.getString(index))
 
     protected open fun lookup(name: String): E = java.lang.Enum.valueOf<E>(enumType, name)
 

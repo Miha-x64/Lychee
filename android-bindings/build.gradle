@@ -2,12 +2,12 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion target_android_version
     buildToolsVersion build_tools_version
 
     defaultConfig {
         minSdkVersion 12 // View.OnAttachStateChangeListener is since 12
-        targetSdkVersion 25
+        targetSdkVersion target_android_version
         versionCode 1
         versionName "1.0"
 

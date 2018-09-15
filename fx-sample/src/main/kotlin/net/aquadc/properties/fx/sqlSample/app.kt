@@ -5,11 +5,6 @@ import com.jfoenix.controls.JFXListCell
 import com.jfoenix.controls.JFXListView
 import com.jfoenix.controls.JFXTextField
 import javafx.application.Application
-import javafx.beans.binding.Bindings
-import javafx.beans.property.ReadOnlyObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.beans.value.ObservableValue
-import javafx.collections.FXCollections
 import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Label
@@ -17,108 +12,58 @@ import javafx.scene.control.ListView
 import javafx.scene.layout.*
 import javafx.stage.Stage
 import net.aquadc.properties.*
+import net.aquadc.properties.fx.bindTo
 import net.aquadc.properties.fx.fx
+import net.aquadc.properties.fx.fxList
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.propertiesSampleLogic.sql.*
 import java.sql.Connection
 import java.sql.DriverManager
-import java.util.concurrent.Callable
 
 
 class SqliteApp : Application() {
 
     private val dialect = SqliteDialect
     private val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also { createNeededTables(it, dialect) }
-    private val sess = JdbcSession(connection, dialect).also(::fillIfEmpty)
+    private val sess = JdbcSession(connection, dialect)
+    private val vm = SqlViewModel(sess)
 
     override fun start(stage: Stage) {
-        stage.titleProperty().bind(
-                sess[HumanTable].count().fx().map { "Sample SQLite application ($it records)" }
-        )
+        stage.titleProperty().bind(vm.titleProp.fx())
         stage.scene = Scene(
                 HBox().apply {
 
                     val hBox = this
 
-                    val humanListProp = sess[HumanTable].selectAll()
-                    val humanList = FXCollections.observableArrayList(humanListProp.value)
-                    humanListProp.addChangeListener { _, new ->
-                        humanList.clear()
-                        humanList.addAll(new)
-                    }
-                    val listView = JFXListView<Human>().apply {
-                        items = humanList
+                    children += JFXListView<Human>().apply {
+                        items = vm.humanListProp.fxList()
                         setCellFactory(::createListCell)
                         prefWidthProperty().bind(hBox.widthProperty().multiply(.4))
+                        vm.lastInserted.addChangeListener { _, inserted -> selectionModel.select(inserted) }
+                        vm.selectedProp.bindTo(selectionModel.selectedItemProperty())
                     }
-                    children += listView
 
                     children += VBox().apply {
                         prefWidthProperty().bind(hBox.widthProperty().multiply(.6))
 
                         padding = Insets(10.0, 10.0, 10.0, 10.0)
 
-                        val selProp: ReadOnlyObjectProperty<Human?> = listView.selectionModel.selectedItemProperty()
-                        val namePatch = propertyOf(mapOf<Human, String>())
-                        namePatch.debounced(1000L).onEach { new ->
-                            if (new.isNotEmpty() && namePatch.casValue(new, mapOf())) {
-                                sess.withTransaction {
-                                    new.forEach { (human, newName) ->
-                                        if (human.isManaged) { // if it was just deleted, ignore
-                                            human.nameProp.set(newName)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        val actionsDisabledProp = selProp.isNull
-
                         children += JFXTextField().apply {
-                            val nameProp = SimpleStringProperty()
-                            selProp.addListener { _, _, it ->
-                                nameProp.unbind()
-                                if (it == null) nameProp.set("")
-                                else nameProp.bind(it.nameProp.fx())
-                            }
-                            disableProperty().bind(actionsDisabledProp)
-                            selProp.addListener { _, _, human ->
-                                text = human?.nameProp?.value ?: ""
-                            }
-                            textProperty().addListener { _, _, newText ->
-                                selProp.value?.let {
-                                    namePatch += it to newText
-                                }
-                            }
+                            disableProperty().bind((!vm.actionsEnabledProp).fx())
+                            textProperty().bind(vm.nameProp.fx())
+                            textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
                         }
 
                         children += Label().apply {
                             padding = Insets(10.0, 0.0, 0.0, 0.0)
-                            val conditionersProp = SimpleStringProperty()
-                            selProp.addListener { _, _, sel ->
-                                conditionersProp.unbind()
-                                if (sel == null) {
-                                    conditionersProp.set("none")
-                                } else {
-                                    conditionersProp.bind(sel.carsProp.map {
-                                        "Air conditioner(s) in car(s): [\n" +
-                                                it.map { it.conditionerModelProp.value + '\n' }.joinToString() + ']'
-                                    }.fx())
-                                }
-                            }
-                            textProperty().bind(conditionersProp)
+                            textProperty().bind(vm.airConditionersTextProp.fx())
                         }
 
                         children += JFXButton("Delete").apply {
-                            disableProperty().bind(actionsDisabledProp)
-
-                            setOnMouseClicked { _ ->
-                                sess.withTransaction {
-                                    delete(selProp.value!!)
-                                }
-                            }
+                            disableProperty().bind((!vm.actionsEnabledProp).fx())
+                            setOnMouseClicked { _ -> vm.deleteClicked.set() }
                         }
 
                         children += Pane().apply {
@@ -128,11 +73,7 @@ class SqliteApp : Application() {
 
                         children += HBox().apply {
                             children += JFXButton("Create new").apply {
-                                setOnMouseClicked { _ ->
-                                    listView.selectionModel.select(
-                                            sess.withTransaction { insertHuman("", "") }
-                                    )
-                                }
+                                setOnMouseClicked { _ -> vm.createClicked.set() }
                             }
 
                             children += JFXButton("Dump debug info").apply {
@@ -176,10 +117,6 @@ class SqliteApp : Application() {
 }
 
 
-private inline fun <T, R> ObservableValue<T>.map(crossinline transform: (T) -> R) =
-        Bindings.createObjectBinding(Callable<R> { transform(value) }, this)
-
-
 private fun createNeededTables(conn: Connection, dialect: Dialect) {
     Tables.forEach { table ->
         conn.createStatement().use { statement ->
@@ -191,25 +128,6 @@ private fun createNeededTables(conn: Connection, dialect: Dialect) {
                     println("table `${table.name}` was created")
                 }
             }
-        }
-    }
-}
-
-private fun fillIfEmpty(session: Session) {
-    if (session[HumanTable].count().value == 0L) {
-        session.withTransaction {
-            insertHuman("Stephen", "Hawking")
-            val relativist = insertHuman("Albert", "Einstein")
-            insertHuman("Dmitri", "Mendeleev")
-            val electrician = insertHuman("Nikola", "Tesla")
-
-            // don't know anything about their friendship, just a sample
-            insert(FriendTable,
-                    FriendTable.LeftId - relativist.primaryKey, FriendTable.RightId - electrician.primaryKey
-            )
-
-            val car = insertCar(electrician)
-            car.conditionerModelProp.set("the coolest air cooler")
         }
     }
 }

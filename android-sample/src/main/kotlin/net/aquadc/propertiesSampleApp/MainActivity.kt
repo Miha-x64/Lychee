@@ -66,14 +66,20 @@ class MainActivity : Activity() {
 
             view().lparams(weight = 1f)
 
-            button("Show RecyclerView sample") {
-                setOnClickListener { startActivity(intentFor<RecyclerViewActivity>()) }
-            }
+            textView("Other samples")
+            linearLayout {
+                button("RecyclerView") {
+                    setOnClickListener { startActivity(intentFor<RecyclerViewActivity>()) }
+                }.lparams(weight = 1f)
 
-            button("Show Monolithic Activity") {
-                setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
-            }
+                button("SQLite") {
+                    setOnClickListener { startActivity(intentFor<SqliteActivity>()) }
+                }.lparams(weight = 1f)
 
+                button("Monolithic Activity") {
+                    setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
+                }.lparams(weight = 1f)
+            }
         }
     }
 
