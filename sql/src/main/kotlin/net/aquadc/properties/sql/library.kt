@@ -27,7 +27,7 @@ interface Session {
 
 interface Dao<REC : Record<REC, ID>, ID : IdBound> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
-    fun select(condition: WhereCondition<out REC>/* TODO: order, prefetch */): Property<List<REC>> // TODO DiffProperty
+    fun select(condition: WhereCondition<out REC>, order: Array<out Order<REC>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty
     // todo raw queries, joins
     fun count(condition: WhereCondition<out REC>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
@@ -53,11 +53,17 @@ inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
 fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.require(id: ID): REC =
         find(id) ?: throw IllegalStateException("No record found in `$this` for ID $id")
 
-fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.selectAll(): Property<List<REC>> =
-        select(WhereCondition.Empty)
+@Suppress("NOTHING_TO_INLINE")
+inline fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.select(condition: WhereCondition<out REC>, vararg order: Order<REC>/* TODO: prefetch */): Property<List<REC>> =
+        select(condition, order)
+
+fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.selectAll(vararg order: Order<REC>): Property<List<REC>> =
+        select(WhereCondition.Empty, order)
 
 fun <REC : Record<REC, ID>, ID : IdBound> Dao<REC, ID>.count(): Property<Long> =
         count(WhereCondition.Empty)
+
+@JvmField val NoOrder = emptyArray<Order<Nothing>>()
 
 
 interface Transaction : AutoCloseable {
@@ -77,6 +83,17 @@ interface Transaction : AutoCloseable {
     }
 
 }
+
+class Order<REC : Record<REC, *>>(
+        @JvmField internal val col: Col<REC, *>,
+        @JvmField internal val desc: Boolean
+)
+
+val <REC : Record<REC, *>> Col<REC, *>.asc: Order<REC>
+    get() = Order(this, false)
+
+val <REC : Record<REC, *>> Col<REC, *>.desc: Order<REC>
+    get() = Order(this, true)
 
 
 abstract class Table<REC : Record<REC, ID>, ID : IdBound>(

@@ -70,8 +70,12 @@ val Unset: Any = Any()
 
 @[JvmField JvmSynthetic] internal val SingleNull = arrayOfNulls<Any>(1)
 
-@[JvmField JvmSynthetic] internal val EmptyArray =
+@[JvmField JvmSynthetic PublishedApi] internal val EmptyArray: Array<Any?> =
         emptyArray<Any?>()
+
+@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+inline fun <T> emptyArrayOf(): Array<T> =
+        EmptyArray as Array<T>
 
 @[JvmField JvmSynthetic] internal val NoListeners =
         ConcListeners(EmptyArray, EmptyArray, false, false, false) as ConcListeners<Nothing, Nothing>

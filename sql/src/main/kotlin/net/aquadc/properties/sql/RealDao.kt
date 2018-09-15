@@ -25,6 +25,8 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     // SELECT _id WHERE ...
     private val selections = Vector<MutableProperty<WhereCondition<out REC>>>() // coding like in 1995, yay! TODO: deduplication
 
+    private val orderedSelections = ConcurrentHashMap<Field<REC, *>, Vector<MutableProperty<WhereCondition<out REC>>>>()
+
     internal fun <T> commitValue(localId: Long, column: Col<REC, T>, value: T) {
         (records[localId]?.fields?.get(column.ordinal) as ManagedProperty<Transaction, T>?)?.commit(value)
     }
@@ -41,6 +43,14 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         }
         counts.forEach { (_, it) ->
             it.value = it.value
+        }
+    }
+
+    internal fun onOrderChange(affectedCols: List<Col<REC, *>>) {
+        affectedCols.forEach { col ->
+            orderedSelections[col]?.forEach {
+                it.value = it.value
+            }
         }
     }
 
@@ -70,10 +80,15 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         return records.getOrPut<Long, REC>(localId) { table.create(session, id) }
     }
 
-    override fun select(condition: WhereCondition<out REC>): Property<List<REC>> =
-            concurrentPropertyOf(condition)
-                    .also { selections.add(it) }
-                    .map(Query(this, table, lowSession))
+    override fun select(condition: WhereCondition<out REC>, vararg order: Order<REC>): Property<List<REC>> {
+        val prop = concurrentPropertyOf(condition)
+        selections.add(prop)
+        order.forEach { orderedSelections.getOrPut(it.col, ::Vector).add(prop) }
+        return prop
+                .map(PrimaryKeys(table, lowSession, order))
+                .distinct(byArraysEquality())
+                .map(Query(this, table, lowSession, condition, order))
+    }
 
     override fun count(condition: WhereCondition<out REC>): Property<Long> =
             counts.getOrPut(condition) {

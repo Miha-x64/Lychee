@@ -15,27 +15,42 @@ object SqliteDialect : Dialect {
                     .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                     .toString()
 
-    override fun <REC : Record<REC, *>> selectFieldQuery(columnName: String, table: Table<REC, *>, condition: WhereCondition<out REC>): String =
-            selectQuery(columnName, table, condition)
+    override fun <REC : Record<REC, *>> selectFieldQuery(
+            columnName: String, table: Table<REC, *>, condition: WhereCondition<out REC>, order: Array<out Order<out REC>>
+    ): String =
+            selectQuery(columnName, table, condition, order)
 
-    override fun <REC : Record<REC, *>> selectCountQuery(table: Table<REC, *>, condition: WhereCondition<out REC>): String =
-            selectQuery(null, table, condition)
+    override fun <REC : Record<REC, *>> selectCountQuery(
+            table: Table<REC, *>, condition: WhereCondition<out REC>
+    ): String =
+            selectQuery(null, table, condition, NoOrder)
 
-    private fun <REC : Record<REC, *>> selectQuery(columnName: String?, table: Table<REC, *>, condition: WhereCondition<out REC>): String {
+    private fun <REC : Record<REC, *>> selectQuery(columnName: String?, table: Table<REC, *>, condition: WhereCondition<out REC>, order: Array<out Order<out REC>>): String {
         val sb = StringBuilder("SELECT ")
                 .let { if (columnName == null) it.append("COUNT(*)") else it.appendName(columnName) }
                 .append(" FROM ").appendName(table.name)
                 .append(" WHERE ")
+        sb.appendWhereClause(condition)
 
-        return appendWhereClause(sb, condition).toString()
+        if (!order.isEmpty())
+            sb.append(" ORDER BY ").appendOrderClause(order)
+
+        return sb.toString()
     }
 
-    override fun <REC : Record<REC, *>> appendWhereClause(builder: StringBuilder, condition: WhereCondition<out REC>): StringBuilder {
-        val afterWhere = builder.length
-        condition.appendSqlTo(this, builder)
+    override fun <REC : Record<REC, *>> StringBuilder.appendWhereClause(condition: WhereCondition<out REC>): StringBuilder {
+        val afterWhere = length
+        condition.appendSqlTo(this@SqliteDialect, this)
 
-        if (builder.length == afterWhere) builder.append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
-        return builder
+        if (length == afterWhere) append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
+        return this
+    }
+
+    override fun <REC : Record<REC, *>> StringBuilder.appendOrderClause(order: Array<out Order<out REC>>): StringBuilder {
+        if (order.isEmpty()) throw IllegalArgumentException()
+        order.forEach { appendName(it.col.name).append(if (it.desc) " DESC, " else " ASC, ") }
+        setLength(length - 2)
+        return this
     }
 
     override fun <REC : Record<REC, *>> updateFieldQuery(table: Table<REC, *>, col: Col<REC, *>): String =

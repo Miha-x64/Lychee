@@ -39,7 +39,7 @@ class AndroidSqliteSession(
 
         override fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean {
 
-            val count = select(null, table, reusableCond(table, table.idColName, primaryKey)).fetchSingle(long)
+            val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
             return when (count) {
                 0L -> false
                 1L -> true
@@ -115,7 +115,8 @@ class AndroidSqliteSession(
         private fun <ID : IdBound, REC : Record<REC, ID>> select(
                 columnName: String?,
                 table: Table<REC, ID>,
-                condition: WhereCondition<out REC>
+                condition: WhereCondition<out REC>,
+                order: Array<out Order<out REC>>
         ): Cursor {
             val args = ArrayList<Pair<String, Any>>()
             condition.appendValuesTo(args)
@@ -127,18 +128,24 @@ class AndroidSqliteSession(
                 (conv as AndroidSqliteConverter<Any>).asString(value)
             }
 
-            return connection.query(
-                    table.name, // ...may reuse a single array
-                    if (columnName == null) arrayOf("COUNT(*)") else arrayOf(columnName),
-                    SqliteDialect.appendWhereClause(StringBuilder(), condition).toString(), selectionArgs,
-                    null, null, null)
+            return with(SqliteDialect) {
+                connection.query(
+                        table.name, // ...may reuse a single array
+                        if (columnName == null) arrayOf("COUNT(*)") else arrayOf(columnName),
+                        StringBuilder().appendWhereClause(condition).toString(), selectionArgs,
+                        null, null,
+                        if (order.isEmpty()) null else StringBuilder().appendOrderClause(order).toString()
+                )
+            }
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
-                select(column.name, table, condition).fetchSingle(column.converter as AndroidSqliteConverter<T>)
+                select(column.name, table, condition, NoOrder).fetchSingle(column.converter as AndroidSqliteConverter<T>)
 
-        override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> =
-                select(table.idColName, table, condition)
+        override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(
+                table: Table<REC, ID>, condition: WhereCondition<out REC>, order: Array<out Order<REC>>
+        ): Array<ID> =
+                select(table.idColName, table, condition, order)
                         .fetchAll(table.idColConverter as AndroidSqliteConverter<ID>) // converter here is obviously 'long', may seriously optimize this place
                         .toTypedArray<Any>() as Array<ID>
 
@@ -157,7 +164,7 @@ class AndroidSqliteSession(
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(table: Table<REC, ID>, condition: WhereCondition<out REC>): Long =
-                select(null, table, condition).fetchSingle(long)
+                select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
             get() = this@AndroidSqliteSession.transaction

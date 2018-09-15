@@ -42,7 +42,7 @@ class JdbcSession(
     private val lowLevel = object : LowLevelSession {
 
         override fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean {
-            val count = select(null, table, reusableCond(table, table.idColName, primaryKey)).fetchSingle(long)
+            val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
             return when (count) {
                 0L -> false
                 1L -> true
@@ -119,11 +119,12 @@ class JdbcSession(
         private fun <ID : IdBound, REC : Record<REC, ID>> select(
                 columnName: String?,
                 table: Table<REC, ID>,
-                condition: WhereCondition<out REC>
+                condition: WhereCondition<out REC>,
+                order: Array<out Order<out REC>>
         ): ResultSet {
             val query =
                     if (columnName == null) dialect.selectCountQuery(table, condition)
-                    else dialect.selectFieldQuery(columnName, table, condition)
+                    else dialect.selectFieldQuery(columnName, table, condition, order)
 
             return selectStatements
                     .getOrSet(::HashMap)
@@ -142,10 +143,12 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
-                select(column.name, table, condition).fetchSingle(column.converter as JdbcConverter<T>)
+                select(column.name, table, condition, NoOrder).fetchSingle(column.converter as JdbcConverter<T>)
 
-        override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> =
-                select(table.idColName, table, condition)
+        override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(
+                table: Table<REC, ID>, condition: WhereCondition<out REC>, order: Array<out Order<REC>>
+        ): Array<ID> =
+                select(table.idColName, table, condition, order)
                         .fetchAll(table.idColConverter as JdbcConverter<ID>)
                         .toTypedArray<Any>() as Array<ID>
 
@@ -158,7 +161,7 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(table: Table<REC, ID>, condition: WhereCondition<out REC>): Long =
-                select(null, table, condition).fetchSingle(long)
+                select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction

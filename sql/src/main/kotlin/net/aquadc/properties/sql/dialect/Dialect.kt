@@ -1,9 +1,6 @@
 package net.aquadc.properties.sql.dialect
 
-import net.aquadc.properties.sql.Col
-import net.aquadc.properties.sql.Record
-import net.aquadc.properties.sql.Table
-import net.aquadc.properties.sql.WhereCondition
+import net.aquadc.properties.sql.*
 import net.aquadc.struct.converter.DataType
 import java.lang.StringBuilder
 
@@ -20,7 +17,9 @@ interface Dialect {
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
-    fun <REC : Record<REC, *>> selectFieldQuery(columnName: String, table: Table<REC, *>, condition: WhereCondition<out REC>): String
+    fun <REC : Record<REC, *>> selectFieldQuery(
+            columnName: String, table: Table<REC, *>, condition: WhereCondition<out REC>, order: Array<out Order<out REC>>
+    ): String
 
     /**
      * Constructs an SQL query like `SELECT COUNT(*) from <table> WHERE <condition>`
@@ -28,9 +27,15 @@ interface Dialect {
     fun <REC : Record<REC, *>> selectCountQuery(table: Table<REC, *>, condition: WhereCondition<out REC>): String
 
     /**
-     * Appends WHERE clause (without WHERE itself) to the [builder].
+     * Appends WHERE clause (without WHERE itself) to [this] builder.
      */
-    fun <REC : Record<REC, *>> appendWhereClause(builder: StringBuilder, condition: WhereCondition<out REC>): StringBuilder
+    fun <REC : Record<REC, *>> StringBuilder.appendWhereClause(condition: WhereCondition<out REC>): StringBuilder
+
+    /**
+     * Appends ORDER clause (without ORDER BY itself) to [this] builder.
+     * @param order must be non-empty
+     */
+    fun <REC : Record<REC, *>> StringBuilder.appendOrderClause(order: Array<out Order<out REC>>): StringBuilder
 
     /**
      *  Construcs an SQL query like `UPDATE <table> SET <col> = ?`
