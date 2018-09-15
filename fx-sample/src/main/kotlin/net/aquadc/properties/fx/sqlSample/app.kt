@@ -52,7 +52,7 @@ class SqliteApp : Application() {
 
                         children += JFXTextField().apply {
                             disableProperty().bind((!vm.actionsEnabledProp).fx())
-                            textProperty().bind(vm.nameProp.fx())
+                            vm.nameProp.addChangeListener { _, new -> if (text != new) text = new }
                             textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
                         }
 
