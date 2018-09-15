@@ -1,6 +1,6 @@
 @file:Suppress("KDocMissingDocumentation")
 
-package net.aquadc.properties.fx.sqlSample
+package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.properties.sql.*
 import net.aquadc.struct.converter.long

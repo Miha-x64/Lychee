@@ -1,5 +1,7 @@
 package net.aquadc.struct.converter
 
+import android.database.Cursor
+import android.database.sqlite.SQLiteStatement
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
@@ -43,7 +45,9 @@ object DataTypes {
     val LargeBlob = DataType.Blob(Int.MAX_VALUE)
 }
 
-
+/**
+ * A bridge between JDBC types and Java/Kotlin types.
+ */
 interface JdbcConverter<T> : Converter<T> {
 
     /**
@@ -58,20 +62,30 @@ interface JdbcConverter<T> : Converter<T> {
 
 }
 
-interface AndroidConverter<T> : Converter<T> {
+/**
+ * A bridge between SQLite types and Java/Kotlin types.
+ */
+interface AndroidSqliteConverter<T> : Converter<T> {
 
     /**
-     * Android's SQLite consumes arguments in a form of `String[]`.
+     * @param index is 1-based
      */
-    fun toString(value: T): String
+    fun bind(statement: SQLiteStatement, index: Int, value: T)
 
-    // TODO
-    fun get(cursor: Nothing, index: Int): T
+    /**
+     * String representation used in `selectionArgs` in SQLite queries.
+     */
+    fun asString(value: T): String
+
+    /**
+     * @param index is 0-based
+     */
+    fun get(cursor: Cursor, index: Int): T
 
 }
 
 /**
  * Cool converter supporting both JDBC and Android.
  */
-interface UniversalConverter<T> : JdbcConverter<T>, AndroidConverter<T>
+interface UniversalConverter<T> : JdbcConverter<T>, AndroidSqliteConverter<T>
 

@@ -36,7 +36,7 @@ inline fun <reified E : Enum<E>> enum(
             override fun lookup(name: String): E =
                     lookup[name] ?: default(name)
 
-            override fun toString(value: E): String =
+            override fun asString(value: E): String =
                     nameProp(value)
 
         }
@@ -55,7 +55,7 @@ inline fun <reified E : Enum<E>> enum(
             override fun lookup(name: String): E =
                     lookup.invoke(name)
 
-            override fun toString(value: E): String =
+            override fun asString(value: E): String =
                     asString.invoke(value)
 
         }

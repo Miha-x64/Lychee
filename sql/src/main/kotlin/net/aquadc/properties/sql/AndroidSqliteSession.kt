@@ -1,47 +1,44 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.properties.sql.dialect.Dialect
-import net.aquadc.struct.converter.JdbcConverter
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteStatement
+import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.struct.converter.AndroidSqliteConverter
 import net.aquadc.struct.converter.long
-import java.sql.Connection
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.Statement
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
 /**
- * Represents a database connection through JDBC.
+ * Represents a connection with an [SQLiteDatabase].
  */
-class JdbcSession(
-        private val connection: Connection,
-        private val dialect: Dialect
+// TODO: use simpleQueryForLong and simpleQueryForString with compiled statements where possible
+class AndroidSqliteSession(
+        private val connection: SQLiteDatabase
 ) : Session {
-
-    init {
-        connection.autoCommit = false
-    }
 
     private val lock = ReentrantReadWriteLock()
 
     override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): Dao<REC, ID> =
-            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as Dao<REC, ID>
+            lowLevel.daos.getOrPut(table) {
+                check(table.idColConverter === long)
+                RealDao(this, lowLevel, table, SqliteDialect)
+            } as Dao<REC, ID>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
-    private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *>, List<Col<*, *>>>, PreparedStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *>, Col<*, *>>, PreparedStatement>()
-    private val deleteStatements = HashMap<Table<*, *>, PreparedStatement>()
+//    private val selectStatements = ThreadLocal<HashMap<String, SQLiteStatement>>()
+    private val insertStatements = HashMap<Pair<Table<*, *>, List<Col<*, *>>>, SQLiteStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *>, Col<*, *>>, SQLiteStatement>()
+    private val deleteStatements = HashMap<Table<*, *>, SQLiteStatement>()
 
     private val lowLevel = object : LowLevelSession {
 
         override fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean {
+
             val count = select(null, table, reusableCond(table, table.idColName, primaryKey)).fetchSingle(long)
             return when (count) {
                 0L -> false
@@ -50,49 +47,49 @@ class JdbcSession(
             }
         }
 
-        private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement =
+        private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): SQLiteStatement =
                 insertStatements.getOrPut(Pair(table, cols.asList())) {
-                    connection.prepareStatement(dialect.insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
+                    connection.compileStatement(SqliteDialect.insertQuery(table, cols))
                 }
 
         override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, cols: Array<Col<REC, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
-            cols.forEachIndexed { idx, col -> (col.converter as JdbcConverter<*>).erased.bind(statement, idx, vals[idx]) }
-            check(statement.executeUpdate() == 1)
-            val keys = statement.generatedKeys
-            return keys.fetchSingle(table.idColConverter as JdbcConverter<ID>)
+            cols.forEachIndexed { idx, col -> (col.converter as AndroidSqliteConverter<*>).erased.bind(statement, idx, vals[idx]) }
+            val id = statement.executeInsert()
+            check(id != -1L)
+            return id as ID
         }
 
-        private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): PreparedStatement =
+        private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): SQLiteStatement =
                 updateStatements.getOrPut(Pair(table, col)) {
-                    connection.prepareStatement(dialect.updateFieldQuery(table, col))
+                    connection.compileStatement(SqliteDialect.updateFieldQuery(table, col))
                 }
 
         override fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
-            (column.converter as JdbcConverter<T>).bind(statement, 0, value)
-            (table.idColConverter as JdbcConverter<ID>).bind(statement, 1, id)
-            check(statement.executeUpdate() == 1)
+            (column.converter as AndroidSqliteConverter<T>).bind(statement, 0, value)
+            (table.idColConverter as AndroidSqliteConverter<ID>).bind(statement, 1, id)
+            check(statement.executeUpdateDelete() == 1)
         }
 
         override fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
             is Int -> id.toLong()
             is Long -> id
-            else -> TODO("${id.javaClass} keys support")
+            else -> throw AssertionError()
         }
 
         override fun <ID : IdBound> primaryKey(table: Table<*, ID>, localId: Long): ID =
-                localId as ID // todo
+                localId as ID
 
-        private fun deleteStatementWLocked(table: Table<*, *>): PreparedStatement =
+        private fun deleteStatementWLocked(table: Table<*, *>): SQLiteStatement =
                 deleteStatements.getOrPut(table) {
-                    connection.prepareStatement(dialect.deleteRecordQuery(table))
+                    connection.compileStatement(SqliteDialect.deleteRecordQuery(table))
                 }
 
         override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID>, primaryKey: ID): Long {
             val statement = deleteStatementWLocked(table)
-            (table.idColConverter as JdbcConverter<ID>).bind(statement, 0, primaryKey)
-            check(statement.executeUpdate() == 1)
+            (table.idColConverter as AndroidSqliteConverter<ID>).bind(statement, 0, primaryKey)
+            check(statement.executeUpdateDelete() == 1)
             return localId(table, primaryKey)
         }
 
@@ -102,11 +99,10 @@ class JdbcSession(
             val transaction = transaction ?: throw AssertionError()
             try {
                 if (successful) {
-                    connection.commit()
-                } else {
-                    connection.rollback()
+                    connection.setTransactionSuccessful()
                 }
-                this@JdbcSession.transaction = null
+                connection.endTransaction()
+                this@AndroidSqliteSession.transaction = null
 
                 if (successful) {
                     transaction.deliverChanges()
@@ -120,39 +116,42 @@ class JdbcSession(
                 columnName: String?,
                 table: Table<REC, ID>,
                 condition: WhereCondition<out REC>
-        ): ResultSet {
-            val query =
-                    if (columnName == null) dialect.selectCountQuery(table, condition)
-                    else dialect.selectFieldQuery(columnName, table, condition)
+        ): Cursor {
+            val args = ArrayList<Pair<String, Any>>()
+            condition.appendValuesTo(args)
 
-            return selectStatements
-                    .getOrSet(::HashMap)
-                    .getOrPut(query) { connection.prepareStatement(query) }
-                    .also { stmt ->
-                        val list = ArrayList<Pair<String, Any>>()
-                        condition.appendValuesTo(list)
-                        list.forEachIndexed { idx, (name, value) ->
-                            val conv =
-                                    if (name == table.idColName) table.idColConverter
-                                    else table.fields.first { it.name == name }.converter
-                            (conv as JdbcConverter<Any>).bind(stmt, idx, value)
-                        }
-                    }
-                    .executeQuery()
+            val selectionArgs = args.mapToArray { (name, value) ->
+                val conv = // looks like a slow place
+                        if (name == table.idColName) table.idColConverter
+                        else table.fields.first { it.name == name }.converter
+                (conv as AndroidSqliteConverter<Any>).asString(value)
+            }
+
+            return connection.query(
+                    table.name, // ...may reuse a single array
+                    if (columnName == null) arrayOf("COUNT(*)") else arrayOf(columnName),
+                    SqliteDialect.appendWhereClause(StringBuilder(), condition).toString(), selectionArgs,
+                    null, null, null)
         }
 
         override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
-                select(column.name, table, condition).fetchSingle(column.converter as JdbcConverter<T>)
+                select(column.name, table, condition).fetchSingle(column.converter as AndroidSqliteConverter<T>)
 
         override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(table: Table<REC, ID>, condition: WhereCondition<out REC>): Array<ID> =
                 select(table.idColName, table, condition)
-                        .fetchAll(table.idColConverter as JdbcConverter<ID>)
+                        .fetchAll(table.idColConverter as AndroidSqliteConverter<ID>) // converter here is obviously 'long', may seriously optimize this place
                         .toTypedArray<Any>() as Array<ID>
 
-        private fun <T> ResultSet.fetchAll(converter: JdbcConverter<T>): List<T> {
+        private fun <T> Cursor.fetchAll(converter: AndroidSqliteConverter<T>): List<T> {
+            if (!moveToFirst()) {
+                close()
+                return emptyList()
+            }
+
             val values = ArrayList<Any?>()
-            while (next())
+            do {
                 values.add(converter.get(this, 0))
+            } while (moveToNext())
             close()
             return values as List<T>
         }
@@ -161,7 +160,7 @@ class JdbcSession(
                 select(null, table, condition).fetchSingle(long)
 
         override val transaction: RealTransaction?
-            get() = this@JdbcSession.transaction
+            get() = this@AndroidSqliteSession.transaction
 
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
@@ -181,6 +180,7 @@ class JdbcSession(
         val wLock = lock.writeLock()
         check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in transaction" }
         wLock.lock()
+        connection.beginTransaction()
         val tr = RealTransaction(this, lowLevel)
         transaction = tr
         return tr
@@ -189,7 +189,7 @@ class JdbcSession(
     // endregion transactions and modifying statements
 
     override fun toString(): String =
-            "JdbcSession(connection=$connection, dialect=${dialect.javaClass.simpleName})"
+            "AndroidSqliteSession(connection=$connection)"
 
 
     fun dump(sb: StringBuilder) {
@@ -199,14 +199,14 @@ class JdbcSession(
             dao.dump("  ", sb)
         }
 
-        arrayOf(
+        /*arrayOf(
                 "select statements" to selectStatements
         ).forEach { (name, stmts) ->
             sb.append(name).append(" (for current thread)\n")
             stmts.get()?.keys?.forEach { sql ->
                 sb.append(' ').append(sql).append("\n")
             }
-        }
+        }*/
 
         arrayOf(
                 "insert statements" to insertStatements,
@@ -220,9 +220,9 @@ class JdbcSession(
         }
     }
 
-    private fun <T> ResultSet.fetchSingle(converter: JdbcConverter<T>): T {
+    private fun <T> Cursor.fetchSingle(converter: AndroidSqliteConverter<T>): T {
         try {
-            check(next())
+            check(moveToFirst())
             return converter.get(this, 0)
         } finally {
             close()

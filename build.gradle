@@ -3,6 +3,11 @@ buildscript {
     ext.kotlin_version = '1.2.61'
     ext.support_version = '25.4.0'
     ext.build_tools_version = '27.0.3'
+    ext.target_android_version = 25
+    
+    def local = new Properties()
+    local.load(file('local.properties').newReader())
+    ext.android_sdk_dir = local.getProperty("sdk.dir")
 
     repositories {
         jcenter()

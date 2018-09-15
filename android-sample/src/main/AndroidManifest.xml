@@ -25,6 +25,8 @@
 
         <activity android:name="net.aquadc.propertiesSampleApp.RecyclerViewActivity"/>
 
+        <activity android:name="net.aquadc.propertiesSampleApp.SqliteActivity"/>
+
     </application>
 
 </manifest>

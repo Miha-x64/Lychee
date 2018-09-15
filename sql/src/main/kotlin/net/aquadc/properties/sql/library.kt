@@ -9,7 +9,7 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.struct.Field
 import net.aquadc.struct.Struct
 import net.aquadc.struct.StructDef
-import net.aquadc.struct.converter.JdbcConverter
+import net.aquadc.struct.converter.Converter
 import java.util.*
 
 
@@ -28,6 +28,7 @@ interface Session {
 interface Dao<REC : Record<REC, ID>, ID : IdBound> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
     fun select(condition: WhereCondition<out REC>/* TODO: order, prefetch */): Property<List<REC>> // TODO DiffProperty
+    // todo raw queries, joins
     fun count(condition: WhereCondition<out REC>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
@@ -80,7 +81,7 @@ interface Transaction : AutoCloseable {
 
 abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
         override val name: String,
-        val idColConverter: JdbcConverter<ID>,
+        val idColConverter: Converter<ID>,
         val idColName: String
 ) : StructDef<REC> {
 
@@ -88,7 +89,7 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
     /**
      * {@implNote
-     *   on concurrent access, we might null out [tmpCols] and [tmpType] while it's getting accessed,
+     *   on concurrent access, we might null out [tmpCols] while it's getting accessed,
      *   so let it be synchronized (it's default [lazy] mode).
      * }
      */
@@ -115,11 +116,11 @@ abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
 
 
     @Suppress("NOTHING_TO_INLINE")
-    protected inline infix fun <T> JdbcConverter<T>.col(name: String): Col<REC, T> =
+    protected inline infix fun <T> Converter<T>.col(name: String): Col<REC, T> =
             col0(name, this)
 
     @PublishedApi
-    internal fun <T> col0(name: String, converter: JdbcConverter<T>): Col<REC, T> {
+    internal fun <T> col0(name: String, converter: Converter<T>): Col<REC, T> {
         val cols = tmpCols()
         val col = Field<REC, T>(this as StructDef<REC>, name, converter, cols.size)
         cols.add(col)
@@ -192,9 +193,18 @@ class ColValue<REC : Record<REC, *>, T>(val col: Col<REC, T>, val value: T)
  * Creates a type-safe mapping from a column to its value.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T) = ColValue(this, value)
+inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T): ColValue<REC, T> =
+        ColValue(this, value)
 
-private inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
+
+/**
+ * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [REC].
+ */
+fun <REC : Record<REC, *>, T> propertyGetterOf(field: Field<REC, T>): (REC) -> Property<T> =
+        { it[field] }
+
+
+internal inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
     val array = arrayOfNulls<R>(size)
     for (i in indices) {
         array[i] = transform(this[i])

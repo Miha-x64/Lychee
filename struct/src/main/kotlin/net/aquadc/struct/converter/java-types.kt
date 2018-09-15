@@ -1,5 +1,7 @@
 package net.aquadc.struct.converter
 
+import android.database.Cursor
+import android.database.sqlite.SQLiteStatement
 import net.aquadc.struct.t
 import java.lang.AssertionError
 import java.sql.PreparedStatement
@@ -20,7 +22,7 @@ private class BasicConverter<T>(
 
     override fun bind(statement: PreparedStatement, index: Int, value: T) {
         val i = 1 + index
-        return when (value) {
+        when (value) {
             is Boolean, is Short, is Int, is Long, is Float, is Double,
             is String,
             is ByteArray -> statement.setObject(i, value)
@@ -47,11 +49,41 @@ private class BasicConverter<T>(
         } as T
     }
 
-    override fun toString(value: T): String =
+
+    override fun bind(statement: SQLiteStatement, index: Int, value: T) {
+        val i = 1 + index
+        when (value) {
+            is Boolean -> statement.bindLong(i, if (value) 1 else 0)
+            is Byte, is Short, is Int, is Long -> statement.bindLong(i, (value as Number).toLong())
+            is Float, is Double -> statement.bindDouble(i, (value as Number).toDouble())
+            is String -> statement.bindString(i, value)
+            is ByteArray -> statement.bindBlob(i, value)
+            null -> statement.bindNull(i)
+            else -> throw AssertionError()
+        }
+    }
+
+    override fun asString(value: T): String =
             value.toString()
 
-    override fun get(cursor: Nothing, index: Int): T =
-            cursor
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    override fun get(cursor: Cursor, index: Int): T = when (javaType) {
+        t<Boolean>() -> cursor.getInt(index) != 0
+        t<Byte>() -> {
+            val sh = cursor.getShort(index)
+            if (sh !in Byte.MIN_VALUE .. Byte.MAX_VALUE)
+                throw IllegalStateException("value $sh cannot be fit into a byte")
+            sh
+        }
+        t<Short>() -> cursor.getShort(index)
+        t<Int>() -> cursor.getInt(index)
+        t<Long>() -> cursor.getLong(index)
+        t<Float>() -> cursor.getFloat(index)
+        t<Double>() -> cursor.getDouble(index)
+        t<String>() -> cursor.getString(index)
+        t<ByteArray>() -> cursor.getBlob(index)
+        else -> throw AssertionError()
+    } as T
 
 }
 
