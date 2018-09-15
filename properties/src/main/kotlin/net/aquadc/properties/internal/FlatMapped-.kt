@@ -17,16 +17,19 @@ internal class `FlatMapped-`<in T, out U>(
     @Volatile @JvmField
     internal var master: Property<@UnsafeVariance U>? = null
 
-    private val originalChanged: ChangeListener<T> = { old, new ->
+    private val originalChanged: ChangeListener<T> = { _, new ->
         if (isBeingObserved()) {
-            withLockedTransition {
-                master!!.removeChangeListener(this)
-                val newMaster = map(new)
-                master = newMaster
-                invoke(ref, newMaster.value)
-                newMaster.addUnconfinedChangeListener(this)
-            }
+            if (thread == null) withLockedTransition { processOriginalChange(new) }
+            else processOriginalChange(new)
         }
+    }
+
+    internal fun processOriginalChange(new: T) {
+        master!!.removeChangeListener(this)
+        val newMaster = map(new)
+        master = newMaster
+        invoke(ref, newMaster.value)
+        newMaster.addUnconfinedChangeListener(this)
     }
 
     // master changed
