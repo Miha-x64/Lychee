@@ -89,7 +89,6 @@ internal class RealTransaction(
     internal fun deliverChanges() {
         val del = deleted
         del?.forEach { (table, localIDs) ->
-            @Suppress("UPPER_BOUND_VIOLATED")
             lowSession.daos[table.erased]?.let { man ->
                 localIDs.forEach(man::dropManagement)
             }
@@ -97,8 +96,9 @@ internal class RealTransaction(
         // Deletions first! Now we're not going to disturb souls of dead records & properties.
 
         // value changes
-        updated?.forEach { (col, pkToVal) ->
-            pkToVal.forEach { (localId, value) ->
+        val upd = updated
+        upd?.forEach { (col, localIdToVal) ->
+            localIdToVal.forEach { (localId, value) ->
                 lowSession.daos[col.structDef]?.erased?.commitValue(localId, col.erased, value)
                 Unit
             }
@@ -106,12 +106,20 @@ internal class RealTransaction(
 
         // structure changes
         val ins = inserted
-        if (ins != null || del != null) {
+        if (ins != null || del != null || upd != null) {
             val changedTables = (ins?.keys ?: emptySet<Table<*, *>>()) + (del?.keys ?: emptySet())
 
-            @Suppress("UPPER_BOUND_VIOLATED")
-            changedTables.forEach { table ->
-                lowSession.daos[table]?.onStructuralChange()
+            lowSession.daos.forEach { (table, dao) ->
+                if (table in changedTables) {
+                    dao.onStructuralChange()
+                } else if (upd != null) {
+                    val updatedInTable = upd.keys.filter { it.structDef == table }
+                    if (updatedInTable.isNotEmpty()) {
+                        @Suppress("UPPER_BOUND_VIOLATED", "UNCHECKED_CAST")
+                        dao.erased.onOrderChange(updatedInTable as List<Col<Any, *>>)
+                    }
+                }
+
             }
         }
     }

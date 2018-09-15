@@ -13,7 +13,7 @@ class SqlViewModel(
     }
 
     val titleProp = session[HumanTable].count().map { "Sample SQLite application ($it records)" }
-    val humanListProp = session[HumanTable].selectAll()
+    val humanListProp = session[HumanTable].selectAll(HumanTable.Name.asc, HumanTable.Surname.asc)
     val selectedProp = propertyOf<Human?>(null)
     private val namePatch = propertyOf(mapOf<Human, String>()).also {
         it.debounced(1000L).onEach { new ->

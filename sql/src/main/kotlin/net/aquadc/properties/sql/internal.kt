@@ -16,7 +16,7 @@ internal interface LowLevelSession {
     ): T
 
     fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(
-            table: Table<REC, ID>, condition: WhereCondition<out REC> /* TODO order */
+            table: Table<REC, ID>, condition: WhereCondition<out REC>, order: Array<out Order<REC>>
     ): Array<ID>
 
     fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(

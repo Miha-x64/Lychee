@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.properties.internal.emptyArrayOf
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
 import java.lang.StringBuilder
@@ -86,14 +87,12 @@ internal class BiCond<REC : Record<REC, *>>(
 
 }
 
-private val EmptyArray = emptyArray<Any>()
-
 infix fun <REC : Record<REC, *>, T> Col<REC, T>.eq(value: T): WhereCondition<REC> =
-        if (value == null) ColCond(this, " IS NULL", EmptyArray)
+        if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
         else ColCond(this, " = ?", value as Any)
 
 infix fun <REC : Record<REC, *>, T> Col<REC, T>.notEq(value: T): WhereCondition<REC> =
-        if (value == null) ColCond(this, " IS NOT NULL", EmptyArray)
+        if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
         else ColCond(this, " <> ?", value as Any)
 
 infix fun <REC : Record<REC, *>, T : String?> Col<REC, T>.like(value: String): WhereCondition<REC> =
