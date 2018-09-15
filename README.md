@@ -283,3 +283,11 @@ which creates a [SafeBinding](https://github.com/Miha-x64/reactive-properties/bl
 It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener` and `ChangeListener`.
 When view gets attached to window, `SafeBinding` is getting subscribed; when view gets detached,
 binding unsubscribes and becomes eligible for garbage collection with the whole view hierarchy.
+
+#### Is there anything similar to RxJava's Single?
+
+Nope. Java since v. 1.8 contains `CompletableFuture` for async computations.
+It also was backported to ~~Java 6.5~~ _Android_ a long time ago.
+
+You can mutate concurrent properties in the end of async computations,
+changing UI state as needed.
