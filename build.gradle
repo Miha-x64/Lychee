@@ -6,7 +6,7 @@ buildscript {
     ext.target_android_version = 25
     
     def local = new Properties()
-    local.load(file('local.properties').newReader())
+    local.load(rootProject.file('local.properties').newReader())
     ext.android_sdk_dir = local.getProperty("sdk.dir")
 
     repositories {
