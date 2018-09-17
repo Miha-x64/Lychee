@@ -4,10 +4,16 @@ buildscript {
     ext.support_version = '25.4.0'
     ext.build_tools_version = '27.0.3'
     ext.target_android_version = 25
-    
-    def local = new Properties()
-    local.load(rootProject.file('local.properties').newReader())
-    ext.android_sdk_dir = local.getProperty("sdk.dir")
+
+    def propsFile = rootProject.file('local.properties')
+    if (propsFile.exists()) {
+        def local = new Properties()
+        local.load(propsFile.newReader())
+        ext.android_sdk_dir = local.getProperty('sdk.dir')
+    } else {
+        ext.android_sdk_dir = System.getenv('ANDROID_HOME')
+    }
+    if (!(android_sdk_dir instanceof String)) throw new AssertionError()
 
     repositories {
         jcenter()
