@@ -42,12 +42,16 @@ import java.util.concurrent.atomic.AtomicBoolean
     override fun invoke(p1: Any?): Boolean = when (mode) {
         1 -> p1 === null
         2 -> p1 !== null
+        3 -> (p1 as Collection<*>?)?.isEmpty() ?: true
+        4 -> (p1 as Collection<*>?)?.isNotEmpty() ?: false
         else -> throw AssertionError()
     }
 
     @PublishedApi internal companion object {
         @JvmField val IsNull = ToBoolFunc1(1)
         @JvmField val IsNotNull = ToBoolFunc1(2)
+        @JvmField val IsEmptyCollection: (Collection<*>?) -> Boolean = ToBoolFunc1(3)
+        @JvmField val IsNonEmptyCollection: (Collection<*>?) -> Boolean = ToBoolFunc1(4)
     }
 
 }
@@ -126,12 +130,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 //
 
 @Suppress("UNCHECKED_CAST") @PublishedApi
-internal class `Contains-`<T>(private val value: Any?, private val containsAll: Boolean) : (Any) -> Any? {
+internal class `Contains-`<T>(
+        private val value: Any?,
+        private val mode: Int
+) : (Any) -> Any? {
 
-    override fun invoke(p1: Any): Any? {
-        p1 as List<T>
-
-        return if (containsAll) p1.containsAll(value as List<T>) else p1.contains(value as T)
+    override fun invoke(p1: Any): Any? = when (mode) {
+        1 -> (p1 as Collection<T>).containsAll(value as List<T>)
+        2 -> (p1 as Collection<T>).contains(value as T)
+        3 -> p1 == value
+        else -> throw AssertionError()
     }
 
 }
