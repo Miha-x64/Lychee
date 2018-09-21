@@ -205,3 +205,56 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
         p1.schedule({ exec.execute(p3) }, time, unit)
     }
 }
+
+@PublishedApi internal class Arithmetic(
+        private val mode: Int
+) : (Any?, Any?) -> Any? {
+
+    override fun invoke(p1: Any?, p2: Any?): Any? = when (mode) {
+        1 -> plus(p1, p2)
+        2 -> minus(p1, p2)
+        3 -> times(p1, p2)
+        4 -> div(p1, p2)
+        else -> throw AssertionError()
+    }
+
+    private fun plus(p1: Any?, p2: Any?) = when (p1) {
+        is Int -> p1 + (p2 as Int)
+        is Long -> p1 + (p2 as Long)
+        is Float -> p1 + (p2 as Float)
+        is Double -> p1 + (p2 as Double)
+        else -> throw AssertionError()
+    }
+
+    private fun minus(p1: Any?, p2: Any?) = when (p1) {
+        is Int -> p1 - (p2 as Int)
+        is Long -> p1 - (p2 as Long)
+        is Float -> p1 - (p2 as Float)
+        is Double -> p1 - (p2 as Double)
+        else -> throw AssertionError()
+    }
+
+    private fun times(p1: Any?, p2: Any?) = when (p1) {
+        is Int -> p1 * (p2 as Int)
+        is Long -> p1 * (p2 as Long)
+        is Float -> p1 * (p2 as Float)
+        is Double -> p1 * (p2 as Double)
+        else -> throw AssertionError()
+    }
+
+    private fun div(p1: Any?, p2: Any?) = when (p1) {
+        is Int -> p1 / (p2 as Int)
+        is Long -> p1 / (p2 as Long)
+        is Float -> p1 / (p2 as Float)
+        is Double -> p1 / (p2 as Double)
+        else -> throw AssertionError()
+    }
+
+    companion object {
+        val Plus = Arithmetic(1)
+        val Minus = Arithmetic(2)
+        val Times = Arithmetic(3)
+        val Div = Arithmetic(4)
+    }
+
+}
