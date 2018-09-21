@@ -13,10 +13,11 @@ internal open class `Mapped-`<in O, out T>(
 ) : `Notifier-1AtomicRef`<T, @UnsafeVariance T>(original.isConcurrent, unset()) {
 
     init {
-        check(original.mayChange)
+        check(original.mayChange || this is `TimeMapped-`)
+        // TimeMappedProperty must update with time, even when original is immutable
     }
 
-    private val originalChanged: ChangeListener<O> = when {
+    protected val originalChanged: ChangeListener<O> = when {
         // simple concurrent binding: notify where changed
         original.isConcurrent -> MapWhenChanged(mapOn, map) { new ->
             val old = refUpdater().getAndSet(this, new)

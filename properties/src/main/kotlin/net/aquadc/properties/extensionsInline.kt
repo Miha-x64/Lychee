@@ -279,6 +279,12 @@ inline fun <T, U> Property<T>.zipWith(that: Property<U>): Property<Pair<T, U>> =
 inline fun <T, U> Property<T>.flatMap(noinline transform: (T) -> Property<U>): Property<U> =
         `FlatMapped-`(this, transform)
 
+/**
+ * Creates a [Property] which receives value of [compute]() every [delay].
+ */
+inline fun <T> updatedEvery(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS, crossinline compute: () -> T): Property<T> =
+        `TimeMapped-`(immutablePropertyOf(Unit), { compute() }, Schedule(delay, unit))
+
 
 //
 // Concurrent
