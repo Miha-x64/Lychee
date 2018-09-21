@@ -276,7 +276,7 @@ inline fun <T, U> Property<T>.zipWith(that: Property<U>): Property<Pair<T, U>> =
  * Returns a property which has value equal to the value of property returned by `transform(this.value)`.
  * @see flatMapNotNullOrDefault
  */
-fun <T, U> Property<T>.flatMap(transform: (T) -> Property<U>): Property<U> =
+inline fun <T, U> Property<T>.flatMap(noinline transform: (T) -> Property<U>): Property<U> =
         `FlatMapped-`(this, transform)
 
 

@@ -4,7 +4,7 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
 
-
+@PublishedApi
 internal class `FlatMapped-`<in T, out U>(
         @JvmField internal val original: Property<@UnsafeVariance T>,
         @JvmField internal val map: (T) -> Property<U>
