@@ -387,6 +387,12 @@ inline fun immutablePropertyOf(value: Boolean): Property<Boolean> = when (value)
 }
 
 /**
+ * Returns an immutable [Property] with [Unit] value.
+ */
+inline fun immutablePropertyOf(@Suppress("UNUSED_PARAMETER") value: Unit): Property<Unit> =
+        UNIT
+
+/**
  * Returns an immutable property representing [value].
  */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =
