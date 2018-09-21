@@ -73,7 +73,7 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
 /**
  * If [subscribe], calls [Property.addChangeListener]; if not, calls [Property.removeChangeListener].
  */
-fun <T> Property<T>.observe(subscribe: Boolean, onChange: ChangeListener<T>) {
+fun <T> Property<T>.observeChangesIf(subscribe: Boolean, onChange: ChangeListener<T>) {
     if (subscribe) addChangeListener(onChange)
     else removeChangeListener(onChange)
 }
