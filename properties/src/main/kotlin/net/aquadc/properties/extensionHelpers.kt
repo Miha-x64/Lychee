@@ -1,6 +1,9 @@
 package net.aquadc.properties
 
+import net.aquadc.properties.executor.PlatformExecutors
 import java.util.*
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 //
@@ -191,4 +194,14 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
         invoke(new)
     }
 
+}
+
+@PublishedApi internal class Schedule(
+        private val time: Long,
+        private val unit: TimeUnit
+) : (ScheduledExecutorService, Any?, Runnable) -> Unit {
+    override fun invoke(p1: ScheduledExecutorService, p2: Any?, p3: Runnable) {
+        val exec = PlatformExecutors.executorForCurrentThread()
+        p1.schedule({ exec.execute(p3) }, time, unit)
+    }
 }
