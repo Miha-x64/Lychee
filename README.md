@@ -288,6 +288,8 @@ binding unsubscribes and becomes eligible for garbage collection with the whole 
 
 Nope. Java since v. 1.8 contains `CompletableFuture` for async computations.
 It also was backported to ~~Java 6.5~~ _Android_ a long time ago.
+Note that it is distributed under 'GPL v. 2.0 with classpath exception'
+which is not as restrictive as GPL itself.
 
 You can mutate concurrent properties in the end of async computations,
 changing UI state as needed.
