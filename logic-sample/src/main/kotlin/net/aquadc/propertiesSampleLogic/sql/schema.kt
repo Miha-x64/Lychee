@@ -3,9 +3,9 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.properties.sql.*
-import net.aquadc.struct.converter.long
-import net.aquadc.struct.converter.nullableString
-import net.aquadc.struct.converter.string
+import net.aquadc.persistence.converter.long
+import net.aquadc.persistence.converter.nullableString
+import net.aquadc.persistence.converter.string
 
 
 val Tables = arrayOf(HumanTable, CarTable, FriendTable)

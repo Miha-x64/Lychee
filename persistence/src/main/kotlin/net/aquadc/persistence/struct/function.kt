@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package net.aquadc.struct
+package net.aquadc.persistence.struct
 
 @PublishedApi
 internal class Getter<STRUCT : Struct<STRUCT>, T>(

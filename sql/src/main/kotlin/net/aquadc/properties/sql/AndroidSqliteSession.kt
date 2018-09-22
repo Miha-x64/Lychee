@@ -4,8 +4,8 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
-import net.aquadc.struct.converter.AndroidSqliteConverter
-import net.aquadc.struct.converter.long
+import net.aquadc.persistence.converter.AndroidSqliteConverter
+import net.aquadc.persistence.converter.long
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
