@@ -1,8 +1,8 @@
-package net.aquadc.struct.converter
+package net.aquadc.persistence.converter
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteStatement
-import net.aquadc.struct.t
+import net.aquadc.persistence.struct.t
 import java.lang.AssertionError
 import java.sql.PreparedStatement
 import java.sql.ResultSet

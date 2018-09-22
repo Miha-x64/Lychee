@@ -1,7 +1,7 @@
 package net.aquadc.properties.sql.dialect
 
 import net.aquadc.properties.sql.*
-import net.aquadc.struct.converter.DataType
+import net.aquadc.persistence.converter.DataType
 import java.lang.StringBuilder
 
 /**

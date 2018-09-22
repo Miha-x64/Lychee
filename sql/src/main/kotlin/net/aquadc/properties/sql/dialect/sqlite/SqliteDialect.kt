@@ -3,7 +3,7 @@ package net.aquadc.properties.sql.dialect.sqlite
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
-import net.aquadc.struct.converter.DataType
+import net.aquadc.persistence.converter.DataType
 
 /**
  * Implements SQLite [Dialect].

@@ -1,6 +1,6 @@
-package net.aquadc.struct
+package net.aquadc.persistence.struct
 
-import net.aquadc.struct.converter.Converter
+import net.aquadc.persistence.converter.Converter
 
 
 /**

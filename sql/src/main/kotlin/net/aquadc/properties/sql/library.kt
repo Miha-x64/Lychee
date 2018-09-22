@@ -6,10 +6,10 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.struct.Field
-import net.aquadc.struct.Struct
-import net.aquadc.struct.StructDef
-import net.aquadc.struct.converter.Converter
+import net.aquadc.persistence.struct.Field
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructDef
+import net.aquadc.persistence.converter.Converter
 import java.util.*
 
 

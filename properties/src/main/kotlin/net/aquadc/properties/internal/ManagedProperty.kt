@@ -2,7 +2,7 @@ package net.aquadc.properties.internal
 
 import android.support.annotation.RestrictTo
 import net.aquadc.properties.TransactionalProperty
-import net.aquadc.struct.Field
+import net.aquadc.persistence.struct.Field
 import java.lang.IllegalStateException
 
 /**

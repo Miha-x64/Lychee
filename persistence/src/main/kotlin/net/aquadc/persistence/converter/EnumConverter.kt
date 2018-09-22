@@ -1,4 +1,4 @@
-package net.aquadc.struct.converter
+package net.aquadc.persistence.converter
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteStatement

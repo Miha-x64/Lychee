@@ -5,7 +5,7 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
-import net.aquadc.struct.Field
+import net.aquadc.persistence.struct.Field
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 

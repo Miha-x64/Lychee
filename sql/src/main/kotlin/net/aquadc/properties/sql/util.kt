@@ -1,8 +1,8 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.properties.sql
 
-import net.aquadc.struct.converter.AndroidSqliteConverter
-import net.aquadc.struct.converter.JdbcConverter
+import net.aquadc.persistence.converter.AndroidSqliteConverter
+import net.aquadc.persistence.converter.JdbcConverter
 
 
 internal typealias UpdatesHashMap = HashMap<Col<*, *>, HashMap<Long, Any?>>
