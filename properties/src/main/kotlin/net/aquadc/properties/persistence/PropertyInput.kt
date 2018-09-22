@@ -1,5 +1,7 @@
 package net.aquadc.properties.persistence
 
+import net.aquadc.persistence.converter.Converter
+import net.aquadc.persistence.converter.DataIoConverter
 import net.aquadc.properties.MutableProperty
 import java.io.DataInput
 import java.util.*
@@ -11,28 +13,10 @@ class PropertyInput(
         private val input: DataInput
 ) : PropertyIo {
 
-    override fun bool(prop: MutableProperty<Boolean>) {
-        prop.value = input.readBoolean()
-    }
-    override fun byte(prop: MutableProperty<Byte>) {
-        prop.value = input.readByte()
-    }
-    override fun int(prop: MutableProperty<Int>) {
-        prop.value = input.readInt()
-    }
-    override fun long(prop: MutableProperty<Long>) {
-        prop.value = input.readLong()
-    }
-    override fun float(prop: MutableProperty<Float>) {
-        prop.value = input.readFloat()
-    }
-    override fun double(prop: MutableProperty<Double>) {
-        prop.value = input.readDouble()
+    override fun <T> Converter<T>.invoke(prop: MutableProperty<T>) {
+        prop.value = (this as DataIoConverter<T>).read(input)
     }
 
-    override fun bytes(prop: MutableProperty<ByteArray>) {
-        prop.value = ByteArray(input.readInt()).also(input::readFully)
-    }
     override fun chars(prop: MutableProperty<CharArray>) {
         prop.value = CharArray(input.readInt()) { input.readChar() }
     }
@@ -49,9 +33,6 @@ class PropertyInput(
         prop.value = DoubleArray(input.readInt()) { input.readDouble() }
     }
 
-    override fun string(prop: MutableProperty<String>) {
-        prop.value = input.readUTF()
-    }
     override fun stringList(prop: MutableProperty<List<String>>) {
         prop.value = List(input.readInt()) { input.readUTF() }
     }
