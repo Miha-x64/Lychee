@@ -1,5 +1,7 @@
 package net.aquadc.properties.persistence
 
+import net.aquadc.persistence.converter.Converter
+import net.aquadc.persistence.converter.DataIoConverter
 import net.aquadc.properties.MutableProperty
 import java.io.DataOutput
 
@@ -10,30 +12,10 @@ class PropertyOutput(
         private val output: DataOutput
 ) : PropertyIo {
 
-    override fun bool(prop: MutableProperty<Boolean>) {
-        output.writeBoolean(prop.value)
-    }
-    override fun byte(prop: MutableProperty<Byte>) {
-        output.writeByte(prop.value.toInt())
-    }
-    override fun int(prop: MutableProperty<Int>) {
-        output.writeInt(prop.value)
-    }
-    override fun long(prop: MutableProperty<Long>) {
-        output.writeLong(prop.value)
-    }
-    override fun float(prop: MutableProperty<Float>) {
-        output.writeFloat(prop.value)
-    }
-    override fun double(prop: MutableProperty<Double>) {
-        output.writeDouble(prop.value)
+    override fun <T> Converter<T>.invoke(prop: MutableProperty<T>) {
+        (this as DataIoConverter<T>).write(output, prop.value)
     }
 
-    override fun bytes(prop: MutableProperty<ByteArray>) {
-        val value = prop.value
-        output.writeInt(value.size)
-        output.write(value)
-    }
     override fun chars(prop: MutableProperty<CharArray>) {
         val value = prop.value
         output.writeInt(value.size)
@@ -60,9 +42,6 @@ class PropertyOutput(
         value.forEach(output::writeDouble)
     }
 
-    override fun string(prop: MutableProperty<String>) {
-        output.writeUTF(prop.value)
-    }
     override fun stringList(prop: MutableProperty<List<String>>) {
         val value = prop.value
         output.writeInt(value.size)

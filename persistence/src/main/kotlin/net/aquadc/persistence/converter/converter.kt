@@ -43,4 +43,6 @@ object DataTypes {
 /**
  * Cool converter supporting both JDBC and Android.
  */
-interface UniversalConverter<T> : JdbcConverter<T>, AndroidSqliteConverter<T>
+interface UniversalConverter<T> :
+        JdbcConverter<T>, AndroidSqliteConverter<T>, // databases
+        DataIoConverter<T>, ParcelConverter<T> // IO streams
