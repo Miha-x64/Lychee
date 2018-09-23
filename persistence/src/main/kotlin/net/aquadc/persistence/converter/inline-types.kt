@@ -6,12 +6,12 @@ import java.lang.AssertionError
 
 /**
  * Creates a simple converter for [E] enum type.
- * lookup: Java's `Enum.valueOf` which uses reflection and caches values in a `Map<String, E>`;
+ * from: Java's `Enum.valueOf` which uses reflection and caches values in a `Map<String, E>`;
  *         throws an exception if there's no such enum constant
  * asString: Java's `Enum::name`
  */
 inline fun <reified E : Enum<E>> enum(): UniversalConverter<E> =
-        EnumConverter(E::class.java, DataTypes.SmallString)
+        EnumConverter(E::class.java)
 
 /**
  * Creates a converter for [E] enum type.
@@ -26,15 +26,15 @@ inline fun <reified E : Enum<E>> enum(
             throw AssertionError("No enum constant with custom name $it in type ${E::class.java.name}")
         }
 ): UniversalConverter<E> =
-        object : EnumConverter<E>(E::class.java, DataTypes.SmallString) {
+        object : EnumConverter<E>(E::class.java) {
 
             private val lookup =
                     values.associateByTo(HashMap(values.size), nameProp).also { check(it.size == values.size) {
                         "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
-            override fun lookup(name: String): E =
-                    lookup[name] ?: default(name)
+            override fun from(value: String): E =
+                    lookup[value] ?: default(value)
 
             override fun asString(value: E): String =
                     nameProp(value)
@@ -50,10 +50,10 @@ inline fun <reified E : Enum<E>> enum(
         crossinline lookup: (String) -> E,
         crossinline asString: (E) -> String
 ): UniversalConverter<E> =
-        object : EnumConverter<E>(E::class.java, DataTypes.SmallString) {
+        object : EnumConverter<E>(E::class.java) {
 
-            override fun lookup(name: String): E =
-                    lookup.invoke(name)
+            override fun from(value: String): E =
+                    lookup.invoke(value)
 
             override fun asString(value: E): String =
                     asString.invoke(value)
