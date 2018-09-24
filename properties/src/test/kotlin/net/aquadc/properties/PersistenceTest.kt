@@ -1,6 +1,9 @@
 package net.aquadc.properties
 
-import net.aquadc.properties.persistence.*
+import net.aquadc.properties.persistence.PropertyIo
+import net.aquadc.properties.persistence.memento.ByteArrayPropertiesMemento
+import net.aquadc.properties.persistence.memento.PersistableProperties
+import net.aquadc.properties.persistence.x
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.ByteArrayInputStream
@@ -123,30 +126,6 @@ class PersistenceTest : PersistableProperties {
         assertInState1()
 
         changed.restoreTo(this)
-        assertInState2()
-    }
-
-    @Test fun propBufferTest() {
-        moveToState1()
-        PropertyBuffer.borrow { pd, pb ->
-            saveOrRestore(pd)
-            pb.produceThen()
-
-            moveToState2()
-            saveOrRestore(pd)
-            pb.consumeThen()
-        }
-        assertInState1()
-
-        moveToState2()
-        PropertyBuffer.borrow { pd, pb ->
-            saveOrRestore(pd)
-            pb.produceThen()
-
-            moveToState1()
-            saveOrRestore(pd)
-            pb.consumeThen()
-        }
         assertInState2()
     }
 

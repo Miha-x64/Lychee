@@ -3,9 +3,8 @@ package net.aquadc.persistence.converter
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteStatement
-import android.os.Parcel
-import java.io.DataInput
-import java.io.DataOutput
+import net.aquadc.persistence.stream.CleverDataInput
+import net.aquadc.persistence.stream.CleverDataOutput
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
@@ -42,19 +41,11 @@ abstract class DelegatingConverter<T, U>(
 
     // IO streams
 
-    override fun write(output: DataOutput, value: T) =
+    override fun write(output: CleverDataOutput, value: T) =
             (converter as DataIoConverter<U>).write(output, value.to())
 
-    override fun read(input: DataInput): T =
+    override fun read(input: CleverDataInput): T =
             from((converter as DataIoConverter<U>).read(input))
-
-    // Parcel
-
-    override fun write(destination: Parcel, value: T) =
-            (converter as ParcelConverter<U>).write(destination, value.to())
-
-    override fun read(source: Parcel): T =
-            from((converter as ParcelConverter<U>).read(source))
 
     // own
 

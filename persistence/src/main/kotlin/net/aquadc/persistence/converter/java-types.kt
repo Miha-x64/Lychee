@@ -2,11 +2,13 @@ package net.aquadc.persistence.converter
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteStatement
-import android.os.Parcel
+import net.aquadc.persistence.stream.CleverDataInput
+import net.aquadc.persistence.stream.CleverDataOutput
 import net.aquadc.persistence.struct.t
-import java.io.DataInput
-import java.io.DataOutput
-import java.lang.AssertionError
+import java.lang.Double.doubleToLongBits
+import java.lang.Double.longBitsToDouble
+import java.lang.Float.floatToIntBits
+import java.lang.Float.intBitsToFloat
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Types
@@ -93,113 +95,60 @@ private class BasicConverter<T>(
 
     // IO streams
 
-    override fun write(output: DataOutput, value: T) {
-        if (javaType == t<ByteArray>()) {
-            return writeBytes(value, output)
+    override fun write(output: CleverDataOutput, value: T) {
+        when (javaType) {
+            t<String>() -> return output.writeString(value as String?)
+            t<ByteArray>() -> return output.writeBytes(value as ByteArray?)
+            t<Boolean>() -> return output.writeByte(when (value as Boolean?) {
+                null -> {
+                    check(isNullable); -1
+                }
+                false -> 0
+                true -> 1
+            })
         }
+
         if (isNullable) {
-            val isNull = value != null
-            output.writeBoolean(isNull)
+            val isNull = value == null
+            output.writeByte(if (isNull) -1 else 0)
             if (isNull) return
         }
+
         when (value) {
-            is Boolean -> output.writeBoolean(value)
             is Byte -> output.writeByte(value.toInt())
             is Short -> output.writeShort(value.toInt())
             is Int -> output.writeInt(value)
             is Long -> output.writeLong(value)
-            is Float -> output.writeFloat(value)
-            is Double -> output.writeDouble(value)
-            is String -> output.writeUTF(value)
+            is Float -> output.writeInt(floatToIntBits(value))
+            is Double -> output.writeLong(doubleToLongBits(value))
             else -> throw AssertionError()
         }
-    }
-
-    fun writeBytes(value: T, output: DataOutput) {
-        if (isNullable && value == null) {
-            output.write(-1)
-        } else {
-            val ba = value as ByteArray
-            output.write(ba.size)
-            output.write(ba)
-        }
-        return
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    override fun read(input: DataInput): T {
-        if (isNullable && !input.readBoolean()) {
-            return null as T
-        }
-        return when (javaType) {
-            t<Boolean>() -> input.readBoolean()
-            t<Byte>() -> input.readByte()
-            t<Short>() -> input.readShort()
-            t<Int>() -> input.readInt()
-            t<Long>() -> input.readLong()
-            t<Float>() -> input.readFloat()
-            t<Double>() -> input.readDouble()
-            t<String>() -> input.readUTF()
-            t<ByteArray>() -> {
-                val size = input.readInt()
-                if (size < 0) null else ByteArray(size).also(input::readFully)
-            }
-            else -> throw AssertionError()
-        } as T
-    }
-
-    // Parcel
-
-    override fun write(destination: Parcel, value: T) {
+    override fun read(input: CleverDataInput): T {
         when (javaType) {
-            t<Boolean>() -> destination.writeByte(when (value as Boolean?) {
-                null -> -1
-                false -> 0
-                true -> 1
-            })
-            t<String>() -> destination.writeString(value as String)
-            t<ByteArray>() -> destination.writeByteArray(value as ByteArray)
-        }
-
-        if (isNullable) {
-            val valuePresent = value != null
-            destination.writeByte(if (valuePresent) 1 else -1)
-            if (!valuePresent) return
-        }
-        when (javaType) {
-            t<Byte>() -> destination.writeByte(value as Byte)
-            t<Short>() -> destination.writeInt((value as Short).toInt())
-            t<Int>() -> destination.writeInt(value as Int)
-            t<Long>() -> destination.writeLong(value as Long)
-            t<Float>() -> destination.writeFloat(value as Float)
-            t<Double>() -> destination.writeDouble(value as Double)
-            else -> throw AssertionError()
-        }
-
-    }
-
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    override fun read(source: Parcel): T {
-        when (javaType) {
-            t<Boolean>() -> return when (source.readByte().toInt()) {
+            t<String>() -> return input.readString() as T
+            t<ByteArray>() -> return input.readBytes() as T
+            t<Boolean>() -> return when (input.readByte().toInt()) {
                 -1 -> null
                 0 -> false
                 1 -> true
                 else -> throw AssertionError()
             } as T
-            t<String>() -> return source.readString() as T
-            t<ByteArray>() -> return source.createByteArray() as T
         }
 
-        if (isNullable && source.readByte().toInt() == -1) return null as T
+        if (isNullable && input.readByte() == (-1).toByte()) {
+            return null as T
+        }
 
         return when (javaType) {
-            t<Byte>() -> source.readByte()
-            t<Short>() -> source.readInt().toShort()
-            t<Int>() -> source.readInt()
-            t<Long>() -> source.readLong()
-            t<Float>() -> source.readFloat()
-            t<Double>() -> source.readDouble()
+            t<Byte>() -> input.readByte()
+            t<Short>() -> input.readShort()
+            t<Int>() -> input.readInt()
+            t<Long>() -> input.readLong()
+            t<Float>() -> intBitsToFloat(input.readInt())
+            t<Double>() -> longBitsToDouble(input.readLong())
             else -> throw AssertionError()
         } as T
     }
