@@ -1,4 +1,4 @@
-package net.aquadc.properties.persistence
+package net.aquadc.properties.persistence.memento
 
 /**
  * Describes an object which holds data from properties.

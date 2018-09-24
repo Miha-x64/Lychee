@@ -1,4 +1,6 @@
-package net.aquadc.properties.persistence
+package net.aquadc.properties.persistence.memento
+
+import net.aquadc.properties.persistence.PropertyIo
 
 /**
  * Describes a state-representing class. Instances of it can be saved and restored.

@@ -2,77 +2,63 @@ package net.aquadc.properties.android
 
 import android.os.Parcel
 import android.os.Parcelable
-import net.aquadc.properties.persistence.*
-import java.io.ByteArrayInputStream
+import net.aquadc.persistence.stream.CleverDataOutputStream
+import net.aquadc.properties.persistence.memento.ByteArrayPropertiesMemento
+import net.aquadc.properties.persistence.memento.InMemoryPropertiesMemento
+import net.aquadc.properties.persistence.memento.PersistableProperties
+import net.aquadc.properties.persistence.memento.PropertiesMemento
 import java.io.ByteArrayOutputStream
-import java.io.DataInputStream
-import java.io.DataOutputStream
 
 /**
- * Lazily writes encapsulated [PersistableProperties] into [Parcel].
+ * Captures values of properties into a [ByteArray] eagerly.
  */
 class ParcelPropertiesMemento : PropertiesMemento, Parcelable {
 
-    private val props: PersistableProperties?
-    private var data: ByteArray?
+    private var memento: InMemoryPropertiesMemento? = null
+    private var bytes: ByteArray? = null
 
-    constructor(props: PersistableProperties) {
-        this.props = props
-        this.data = null
-    }
-    constructor(data: ByteArray) {
-        this.props = null
-        this.data = data
+    constructor(properties: PersistableProperties) {
+        this.memento = InMemoryPropertiesMemento(properties)
     }
 
-    private fun data(): ByteArray {
-        data?.let { return it }
-        props!!
-
-        val os = ByteArrayOutputStream()
-
-        props.saveOrRestore(PropertyOutput(DataOutputStream(os)))
-
-        val bytes = os.toByteArray()
-        data = bytes
-        return bytes
+    constructor(bytes: ByteArray) {
+        this.bytes = bytes
     }
 
-    /**
-     * Restores value into [target].
-     * When holding a reference to original properties, will restore values by reference.
-     * When restored from [Parcel], will restore marshaled value from [ByteArray]
-     */
     override fun restoreTo(target: PersistableProperties) {
-        val source = props
-
+        val memento = memento
+        val bytes = bytes
         when {
-            target === source -> { /* no-op */ }
-            source != null -> { // restore by reference
-                val propDataAndBuffer = PropertyBuffer.get()
-                val (pd, pb) = propDataAndBuffer
-                source.saveOrRestore(pd)
-                pb.produceThen()
-                target.saveOrRestore(pd)
-                pb.consumeThen()
-                PropertyBuffer.recycle(propDataAndBuffer)
-            }
-            else -> { // restore from byte array
-                target.saveOrRestore(
-                        PropertyInput(DataInputStream(ByteArrayInputStream(data())))
-                )
-            }
+            memento != null -> memento.restoreTo(target)
+            bytes != null -> ByteArrayPropertiesMemento(bytes).restoreTo(target)
+            else -> throw AssertionError()
         }
     }
 
     override fun describeContents(): Int = 0
+
     override fun writeToParcel(dest: Parcel, flags: Int) {
-        dest.writeByteArray(data())
+        dest.writeByteArray(bytes())
+    }
+
+    private fun bytes(): ByteArray {
+        bytes?.let { return it }
+
+        val os = ByteArrayOutputStream()
+        memento!!.writeTo(CleverDataOutputStream(os))
+        val bytes = os.toByteArray()
+        this.bytes = bytes
+        return bytes
     }
 
     companion object CREATOR : Parcelable.Creator<ParcelPropertiesMemento> {
-        override fun newArray(size: Int): Array<ParcelPropertiesMemento?> = arrayOfNulls(size)
-        override fun createFromParcel(source: Parcel): ParcelPropertiesMemento = ParcelPropertiesMemento(source.createByteArray())
+
+        override fun createFromParcel(source: Parcel): ParcelPropertiesMemento =
+                ParcelPropertiesMemento(source.createByteArray())
+
+        override fun newArray(size: Int): Array<ParcelPropertiesMemento?> =
+                arrayOfNulls(size)
+
     }
 
 }
