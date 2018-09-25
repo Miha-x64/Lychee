@@ -45,4 +45,5 @@ object DataTypes {
  */
 interface UniversalConverter<T> :
         JdbcConverter<T>, AndroidSqliteConverter<T>, // databases
-        DataIoConverter<T> // IO streams
+        DataIoConverter<T>, // IO streams
+        PrefsConverter<T>   // key-value

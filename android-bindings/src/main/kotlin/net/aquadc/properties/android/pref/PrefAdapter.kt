@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 /**
  * Generic adapter to SharedPreferences#get* and SharedPreferences.Editor#set*.
  */
+@Deprecated("use converters from :persistence instead")
 interface PrefAdapter<T> {
 
     /**
@@ -30,6 +31,7 @@ interface PrefAdapter<T> {
      * i. e. both `isKeyFor("someKey", "someKey_name" and "someKey_email")`,
      * to help properties keeping data up to date.
      */
+    @Deprecated("This is quite strange. Will be removed")
     fun isKeyFor(propKey: String, prefKey: String): Boolean
 }
 
@@ -46,6 +48,7 @@ abstract class SimplePrefAdapter<T> : PrefAdapter<T> {
 /**
  * Adapts [SharedPreferences.getString] and [SharedPreferences.Editor.putString].
  */
+@Deprecated("use converters from :persistence instead", ReplaceWith("string", "net.aquadc.persistence.converter.string"))
 object StringPrefAdapter : SimplePrefAdapter<String>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: String): String =
@@ -60,6 +63,7 @@ object StringPrefAdapter : SimplePrefAdapter<String>() {
 /**
  * Adapts [SharedPreferences.getStringSet] and [SharedPreferences.Editor.putStringSet].
  */
+@Deprecated("use converters from :persistence instead") // TODO: converter for Set<String>?..
 object StringSetPrefAdapter : SimplePrefAdapter<Set<String>>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Set<String>): Set<String> =
@@ -74,6 +78,7 @@ object StringSetPrefAdapter : SimplePrefAdapter<Set<String>>() {
 /**
  * Adapts [SharedPreferences.getInt] and [SharedPreferences.Editor.putInt].
  */
+@Deprecated("use converters from :persistence instead", ReplaceWith("int", "net.aquadc.persistence.converter.int"))
 object IntPrefAdapter : SimplePrefAdapter<Int>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Int): Int =
@@ -88,6 +93,7 @@ object IntPrefAdapter : SimplePrefAdapter<Int>() {
 /**
  * Adapts [SharedPreferences.getLong] and [SharedPreferences.Editor.putLong].
  */
+@Deprecated("use converters from :persistence instead", ReplaceWith("long", "net.aquadc.persistence.converter.long"))
 object LongPrefAdapter : SimplePrefAdapter<Long>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Long): Long =
@@ -102,6 +108,7 @@ object LongPrefAdapter : SimplePrefAdapter<Long>() {
 /**
  * Adapts [SharedPreferences.getFloat] and [SharedPreferences.Editor.putFloat].
  */
+@Deprecated("use converters from :persistence instead", ReplaceWith("float", "net.aquadc.persistence.converter.float"))
 object FloatPrefAdapter : SimplePrefAdapter<Float>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Float): Float =
@@ -117,6 +124,7 @@ object FloatPrefAdapter : SimplePrefAdapter<Float>() {
  * Adapts [SharedPreferences.getLong] + [java.lang.Double.doubleToRawLongBits]
  * and [SharedPreferences.Editor.putLong] + [java.lang.Double.longBitsToDouble].
  */
+@Deprecated("use converters from :persistence instead", ReplaceWith("double", "net.aquadc.persistence.converter.double"))
 object DoublePrefAdapter : SimplePrefAdapter<Double>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Double): Double {
@@ -133,6 +141,7 @@ object DoublePrefAdapter : SimplePrefAdapter<Double>() {
 /**
  * Adapts [SharedPreferences.getBoolean] and [SharedPreferences.Editor.putBoolean].
  */
+@Deprecated("use converters from :persistence instead", ReplaceWith("bool", "net.aquadc.persistence.converter.bool"))
 object BoolPrefAdapter : SimplePrefAdapter<Boolean>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Boolean): Boolean =

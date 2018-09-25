@@ -1,6 +1,7 @@
 package net.aquadc.properties.android.pref
 
 import android.content.SharedPreferences
+import net.aquadc.persistence.converter.PrefsConverter
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
@@ -14,12 +15,31 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * * when bound, there will be some lag between source value change and change notification
  * * CAS is not a straight CAS, may be inaccurate a bit
  */
-class SharedPreferenceProperty<T>(
+class SharedPreferenceProperty<T>
+@Deprecated("Use another constructor. This will be removed.") constructor(
         private val prefs: SharedPreferences,
         private val key: String,
         private val defaultValue: T,
         private val adapter: PrefAdapter<T>
 ) : `-Notifier`<T>(true), MutableProperty<T> {
+
+    constructor(
+            prefs: SharedPreferences,
+            key: String,
+            defaultValue: T,
+            converter: PrefsConverter<T>
+    ) : this(
+            prefs, key, defaultValue,
+            object : SimplePrefAdapter<T>() {
+
+                override fun read(prefs: SharedPreferences, key: String, default: T): T =
+                        converter.get(prefs, key, default)
+
+                override fun save(editor: SharedPreferences.Editor, key: String, value: T) =
+                        converter.put(editor, key, value)
+
+            }
+    )
 
     // we need a strong reference because shared prefs holding a weak one
     private val changeListener = object :

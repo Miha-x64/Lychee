@@ -1,6 +1,7 @@
 @file:Suppress("PublicApiImplicitType")
 package net.aquadc.persistence.converter
 
+import android.content.SharedPreferences
 import android.database.Cursor
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.stream.CleverDataInput
@@ -46,6 +47,14 @@ abstract class DelegatingConverter<T, U>(
 
     override fun read(input: CleverDataInput): T =
             from((converter as DataIoConverter<U>).read(input))
+
+    // prefs
+
+    override fun get(prefs: SharedPreferences, key: String, default: T): T =
+            from((converter as PrefsConverter<U>).get(prefs, key, default.to()))
+
+    override fun put(editor: SharedPreferences.Editor, key: String, value: T) =
+            (converter as PrefsConverter<U>).put(editor, key, value.to())
 
     // own
 
