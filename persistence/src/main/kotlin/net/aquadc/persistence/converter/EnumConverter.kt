@@ -11,4 +11,4 @@ package net.aquadc.persistence.converter
 
     final override fun E.to(): String = asString(this)
 
-}
+} // TODO: support EnumSet
