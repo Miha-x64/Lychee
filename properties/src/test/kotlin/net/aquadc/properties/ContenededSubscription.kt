@@ -41,7 +41,7 @@ class ContenededSubscription {
     }
 
     @Test fun contendConcDistinct() =
-            contend(concurrentPropertyOf("")) { it.distinct(byIdentity()) }
+            contend(concurrentPropertyOf("")) { it.distinct(areIdentical()) }
 
     private fun contend(original: MutableProperty<String>, transform: (MutableProperty<String>) -> Property<String>) {
         if (Runtime.getRuntime().availableProcessors() < 2) {

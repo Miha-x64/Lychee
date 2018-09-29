@@ -28,7 +28,7 @@ class SqlViewModel(
             }
         }
     }
-    val actionsEnabledProp = selectedProp.isNotNull()
+    val actionsEnabledProp = selectedProp.map(isNotNull())
 
     val airConditionersTextProp = selectedProp
             .flatMapNotNullOrDefault(emptyList(), Human::carsProp)

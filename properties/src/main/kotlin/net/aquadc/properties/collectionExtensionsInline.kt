@@ -56,14 +56,14 @@ inline fun <T> Collection<Property<T>>.filterValues(crossinline predicate: (T) -
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsValue(value: T): Property<Boolean> =
-        mapValueList(`Contains-`<T>(value, 2) as (List<T>) -> Boolean)
+        mapValueList(`AppliedFunc1-`(value, 2) as (Collection<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if [this] contains a property holding all [values].
  */
 @Suppress("UNCHECKED_CAST")
 inline fun <T> Collection<Property<T>>.containsAllValues(values: Collection<T>): Property<Boolean> =
-        mapValueList(`Contains-`<T>(values, 1) as (List<T>) -> Boolean)
+        mapValueList(`AppliedFunc1-`(values, 1) as (Collection<T>) -> Boolean)
 
 /**
  * Returns a property which holds `true` if all properties' values in [this] are conforming to [predicate].
@@ -93,12 +93,15 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
 /**
  * Returns a [Property] which is `true` when [this.value].[Collection.isEmpty].
  */
+@Deprecated("Was generalized.", ReplaceWith("map(isEmptyCollection())",
+        "net.aquadc.properties.map", "net.aquadc.properties.isEmptyCollection"))
 inline fun Property<Collection<*>?>.isEmpty(): Property<Boolean> =
-        map(ToBoolFunc1.IsEmptyCollection)
+        map(isEmptyCollection())
 
 /**
  * Returns a [Property] which is `true` when [this.value].[Collection.isNotEmpty].
  */
+@Deprecated("Was generalized.", ReplaceWith("map(isNonEmptyCollection())",
+        "net.aquadc.properties.map", "net.aquadc.properties.isNonEmptyCollection"))
 inline fun Property<Collection<*>?>.isNotEmpty(): Property<Boolean> =
-        map(ToBoolFunc1.IsNonEmptyCollection)
-
+        map(isNonEmptyCollection())

@@ -38,32 +38,31 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
 }
 
-@PublishedApi internal class ToBoolFunc1(
+@PublishedApi internal class `Functions1-`(
         private val mode: Int
-): (Any?) -> Boolean {
+): (Any?) -> Any {
 
-    override fun invoke(p1: Any?): Boolean = when (mode) {
-        1 -> p1 === null
-        2 -> p1 !== null
-        3 -> (p1 as Collection<*>?)?.isEmpty() ?: true
-        4 -> (p1 as Collection<*>?)?.isNotEmpty() ?: false
+    override fun invoke(p1: Any?): Any = when (mode) {
+        1 -> (p1 as Collection<*>?)?.isEmpty() ?: true
+        2 -> (p1 as Collection<*>?)?.isNotEmpty() ?: false
+        3 -> (p1 as Collection<*>?)?.size ?: 0
         else -> throw AssertionError()
     }
 
+    @Suppress("UNCHECKED_CAST")
     @PublishedApi internal companion object {
-        @JvmField val IsNull = ToBoolFunc1(1)
-        @JvmField val IsNotNull = ToBoolFunc1(2)
-        @JvmField val IsEmptyCollection: (Collection<*>?) -> Boolean = ToBoolFunc1(3)
-        @JvmField val IsNonEmptyCollection: (Collection<*>?) -> Boolean = ToBoolFunc1(4)
+        @JvmField val IsEmptyCollection = `Functions1-`(1) as (Collection<*>?) -> Boolean
+        @JvmField val IsNonEmptyCollection = `Functions1-`(2) as (Collection<*>?) -> Boolean
+        @JvmField val Size = `Functions1-`(3) as (Collection<*>?) -> Int
     }
 
 }
 
-@PublishedApi internal class ToBoolFunc2(
+@PublishedApi internal class `Functions2-`(
         private val mode: Int
-): (Any?, Any?) -> Boolean {
+): (Any?, Any?) -> Any {
 
-    override fun invoke(p1: Any?, p2: Any?): Boolean = when (mode) {
+    override fun invoke(p1: Any?, p2: Any?): Any = when (mode) {
         1 -> p1 == p2
         2 -> p1 === p2
         3 -> Arrays.equals(p1 as BooleanArray, p2 as BooleanArray)
@@ -76,22 +75,26 @@ import java.util.concurrent.atomic.AtomicBoolean
         10 -> Arrays.equals(p1 as DoubleArray, p2 as DoubleArray)
         11 -> Arrays.equals(p1 as Array<out Any?>, p2 as Array<out Any?>)
         12 -> Arrays.deepEquals(p1 as Array<out Any?>, p2 as Array<out Any?>)
+        13 -> p1 != p2
+        14 -> p1 !== p2
         else -> throw AssertionError()
     }
 
-    @PublishedApi internal companion object {
-        @JvmField val Equality = ToBoolFunc2(1)
-        @JvmField val Identity = ToBoolFunc2(2)
-        @JvmField val Booleans = ToBoolFunc2(3) as (BooleanArray, BooleanArray) -> Boolean
-        @JvmField val Bytes = ToBoolFunc2(4) as (ByteArray, ByteArray) -> Boolean
-        @JvmField val Shorts = ToBoolFunc2(5) as (ShortArray, ShortArray) -> Boolean
-        @JvmField val Chars = ToBoolFunc2(6) as (CharArray, CharArray) -> Boolean
-        @JvmField val Ints = ToBoolFunc2(7) as (IntArray, IntArray) -> Boolean
-        @JvmField val Longs = ToBoolFunc2(8) as (LongArray, LongArray) -> Boolean
-        @JvmField val Floats = ToBoolFunc2(9) as (FloatArray, FloatArray) -> Boolean
-        @JvmField val Doubles = ToBoolFunc2(10) as (DoubleArray, DoubleArray) -> Boolean
-        @JvmField val Objects = ToBoolFunc2(11) as (Array<out Any?>, Array<out Any?>) -> Boolean
-        @JvmField val ObjectsDeep = ToBoolFunc2(12) as (Array<out Any?>, Array<out Any?>) -> Boolean
+    @Suppress("UNCHECKED_CAST") companion object {
+        @JvmField val Equality = `Functions2-`(1) as (Any?, Any?) -> Boolean
+        @JvmField val Identity = `Functions2-`(2) as (Any?, Any?) -> Boolean
+        @JvmField val Booleans = `Functions2-`(3) as (BooleanArray, BooleanArray) -> Boolean
+        @JvmField val Bytes = `Functions2-`(4) as (ByteArray, ByteArray) -> Boolean
+        @JvmField val Shorts = `Functions2-`(5) as (ShortArray, ShortArray) -> Boolean
+        @JvmField val Chars = `Functions2-`(6) as (CharArray, CharArray) -> Boolean
+        @JvmField val Ints = `Functions2-`(7) as (IntArray, IntArray) -> Boolean
+        @JvmField val Longs = `Functions2-`(8) as (LongArray, LongArray) -> Boolean
+        @JvmField val Floats = `Functions2-`(9) as (FloatArray, FloatArray) -> Boolean
+        @JvmField val Doubles = `Functions2-`(10) as (DoubleArray, DoubleArray) -> Boolean
+        @JvmField val Objects = `Functions2-`(11) as (Array<out Any?>, Array<out Any?>) -> Boolean
+        @JvmField val ObjectsDeep = `Functions2-`(12) as (Array<out Any?>, Array<out Any?>) -> Boolean
+        @JvmField val Inequality = `Functions2-`(13) as (Any?, Any?) -> Boolean
+        @JvmField val NonIdentity = `Functions2-`(14) as (Any?, Any?) -> Boolean
     }
 
 }
@@ -102,6 +105,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 //
 
 @PublishedApi internal class `CharSeqFunc-`(private val mode: Int) : (Any) -> Any {
+
     override fun invoke(p1: Any): Any {
         p1 as CharSequence
         return when (mode) {
@@ -115,9 +119,7 @@ import java.util.concurrent.atomic.AtomicBoolean
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    @PublishedApi
-    internal companion object {
+    @Suppress("UNCHECKED_CAST") companion object {
         @JvmField val Empty = `CharSeqFunc-`(0) as (CharSequence) -> Boolean
         @JvmField val NotEmpty = `CharSeqFunc-`(1) as (CharSequence) -> Boolean
         @JvmField val Blank = `CharSeqFunc-`(2) as (CharSequence) -> Boolean
@@ -133,16 +135,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 //
 
 @Suppress("UNCHECKED_CAST") @PublishedApi
-internal class `Contains-`<T>(
+internal class `AppliedFunc1-`(
         private val value: Any?,
         private val mode: Int
-) : (Any) -> Any? {
+) : (Any?) -> Any? {
 
-    override fun invoke(p1: Any): Any? = when (mode) {
-        1 -> (p1 as Collection<T>).containsAll(value as List<T>)
-        2 -> (p1 as Collection<T>).contains(value as T)
+    override fun invoke(p1: Any?): Any? = when (mode) {
+        1 -> (p1 as Collection<*>).containsAll(value as Collection<*>)
+        2 -> (p1 as Collection<*>).contains(value)
         3 -> p1 == value
+        4 -> p1 === value
+        5 -> p1 != value
+        6 -> p1 !== value
         else -> throw AssertionError()
+    }
+
+    companion object {
+        @JvmField val IsNull = `AppliedFunc1-`(null, 4) as (Any?) -> Boolean
+        @JvmField val IsNotNull = `AppliedFunc1-`(null, 6) as (Any?) -> Boolean
     }
 
 }
@@ -168,7 +178,7 @@ internal object ToPair : (Any?, Any?) -> Any? {
 /**
  * Compares objects by their identity.
  */
-@Deprecated("use 'byIdentity' function instead", ReplaceWith("byIdentity()"), DeprecationLevel.ERROR)
+@Deprecated("use 'areIdentical' function instead", ReplaceWith("areIdentical()"), DeprecationLevel.ERROR)
 object Identity : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 === p2
 }
@@ -176,7 +186,7 @@ object Identity : (Any?, Any?) -> Boolean {
 /**
  * Compares objects with [Any.equals] operator function.
  */
-@Deprecated("use 'byEquality' function instead", ReplaceWith("byEquality()"), DeprecationLevel.ERROR)
+@Deprecated("use 'areEqual' function instead", ReplaceWith("areEqual()"), DeprecationLevel.ERROR)
 object Equals : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 == p2
 }
@@ -218,7 +228,7 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
         else -> throw AssertionError()
     }
 
-    private fun plus(p1: Any?, p2: Any?) = when (p1) {
+    private fun plus(p1: Any?, p2: Any?): Any? = when (p1) {
         is Int -> p1 + (p2 as Int)
         is Long -> p1 + (p2 as Long)
         is Float -> p1 + (p2 as Float)
@@ -226,7 +236,7 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
         else -> throw AssertionError()
     }
 
-    private fun minus(p1: Any?, p2: Any?) = when (p1) {
+    private fun minus(p1: Any?, p2: Any?): Any? = when (p1) {
         is Int -> p1 - (p2 as Int)
         is Long -> p1 - (p2 as Long)
         is Float -> p1 - (p2 as Float)
@@ -234,7 +244,7 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
         else -> throw AssertionError()
     }
 
-    private fun times(p1: Any?, p2: Any?) = when (p1) {
+    private fun times(p1: Any?, p2: Any?): Any? = when (p1) {
         is Int -> p1 * (p2 as Int)
         is Long -> p1 * (p2 as Long)
         is Float -> p1 * (p2 as Float)
@@ -242,7 +252,7 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
         else -> throw AssertionError()
     }
 
-    private fun div(p1: Any?, p2: Any?) = when (p1) {
+    private fun div(p1: Any?, p2: Any?): Any? = when (p1) {
         is Int -> p1 / (p2 as Int)
         is Long -> p1 / (p2 as Long)
         is Float -> p1 / (p2 as Float)

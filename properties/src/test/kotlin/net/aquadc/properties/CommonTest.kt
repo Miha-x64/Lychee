@@ -56,7 +56,7 @@ class CommonTest {
     }
 
     private fun testEquals(original: MutableProperty<String>) {
-        val dist = original.distinct(byEquality())
+        val dist = original.distinct(areEqual())
         assertEquals(original.value, original.value)
         var called = 0
         dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
@@ -82,7 +82,7 @@ class CommonTest {
 
     // different props have different identity, so we are going to test only mutable and mapped
     private fun testIdentity(original: MutableProperty<String>) {
-        val dist = original.distinct(byIdentity())
+        val dist = original.distinct(areIdentical())
         var called = 0
         dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
         original.value = original.value
