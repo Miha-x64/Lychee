@@ -86,7 +86,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         order.forEach { orderedSelections.getOrPut(it.col, ::Vector).add(prop) }
         return prop
                 .map(PrimaryKeys(table, lowSession, order))
-                .distinct(byArraysEquality())
+                .distinct(arraysAreEqual())
                 .map(Query(this, table, lowSession, condition, order))
     }
 

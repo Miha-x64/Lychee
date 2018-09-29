@@ -40,9 +40,9 @@ class MainVm(
         User(email, name, surname)
     }
 
-    private val usersEqualProp = userProp.equalTo(editedUserProp)
+    private val usersDifferProp = userProp.mapWith(editedUserProp, areNotEqual())
 
-    val buttonEnabledProp = usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid }
+    val buttonEnabledProp = usersDifferProp and emailValidProp
     val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
 }

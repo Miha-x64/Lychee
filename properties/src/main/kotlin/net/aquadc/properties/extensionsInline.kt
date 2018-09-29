@@ -1,4 +1,4 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "DeprecatedCallableAddReplaceWith")
 @file:JvmName("PropertiesInline")
 package net.aquadc.properties
 
@@ -21,100 +21,10 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
 /**
  * Returns a view on [this] == [that].
  */
+@Deprecated("Was generalized.", ReplaceWith("mapWith(that, areEqual())",
+        "net.aquadc.properties.mapWith", "net.aquadc.properties.areEqual"))
 inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
-        mapWith(that, ToBoolFunc2.Equality)
-
-/**
- * Returns a view on [this] == [value].
- */
-@Suppress("UNCHECKED_CAST")
-inline fun <T> Property<T>.valueEqualTo(value: T): Property<Boolean> =
-        map(`Contains-`<T>(value, 3) as (T) -> Boolean)
-
-/**
- * Returns a view on `this === null`.
- */
-inline fun <T : Any> Property<T?>.isNull(): Property<Boolean> =
-        map(ToBoolFunc1.IsNull)
-
-/**
- * Returns a view on `this !== null`.
- */
-inline fun <T : Any> Property<T?>.isNotNull(): Property<Boolean> =
-        map(ToBoolFunc1.IsNotNull)
-
-/**
- * Compares objects by their identity.
- */
-inline fun byIdentity(): (Any?, Any?) -> Boolean =
-        ToBoolFunc2.Identity
-
-/**
- * Compares objects with [Any.equals] operator function.
- */
-inline fun byEquality(): (Any?, Any?) -> Boolean =
-        ToBoolFunc2.Equality
-
-/**
- * Compares [Boolean] arrays with [java.util.Arrays.equals].
- */
-inline fun byBooleanArraysEquality(): (BooleanArray, BooleanArray) -> Boolean =
-        ToBoolFunc2.Booleans
-
-/**
- * Compares [Byte] arrays with [java.util.Arrays.equals].
- */
-inline fun byByteArraysEquality(): (ByteArray, ByteArray) -> Boolean =
-        ToBoolFunc2.Bytes
-
-/**
- * Compares [Short] arrays with [java.util.Arrays.equals].
- */
-inline fun byShortArraysEquality(): (ShortArray, ShortArray) -> Boolean =
-        ToBoolFunc2.Shorts
-
-/**
- * Compares [Char] arrays with [java.util.Arrays.equals].
- */
-inline fun byCharArraysEquality(): (CharArray, CharArray) -> Boolean =
-        ToBoolFunc2.Chars
-
-/**
- * Compares [Int] arrays with [java.util.Arrays.equals].
- */
-inline fun byIntArraysEquality(): (IntArray, IntArray) -> Boolean =
-        ToBoolFunc2.Ints
-
-/**
- * Compares [Long] arrays with [java.util.Arrays.equals].
- */
-inline fun byLongArraysEquality(): (LongArray, LongArray) -> Boolean =
-        ToBoolFunc2.Longs
-
-/**
- * Compares [Float] arrays with [java.util.Arrays.equals].
- */
-inline fun byFloatArraysEquality(): (FloatArray, FloatArray) -> Boolean =
-        ToBoolFunc2.Floats
-
-/**
- * Compares [Double] arrays with [java.util.Arrays.equals].
- */
-inline fun byDoubleArraysEquality(): (DoubleArray, DoubleArray) -> Boolean =
-        ToBoolFunc2.Doubles
-
-/**
- * Compares reference arrays with [java.util.Arrays.equals].
- */
-inline fun byArraysEquality(): (Array<out Any?>, Array<out Any?>) -> Boolean =
-        ToBoolFunc2.Objects
-
-/**
- * Compares reference arrays with [java.util.Arrays.deepEquals].
- */
-inline fun byArraysDeepEquality(): (Array<out Any?>, Array<out Any?>) -> Boolean =
-        ToBoolFunc2.ObjectsDeep
-
+        mapWith(that, areEqual())
 
 //
 // Boolean actions
@@ -150,34 +60,44 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
 /**
  * Returns a property representing [CharSequence.length].
  */
-@Suppress("UNCHECKED_CAST")
-inline val Property<CharSequence>.length: Property<Int> get() = map(`CharSeqFunc-`.Length)
+@Deprecated("Was generalized.", ReplaceWith("map(length())",
+        "net.aquadc.properties.map", "net.aquadc.properties.length"))
+inline val Property<CharSequence>.length: Property<Int> get() = map(length())
 
 /**
  * Returns a property representing emptiness ([CharSequence.isEmpty]).
  */
-inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(`CharSeqFunc-`.Empty)
+@Deprecated("Was generalized.", ReplaceWith("map(isEmptyCharSequence())",
+        "net.aquadc.properties.map", "net.aquadc.properties.isEmptyCharSequence"))
+inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(isEmptyCharSequence())
 
 /**
  * Returns a property representing non-emptiness ([CharSequence.isNotEmpty]).
  */
-inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(`CharSeqFunc-`.NotEmpty)
+@Deprecated("Was generalized.", ReplaceWith("map(isNonEmptyCharSequence())",
+        "net.aquadc.properties.map", "net.aquadc.properties.isNonEmptyCharSequence"))
+inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(isNonEmptyCharSequence())
 
 /**
  * Returns a property representing blankness ([CharSequence.isBlank]).
  */
-inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(`CharSeqFunc-`.Blank)
+@Deprecated("Was generalized.", ReplaceWith("map(isBlank())",
+        "net.aquadc.properties.map", "net.aquadc.properties.isBlank"))
+inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(isBlank())
 
 /**
  * Returns a property representing non-blankness ([CharSequence.isNotBlank]).
  */
-inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(`CharSeqFunc-`.NotBlank)
+@Deprecated("Was generalized.", ReplaceWith("map(isNotBlank())",
+        "net.aquadc.properties.map", "net.aquadc.properties.isNotBlank"))
+inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(isNotBlank())
 
 /**
  * Returns a property representing a trimmed CharSequence ([CharSequence.trim]).
  */
-@Suppress("UNCHECKED_CAST")
-inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(`CharSeqFunc-`.Trim)
+@Deprecated("Was generalized.", ReplaceWith("map(trimmed())",
+        "net.aquadc.properties.map", "net.aquadc.properties.trimmed"))
+inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(trimmed())
 
 
 //
@@ -190,7 +110,7 @@ inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(`C
  * exposed via public interface of a module.
  */
 @Suppress("UNCHECKED_CAST")
-inline fun <T> Property<T>.readOnlyView(): Property<T> = map(Just as (T) -> T)
+inline fun <T> Property<T>.readOnlyView(): Property<T> = map(identity())
 
 /**
  * Returns a new [MutableProperty] with value equal to `forward(original.value)`.
@@ -369,3 +289,22 @@ inline fun immutablePropertyOf(@Suppress("UNUSED_PARAMETER") value: Unit): Prope
  */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =
         `Immutable-`(value)
+
+/**
+ * Helps finding out necessary functions.
+ * @see isEmptyCharSequence
+ * @see isEmptyCollection
+ */
+@Deprecated("Use either isEmptyCharSequence() or isEmptyCollection().", level = DeprecationLevel.ERROR)
+inline fun isEmpty(): Nothing =
+        throw AssertionError()
+
+
+/**
+ * Helps finding out necessary functions.
+ * @see isNonEmptyCharSequence
+ * @see isNonEmptyCollection
+ */
+@Deprecated("Use either isNonEmptyCharSequence() or isNonEmptyCollection().", level = DeprecationLevel.ERROR)
+inline fun isNotEmpty(): Nothing =
+        throw AssertionError()
