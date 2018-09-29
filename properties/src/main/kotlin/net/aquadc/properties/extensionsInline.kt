@@ -230,7 +230,7 @@ inline fun <T> Property<T>.addUnconfinedChangeListener(noinline onChange: Change
  * Returns new [MutableProperty] with value [value].
  * If [concurrent] is true, the property can be used from many threads.
  */
-@Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value, concurrent)"))
+@Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value, concurrent)"), DeprecationLevel.ERROR)
 inline fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
         if (concurrent) `ConcMutable-`(value)
         else `UnsMutable-`(value)
@@ -253,7 +253,7 @@ inline fun <T> propertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
-@Deprecated("Use concurrentPropertyOf instead.", ReplaceWith("concurrentPropertyOf(value)"))
+@Deprecated("Use concurrentPropertyOf instead.", ReplaceWith("concurrentPropertyOf(value)"), DeprecationLevel.ERROR)
 inline fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
         `ConcMutable-`(value)
 

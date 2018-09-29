@@ -90,6 +90,7 @@ private class SetBackground(
         private val color: Boolean
 ) : (View, Any?) -> Unit {
 
+    @Suppress("DEPRECATION")
     override fun invoke(view: View, back: Any?) = when (back) {
         is Drawable? -> if (Build.VERSION.SDK_INT >= 16) view.background = back else view.setBackgroundDrawable(back)
         is Int -> if (color) view.setBackgroundColor(back) else view.setBackgroundResource(back)
