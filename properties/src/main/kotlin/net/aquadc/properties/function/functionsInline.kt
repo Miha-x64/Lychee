@@ -44,7 +44,7 @@ inline fun areNotIdentical(): (Any?, Any?) -> Boolean =
  * i. e. it's a partially-applied version of [areEqual].
  */
 @Suppress("UNCHECKED_CAST") // using 'Any?' return type to avoid bridge method generation
-inline fun equalTo(that: Any?): (Any?) -> Boolean =
+inline fun isEqualTo(that: Any?): (Any?) -> Boolean =
         `AppliedFunc1-`(that, 3) as (Any?) -> Boolean
 
 
@@ -61,7 +61,7 @@ inline fun notEqualTo(that: Any?): (Any?) -> Boolean =
  * i. e. it's a partially-applied version of [areIdentical].
  */
 @Suppress("UNCHECKED_CAST") // using 'Any?' return type to avoid bridge method generation
-inline fun identicalTo(that: Any?): (Any?) -> Boolean =
+inline fun isIdenticalTo(that: Any?): (Any?) -> Boolean =
         `AppliedFunc1-`(that, 4) as (Any?) -> Boolean
 
 /**
@@ -91,61 +91,61 @@ inline fun isNotNull(): (Any?) -> Boolean =
 /**
  * A function which [Boolean] arrays with [java.util.Arrays.equals].
  */
-inline fun boolArraysAreEqual(): (BooleanArray, BooleanArray) -> Boolean =
+inline fun areBoolArraysEqual(): (BooleanArray, BooleanArray) -> Boolean =
         `Functions2-`.Booleans
 
 /**
  * A function which [Byte] arrays with [java.util.Arrays.equals].
  */
-inline fun byteArraysAreEqual(): (ByteArray, ByteArray) -> Boolean =
+inline fun areByteArraysAreEqual(): (ByteArray, ByteArray) -> Boolean =
         `Functions2-`.Bytes
 
 /**
  * A function which [Short] arrays with [java.util.Arrays.equals].
  */
-inline fun shortArraysAreEqual(): (ShortArray, ShortArray) -> Boolean =
+inline fun areShortArraysAreEqual(): (ShortArray, ShortArray) -> Boolean =
         `Functions2-`.Shorts
 
 /**
  * A function which [Char] arrays with [java.util.Arrays.equals].
  */
-inline fun charArraysAreEqual(): (CharArray, CharArray) -> Boolean =
+inline fun areCharArraysAreEqual(): (CharArray, CharArray) -> Boolean =
         `Functions2-`.Chars
 
 /**
  * A function which [Int] arrays with [java.util.Arrays.equals].
  */
-inline fun intArraysAreEqual(): (IntArray, IntArray) -> Boolean =
+inline fun areIntArraysAreEqual(): (IntArray, IntArray) -> Boolean =
         `Functions2-`.Ints
 
 /**
  * A function which [Long] arrays with [java.util.Arrays.equals].
  */
-inline fun longArraysAreEqual(): (LongArray, LongArray) -> Boolean =
+inline fun areLongArraysAreEqual(): (LongArray, LongArray) -> Boolean =
         `Functions2-`.Longs
 
 /**
  * A function which [Float] arrays with [java.util.Arrays.equals].
  */
-inline fun floatArraysAreEqual(): (FloatArray, FloatArray) -> Boolean =
+inline fun areFloatArraysAreEqual(): (FloatArray, FloatArray) -> Boolean =
         `Functions2-`.Floats
 
 /**
  * A function which [Double] arrays with [java.util.Arrays.equals].
  */
-inline fun doubleArraysAreEqual(): (DoubleArray, DoubleArray) -> Boolean =
+inline fun areDoubleArraysAreEqual(): (DoubleArray, DoubleArray) -> Boolean =
         `Functions2-`.Doubles
 
 /**
  * A function which reference arrays with [java.util.Arrays.equals].
  */
-inline fun arraysAreEqual(): (Array<out Any?>, Array<out Any?>) -> Boolean =
+inline fun areArraysEqual(): (Array<out Any?>, Array<out Any?>) -> Boolean =
         `Functions2-`.Objects
 
 /**
  * A function which reference arrays with [java.util.Arrays.deepEquals].
  */
-inline fun arraysAreDeeplyEqual(): (Array<out Any?>, Array<out Any?>) -> Boolean =
+inline fun areArraysDeeplyEqual(): (Array<out Any?>, Array<out Any?>) -> Boolean =
         `Functions2-`.ObjectsDeep
 
 //
@@ -210,3 +210,27 @@ inline fun isEmptyCollection(): (Collection<*>?) -> Boolean =
  */
 inline fun isNonEmptyCollection(): (Collection<*>?) -> Boolean =
         `Functions1-`.IsNonEmptyCollection
+
+
+//
+// Help
+//
+
+/**
+ * Helps finding out necessary functions.
+ * @see isEmptyCharSequence
+ * @see isEmptyCollection
+ */
+@Deprecated("Use either isEmptyCharSequence() or isEmptyCollection().", level = DeprecationLevel.ERROR)
+inline fun isEmpty(): Nothing =
+        throw AssertionError()
+
+
+/**
+ * Helps finding out necessary functions.
+ * @see isNonEmptyCharSequence
+ * @see isNonEmptyCollection
+ */
+@Deprecated("Use either isNonEmptyCharSequence() or isNonEmptyCollection().", level = DeprecationLevel.ERROR)
+inline fun isNotEmpty(): Nothing =
+        throw AssertionError()

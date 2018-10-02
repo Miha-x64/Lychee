@@ -290,22 +290,3 @@ inline fun immutablePropertyOf(@Suppress("UNUSED_PARAMETER") value: Unit): Prope
  */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =
         `Immutable-`(value)
-
-/**
- * Helps finding out necessary functions.
- * @see isEmptyCharSequence
- * @see isEmptyCollection
- */
-@Deprecated("Use either isEmptyCharSequence() or isEmptyCollection().", level = DeprecationLevel.ERROR)
-inline fun isEmpty(): Nothing =
-        throw AssertionError()
-
-
-/**
- * Helps finding out necessary functions.
- * @see isNonEmptyCharSequence
- * @see isNonEmptyCollection
- */
-@Deprecated("Use either isNonEmptyCharSequence() or isNonEmptyCollection().", level = DeprecationLevel.ERROR)
-inline fun isNotEmpty(): Nothing =
-        throw AssertionError()

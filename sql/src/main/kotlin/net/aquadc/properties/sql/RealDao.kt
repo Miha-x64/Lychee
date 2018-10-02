@@ -6,7 +6,7 @@ import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.struct.Field
-import net.aquadc.properties.function.arraysAreEqual
+import net.aquadc.properties.function.areArraysEqual
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -87,7 +87,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         order.forEach { orderedSelections.getOrPut(it.col, ::Vector).add(prop) }
         return prop
                 .map(PrimaryKeys(table, lowSession, order))
-                .distinct(arraysAreEqual())
+                .distinct(areArraysEqual())
                 .map(Query(this, table, lowSession, condition, order))
     }
 
