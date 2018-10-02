@@ -1,5 +1,6 @@
-package net.aquadc.properties
+package net.aquadc.properties.function
 
+import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
 import java.util.*
 import java.util.concurrent.ScheduledExecutorService

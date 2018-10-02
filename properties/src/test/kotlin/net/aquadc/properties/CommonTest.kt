@@ -1,5 +1,7 @@
 package net.aquadc.properties
 
+import net.aquadc.properties.function.areEqual
+import net.aquadc.properties.function.areIdentical
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test

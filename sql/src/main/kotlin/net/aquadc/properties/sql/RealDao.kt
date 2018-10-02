@@ -6,6 +6,7 @@ import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.struct.Field
+import net.aquadc.properties.function.arraysAreEqual
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 

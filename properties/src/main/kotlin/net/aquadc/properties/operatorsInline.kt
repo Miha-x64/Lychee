@@ -3,6 +3,8 @@
 
 package net.aquadc.properties
 
+import net.aquadc.properties.function.Arithmetic
+import net.aquadc.properties.function.`BoolFunc-`
 import kotlin.reflect.KProperty
 
 // for simplicity, let 'and', 'or', 'xor' be here, too

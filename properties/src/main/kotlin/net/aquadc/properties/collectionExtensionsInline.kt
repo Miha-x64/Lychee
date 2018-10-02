@@ -2,6 +2,9 @@
 @file:JvmName("CollectionPropertiesInline")
 package net.aquadc.properties
 
+import net.aquadc.properties.function.`AppliedFunc1-`
+import net.aquadc.properties.function.isEmptyCollection
+import net.aquadc.properties.function.isNonEmptyCollection
 import net.aquadc.properties.internal.`MultiMapped-`
 
 
@@ -94,7 +97,7 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
  * Returns a [Property] which is `true` when [this.value].[Collection.isEmpty].
  */
 @Deprecated("Was generalized.", ReplaceWith("map(isEmptyCollection())",
-        "net.aquadc.properties.map", "net.aquadc.properties.isEmptyCollection"))
+        "net.aquadc.properties.map", "net.aquadc.properties.function.isEmptyCollection"))
 inline fun Property<Collection<*>?>.isEmpty(): Property<Boolean> =
         map(isEmptyCollection())
 
@@ -102,6 +105,6 @@ inline fun Property<Collection<*>?>.isEmpty(): Property<Boolean> =
  * Returns a [Property] which is `true` when [this.value].[Collection.isNotEmpty].
  */
 @Deprecated("Was generalized.", ReplaceWith("map(isNonEmptyCollection())",
-        "net.aquadc.properties.map", "net.aquadc.properties.isNonEmptyCollection"))
+        "net.aquadc.properties.map", "net.aquadc.properties.function.isNonEmptyCollection"))
 inline fun Property<Collection<*>?>.isNotEmpty(): Property<Boolean> =
         map(isNonEmptyCollection())

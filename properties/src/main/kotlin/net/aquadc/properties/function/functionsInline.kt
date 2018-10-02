@@ -1,6 +1,6 @@
 @file:JvmName("FunctionsInline")
 @file:Suppress("NOTHING_TO_INLINE")
-package net.aquadc.properties
+package net.aquadc.properties.function
 
 // These methods are representing public way of getting functions.
 // A typical function consists of getfield/getstatic + areturn,
