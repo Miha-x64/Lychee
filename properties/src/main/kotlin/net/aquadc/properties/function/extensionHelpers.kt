@@ -263,10 +263,10 @@ internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
     }
 
     companion object {
-        val Plus = Arithmetic(1)
-        val Minus = Arithmetic(2)
-        val Times = Arithmetic(3)
-        val Div = Arithmetic(4)
+        @JvmField val Plus = Arithmetic(1)
+        @JvmField val Minus = Arithmetic(2)
+        @JvmField val Times = Arithmetic(3)
+        @JvmField val Div = Arithmetic(4)
     }
 
 }

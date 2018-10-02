@@ -389,7 +389,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         }
     }
 
-    private fun changeObservedStateTo(obsState: Boolean) {
+    internal fun changeObservedStateTo(obsState: Boolean) {
         if (thread === null) {
             concChangeObservedStateTo(obsState)
         } else {

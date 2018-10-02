@@ -27,7 +27,8 @@ internal class `Debounced-`<out T>(
         check(original.mayChange)
     }
 
-    private val executor = if (thread == null) null else PlatformExecutors.executorForCurrentThread()
+    @JvmField internal val executor =
+            if (thread == null) null else PlatformExecutors.executorForCurrentThread()
 
     @Volatile
     override var value: @UnsafeVariance T = original.value
@@ -116,11 +117,11 @@ internal class `Debounced-`<out T>(
             refUpdater()
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-    private inline fun <T> valueUpdater() =
+    internal inline fun <T> valueUpdater() =
             valueUpdater as AtomicReferenceFieldUpdater<`Debounced-`<T>, Any?>
 
-    private companion object {
-        private val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
+    internal companion object {
+        @JvmField internal val valueUpdater: AtomicReferenceFieldUpdater<`Debounced-`<*>, Any?> =
                 AtomicReferenceFieldUpdater.newUpdater(`Debounced-`::class.java, Any::class.java, "value")
     }
 
