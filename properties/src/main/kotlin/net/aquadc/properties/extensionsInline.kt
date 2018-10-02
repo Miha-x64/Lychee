@@ -142,8 +142,8 @@ inline fun <TRANSACTION, T, R> TransactionalProperty<TRANSACTION, T>.bind(
 /**
  * Returns a property which notifies its subscribers only when old and new values are not equal.
  */
-inline fun <T> Property<T>.distinct(noinline areEqual: (T, T) -> Boolean): Property<T> =
-        if (this.mayChange) `Distinct-`(this, areEqual) else this
+inline fun <T> Property<T>.distinct(noinline dropIfValues: (T, T) -> Boolean): Property<T> =
+        if (this.mayChange) `Distinct-`(this, dropIfValues) else this
 
 /**
  * Returns a debounced wrapper around this property.
