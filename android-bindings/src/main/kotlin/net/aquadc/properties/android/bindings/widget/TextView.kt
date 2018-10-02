@@ -195,7 +195,7 @@ class MessageAndIconRes(
         @JvmField @DrawableRes val iconRes: Int
 )
 
-private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable?) {
+internal fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable?) {
     icon?.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
     setError(error, icon)
 }
