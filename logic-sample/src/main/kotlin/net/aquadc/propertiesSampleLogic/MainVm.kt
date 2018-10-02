@@ -1,6 +1,7 @@
 package net.aquadc.propertiesSampleLogic
 
 import net.aquadc.properties.*
+import net.aquadc.properties.function.areNotEqual
 import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.memento.PersistableProperties
 import net.aquadc.properties.persistence.x

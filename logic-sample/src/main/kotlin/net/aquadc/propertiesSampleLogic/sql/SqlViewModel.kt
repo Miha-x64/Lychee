@@ -1,6 +1,7 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.properties.*
+import net.aquadc.properties.function.isNotNull
 import net.aquadc.properties.sql.*
 
 

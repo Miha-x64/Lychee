@@ -3,6 +3,7 @@ package net.aquadc.properties
 
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.Worker
+import net.aquadc.properties.function.OnEach
 import net.aquadc.properties.internal.`BiMapped-`
 import net.aquadc.properties.internal.`Immutable-`
 import net.aquadc.properties.internal.`Mapped-`

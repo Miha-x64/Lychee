@@ -2,6 +2,7 @@ package net.aquadc.properties
 
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
+import net.aquadc.properties.function.areIdentical
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.AssumptionViolatedException
