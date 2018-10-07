@@ -11,8 +11,8 @@ import net.aquadc.persistence.converter.string
 val Tables = arrayOf(HumanTable, CarTable, FriendTable)
 
 object HumanTable : Table<Human, Long>("people", long, "_id") {
-    val Name = string col "name"
-    val Surname = string col "surname"
+    val Name = string immutable "name"
+    val Surname = string immutable "surname"
 
     override fun create(session: Session, id: Long): Human = Human(session, id)
 }
@@ -33,8 +33,8 @@ class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, sessio
 
 
 object CarTable : Table<Car, Long>("cars", long, "_id") {
-    val OwnerId = long col "owner_id"
-    val ConditionerModel = nullableString col "conditioner_model"
+    val OwnerId = long immutable "owner_id"
+    val ConditionerModel = nullableString immutable "conditioner_model"
 
     override fun create(session: Session, id: Long): Car = Car(session, id)
 }
@@ -48,8 +48,8 @@ fun Transaction.insertCar(owner: Human): Car =
 
 
 object FriendTable : Table<Friendship, Long>("friends", long, "_id") {
-    val LeftId = long col "left"
-    val RightId = long col "right"
+    val LeftId = long immutable "left"
+    val RightId = long immutable "right"
 
     override fun create(session: Session, id: Long): Friendship = Friendship(session, id)
 }

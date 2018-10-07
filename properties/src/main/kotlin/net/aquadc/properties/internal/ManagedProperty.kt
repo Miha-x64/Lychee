@@ -2,7 +2,7 @@ package net.aquadc.properties.internal
 
 import android.support.annotation.RestrictTo
 import net.aquadc.properties.TransactionalProperty
-import net.aquadc.persistence.struct.Field
+import net.aquadc.persistence.struct.FieldDef
 import java.lang.IllegalStateException
 
 /**
@@ -13,7 +13,7 @@ import java.lang.IllegalStateException
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 class ManagedProperty<TRANSACTION, T>(
         private var manager: Manager<TRANSACTION>?,
-        private val column: Field<*, T>,
+        private val column: FieldDef<*, T>,
         private val id: Long
 ) : `Notifier-1AtomicRef`<T, T>(true, unset()), TransactionalProperty<TRANSACTION, T> {
 
@@ -92,16 +92,16 @@ interface Manager<TRANSACTION> {
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    fun <T> getDirty(column: Field<*, T>, id: Long): T
+    fun <T> getDirty(column: FieldDef<*, T>, id: Long): T
 
     /**
      * Returns clean value.
      */
-    fun <T> getClean(column: Field<*, T>, id: Long): T
+    fun <T> getClean(column: FieldDef<*, T>, id: Long): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, column: Field<*, T>, id: Long, update: T)
+    fun <T> set(transaction: TRANSACTION, column: FieldDef<*, T>, id: Long, update: T)
 
 }

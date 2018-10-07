@@ -5,7 +5,7 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
-import net.aquadc.persistence.struct.Field
+import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.properties.function.areArraysEqual
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -26,10 +26,10 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     // SELECT _id WHERE ...
     private val selections = Vector<MutableProperty<WhereCondition<out REC>>>() // coding like in 1995, yay! TODO: deduplication
 
-    private val orderedSelections = ConcurrentHashMap<Field<REC, *>, Vector<MutableProperty<WhereCondition<out REC>>>>()
+    private val orderedSelections = ConcurrentHashMap<FieldDef<REC, *>, Vector<MutableProperty<WhereCondition<out REC>>>>()
 
     internal fun <T> commitValue(localId: Long, column: Col<REC, T>, value: T) {
-        (records[localId]?.fields?.get(column.ordinal) as ManagedProperty<Transaction, T>?)?.commit(value)
+        (records[localId]?.fields?.get(column.ordinal.toInt()) as ManagedProperty<Transaction, T>?)?.commit(value)
     }
 
     internal fun dropManagement(localId: Long) {
@@ -109,7 +109,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
 
     // region Manager implementation
 
-    override fun <T> getDirty(column: Field<*, T>, id: Long): T {
+    override fun <T> getDirty(column: FieldDef<*, T>, id: Long): T {
         val transaction = lowSession.transaction ?: return unset()
 
         val thisCol = transaction.updated?.getFor(column as Col<REC, T>) ?: return unset()
@@ -121,14 +121,14 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(column: Field<*, T>, id: Long): T {
+    override fun <T> getClean(column: FieldDef<*, T>, id: Long): T {
         val col = column as Col<REC, T>
         val primaryKey = lowSession.primaryKey(table, id)
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(col, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, column: Field<*, T>, id: Long, update: T) {
+    override fun <T> set(transaction: Transaction, column: FieldDef<*, T>, id: Long, update: T) {
         column as Col<REC, T>
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {

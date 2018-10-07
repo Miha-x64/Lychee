@@ -6,11 +6,10 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.persistence.struct.Field
+import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructDef
 import net.aquadc.persistence.converter.Converter
-import java.util.*
 
 
 typealias IdBound = Any // Serializable in some frameworks
@@ -97,59 +96,22 @@ val <REC : Record<REC, *>> Col<REC, *>.desc: Order<REC>
 
 
 abstract class Table<REC : Record<REC, ID>, ID : IdBound>(
-        override val name: String,
+        name: String,
         val idColConverter: Converter<ID>,
         val idColName: String
-) : StructDef<REC> {
+) : StructDef<REC>(name) {
 
-    private var tmpCols: ArrayList<Col<REC, *>>? = ArrayList()
-
-    /**
-     * {@implNote
-     *   on concurrent access, we might null out [tmpCols] while it's getting accessed,
-     *   so let it be synchronized (it's default [lazy] mode).
-     * }
-     */
-    override val fields: List<Col<REC, *>> by lazy {
-        val cols = tmpCols()
-        check(cols.isNotEmpty()) { "Table must have at least one column, except primary key" }
-        //        ^ note: isManaged also relies on the fact that record has at least one field.
-
-        val nameSet = HashSet<String>()
-        nameSet.add(idColName)
-        for (i in cols.indices) {
-            val col = cols[i]
-            if (!nameSet.add(col.name)) {
-                throw IllegalStateException("duplicate column: `$name`.`${col.name}`")
-            }
-        }
-
-        val frozen = Collections.unmodifiableList(cols)
-        tmpCols = null
-        frozen
-    }
 
     abstract fun create(session: Session, id: ID): REC // TODO: rename: instantiate, instantiateRecord, createRecord, newRecord
 
-
-    @Suppress("NOTHING_TO_INLINE")
-    protected inline infix fun <T> Converter<T>.col(name: String): Col<REC, T> =
-            col0(name, this)
-
-    @PublishedApi
-    internal fun <T> col0(name: String, converter: Converter<T>): Col<REC, T> {
-        val cols = tmpCols()
-        val col = Field<REC, T>(this as StructDef<REC>, name, converter, cols.size)
-        cols.add(col)
-        return col
+    final override fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<REC, *>>) {
+        check(idColName !in nameSet) { "duplicate column: `$name`.`$idColName`" }
     }
-
-    private fun tmpCols() = tmpCols ?: throw IllegalStateException("table `$name` is already initialized")
 
 }
 
 
-typealias Col<REC, T> = Field<REC, T>
+typealias Col<REC, T> = FieldDef<REC, T>
 
 
 /**
@@ -173,10 +135,10 @@ open class Record<REC : Record<REC, ID>, ID : IdBound>(
             }
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-    private inline fun <T> propOf(field: Field<REC, T>): SqlProperty<T> =
-            fields[field.ordinal] as SqlProperty<T>
+    private inline fun <T> propOf(field: FieldDef<REC, T>): SqlProperty<T> =
+            fields[field.ordinal.toInt()] as SqlProperty<T>
 
-    override fun <T> getValue(field: Field<REC, T>): T =
+    override fun <T> getValue(field: FieldDef<REC, T>): T =
             propOf(field).value
 
     operator fun <T> get(col: Col<REC, T>): SqlProperty<T> =
@@ -217,7 +179,7 @@ inline operator fun <REC : Record<REC, *>, T> Col<REC, T>.minus(value: T): ColVa
 /**
  * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [REC].
  */
-fun <REC : Record<REC, *>, T> propertyGetterOf(field: Field<REC, T>): (REC) -> Property<T> =
+fun <REC : Record<REC, *>, T> propertyGetterOf(field: FieldDef<REC, T>): (REC) -> Property<T> =
         { it[field] }
 
 
