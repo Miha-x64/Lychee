@@ -2,7 +2,7 @@ package net.aquadc.properties.sql
 
 @Suppress(
         "PLATFORM_CLASS_MAPPED_TO_KOTLIN", // using finalization guard
-        "ReplacePutWithAssignment" // shut up, I want to write my code in columns
+        "ReplacePutWithAssignment" // shut up, I want to write my code in cute columns
 )
 internal class RealTransaction(
         override val session: Session,
@@ -14,32 +14,32 @@ internal class RealTransaction(
     private var isSuccessful = false
 
     // table : local IDs
-    private var inserted: HashMap<Table<*, *>, ArrayList<Long>>? = null
+    private var inserted: HashMap<Table<*, *, *>, ArrayList<Long>>? = null
 
     // column : localId : value
     internal var updated: UpdatesHashMap? = null
 
     // table : local IDs
-    private var deleted: HashMap<Table<*, *>, ArrayList<Long>>? = null
+    private var deleted: HashMap<Table<*, *, *>, ArrayList<Long>>? = null
 
     // TODO: use special collections for Longs
 
-    override fun <REC : Record<REC, ID>, ID : IdBound> insert(
-            table: Table<REC, ID>, vararg contentValues: ColValue<REC, *>
+    override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(
+            table: Table<TBL, ID, *>, vararg contentValues: ColValue<TBL, *>
     ): ID {
         checkOpenAndThread()
 
         val size = contentValues.size
-        val cols = arrayOfNulls<Col<REC, *>>(size)
+        val cols = arrayOfNulls<Col<TBL, *>>(size)
         val vals = arrayOfNulls<Any>(size)
         scatter(contentValues, colsToFill = cols, valsToFill = vals)
-        cols as Array<Col<REC, *>>
+        cols as Array<Col<TBL, *>>
 
         val id = lowSession.insert(table, cols, vals)
         val localId = lowSession.localId(table, id)
 
         // remember we've added a record
-        (inserted ?: HashMap<Table<*, *>, ArrayList<Long>>().also { inserted = it })
+        (inserted ?: HashMap<Table<*, *, *>, ArrayList<Long>>().also { inserted = it })
                 .getOrPut(table, ::ArrayList)
                 .add(localId)
 
@@ -52,7 +52,9 @@ internal class RealTransaction(
         return id
     }
 
-    override fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T) {
+    override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(
+            table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T
+    ) {
         checkOpenAndThread()
 
         lowSession.update(table, id, column, value)
@@ -62,14 +64,14 @@ internal class RealTransaction(
                 .put(lowSession.localId(table, id), value)
     }
 
-    override fun <REC : Record<REC, ID>, ID : IdBound> delete(record: REC) {
+    override fun <TBL : Table<TBL, ID, *>, ID : IdBound> delete(record: Record<TBL, ID>) {
         checkOpenAndThread()
         check(session === record.session)
 
         val table = record.table
         val localId = lowSession.deleteAndGetLocalId(table, record.primaryKey)
 
-        (deleted ?: HashMap<Table<*, *>, ArrayList<Long>>().also { deleted = it })
+        (deleted ?: HashMap<Table<*, *, *>, ArrayList<Long>>().also { deleted = it })
                 .getOrPut(table, ::ArrayList)
                 .add(localId)
     }
@@ -107,7 +109,7 @@ internal class RealTransaction(
         // structure changes
         val ins = inserted
         if (ins != null || del != null || upd != null) {
-            val changedTables = (ins?.keys ?: emptySet<Table<*, *>>()) + (del?.keys ?: emptySet())
+            val changedTables = (ins?.keys ?: emptySet<Table<*, *, *>>()) + (del?.keys ?: emptySet())
 
             lowSession.daos.forEach { (table, dao) ->
                 if (table in changedTables) {
@@ -137,9 +139,9 @@ internal class RealTransaction(
         }
     }
 
-    private fun <REC : Record<REC, *>> scatter(
-            contentValues: Array<out ColValue<REC, *>>,
-            colsToFill: Array<Col<REC, *>?>, valsToFill: Array<Any?>) {
+    private fun <TBL : Table<TBL, *, *>> scatter(
+            contentValues: Array<out ColValue<TBL, *>>,
+            colsToFill: Array<Col<TBL, *>?>, valsToFill: Array<Any?>) {
         contentValues.forEachIndexed { i, pair ->
             colsToFill[i] = pair.col
             valsToFill[i] = pair.value
@@ -147,7 +149,7 @@ internal class RealTransaction(
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    private inline val RealDao<*, *>.erased
-        get() = this as RealDao<Any, IdBound>
+    private inline val RealDao<*, *, *>.erased
+        get() = this as RealDao<Any, IdBound, Record<Any, IdBound>>
 
 }

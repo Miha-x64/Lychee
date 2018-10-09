@@ -10,7 +10,7 @@ import net.aquadc.persistence.converter.string
 
 val Tables = arrayOf(HumanTable, CarTable, FriendTable)
 
-object HumanTable : Table<Human, Long>("people", long, "_id") {
+object HumanTable : Table<HumanTable, Long, Human>("people", long, "_id") {
     val Name = string immutable "name"
     val Surname = string immutable "surname"
 
@@ -21,7 +21,7 @@ fun Transaction.insertHuman(name: String, surname: String): Human =
                 insert(HumanTable, HumanTable.Name - name, HumanTable.Surname - surname)
         )
 
-class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, session, id) {
+class Human(session: Session, id: Long) : Record<HumanTable, Long>(HumanTable, session, id) {
     val nameProp get() = this[HumanTable.Name]
     val surnameProp get() = this[HumanTable.Surname]
     val carsProp = CarTable.OwnerId toMany CarTable
@@ -32,14 +32,14 @@ class Human(session: Session, id: Long) : Record<Human, Long>(HumanTable, sessio
 
 
 
-object CarTable : Table<Car, Long>("cars", long, "_id") {
+object CarTable : Table<CarTable, Long, Car>("cars", long, "_id") {
     val OwnerId = long immutable "owner_id"
     val ConditionerModel = nullableString immutable "conditioner_model"
 
     override fun create(session: Session, id: Long): Car = Car(session, id)
 }
 
-class Car(session: Session, id: Long) : Record<Car, Long>(CarTable, session, id) {
+class Car(session: Session, id: Long) : Record<CarTable, Long>(CarTable, session, id) {
     val ownerProp = CarTable.OwnerId toOne HumanTable
     val conditionerModelProp get() = this[CarTable.ConditionerModel]
 }
@@ -47,14 +47,14 @@ fun Transaction.insertCar(owner: Human): Car =
         session[CarTable].require(insert(CarTable, CarTable.OwnerId - owner.primaryKey))
 
 
-object FriendTable : Table<Friendship, Long>("friends", long, "_id") {
+object FriendTable : Table<FriendTable, Long, Friendship>("friends", long, "_id") {
     val LeftId = long immutable "left"
     val RightId = long immutable "right"
 
     override fun create(session: Session, id: Long): Friendship = Friendship(session, id)
 }
 
-class Friendship(session: Session, id: Long) : Record<Friendship, Long>(FriendTable, session, id) {
+class Friendship(session: Session, id: Long) : Record<FriendTable, Long>(FriendTable, session, id) {
     val leftProp = FriendTable.LeftId toOne HumanTable
     val rightProp = FriendTable.RightId toOne HumanTable
 }

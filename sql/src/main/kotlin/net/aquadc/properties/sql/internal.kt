@@ -2,29 +2,29 @@ package net.aquadc.properties.sql
 
 
 internal interface LowLevelSession {
-    fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean
-    fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, cols: Array<Col<REC, *>>, vals: Array<Any?>): ID
-    fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T)
-    fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long
-    fun <ID : IdBound> primaryKey(table: Table<*, ID>, localId: Long): ID
-    fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID>, primaryKey: ID): Long
-    val daos: Map<Table<*, *>, RealDao<*, *>>
+    fun <TBL : Table<TBL, ID, *>, ID : IdBound> exists(table: Table<TBL, ID, *>, primaryKey: ID): Boolean
+    fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID
+    fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T)
+    fun <ID : IdBound> localId(table: Table<*, ID, *>, id: ID): Long
+    fun <ID : IdBound> primaryKey(table: Table<*, ID, *>, localId: Long): ID
+    fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long
+    val daos: Map<Table<*, *, *>, RealDao<*, *, *>>
     fun onTransactionEnd(successful: Boolean)
 
-    fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(
-            column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>
+    fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(
+            column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>
     ): T
 
-    fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(
-            table: Table<REC, ID>, condition: WhereCondition<out REC>, order: Array<out Order<REC>>
+    fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
+            table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
     ): Array<ID>
 
-    fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(
-            table: Table<REC, ID>, condition: WhereCondition<out REC>
+    fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchCount(
+            table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>
     ): Long
 
     val transaction: RealTransaction?
 
-    fun <REC : Record<REC, *>, T : Any> reusableCond(table: Table<REC, *>, colName: String, value: T): ColCond<REC, T>
+    fun <TBL : Table<TBL, *, *>, T : Any> reusableCond(table: Table<TBL, *, *>, colName: String, value: T): ColCond<TBL, T>
 
 }

@@ -7,16 +7,16 @@ import net.aquadc.persistence.converter.JdbcConverter
 
 internal typealias UpdatesHashMap = HashMap<Col<*, *>, HashMap<Long, Any?>>
 
-internal fun <REC : Record<REC, *>, T> UpdatesHashMap.getFor(col: Col<REC, T>): HashMap<Long, T>? =
+internal fun <TBL : Table<TBL, *, *>, T> UpdatesHashMap.getFor(col: Col<TBL, T>): HashMap<Long, T>? =
         get(col) as HashMap<Long, T>?
 
-internal fun <REC : Record<REC, *>, T> UpdatesHashMap.put(cv: ColValue<REC, T>, localId: Long) {
-    (this as HashMap<Col<REC, T>, HashMap<Long, Any?>>).getOrPut(cv.col, ::HashMap)[localId] = cv.value
+internal fun <TBL : Table<TBL, *, *>, T> UpdatesHashMap.put(cv: ColValue<TBL, T>, localId: Long) {
+    (this as HashMap<Col<TBL, T>, HashMap<Long, Any?>>).getOrPut(cv.col, ::HashMap)[localId] = cv.value
 }
 
 @Suppress("UPPER_BOUND_VIOLATED")
-internal inline val Table<*, *>.erased
-    get() = this as Table<Any, IdBound>
+internal inline val Table<*, *, *>.erased
+    get() = this as Table<Any, IdBound, Record<Any, IdBound>>
 
 @Suppress("UPPER_BOUND_VIOLATED")
 internal inline val Col<*, *>.erased

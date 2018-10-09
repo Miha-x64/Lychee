@@ -11,14 +11,14 @@ import java.util.Collections.unmodifiableList
  * @see Struct
  * @see FieldDef
  */
-abstract class StructDef<STRUCT : Struct<STRUCT>>(
+abstract class StructDef<SELF : StructDef<SELF>>(
         val name: String
 ) {
 
     /**
      * A temporary list of [FieldDef]s used while [StructDef] is getting constructed.
      */
-    private var tmpFields: ArrayList<FieldDef<STRUCT, *>>? = ArrayList()
+    private var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
 
     /**
      * A list of fields of this struct.
@@ -28,7 +28,7 @@ abstract class StructDef<STRUCT : Struct<STRUCT>>(
      *   so let it be synchronized (it's default [lazy] mode).
      * }
      */
-    val fields: List<FieldDef<STRUCT, *>> by lazy {
+    val fields: List<FieldDef<SELF, *>> by lazy {
         val fields = tmpFields()
         check(fields.isNotEmpty()) { "Struct must have at least one field." }
         //          ^ note: isManaged also relies on the fact that any struct has at least one field.
@@ -50,7 +50,7 @@ abstract class StructDef<STRUCT : Struct<STRUCT>>(
     /**
      * Gets called before this fully initialized structDef gets used for the first time.
      */
-    protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<STRUCT, *>>) { }
+    protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *>>) { }
 
     private fun tmpFields() =
             tmpFields ?: throw IllegalStateException("table `$name` is already initialized")
@@ -58,7 +58,7 @@ abstract class StructDef<STRUCT : Struct<STRUCT>>(
     /**
      * Creates, remembers and returns a new mutable field definition.
      */
-    protected infix fun <T> Converter<T>.mutable(name: String): FieldDef.Mutable<STRUCT, T> {
+    protected infix fun <T> Converter<T>.mutable(name: String): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
         val converter = this@mutable
         val col = FieldDef.Mutable(this@StructDef, name, converter, fields.size.toByte())
@@ -69,7 +69,7 @@ abstract class StructDef<STRUCT : Struct<STRUCT>>(
     /**
      * Creates, remembers and returns a new immutable field definition.
      */
-    protected infix fun <T> Converter<T>.immutable(name: String): FieldDef.Immutable<STRUCT, T> {
+    protected infix fun <T> Converter<T>.immutable(name: String): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
         val converter = this@immutable
         val col = FieldDef.Immutable(this@StructDef, name, converter, fields.size.toByte())
@@ -84,12 +84,17 @@ abstract class StructDef<STRUCT : Struct<STRUCT>>(
  * @see StructDef
  * @see FieldDef
  */
-interface Struct<THIS : Struct<THIS>> {
+interface Struct<DEF : StructDef<DEF>> {
+
+    /**
+     * Represents the type of this struct.
+     */
+    val type: StructDef<DEF>
 
     /**
      * Returns the value of the requested field.
      */
-    fun <T> getValue(field: FieldDef<THIS, T>): T
+    fun <T> getValue(field: FieldDef<DEF, T>): T
 
 }
 
@@ -101,8 +106,8 @@ interface Struct<THIS : Struct<THIS>> {
  * @see Mutable
  * @see Immutable
  */
-sealed class FieldDef<STRUCT : Struct<STRUCT>, T>(
-        val structDef: StructDef<STRUCT>,
+sealed class FieldDef<DEF : StructDef<DEF>, T>(
+        val structDef: StructDef<DEF>,
         val name: String,
         val converter: Converter<T>,
         val ordinal: Byte
@@ -117,22 +122,22 @@ sealed class FieldDef<STRUCT : Struct<STRUCT>, T>(
     /**
      * Represents a mutable field of a [Struct]: its value can be changed.
      */
-    class Mutable<STRUCT : Struct<STRUCT>, T> internal constructor(
-            structDef: StructDef<STRUCT>,
+    class Mutable<DEF : StructDef<DEF>, T> internal constructor(
+            structDef: StructDef<DEF>,
             name: String,
             converter: Converter<T>,
             ordinal: Byte
-    ) : FieldDef<STRUCT, T>(structDef, name, converter, ordinal)
+    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal)
 
     /**
      * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
      */
-    class Immutable<STRUCT : Struct<STRUCT>, T> internal constructor(
-            structDef: StructDef<STRUCT>,
+    class Immutable<DEF : StructDef<DEF>, T> internal constructor(
+            structDef: StructDef<DEF>,
             name: String,
             converter: Converter<T>,
             ordinal: Byte
-    ) : FieldDef<STRUCT, T>(structDef, name, converter, ordinal)
+    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal)
 
 }
 
