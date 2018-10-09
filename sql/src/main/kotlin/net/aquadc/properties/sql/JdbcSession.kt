@@ -27,21 +27,23 @@ class JdbcSession(
 
     private val lock = ReentrantReadWriteLock()
 
-    override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): Dao<REC, ID> =
-            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as Dao<REC, ID>
+    override fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(
+            table: Table<TBL, ID, REC>
+    ): Dao<TBL, ID, REC> =
+            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as Dao<TBL, ID, REC>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *>, List<Col<*, *>>>, PreparedStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *>, Col<*, *>>, PreparedStatement>()
-    private val deleteStatements = HashMap<Table<*, *>, PreparedStatement>()
+    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<Col<*, *>>>, PreparedStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *, *>, Col<*, *>>, PreparedStatement>()
+    private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
     private val lowLevel = object : LowLevelSession {
 
-        override fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean {
+        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> exists(table: Table<TBL, ID, *>, primaryKey: ID): Boolean {
             val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
             return when (count) {
                 0L -> false
@@ -50,12 +52,12 @@ class JdbcSession(
             }
         }
 
-        private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): PreparedStatement =
+        private fun <TBL : Table<TBL, *, *>> insertStatementWLocked(table: Table<TBL, *, *>, cols: Array<Col<TBL, *>>): PreparedStatement =
                 insertStatements.getOrPut(Pair(table, cols.asList())) {
                     connection.prepareStatement(dialect.insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
                 }
 
-        override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, cols: Array<Col<REC, *>>, vals: Array<Any?>): ID {
+        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
             cols.forEachIndexed { idx, col -> (col.converter as JdbcConverter<*>).erased.bind(statement, idx, vals[idx]) }
             check(statement.executeUpdate() == 1)
@@ -63,40 +65,40 @@ class JdbcSession(
             return keys.fetchSingle(table.idColConverter as JdbcConverter<ID>)
         }
 
-        private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): PreparedStatement =
+        private fun <TBL : Table<TBL, *, *>> updateStatementWLocked(table: Table<TBL, *, *>, col: Col<TBL, *>): PreparedStatement =
                 updateStatements.getOrPut(Pair(table, col)) {
                     connection.prepareStatement(dialect.updateFieldQuery(table, col))
                 }
 
-        override fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T) {
+        override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
             (column.converter as JdbcConverter<T>).bind(statement, 0, value)
             (table.idColConverter as JdbcConverter<ID>).bind(statement, 1, id)
             check(statement.executeUpdate() == 1)
         }
 
-        override fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
+        override fun <ID : IdBound> localId(table: Table<*, ID, *>, id: ID): Long = when (id) {
             is Int -> id.toLong()
             is Long -> id
             else -> TODO("${id.javaClass} keys support")
         }
 
-        override fun <ID : IdBound> primaryKey(table: Table<*, ID>, localId: Long): ID =
+        override fun <ID : IdBound> primaryKey(table: Table<*, ID, *>, localId: Long): ID =
                 localId as ID // todo
 
-        private fun deleteStatementWLocked(table: Table<*, *>): PreparedStatement =
+        private fun deleteStatementWLocked(table: Table<*, *, *>): PreparedStatement =
                 deleteStatements.getOrPut(table) {
                     connection.prepareStatement(dialect.deleteRecordQuery(table))
                 }
 
-        override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID>, primaryKey: ID): Long {
+        override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long {
             val statement = deleteStatementWLocked(table)
             (table.idColConverter as JdbcConverter<ID>).bind(statement, 0, primaryKey)
             check(statement.executeUpdate() == 1)
             return localId(table, primaryKey)
         }
 
-        override val daos = ConcurrentHashMap<Table<*, *>, RealDao<*, *>>()
+        override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()
 
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
@@ -116,11 +118,11 @@ class JdbcSession(
             }
         }
 
-        private fun <ID : IdBound, REC : Record<REC, ID>> select(
+        private fun <ID : IdBound, TBL : Table<TBL, ID, *>> select(
                 columnName: String?,
-                table: Table<REC, ID>,
-                condition: WhereCondition<out REC>,
-                order: Array<out Order<out REC>>
+                table: Table<TBL, ID, *>,
+                condition: WhereCondition<out TBL>,
+                order: Array<out Order<out TBL>>
         ): ResultSet {
             val query =
                     if (columnName == null) dialect.selectCountQuery(table, condition)
@@ -142,11 +144,13 @@ class JdbcSession(
                     .executeQuery()
         }
 
-        override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
+        override fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(
+                column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>
+        ): T =
                 select(column.name, table, condition, NoOrder).fetchSingle(column.converter as JdbcConverter<T>)
 
-        override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(
-                table: Table<REC, ID>, condition: WhereCondition<out REC>, order: Array<out Order<REC>>
+        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
+                table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColConverter as JdbcConverter<ID>)
@@ -160,7 +164,7 @@ class JdbcSession(
             return values as List<T>
         }
 
-        override fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(table: Table<REC, ID>, condition: WhereCondition<out REC>): Long =
+        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchCount(table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): Long =
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
@@ -168,9 +172,11 @@ class JdbcSession(
 
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
-        override fun <REC : Record<REC, *>, T : Any> reusableCond(table: Table<REC, *>, colName: String, value: T): ColCond<REC, T> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<REC, T>>).getOrSet {
-                ColCond(table.fields[0] as Col<REC, T>, " = ?", value)
+        override fun <TBL : Table<TBL, *, *>, T : Any> reusableCond(
+                table: Table<TBL, *, *>, colName: String, value: T
+        ): ColCond<TBL, T> {
+            val condition = (localReusableCond as ThreadLocal<ColCond<TBL, T>>).getOrSet {
+                ColCond(table.fields[0] as Col<TBL, T>, " = ?", value)
             }
             condition.colName = colName
             condition.valueOrValues = value
@@ -197,7 +203,7 @@ class JdbcSession(
 
     fun dump(sb: StringBuilder) {
         sb.append("DAOs\n")
-        lowLevel.daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
+        lowLevel.daos.forEach { (table: Table<*, *, *>, dao: Dao<*, *, *>) ->
             sb.append(" ").append(table.name).append("\n")
             dao.dump("  ", sb)
         }

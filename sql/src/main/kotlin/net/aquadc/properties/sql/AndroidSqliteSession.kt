@@ -20,24 +20,24 @@ class AndroidSqliteSession(
 
     private val lock = ReentrantReadWriteLock()
 
-    override fun <REC : Record<REC, ID>, ID : IdBound> get(table: Table<REC, ID>): Dao<REC, ID> =
+    override fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(table: Table<TBL, ID, REC>): Dao<TBL, ID, REC> =
             lowLevel.daos.getOrPut(table) {
                 check(table.idColConverter === long)
                 RealDao(this, lowLevel, table, SqliteDialect)
-            } as Dao<REC, ID>
+            } as Dao<TBL, ID, REC>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
 //    private val selectStatements = ThreadLocal<HashMap<String, SQLiteStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *>, List<Col<*, *>>>, SQLiteStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *>, Col<*, *>>, SQLiteStatement>()
-    private val deleteStatements = HashMap<Table<*, *>, SQLiteStatement>()
+    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<Col<*, *>>>, SQLiteStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *, *>, Col<*, *>>, SQLiteStatement>()
+    private val deleteStatements = HashMap<Table<*, *, *>, SQLiteStatement>()
 
     private val lowLevel = object : LowLevelSession {
 
-        override fun <REC : Record<REC, ID>, ID : IdBound> exists(table: Table<REC, ID>, primaryKey: ID): Boolean {
+        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> exists(table: Table<TBL, ID, *>, primaryKey: ID): Boolean {
 
             val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
             return when (count) {
@@ -47,12 +47,12 @@ class AndroidSqliteSession(
             }
         }
 
-        private fun <REC : Record<REC, *>> insertStatementWLocked(table: Table<REC, *>, cols: Array<Col<REC, *>>): SQLiteStatement =
+        private fun <TBL : Table<TBL, *, *>> insertStatementWLocked(table: Table<TBL, *, *>, cols: Array<Col<TBL, *>>): SQLiteStatement =
                 insertStatements.getOrPut(Pair(table, cols.asList())) {
                     connection.compileStatement(SqliteDialect.insertQuery(table, cols))
                 }
 
-        override fun <REC : Record<REC, ID>, ID : IdBound> insert(table: Table<REC, ID>, cols: Array<Col<REC, *>>, vals: Array<Any?>): ID {
+        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
             cols.forEachIndexed { idx, col -> (col.converter as AndroidSqliteConverter<*>).erased.bind(statement, idx, vals[idx]) }
             val id = statement.executeInsert()
@@ -60,40 +60,40 @@ class AndroidSqliteSession(
             return id as ID
         }
 
-        private fun <REC : Record<REC, *>> updateStatementWLocked(table: Table<REC, *>, col: Col<REC, *>): SQLiteStatement =
+        private fun <TBL : Table<TBL, *, *>> updateStatementWLocked(table: Table<TBL, *, *>, col: Col<TBL, *>): SQLiteStatement =
                 updateStatements.getOrPut(Pair(table, col)) {
                     connection.compileStatement(SqliteDialect.updateFieldQuery(table, col))
                 }
 
-        override fun <REC : Record<REC, ID>, ID : IdBound, T> update(table: Table<REC, ID>, id: ID, column: Col<REC, T>, value: T) {
+        override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
             (column.converter as AndroidSqliteConverter<T>).bind(statement, 0, value)
             (table.idColConverter as AndroidSqliteConverter<ID>).bind(statement, 1, id)
             check(statement.executeUpdateDelete() == 1)
         }
 
-        override fun <ID : IdBound> localId(table: Table<*, ID>, id: ID): Long = when (id) {
+        override fun <ID : IdBound> localId(table: Table<*, ID, *>, id: ID): Long = when (id) {
             is Int -> id.toLong()
             is Long -> id
             else -> throw AssertionError()
         }
 
-        override fun <ID : IdBound> primaryKey(table: Table<*, ID>, localId: Long): ID =
+        override fun <ID : IdBound> primaryKey(table: Table<*, ID, *>, localId: Long): ID =
                 localId as ID
 
-        private fun deleteStatementWLocked(table: Table<*, *>): SQLiteStatement =
+        private fun deleteStatementWLocked(table: Table<*, *, *>): SQLiteStatement =
                 deleteStatements.getOrPut(table) {
                     connection.compileStatement(SqliteDialect.deleteRecordQuery(table))
                 }
 
-        override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID>, primaryKey: ID): Long {
+        override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long {
             val statement = deleteStatementWLocked(table)
             (table.idColConverter as AndroidSqliteConverter<ID>).bind(statement, 0, primaryKey)
             check(statement.executeUpdateDelete() == 1)
             return localId(table, primaryKey)
         }
 
-        override val daos = ConcurrentHashMap<Table<*, *>, RealDao<*, *>>()
+        override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()
 
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
@@ -112,13 +112,13 @@ class AndroidSqliteSession(
             }
         }
 
-        private fun <ID : IdBound, REC : Record<REC, ID>> select(
+        private fun <ID : IdBound, TBL : Table<TBL, ID, *>> select(
                 columnName: String?,
-                table: Table<REC, ID>,
-                condition: WhereCondition<out REC>,
-                order: Array<out Order<out REC>>
+                table: Table<TBL, ID, *>,
+                condition: WhereCondition<out TBL>,
+                order: Array<out Order<out TBL>>
         ): Cursor {
-            val args = ArrayList<Pair<String, Any>>()
+            val args = ArrayList<Pair<String, Any>>() // why not `Any?`? Because you can't treat ` = ?` as `IS NULL`.
             condition.appendValuesTo(args)
 
             val selectionArgs = args.mapToArray { (name, value) ->
@@ -139,11 +139,11 @@ class AndroidSqliteSession(
             }
         }
 
-        override fun <ID : IdBound, REC : Record<REC, ID>, T> fetchSingle(column: Col<REC, T>, table: Table<REC, ID>, condition: WhereCondition<out REC>): T =
+        override fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): T =
                 select(column.name, table, condition, NoOrder).fetchSingle(column.converter as AndroidSqliteConverter<T>)
 
-        override fun <ID : IdBound, REC : Record<REC, ID>> fetchPrimaryKeys(
-                table: Table<REC, ID>, condition: WhereCondition<out REC>, order: Array<out Order<REC>>
+        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
+                table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColConverter as AndroidSqliteConverter<ID>) // converter here is obviously 'long', may seriously optimize this place
@@ -163,7 +163,7 @@ class AndroidSqliteSession(
             return values as List<T>
         }
 
-        override fun <ID : IdBound, REC : Record<REC, ID>> fetchCount(table: Table<REC, ID>, condition: WhereCondition<out REC>): Long =
+        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchCount(table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): Long =
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
@@ -171,9 +171,9 @@ class AndroidSqliteSession(
 
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
-        override fun <REC : Record<REC, *>, T : Any> reusableCond(table: Table<REC, *>, colName: String, value: T): ColCond<REC, T> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<REC, T>>).getOrSet {
-                ColCond(table.fields[0] as Col<REC, T>, " = ?", value)
+        override fun <TBL : Table<TBL, *, *>, T : Any> reusableCond(table: Table<TBL, *, *>, colName: String, value: T): ColCond<TBL, T> {
+            val condition = (localReusableCond as ThreadLocal<ColCond<TBL, T>>).getOrSet {
+                ColCond(table.fields[0] as Col<TBL, T>, " = ?", value)
             }
             condition.colName = colName
             condition.valueOrValues = value
@@ -201,7 +201,7 @@ class AndroidSqliteSession(
 
     fun dump(sb: StringBuilder) {
         sb.append("DAOs\n")
-        lowLevel.daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
+        lowLevel.daos.forEach { (table: Table<*, *, *>, dao: Dao<*, *, *>) ->
             sb.append(" ").append(table.name).append("\n")
             dao.dump("  ", sb)
         }

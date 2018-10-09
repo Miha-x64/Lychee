@@ -11,24 +11,24 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 // TODO: evicting stale records, counts, and selections
-internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
+internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>>(
         private val session: Session,
         private val lowSession: LowLevelSession,
-        private val table: Table<REC, ID>,
+        private val table: Table<TBL, ID, REC>,
         private val dialect: Dialect
-) : Dao<REC, ID>, Manager<Transaction> {
+) : Dao<TBL, ID, REC>, Manager<Transaction> {
 
     private val records = ConcurrentHashMap<Long, REC>()
 
     // SELECT COUNT(*) WHERE ...
-    private val counts = ConcurrentHashMap<WhereCondition<out REC>, MutableProperty<WhereCondition<out REC>>>()
+    private val counts = ConcurrentHashMap<WhereCondition<out TBL>, MutableProperty<WhereCondition<out TBL>>>()
 
     // SELECT _id WHERE ...
-    private val selections = Vector<MutableProperty<WhereCondition<out REC>>>() // coding like in 1995, yay! TODO: deduplication
+    private val selections = Vector<MutableProperty<WhereCondition<out TBL>>>() // coding like in 1995, yay! TODO: deduplication
 
-    private val orderedSelections = ConcurrentHashMap<FieldDef<REC, *>, Vector<MutableProperty<WhereCondition<out REC>>>>()
+    private val orderedSelections = ConcurrentHashMap<FieldDef<TBL, *>, Vector<MutableProperty<WhereCondition<out TBL>>>>()
 
-    internal fun <T> commitValue(localId: Long, column: Col<REC, T>, value: T) {
+    internal fun <T> commitValue(localId: Long, column: Col<TBL, T>, value: T) {
         (records[localId]?.fields?.get(column.ordinal.toInt()) as ManagedProperty<Transaction, T>?)?.commit(value)
     }
 
@@ -47,7 +47,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         }
     }
 
-    internal fun onOrderChange(affectedCols: List<Col<REC, *>>) {
+    internal fun onOrderChange(affectedCols: List<Col<TBL, *>>) {
         affectedCols.forEach { col ->
             orderedSelections[col]?.forEach {
                 it.value = it.value
@@ -81,7 +81,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
         return records.getOrPut<Long, REC>(localId) { table.create(session, id) }
     }
 
-    override fun select(condition: WhereCondition<out REC>, vararg order: Order<REC>): Property<List<REC>> {
+    override fun select(condition: WhereCondition<out TBL>, vararg order: Order<TBL>): Property<List<REC>> {
         val prop = concurrentPropertyOf(condition)
         selections.add(prop)
         order.forEach { orderedSelections.getOrPut(it.col, ::Vector).add(prop) }
@@ -91,7 +91,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
                 .map(Query(this, table, lowSession, condition, order))
     }
 
-    override fun count(condition: WhereCondition<out REC>): Property<Long> =
+    override fun count(condition: WhereCondition<out TBL>): Property<Long> =
             counts.getOrPut(condition) {
                 concurrentPropertyOf(condition)
             }.map(Count(table, lowSession)) // todo cache, too
@@ -100,7 +100,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
 
     // region low-level Dao implementation
 
-    override fun <T> createFieldOf(col: Col<REC, T>, id: ID): ManagedProperty<Transaction, T> {
+    override fun <T> createFieldOf(col: Col<TBL, T>, id: ID): ManagedProperty<Transaction, T> {
         val localId = lowSession.localId(table, id)
         return ManagedProperty(this, col, localId)
     }
@@ -112,7 +112,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
     override fun <T> getDirty(column: FieldDef<*, T>, id: Long): T {
         val transaction = lowSession.transaction ?: return unset()
 
-        val thisCol = transaction.updated?.getFor(column as Col<REC, T>) ?: return unset()
+        val thisCol = transaction.updated?.getFor(column as Col<TBL, T>) ?: return unset()
         // we've created this column, we can cast it to original type
 
         val localId = id
@@ -122,14 +122,14 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
 
     @Suppress("UPPER_BOUND_VIOLATED")
     override fun <T> getClean(column: FieldDef<*, T>, id: Long): T {
-        val col = column as Col<REC, T>
+        val col = column as Col<TBL, T>
         val primaryKey = lowSession.primaryKey(table, id)
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(col, table, condition)
     }
 
     override fun <T> set(transaction: Transaction, column: FieldDef<*, T>, id: Long, update: T) {
-        column as Col<REC, T>
+        column as Col<TBL, T>
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
             if (ourTransact === null)
@@ -145,7 +145,7 @@ internal class RealDao<REC : Record<REC, ID>, ID : IdBound>(
             return
         }
 
-        transaction.update<REC, ID, T>(table, lowSession.primaryKey(table, id), column, update)
+        transaction.update<TBL, ID, T>(table, lowSession.primaryKey(table, id), column, update)
     }
 
     // endregion Manager implementation

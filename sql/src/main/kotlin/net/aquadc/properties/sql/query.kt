@@ -8,11 +8,11 @@ import java.util.*
 
 
 /**
- * A condition for record of type [REC].
+ * A condition for record of type [TBL].
  * API is mostly borrowed from
  * https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/DaoCore/src/main/java/org/greenrobot/greendao/Property.java
  */
-interface WhereCondition<REC : Record<REC, *>> {
+interface WhereCondition<TBL : Table<TBL, *, *>> {
 
     /**
      * Appends corresponding part of SQL query to [builder] using [dialect].
@@ -34,7 +34,7 @@ interface WhereCondition<REC : Record<REC, *>> {
 
 }
 
-internal class ColCond<REC : Record<REC, *>, T> : WhereCondition<REC> {
+internal class ColCond<TBL : Table<TBL, *, *>, T> : WhereCondition<TBL> {
 
     // mutable for internal code, he-he
     @JvmField @JvmSynthetic internal var colName: String
@@ -42,14 +42,14 @@ internal class ColCond<REC : Record<REC, *>, T> : WhereCondition<REC> {
     private val singleValue: Boolean
     @JvmField @JvmSynthetic internal var valueOrValues: Any // if (singleValue) Any else Array<Any>
 
-    constructor(col: Col<REC, T>, op: CharSequence, value: Any) {
+    constructor(col: Col<TBL, T>, op: CharSequence, value: Any) {
         this.colName = col.name
         this.op = op
         this.singleValue = true
         this.valueOrValues = value
     }
 
-    constructor(col: Col<REC, T>, op: CharSequence, values: Array<Any>) {
+    constructor(col: Col<TBL, T>, op: CharSequence, values: Array<Any>) {
         this.colName = col.name
         this.op = op
         this.singleValue = false
@@ -66,11 +66,11 @@ internal class ColCond<REC : Record<REC, *>, T> : WhereCondition<REC> {
 
 }
 
-internal class BiCond<REC : Record<REC, *>>(
-        private val left: WhereCondition<REC>,
+internal class BiCond<TBL : Table<TBL, *, *>>(
+        private val left: WhereCondition<TBL>,
         private val and: Boolean,
-        private val right: WhereCondition<REC>
-) : WhereCondition<REC> {
+        private val right: WhereCondition<TBL>
+) : WhereCondition<TBL> {
 
     override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder {
         builder.append('(')
@@ -87,50 +87,50 @@ internal class BiCond<REC : Record<REC, *>>(
 
 }
 
-infix fun <REC : Record<REC, *>, T> Col<REC, T>.eq(value: T): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T> Col<TBL, T>.eq(value: T): WhereCondition<TBL> =
         if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
         else ColCond(this, " = ?", value as Any)
 
-infix fun <REC : Record<REC, *>, T> Col<REC, T>.notEq(value: T): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T> Col<TBL, T>.notEq(value: T): WhereCondition<TBL> =
         if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
         else ColCond(this, " <> ?", value as Any)
 
-infix fun <REC : Record<REC, *>, T : String?> Col<REC, T>.like(value: String): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : String?> Col<TBL, T>.like(value: String): WhereCondition<TBL> =
         ColCond(this, " LIKE ?", value)
 
-infix fun <REC : Record<REC, *>, T : String?> Col<REC, T>.notLike(value: String): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : String?> Col<TBL, T>.notLike(value: String): WhereCondition<TBL> =
         ColCond(this, " NOT LIKE ?", value)
 
 // let U be nullable, but not T
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.between(range: Array<T>): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.between(range: Array<T>): WhereCondition<TBL> =
         ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.notBetween(range: Array<T>): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.notBetween(range: Array<T>): WhereCondition<TBL> =
         ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.isIn(values: Array<T>): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.isIn(values: Array<T>): WhereCondition<TBL> =
         ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.notIn(values: Array<T>): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.notIn(values: Array<T>): WhereCondition<TBL> =
         ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.greaterThan(value: T): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.greaterThan(value: T): WhereCondition<TBL> =
         ColCond(this, " > ?", value)
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.greaterOrEq(value: T): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.greaterOrEq(value: T): WhereCondition<TBL> =
         ColCond(this, " >= ?", value)
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.lessThan(value: T): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.lessThan(value: T): WhereCondition<TBL> =
         ColCond(this, " < ?", value)
 
-infix fun <REC : Record<REC, *>, T : Any, U : T> Col<REC, U>.lessOrEq(value: T): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.lessOrEq(value: T): WhereCondition<TBL> =
         ColCond(this, " <= ?", value)
 
 
-infix fun <REC : Record<REC, *>> WhereCondition<REC>.and(that: WhereCondition<REC>): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>> WhereCondition<TBL>.and(that: WhereCondition<TBL>): WhereCondition<TBL> =
         BiCond(this, true, that)
 
-infix fun <REC : Record<REC, *>> WhereCondition<REC>.or(that: WhereCondition<REC>): WhereCondition<REC> =
+infix fun <TBL : Table<TBL, *, *>> WhereCondition<TBL>.or(that: WhereCondition<TBL>): WhereCondition<TBL> =
         BiCond(this, false, that)
 
 
