@@ -1,4 +1,4 @@
-package net.aquadc.persistence.converter
+package net.aquadc.persistence.type
 
 import net.aquadc.persistence.stream.CleverDataInput
 import net.aquadc.persistence.stream.CleverDataOutput

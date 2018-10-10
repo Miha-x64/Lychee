@@ -1,4 +1,4 @@
-package net.aquadc.persistence.converter
+package net.aquadc.persistence.type
 
 import android.content.SharedPreferences
 import android.database.Cursor
@@ -257,38 +257,5 @@ private class BasicConverter<T>(
 
 }
 
-@JvmField val bool: UniversalConverter<Boolean> = BasicConverter(t(), DataTypes.Bool, false)
-@JvmField val nullableBool: UniversalConverter<Boolean?> = BasicConverter(t(), DataTypes.Bool, true)
-
-@JvmField val byte: UniversalConverter<Byte> = BasicConverter(t(), DataTypes.Int8, false)
-@JvmField val nullableByte: UniversalConverter<Byte?> = BasicConverter(t(), DataTypes.Int8, true)
-
-@JvmField val short: UniversalConverter<Short> = BasicConverter(t(), DataTypes.Int16, false)
-@JvmField val nullableShort: UniversalConverter<Short?> = BasicConverter(t(), DataTypes.Int16, true)
-
-@JvmField val int: UniversalConverter<Int> = BasicConverter(t(), DataTypes.Int32, false)
-@JvmField val nullableInt: UniversalConverter<Int?> = BasicConverter(t(), DataTypes.Int32, true)
-
-@JvmField val long: UniversalConverter<Long> = BasicConverter(t(), DataTypes.Int64, false)
-@JvmField val nullableLong: UniversalConverter<Long?> = BasicConverter(t(), DataTypes.Int64, true)
-
-@JvmField val float: UniversalConverter<Float> = BasicConverter(t(), DataTypes.Float32, false)
-@JvmField val nullableFloat: UniversalConverter<Float?> = BasicConverter(t(), DataTypes.Float32, true)
-
-@JvmField val double: UniversalConverter<Double> = BasicConverter(t(), DataTypes.Float64, false)
-@JvmField val nullableDouble: UniversalConverter<Double?> = BasicConverter(t(), DataTypes.Float64, true)
-
-@JvmField val string: UniversalConverter<String> = BasicConverter(t(), DataTypes.LargeString, false)
-@JvmField val nullableString: UniversalConverter<String?> = BasicConverter(t(), DataTypes.LargeString, true)
-
-@Deprecated("Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
-        "Consider using immutable ByteString instead.", ReplaceWith("byteString"))
-@JvmField val bytes: UniversalConverter<ByteArray> = BasicConverter(t(), DataTypes.LargeBlob, false)
-
-@Deprecated("Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
-        "Consider using immutable ByteString instead.", ReplaceWith("nullableByteString"))
-@JvmField val nullableBytes: UniversalConverter<ByteArray?> = BasicConverter(t(), DataTypes.LargeBlob, true)
 
 
-// Date is not supported because it's mutable and the most parts of it are deprecated 20+ years ago.
-// TODO: To be considered...

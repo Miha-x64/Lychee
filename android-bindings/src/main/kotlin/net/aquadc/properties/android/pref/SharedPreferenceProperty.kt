@@ -1,7 +1,7 @@
 package net.aquadc.properties.android.pref
 
 import android.content.SharedPreferences
-import net.aquadc.persistence.converter.PrefsConverter
+import net.aquadc.persistence.type.PrefsConverter
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property

@@ -1,4 +1,4 @@
-package net.aquadc.persistence.converter
+package net.aquadc.persistence.type
 
 @Suppress("RedundantModalityModifier")
 @PublishedApi internal open class EnumConverter<E : Enum<E>>(

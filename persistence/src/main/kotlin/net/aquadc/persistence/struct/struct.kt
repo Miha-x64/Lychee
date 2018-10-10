@@ -1,6 +1,6 @@
 package net.aquadc.persistence.struct
 
-import net.aquadc.persistence.converter.Converter
+import net.aquadc.persistence.type.Converter
 import java.util.*
 import java.util.Collections.unmodifiableList
 
@@ -80,7 +80,8 @@ abstract class StructDef<SELF : StructDef<SELF>>(
 }
 
 /**
- * Represents an instance of a struct.
+ * Represents an instance of a struct —
+ * a heterogeneous statically typed map with [String] keys.
  * @see StructDef
  * @see FieldDef
  */
@@ -93,6 +94,7 @@ interface Struct<DEF : StructDef<DEF>> {
 
     /**
      * Returns the value of the requested field.
+     * fixme: rename to operator get
      */
     fun <T> getValue(field: FieldDef<DEF, T>): T
 
@@ -105,6 +107,7 @@ interface Struct<DEF : StructDef<DEF>> {
  * @see Struct
  * @see Mutable
  * @see Immutable
+ * TODO: replace with inline-class wrapping Byte
  */
 sealed class FieldDef<DEF : StructDef<DEF>, T>(
         val structDef: StructDef<DEF>,

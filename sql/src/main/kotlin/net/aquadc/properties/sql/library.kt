@@ -8,7 +8,7 @@ import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.StructDef
-import net.aquadc.persistence.converter.Converter
+import net.aquadc.persistence.type.Converter
 import net.aquadc.persistence.struct.BaseStruct
 
 
