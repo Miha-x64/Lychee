@@ -1,7 +1,7 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.converter.Converter
+import net.aquadc.persistence.type.Converter
 import net.aquadc.properties.MutableProperty
 import java.util.*
 
@@ -52,35 +52,35 @@ interface PropertyIo {
 
 /** Reads or writes a [Boolean] value */
 @JvmName("bool") inline infix fun PropertyIo.x(prop: MutableProperty<Boolean>) =
-        net.aquadc.persistence.converter.bool.invoke(prop)
+        net.aquadc.persistence.type.bool.invoke(prop)
 
 /** Reads or writes a [Byte] value */
 @JvmName("byte") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>) =
-        net.aquadc.persistence.converter.byte.invoke(prop)
+        net.aquadc.persistence.type.byte.invoke(prop)
 
 /** Reads or writes a [Short] value */
 @JvmName("short") inline infix fun PropertyIo.x(prop: MutableProperty<Short>) =
-        net.aquadc.persistence.converter.short.invoke(prop)
+        net.aquadc.persistence.type.short.invoke(prop)
 
 /** Reads or writes an [Int] value */
 @JvmName("int") inline infix fun PropertyIo.x(prop: MutableProperty<Int>) =
-        net.aquadc.persistence.converter.int.invoke(prop)
+        net.aquadc.persistence.type.int.invoke(prop)
 
 /** Reads or writes a [Long] value */
 @JvmName("long") inline infix fun PropertyIo.x(prop: MutableProperty<Long>) =
-        net.aquadc.persistence.converter.long.invoke(prop)
+        net.aquadc.persistence.type.long.invoke(prop)
 
 /** Reads or writes a [Float] value */
 @JvmName("float") inline infix fun PropertyIo.x(prop: MutableProperty<Float>) =
-        net.aquadc.persistence.converter.float.invoke(prop)
+        net.aquadc.persistence.type.float.invoke(prop)
 
 /** Reads or writes a [Double] value */
 @JvmName("double") inline infix fun PropertyIo.x(prop: MutableProperty<Double>) =
-        net.aquadc.persistence.converter.double.invoke(prop)
+        net.aquadc.persistence.type.double.invoke(prop)
 
 /** Reads or writes a [ByteArray] */
 @JvmName("bytes") inline infix fun PropertyIo.x(prop: MutableProperty<ByteArray>) =
-        net.aquadc.persistence.converter.bytes.invoke(prop)
+        net.aquadc.persistence.type.bytes.invoke(prop)
 
 /** Reads or writes a [CharArray] */ @Deprecated("not sure whether it is useful")
 @JvmName("chars") inline infix fun PropertyIo.x(prop: MutableProperty<CharArray>) = chars(prop)
@@ -99,7 +99,7 @@ interface PropertyIo {
 
 /** Reads or writes a [String] */
 @JvmName("string") inline infix fun PropertyIo.x(prop: MutableProperty<String>) =
-        net.aquadc.persistence.converter.string.invoke(prop)
+        net.aquadc.persistence.type.string.invoke(prop)
 
 /** Reads or writes a [List] of [String]s */ // todo: implement String[], List<String> in common converters
 @JvmName("stringList") inline infix fun PropertyIo.x(prop: MutableProperty<List<String>>) = stringList(prop)

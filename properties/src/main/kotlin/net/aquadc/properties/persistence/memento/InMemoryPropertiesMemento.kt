@@ -1,7 +1,7 @@
 package net.aquadc.properties.persistence.memento
 
-import net.aquadc.persistence.converter.Converter
-import net.aquadc.persistence.converter.DataIoConverter
+import net.aquadc.persistence.type.Converter
+import net.aquadc.persistence.type.DataIoConverter
 import net.aquadc.persistence.stream.CleverDataOutput
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.persistence.*

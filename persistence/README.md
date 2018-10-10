@@ -1,10 +1,9 @@
 
 This module contains some utility methods to work with persistence and I/O streams.
 
-### [.converter package](/persistence/src/main/kotlin/net/aquadc/persistence/converter)
+### [.type package](/persistence/src/main/kotlin/net/aquadc/persistence/type)
 
-Contains converters from Java types (primitive, strings, arrays)
-to JDBC, Android SQLite, and readers/writers to/from input/output streams.
+Simplifies and generalises Java and Kotlin type systems.
 
 ### [.stream package](/persistence/src/main/kotlin/net/aquadc/persistence/stream)
 

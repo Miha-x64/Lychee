@@ -1,8 +1,8 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.properties.sql.dialect.Dialect
-import net.aquadc.persistence.converter.JdbcConverter
-import net.aquadc.persistence.converter.long
+import net.aquadc.persistence.type.JdbcConverter
+import net.aquadc.persistence.type.long
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet

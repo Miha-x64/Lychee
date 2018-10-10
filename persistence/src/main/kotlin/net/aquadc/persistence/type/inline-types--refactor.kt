@@ -1,5 +1,5 @@
 // this is still SQLite-specific since it uses "TEXT" to store enum names :)
-package net.aquadc.persistence.converter
+package net.aquadc.persistence.type
 
 import java.lang.AssertionError
 
