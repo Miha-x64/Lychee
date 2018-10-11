@@ -85,7 +85,7 @@ interface Transaction : AutoCloseable {
 
 }
 
-class Order<TBL : Table<TBL, *, *>>( // fixme replace with typealias to Pair
+class Order<TBL : Table<TBL, *, *>>(
         @JvmField internal val col: Col<TBL, *>,
         @JvmField internal val desc: Boolean
 )
@@ -181,7 +181,7 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
 }
 
 
-class ColValue<TBL : Table<TBL, *, *>, T>(val col: Col<TBL, T>, val value: T) // TODO replace with typealias
+class ColValue<TBL : Table<TBL, *, *>, T>(val col: Col<TBL, T>, val value: T)
 
 /**
  * Creates a type-safe mapping from a column to its value.
