@@ -25,8 +25,8 @@ class Human(session: Session, id: Long) : Record<Human.Schema, Long>(Human.Schem
             .select((Friendship.LeftId eq id) or (Friendship.RightId eq id))
 
     companion object Schema : Table<Schema, Long, Human>("people", long, "_id") {
-        val Name = string immutable "name"
-        val Surname = string immutable "surname"
+        val Name = "name" let string
+        val Surname = "surname" let string
 
         override fun create(session: Session, id: Long): Human = Human(session, id)
     }
@@ -39,8 +39,8 @@ class Car(session: Session, id: Long) : Record<Car.Schema, Long>(Schema, session
     val conditionerModelProp get() = this[Schema.ConditionerModel]
 
     companion object Schema : Table<Schema, Long, Car>("cars", long, "_id") {
-        val OwnerId = long immutable "owner_id"
-        val ConditionerModel = nullableString immutable "conditioner_model"
+        val OwnerId = "owner_id" let long
+        val ConditionerModel = "conditioner_model" let nullableString
 
         override fun create(session: Session, id: Long): Car = Car(session, id)
     }
@@ -55,8 +55,8 @@ class Friendship(session: Session, id: Long) : Record<Friendship.Schema, Long>(F
     val rightProp = RightId toOne Human
 
     companion object Schema : Table<Schema, Long, Friendship>("friends", long, "_id") {
-        val LeftId = long immutable "left"
-        val RightId = long immutable "right"
+        val LeftId = "left" let long
+        val RightId = "right" let long
 
         override fun create(session: Session, id: Long): Friendship = Friendship(session, id)
     }

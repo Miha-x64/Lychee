@@ -59,16 +59,16 @@ abstract class StructDef<SELF : StructDef<SELF>>(
      * Creates, remembers and returns a new mutable field definition without default value.
      */
     @Suppress("UNCHECKED_CAST")
-    protected infix fun <T> DataType<T>.mutable(name: String): FieldDef.Mutable<SELF, T> =
-            mutable(name, Unset as T)
+    protected infix fun <T> String.mut(type: DataType<T>): FieldDef.Mutable<SELF, T> =
+            this.mut(type, Unset as T)
 
     /**
      * Creates, remembers and returns a new mutable field definition with default value.
      */
-    protected fun <T> DataType<T>.mutable(name: String, default: T): FieldDef.Mutable<SELF, T> {
+    protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
-        val converter = this@mutable
-        val col = FieldDef.Mutable(this@StructDef, name, converter, fields.size.toByte(), default)
+        val converter = dataType
+        val col = FieldDef.Mutable(this@StructDef, this, converter, fields.size.toByte(), default)
         fields.add(col)
         return col
     }
@@ -76,10 +76,10 @@ abstract class StructDef<SELF : StructDef<SELF>>(
     /**
      * Creates, remembers and returns a new immutable field definition.
      */
-    protected infix fun <T> DataType<T>.immutable(name: String): FieldDef.Immutable<SELF, T> {
+    protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
-        val converter = this@immutable
-        val col = FieldDef.Immutable(this@StructDef, name, converter, fields.size.toByte())
+        val converter = dataType
+        val col = FieldDef.Immutable(this@StructDef, this, converter, fields.size.toByte())
         fields.add(col)
         return col
     }
