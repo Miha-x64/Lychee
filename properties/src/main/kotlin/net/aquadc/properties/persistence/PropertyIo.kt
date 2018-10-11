@@ -105,8 +105,7 @@ interface PropertyIo {
 @JvmName("stringList") inline infix fun PropertyIo.x(prop: MutableProperty<List<String>>) = stringList(prop)
 
 /** Reads or writes an [Enum] */
-@Deprecated("internally this uses reflection. Should use own type instead",
-        ReplaceWith("enum(E.values())"))
+@Deprecated("internally this uses reflection. Should use own type instead")
 @JvmName("enum") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<E>) =
         enum(prop, E::class.java)
 

@@ -255,7 +255,7 @@ class JdbcSession(
                         else -> throw AssertionError()
                     }
                 }
-                is DataType.Float -> {
+                is DataType.Floating -> {
                     val v = asNumber(value)
                     when (sizeBits) {
                         32 -> statement.setFloat(i, v as Float)
@@ -263,7 +263,7 @@ class JdbcSession(
                         else -> throw AssertionError()
                     }
                 }
-                is DataType.String -> statement.setString(i, asString(value))
+                is DataType.Str -> statement.setString(i, asString(value))
                 is DataType.Blob -> statement.setObject(i, asByteArray(value)) // not sure whether setBlob should be used
             }.also { }
         }
@@ -281,12 +281,12 @@ class JdbcSession(
                 64 -> resultSet.getLong(i)
                 else -> throw AssertionError()
             })
-            is DataType.Float -> asT(when (sizeBits) {
+            is DataType.Floating -> asT(when (sizeBits) {
                 32 -> resultSet.getFloat(i)
                 64 -> resultSet.getDouble(i)
                 else -> throw AssertionError()
             })
-            is DataType.String -> asT(resultSet.getString(i))
+            is DataType.Str -> asT(resultSet.getString(i))
             is DataType.Blob -> asT(resultSet.getBytes(i))
         }
 

@@ -252,8 +252,8 @@ class AndroidSqliteSession(
                         else -> throw AssertionError()
                     }
                 }
-                is DataType.Float -> statement.bindDouble(i, (asNumber(value).toDouble()))
-                is DataType.String -> statement.bindString(i, asString(value))
+                is DataType.Floating -> statement.bindDouble(i, (asNumber(value).toDouble()))
+                is DataType.Str -> statement.bindString(i, asString(value))
                 is DataType.Blob -> statement.bindBlob(i, asByteArray(value))
             }.also { }
         }
@@ -261,8 +261,8 @@ class AndroidSqliteSession(
 
     private fun <T> DataType<T>.asString(value: T): String = when (this) {
         is DataType.Integer -> asNumber(value).toString()
-        is DataType.Float -> asNumber(value).toString()
-        is DataType.String -> asString(value)
+        is DataType.Floating -> asNumber(value).toString()
+        is DataType.Str -> asString(value)
         is DataType.Blob -> TODO("binding a BLOB as selectionArgs?")
     }
 
@@ -281,12 +281,12 @@ class AndroidSqliteSession(
                     64 -> cursor.getLong(index)
                     else -> throw AssertionError()
                 })
-                is DataType.Float -> asT(when (sizeBits) {
+                is DataType.Floating -> asT(when (sizeBits) {
                     32 -> cursor.getInt(index)
                     64 -> cursor.getLong(index)
                     else -> throw AssertionError()
                 })
-                is DataType.String -> asT(cursor.getString(index))
+                is DataType.Str -> asT(cursor.getString(index))
                 is DataType.Blob -> asT(cursor.getBlob(index))
             }
         }

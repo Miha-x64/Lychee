@@ -9,7 +9,7 @@ internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
 
     // these values can simply be put into stream
     when (this) {
-        is DataType.String -> return output.writeString(value?.let(::asString))
+        is DataType.Str -> return output.writeString(value?.let(::asString))
         is DataType.Blob -> return output.writeBytes(value?.let(::asByteArray))
         is DataType.Integer -> {
             if (sizeBits == 1) {
@@ -37,7 +37,7 @@ internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
                 else -> throw AssertionError()
             }
         }
-        is DataType.Float -> {
+        is DataType.Floating -> {
             val num = asNumber(value)
             when (sizeBits) {
                 32 -> output.writeInt(java.lang.Float.floatToIntBits(num as Float))
@@ -45,7 +45,7 @@ internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
                 else -> throw AssertionError()
             }
         }
-        is DataType.String,
+        is DataType.Str,
         is DataType.Blob -> throw AssertionError()
     }
 }
@@ -53,7 +53,7 @@ internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
 @Suppress("UNCHECKED_CAST")
 internal fun <T> DataType<T>.read(input: CleverDataInput): T {
     when (this) {
-        is DataType.String -> {
+        is DataType.Str -> {
             val str = input.readString()
             return if (str == null) {
                 check(isNullable); null
@@ -94,12 +94,12 @@ internal fun <T> DataType<T>.read(input: CleverDataInput): T {
             64 -> input.readLong()
             else -> throw AssertionError()
         })
-        is DataType.Float -> asT(when (sizeBits) {
+        is DataType.Floating -> asT(when (sizeBits) {
             32 -> java.lang.Float.intBitsToFloat(input.readInt())
             64 -> java.lang.Double.longBitsToDouble(input.readLong())
             else -> throw AssertionError()
         })
 
-        is DataType.String, is DataType.Blob -> throw AssertionError()
+        is DataType.Str, is DataType.Blob -> throw AssertionError()
     }
 }
