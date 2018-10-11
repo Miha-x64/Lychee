@@ -1,22 +1,21 @@
 package net.aquadc.properties.persistence.memento
 
-import net.aquadc.persistence.converter.Converter
-import net.aquadc.persistence.converter.DataIoConverter
 import net.aquadc.persistence.stream.CleverDataOutput
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.persistence.*
 
 
 class InMemoryPropertiesMemento : PropertiesMemento {
 
-    private val convs = ArrayList<Any?>() // E = Converter | Class<Enum<E>> | null
+    private val types = ArrayList<Any?>() // E = Converter | Class<Enum<E>> | null
     private val vals = ArrayList<Any?>()
 
     constructor(properties: PersistableProperties) {
         properties.saveOrRestore(object : PropertyIo {
 
-            override fun <T> Converter<T>.invoke(prop: MutableProperty<T>) {
-                convs.add(this)
+            override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
+                types.add(this)
                 vals.add(prop.value)
             }
 
@@ -45,17 +44,17 @@ class InMemoryPropertiesMemento : PropertiesMemento {
             }
 
             private fun addNoConv(prop: MutableProperty<*>) {
-                convs.add(null)
+                types.add(null)
                 vals.add(prop.value)
             }
 
             override fun <E : Enum<E>> enum(prop: MutableProperty<E>, type: Class<E>) {
-                convs.add(type)
+                types.add(type)
                 vals.add(prop.value)
             }
 
             override fun <E : Enum<E>> enumSet(prop: MutableProperty<Set<E>>, type: Class<E>) {
-                convs.add(type)
+                types.add(type)
                 vals.add(prop.value)
             }
 
@@ -67,7 +66,7 @@ class InMemoryPropertiesMemento : PropertiesMemento {
 
             private var idx = 0
 
-            override fun <T> Converter<T>.invoke(prop: MutableProperty<T>) = assignTo(prop)
+            override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) = assignTo(prop)
 
             override fun chars(prop: MutableProperty<CharArray>) = assignTo(prop)
 
@@ -93,15 +92,16 @@ class InMemoryPropertiesMemento : PropertiesMemento {
         })
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun writeTo(output: CleverDataOutput) {
-        for (i in convs.indices) {
-            val conv = convs[i]
+        for (i in types.indices) {
+            val type = types[i]
             val value = vals[0]
             @Suppress("UPPER_BOUND_VIOLATED")
-            when (conv) {
-                is Converter<*> -> (conv as DataIoConverter<Any?>).write(output, value)
+            when (type) {
+                is DataType<*> -> (type as DataType<Any?>).write(output, value)
                 null -> writeValue(output, value)
-                is Class<*> -> writeEnum<Any>(output, conv as Class<Any>, value!!)
+                is Class<*> -> writeEnum<Any>(output, type as Class<Any>, value!!)
                 else -> throw AssertionError()
             }
         }

@@ -1,7 +1,7 @@
 package net.aquadc.properties.sql.dialect
 
 import net.aquadc.properties.sql.*
-import net.aquadc.persistence.converter.DataType
+import net.aquadc.persistence.type.DataType
 import java.lang.StringBuilder
 
 /**
@@ -51,11 +51,6 @@ interface Dialect {
      * Appends quoted and escaped table or column name.
      */
     fun StringBuilder.appendName(name: String): StringBuilder
-
-    /**
-     * Returns SQL data type for the given [DataType] instance.
-     */
-    fun nameOf(dataType: DataType): String
 
     /**
      * Returns an SQL query to create the given [table].

@@ -1,8 +1,7 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.converter.AndroidSqliteConverter
-import net.aquadc.persistence.converter.JdbcConverter
+import net.aquadc.persistence.type.DataType
 
 
 internal typealias UpdatesHashMap = HashMap<Col<*, *>, HashMap<Long, Any?>>
@@ -22,8 +21,5 @@ internal inline val Table<*, *, *>.erased
 internal inline val Col<*, *>.erased
     get() = this as Col<Any, Any?>
 
-internal inline val JdbcConverter<*>.erased
-    get() = this as JdbcConverter<Any?>
-
-internal inline val AndroidSqliteConverter<*>.erased
-    get() = this as AndroidSqliteConverter<Any?>
+internal inline val DataType<*>.erased
+    get() = this as DataType<Any?>

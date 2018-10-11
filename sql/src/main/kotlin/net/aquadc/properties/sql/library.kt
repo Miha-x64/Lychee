@@ -8,8 +8,8 @@ import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.StructDef
-import net.aquadc.persistence.converter.Converter
 import net.aquadc.persistence.struct.BaseStruct
+import net.aquadc.persistence.type.DataType
 
 
 typealias IdBound = Any // Serializable in some frameworks
@@ -107,7 +107,7 @@ val <TBL : Table<TBL, *, *>> Col<TBL, *>.desc: Order<TBL>
  */
 abstract class Table<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>>(
         name: String,
-        val idColConverter: Converter<ID>,
+        val idColType: DataType<ID>,
         val idColName: String
 ) : StructDef<TBL>(name) {
 

@@ -3,7 +3,7 @@ package net.aquadc.properties.sql.dialect.sqlite
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
-import net.aquadc.persistence.converter.DataType
+import net.aquadc.persistence.type.DataType
 
 /**
  * Implements SQLite [Dialect].
@@ -79,23 +79,23 @@ object SqliteDialect : Dialect {
         }
     }
 
-    override fun nameOf(dataType: DataType): String = when (dataType) {
-        is DataType.Integer -> "INTEGER"
-        is DataType.Float -> "REAL"
-        is DataType.String -> "TEXT"
-        is DataType.Blob -> "BLOB"
-    }
-
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-                .append(table.idColName).append(' ').append(nameOf(table.idColConverter.dataType)).append(" PRIMARY KEY, ")
+                .append(table.idColName).append(' ').append(nameOf(table.idColType)).append(" PRIMARY KEY, ")
         table.fields.forEach { col ->
-            sb.append(col.name).append(' ').append(nameOf(col.converter.dataType))
-            if (!col.converter.isNullable) sb.append(" NOT NULL")
+            sb.append(col.name).append(' ').append(nameOf(col.type))
+            if (!col.type.isNullable) sb.append(" NOT NULL")
             sb.append(", ")
         }
         sb.setLength(sb.length - 2) // trim last comma
         return sb.append(");").toString()
+    }
+
+    private fun nameOf(dataType: DataType<*>): String = when (dataType) {
+        is DataType.Integer<*> -> "INTEGER"
+        is DataType.Floating<*> -> "REAL"
+        is DataType.Str<*> -> "TEXT"
+        is DataType.Blob<*> -> "BLOB"
     }
 
 }

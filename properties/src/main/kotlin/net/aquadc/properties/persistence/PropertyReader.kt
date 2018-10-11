@@ -1,8 +1,7 @@
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.converter.Converter
-import net.aquadc.persistence.converter.DataIoConverter
 import net.aquadc.persistence.stream.CleverDataInput
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
 import java.lang.Double.longBitsToDouble
 import java.lang.Float.intBitsToFloat
@@ -15,8 +14,8 @@ class PropertyReader(
         private val input: CleverDataInput
 ) : PropertyIo {
 
-    override fun <T> Converter<T>.invoke(prop: MutableProperty<T>) {
-        prop.value = (this as DataIoConverter<T>).read(input)
+    override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
+        prop.value = read(input)
     }
 
     override fun chars(prop: MutableProperty<CharArray>) {

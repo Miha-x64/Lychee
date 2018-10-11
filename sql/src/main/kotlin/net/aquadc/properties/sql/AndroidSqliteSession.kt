@@ -4,8 +4,8 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
-import net.aquadc.persistence.converter.AndroidSqliteConverter
-import net.aquadc.persistence.converter.long
+import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.long
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
@@ -20,9 +20,10 @@ class AndroidSqliteSession(
 
     private val lock = ReentrantReadWriteLock()
 
+    @Suppress("UNCHECKED_CAST")
     override fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(table: Table<TBL, ID, REC>): Dao<TBL, ID, REC> =
             lowLevel.daos.getOrPut(table) {
-                check(table.idColConverter === long)
+                check(table.idColType === long)
                 RealDao(this, lowLevel, table, SqliteDialect)
             } as Dao<TBL, ID, REC>
 
@@ -54,7 +55,7 @@ class AndroidSqliteSession(
 
         override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
-            cols.forEachIndexed { idx, col -> (col.converter as AndroidSqliteConverter<*>).erased.bind(statement, idx, vals[idx]) }
+            cols.forEachIndexed { idx, col -> col.type.erased.bind(statement, idx, vals[idx]) }
             val id = statement.executeInsert()
             check(id != -1L)
             return id as ID
@@ -67,8 +68,8 @@ class AndroidSqliteSession(
 
         override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
-            (column.converter as AndroidSqliteConverter<T>).bind(statement, 0, value)
-            (table.idColConverter as AndroidSqliteConverter<ID>).bind(statement, 1, id)
+            column.type.bind(statement, 0, value)
+            table.idColType.bind(statement, 1, id)
             check(statement.executeUpdateDelete() == 1)
         }
 
@@ -88,7 +89,7 @@ class AndroidSqliteSession(
 
         override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long {
             val statement = deleteStatementWLocked(table)
-            (table.idColConverter as AndroidSqliteConverter<ID>).bind(statement, 0, primaryKey)
+            table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdateDelete() == 1)
             return localId(table, primaryKey)
         }
@@ -123,9 +124,9 @@ class AndroidSqliteSession(
 
             val selectionArgs = args.mapToArray { (name, value) ->
                 val conv = // looks like a slow place
-                        if (name == table.idColName) table.idColConverter
-                        else table.fields.first { it.name == name }.converter
-                (conv as AndroidSqliteConverter<Any>).asString(value)
+                        if (name == table.idColName) table.idColType
+                        else table.fields.first { it.name == name }.type
+                conv.erased.asString(value)
             }
 
             return with(SqliteDialect) {
@@ -140,16 +141,16 @@ class AndroidSqliteSession(
         }
 
         override fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): T =
-                select(column.name, table, condition, NoOrder).fetchSingle(column.converter as AndroidSqliteConverter<T>)
+                select(column.name, table, condition, NoOrder).fetchSingle(column.type)
 
         override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
                 table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
-                        .fetchAll(table.idColConverter as AndroidSqliteConverter<ID>) // converter here is obviously 'long', may seriously optimize this place
+                        .fetchAll(table.idColType) // type here is obviously 'long', may seriously optimize this place
                         .toTypedArray<Any>() as Array<ID>
 
-        private fun <T> Cursor.fetchAll(converter: AndroidSqliteConverter<T>): List<T> {
+        private fun <T> Cursor.fetchAll(converter: DataType<T>): List<T> {
             if (!moveToFirst()) {
                 close()
                 return emptyList()
@@ -227,13 +228,74 @@ class AndroidSqliteSession(
         }
     }
 
-    private fun <T> Cursor.fetchSingle(converter: AndroidSqliteConverter<T>): T {
+    private fun <T> Cursor.fetchSingle(converter: DataType<T>): T {
         try {
             check(moveToFirst())
             return converter.get(this, 0)
         } finally {
             close()
         }
+    }
+
+    private fun <T> DataType<T>.bind(statement: SQLiteStatement, index: Int, value: T) {
+        val i = 1 + index
+        if (value == null) {
+            check(isNullable)
+            statement.bindNull(i)
+        } else {
+            when (this) {
+                is DataType.Integer -> {
+                    val num = asNumber(value)
+                    when (sizeBits) {
+                        1 -> statement.bindLong(i, if (num as Boolean) 1 else 0)
+                        8, 16, 32, 64 -> statement.bindLong(i, (num as Number).toLong())
+                        else -> throw AssertionError()
+                    }
+                }
+                is DataType.Floating -> statement.bindDouble(i, (asNumber(value).toDouble()))
+                is DataType.Str -> statement.bindString(i, asString(value))
+                is DataType.Blob -> statement.bindBlob(i, asByteArray(value))
+            }.also { }
+        }
+    }
+
+    private fun <T> DataType<T>.asString(value: T): String = when (this) {
+        is DataType.Integer -> asNumber(value).toString()
+        is DataType.Floating -> asNumber(value).toString()
+        is DataType.Str -> asString(value)
+        is DataType.Blob -> TODO("binding a BLOB as selectionArgs?")
+    }
+
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T {
+        return if (cursor.isNull(index)) {
+            check(isNullable)
+            null as T
+        } else {
+            when (this) {
+                is DataType.Integer -> asT(when (sizeBits) {
+                    1 -> cursor.getInt(index) == 1
+                    8 -> cursor.getShort(index).assertFitsByte()
+                    16 -> cursor.getShort(index)
+                    32 -> cursor.getInt(index)
+                    64 -> cursor.getLong(index)
+                    else -> throw AssertionError()
+                })
+                is DataType.Floating -> asT(when (sizeBits) {
+                    32 -> cursor.getInt(index)
+                    64 -> cursor.getLong(index)
+                    else -> throw AssertionError()
+                })
+                is DataType.Str -> asT(cursor.getString(index))
+                is DataType.Blob -> asT(cursor.getBlob(index))
+            }
+        }
+    }
+
+    private fun Short.assertFitsByte(): Byte {
+        if (this !in Byte.MIN_VALUE..Byte.MAX_VALUE)
+            throw IllegalStateException("value ${this} cannot be fit into a byte")
+        return toByte()
     }
 
 }

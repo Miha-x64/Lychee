@@ -1,7 +1,7 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.converter.Converter
+import net.aquadc.persistence.type.*
 import net.aquadc.properties.MutableProperty
 import java.util.*
 
@@ -13,9 +13,9 @@ import java.util.*
 interface PropertyIo {
 
     /**
-     * Reads or writes a value of type [T] from/to [prop] using [this] converter.
+     * Reads or writes a value of [this] type [T] from/to [prop].
      */
-    operator fun <T> Converter<T>.invoke(prop: MutableProperty<T>)
+    operator fun <T> DataType<T>.invoke(prop: MutableProperty<T>)
 
     /** Reads or writes a [CharArray] */
     @Deprecated("not sure whether it is useful")
@@ -38,11 +38,11 @@ interface PropertyIo {
     fun doubles(prop: MutableProperty<DoubleArray>)
 
     /** Reads or writes a [List] of [String]s */
-    @Deprecated("should be implemented in a converter")
+    @Deprecated("should be implemented in a type")
     fun stringList(prop: MutableProperty<List<String>>)
 
     /** Reads or writes an [Enum] */
-    @Deprecated("should create custom converter instance")
+    @Deprecated("should create custom type instance")
     fun <E : Enum<E>> enum(prop: MutableProperty<E>, type: Class<E>)
 
     /** Reads or writes a [Set] of [Enum] values */
@@ -52,35 +52,35 @@ interface PropertyIo {
 
 /** Reads or writes a [Boolean] value */
 @JvmName("bool") inline infix fun PropertyIo.x(prop: MutableProperty<Boolean>) =
-        net.aquadc.persistence.converter.bool.invoke(prop)
+        bool.invoke(prop)
 
 /** Reads or writes a [Byte] value */
 @JvmName("byte") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>) =
-        net.aquadc.persistence.converter.byte.invoke(prop)
+        byte.invoke(prop)
 
 /** Reads or writes a [Short] value */
 @JvmName("short") inline infix fun PropertyIo.x(prop: MutableProperty<Short>) =
-        net.aquadc.persistence.converter.short.invoke(prop)
+        short.invoke(prop)
 
 /** Reads or writes an [Int] value */
 @JvmName("int") inline infix fun PropertyIo.x(prop: MutableProperty<Int>) =
-        net.aquadc.persistence.converter.int.invoke(prop)
+        int.invoke(prop)
 
 /** Reads or writes a [Long] value */
 @JvmName("long") inline infix fun PropertyIo.x(prop: MutableProperty<Long>) =
-        net.aquadc.persistence.converter.long.invoke(prop)
+        long.invoke(prop)
 
 /** Reads or writes a [Float] value */
 @JvmName("float") inline infix fun PropertyIo.x(prop: MutableProperty<Float>) =
-        net.aquadc.persistence.converter.float.invoke(prop)
+        float.invoke(prop)
 
 /** Reads or writes a [Double] value */
 @JvmName("double") inline infix fun PropertyIo.x(prop: MutableProperty<Double>) =
-        net.aquadc.persistence.converter.double.invoke(prop)
+        double.invoke(prop)
 
 /** Reads or writes a [ByteArray] */
 @JvmName("bytes") inline infix fun PropertyIo.x(prop: MutableProperty<ByteArray>) =
-        net.aquadc.persistence.converter.bytes.invoke(prop)
+        byteArray.invoke(prop)
 
 /** Reads or writes a [CharArray] */ @Deprecated("not sure whether it is useful")
 @JvmName("chars") inline infix fun PropertyIo.x(prop: MutableProperty<CharArray>) = chars(prop)
@@ -99,18 +99,17 @@ interface PropertyIo {
 
 /** Reads or writes a [String] */
 @JvmName("string") inline infix fun PropertyIo.x(prop: MutableProperty<String>) =
-        net.aquadc.persistence.converter.string.invoke(prop)
+        string.invoke(prop)
 
 /** Reads or writes a [List] of [String]s */ // todo: implement String[], List<String> in common converters
 @JvmName("stringList") inline infix fun PropertyIo.x(prop: MutableProperty<List<String>>) = stringList(prop)
 
 /** Reads or writes an [Enum] */
-@Deprecated("internally this uses reflection. Should use own converter instead",
-        ReplaceWith("net.aquadc.persistence.converter.enum(E.values())"))
+@Deprecated("internally this uses reflection. Should use own type instead")
 @JvmName("enum") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<E>) =
         enum(prop, E::class.java)
 
-/** Reads or writes a [Set] of [Enum] values */ // todo: implement EnumSet converter
+/** Reads or writes a [Set] of [Enum] values */ // todo: implement EnumSet type
 @JvmName("enumSet") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<Set<E>>) =
         enumSet(prop, E::class.java)
 

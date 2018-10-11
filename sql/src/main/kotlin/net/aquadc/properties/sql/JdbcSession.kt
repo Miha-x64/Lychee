@@ -1,12 +1,9 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.dialect.Dialect
-import net.aquadc.persistence.converter.JdbcConverter
-import net.aquadc.persistence.converter.long
-import java.sql.Connection
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.Statement
+import net.aquadc.persistence.type.long
+import java.sql.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.collections.ArrayList
@@ -27,6 +24,7 @@ class JdbcSession(
 
     private val lock = ReentrantReadWriteLock()
 
+    @Suppress("UNCHECKED_CAST")
     override fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(
             table: Table<TBL, ID, REC>
     ): Dao<TBL, ID, REC> =
@@ -59,10 +57,10 @@ class JdbcSession(
 
         override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
-            cols.forEachIndexed { idx, col -> (col.converter as JdbcConverter<*>).erased.bind(statement, idx, vals[idx]) }
+            cols.forEachIndexed { idx, col -> col.type.erased.bind(statement, idx, vals[idx]) }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
-            return keys.fetchSingle(table.idColConverter as JdbcConverter<ID>)
+            return keys.fetchSingle(table.idColType)
         }
 
         private fun <TBL : Table<TBL, *, *>> updateStatementWLocked(table: Table<TBL, *, *>, col: Col<TBL, *>): PreparedStatement =
@@ -72,8 +70,8 @@ class JdbcSession(
 
         override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
-            (column.converter as JdbcConverter<T>).bind(statement, 0, value)
-            (table.idColConverter as JdbcConverter<ID>).bind(statement, 1, id)
+            column.type.bind(statement, 0, value)
+            table.idColType.bind(statement, 1, id)
             check(statement.executeUpdate() == 1)
         }
 
@@ -93,7 +91,7 @@ class JdbcSession(
 
         override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long {
             val statement = deleteStatementWLocked(table)
-            (table.idColConverter as JdbcConverter<ID>).bind(statement, 0, primaryKey)
+            table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdate() == 1)
             return localId(table, primaryKey)
         }
@@ -136,9 +134,9 @@ class JdbcSession(
                         condition.appendValuesTo(list)
                         list.forEachIndexed { idx, (name, value) ->
                             val conv =
-                                    if (name == table.idColName) table.idColConverter
-                                    else table.fields.first { it.name == name }.converter
-                            (conv as JdbcConverter<Any>).bind(stmt, idx, value)
+                                    if (name == table.idColName) table.idColType
+                                    else table.fields.first { it.name == name }.type
+                            conv.erased.bind(stmt, idx, value)
                         }
                     }
                     .executeQuery()
@@ -147,21 +145,21 @@ class JdbcSession(
         override fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(
                 column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>
         ): T =
-                select(column.name, table, condition, NoOrder).fetchSingle(column.converter as JdbcConverter<T>)
+                select(column.name, table, condition, NoOrder).fetchSingle(column.type)
 
         override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
                 table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
-                        .fetchAll(table.idColConverter as JdbcConverter<ID>)
+                        .fetchAll(table.idColType)
                         .toTypedArray<Any>() as Array<ID>
 
-        private fun <T> ResultSet.fetchAll(converter: JdbcConverter<T>): List<T> {
-            val values = ArrayList<Any?>()
+        private fun <T> ResultSet.fetchAll(type: DataType<T>): List<T> {
+            val values = ArrayList<T>()
             while (next())
-                values.add(converter.get(this, 0))
+                values.add(type.get(this, 0))
             close()
-            return values as List<T>
+            return values
         }
 
         override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchCount(table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): Long =
@@ -172,6 +170,7 @@ class JdbcSession(
 
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
+        @Suppress("UNCHECKED_CAST")
         override fun <TBL : Table<TBL, *, *>, T : Any> reusableCond(
                 table: Table<TBL, *, *>, colName: String, value: T
         ): ColCond<TBL, T> {
@@ -229,13 +228,72 @@ class JdbcSession(
         }
     }
 
-    private fun <T> ResultSet.fetchSingle(converter: JdbcConverter<T>): T {
+    private fun <T> ResultSet.fetchSingle(type: DataType<T>): T {
         try {
             check(next())
-            return converter.get(this, 0)
+            return type.get(this, 0)
         } finally {
             close()
         }
+    }
+
+    private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
+        val i = 1 + index
+        if (value == null) {
+            check(isNullable)
+            statement.setNull(i, Types.NULL)
+        } else {
+            when (this) {
+                is DataType.Integer -> {
+                    val v = asNumber(value)
+                    when (sizeBits) {
+                        1 -> statement.setBoolean(i, v as Boolean)
+                        8 -> statement.setByte(i, v as Byte)
+                        16 -> statement.setShort(i, v as Short)
+                        32 -> statement.setInt(i, v as Int)
+                        64 -> statement.setLong(i, v as Long)
+                        else -> throw AssertionError()
+                    }
+                }
+                is DataType.Floating -> {
+                    val v = asNumber(value)
+                    when (sizeBits) {
+                        32 -> statement.setFloat(i, v as Float)
+                        64 -> statement.setDouble(i, v as Double)
+                        else -> throw AssertionError()
+                    }
+                }
+                is DataType.Str -> statement.setString(i, asString(value))
+                is DataType.Blob -> statement.setObject(i, asByteArray(value)) // not sure whether setBlob should be used
+            }.also { }
+        }
+    }
+
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
+        val i = 1 + index
+        val ret = when (this) {
+            is DataType.Integer -> asT(when (sizeBits) {
+                1 -> resultSet.getBoolean(i)
+                8 -> resultSet.getByte(i)
+                16 -> resultSet.getShort(i)
+                32 -> resultSet.getInt(i)
+                64 -> resultSet.getLong(i)
+                else -> throw AssertionError()
+            })
+            is DataType.Floating -> asT(when (sizeBits) {
+                32 -> resultSet.getFloat(i)
+                64 -> resultSet.getDouble(i)
+                else -> throw AssertionError()
+            })
+            is DataType.Str -> asT(resultSet.getString(i))
+            is DataType.Blob -> asT(resultSet.getBytes(i))
+        }
+
+        return if (resultSet.wasNull()) {
+            check(isNullable)
+            null as T
+        } else ret
     }
 
 }

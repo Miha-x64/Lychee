@@ -1,8 +1,7 @@
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.converter.Converter
-import net.aquadc.persistence.converter.DataIoConverter
 import net.aquadc.persistence.stream.CleverDataOutput
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
 import java.lang.Double.doubleToLongBits
 import java.lang.Float.floatToIntBits
@@ -14,8 +13,8 @@ class PropertyWriter(
         private val output: CleverDataOutput
 ) : PropertyIo {
 
-    override fun <T> Converter<T>.invoke(prop: MutableProperty<T>) {
-        (this as DataIoConverter<T>).write(output, prop.value)
+    override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
+        write(output, prop.value)
     }
 
     override fun chars(prop: MutableProperty<CharArray>) {
