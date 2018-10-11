@@ -56,12 +56,19 @@ abstract class StructDef<SELF : StructDef<SELF>>(
             tmpFields ?: throw IllegalStateException("table `$name` is already initialized")
 
     /**
-     * Creates, remembers and returns a new mutable field definition.
+     * Creates, remembers and returns a new mutable field definition without default value.
      */
-    protected infix fun <T> DataType<T>.mutable(name: String): FieldDef.Mutable<SELF, T> {
+    @Suppress("UNCHECKED_CAST")
+    protected infix fun <T> DataType<T>.mutable(name: String): FieldDef.Mutable<SELF, T> =
+            mutable(name, Unset as T)
+
+    /**
+     * Creates, remembers and returns a new mutable field definition with default value.
+     */
+    protected fun <T> DataType<T>.mutable(name: String, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
         val converter = this@mutable
-        val col = FieldDef.Mutable(this@StructDef, name, converter, fields.size.toByte())
+        val col = FieldDef.Mutable(this@StructDef, name, converter, fields.size.toByte(), default)
         fields.add(col)
         return col
     }
@@ -113,12 +120,18 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
         val structDef: StructDef<DEF>,
         val name: String,
         val type: DataType<T>,
-        val ordinal: Byte
+        val ordinal: Byte,
+        default: T
 ) {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
     }
+
+    private val _default = default
+
+    val default: T
+        get() = if (_default === Unset) throw NoSuchElementException() else _default
 
     override fun toString(): String = structDef.name + '.' + name
 
@@ -129,19 +142,21 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
             structDef: StructDef<DEF>,
             name: String,
             converter: DataType<T>,
-            ordinal: Byte
-    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal)
+            ordinal: Byte,
+            default: T
+    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal, default)
 
     /**
      * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
      */
+    @Suppress("UNCHECKED_CAST")
     class Immutable<DEF : StructDef<DEF>, T> internal constructor(
             structDef: StructDef<DEF>,
             name: String,
             converter: DataType<T>,
             ordinal: Byte
-    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal)
+    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal, Unset as T)
 
 }
 
-internal inline fun <reified T> t(): Class<T> = T::class.java
+private val Unset = Any()
