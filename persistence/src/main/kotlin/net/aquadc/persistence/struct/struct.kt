@@ -1,6 +1,6 @@
 package net.aquadc.persistence.struct
 
-import net.aquadc.persistence.type.Converter
+import net.aquadc.persistence.type.DataType
 import java.util.*
 import java.util.Collections.unmodifiableList
 
@@ -58,7 +58,7 @@ abstract class StructDef<SELF : StructDef<SELF>>(
     /**
      * Creates, remembers and returns a new mutable field definition.
      */
-    protected infix fun <T> Converter<T>.mutable(name: String): FieldDef.Mutable<SELF, T> {
+    protected infix fun <T> DataType<T>.mutable(name: String): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
         val converter = this@mutable
         val col = FieldDef.Mutable(this@StructDef, name, converter, fields.size.toByte())
@@ -69,7 +69,7 @@ abstract class StructDef<SELF : StructDef<SELF>>(
     /**
      * Creates, remembers and returns a new immutable field definition.
      */
-    protected infix fun <T> Converter<T>.immutable(name: String): FieldDef.Immutable<SELF, T> {
+    protected infix fun <T> DataType<T>.immutable(name: String): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
         val converter = this@immutable
         val col = FieldDef.Immutable(this@StructDef, name, converter, fields.size.toByte())
@@ -112,7 +112,7 @@ interface Struct<DEF : StructDef<DEF>> {
 sealed class FieldDef<DEF : StructDef<DEF>, T>(
         val structDef: StructDef<DEF>,
         val name: String,
-        val converter: Converter<T>,
+        val type: DataType<T>,
         val ordinal: Byte
 ) {
 
@@ -128,7 +128,7 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
     class Mutable<DEF : StructDef<DEF>, T> internal constructor(
             structDef: StructDef<DEF>,
             name: String,
-            converter: Converter<T>,
+            converter: DataType<T>,
             ordinal: Byte
     ) : FieldDef<DEF, T>(structDef, name, converter, ordinal)
 
@@ -138,7 +138,7 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
     class Immutable<DEF : StructDef<DEF>, T> internal constructor(
             structDef: StructDef<DEF>,
             name: String,
-            converter: Converter<T>,
+            converter: DataType<T>,
             ordinal: Byte
     ) : FieldDef<DEF, T>(structDef, name, converter, ordinal)
 

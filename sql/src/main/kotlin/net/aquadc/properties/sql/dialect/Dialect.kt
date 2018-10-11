@@ -53,11 +53,6 @@ interface Dialect {
     fun StringBuilder.appendName(name: String): StringBuilder
 
     /**
-     * Returns SQL data type for the given [DataType] instance.
-     */
-    fun nameOf(dataType: DataType): String
-
-    /**
      * Returns an SQL query to create the given [table].
      */
     fun createTable(table: Table<*, *, *>): String
