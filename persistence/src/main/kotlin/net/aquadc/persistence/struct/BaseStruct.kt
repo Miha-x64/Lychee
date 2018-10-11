@@ -17,8 +17,8 @@ abstract class BaseStruct<DEF : StructDef<DEF>>(
         val fields = type.fields
         for (i in fields.indices) {
             val field = fields[i]
-            val our = getValue(field)
-            val their = other.getValue(field)
+            val our = this[field]
+            val their = other[field]
             if (!reallyEqual(our, their)) return false
         }
         return true
@@ -28,7 +28,7 @@ abstract class BaseStruct<DEF : StructDef<DEF>>(
         var result = 0
         val fields = type.fields
         for (i in fields.indices) {
-            result = 31 * result + getValue(fields[i]).realHashCode()
+            result = 31 * result + this[fields[i]].realHashCode()
         }
         return result
     }
@@ -38,7 +38,7 @@ abstract class BaseStruct<DEF : StructDef<DEF>>(
         val fields = type.fields
         for (i in fields.indices) {
             val field = fields[i]
-            append(field.name).append('=').append(getValue(field).realToString()).append(", ")
+            append(field.name).append('=').append(this@BaseStruct[field].realToString()).append(", ")
         }
         setLength(length - 2)
         append(')')

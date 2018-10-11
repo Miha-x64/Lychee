@@ -101,9 +101,8 @@ interface Struct<DEF : StructDef<DEF>> {
 
     /**
      * Returns the value of the requested field.
-     * fixme: rename to operator get
      */
-    fun <T> getValue(field: FieldDef<DEF, T>): T
+    operator fun <T> get(field: FieldDef<DEF, T>): T
 
 }
 

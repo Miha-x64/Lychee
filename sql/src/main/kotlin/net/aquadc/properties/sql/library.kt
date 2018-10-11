@@ -149,7 +149,7 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
     private inline fun <T> propOf(field: FieldDef<TBL, T>): SqlProperty<T> =
             fields[field.ordinal.toInt()] as SqlProperty<T>
 
-    override fun <T> getValue(field: FieldDef<TBL, T>): T =
+    override fun <T> get(field: FieldDef<TBL, T>): T =
             propOf(field).value
 
     infix fun <T> prop(col: Col<TBL, T>): SqlProperty<T> =

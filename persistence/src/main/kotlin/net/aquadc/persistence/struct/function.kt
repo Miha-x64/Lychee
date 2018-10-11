@@ -9,10 +9,10 @@ internal class Getter<DEF : StructDef<DEF>, T>(
 ) : () -> T, (Struct<DEF>) -> T {
 
     override fun invoke(): T =
-            struct!!.getValue(field)
+            struct!![field]
 
     override fun invoke(p1: Struct<DEF>): T =
-            p1.getValue(field)
+            p1[field]
 
 }
 
