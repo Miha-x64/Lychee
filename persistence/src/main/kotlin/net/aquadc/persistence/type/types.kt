@@ -1,5 +1,7 @@
 package net.aquadc.persistence.type
 
+import java.util.*
+
 
 /**
  * Represents a way of storing a value.
@@ -8,21 +10,30 @@ sealed class DataType<T>(
         val isNullable: Boolean
 ) {
 
+    private companion object {
+        private val intSizes = intArrayOf(1, 8, 16, 32, 64)
+    }
+
     /**
      * @param sizeBits can be 1, 8, 16, 32, or 64, and doesn't depend on [isNullable], i. e. nullability info is ignored
      */
     abstract class Integer<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
 
+        init {
+            check(Arrays.binarySearch(intSizes, sizeBits) >= 0) { "invalid integer size: $sizeBits bits" }
+        }
+
         /**
-         * @return [value] as a primitive type.
+         * @return [value] as a boxed primitive type depending on [sizeBits]: [Boolean], [Byte], [Short], [Int], or [Long]
          * @throws NullPointerException if [value] is null.
          */
-        abstract fun asLong(value: T): Long
+        abstract fun asNumber(value: T): Any
 
         /**
          * @return [value] as [T]
+         * @throws NullPointerException if [value] is not in [Boolean], [Byte], [Short], [Int], [Long]
          */
-        abstract fun asT(value: Long): T
+        abstract fun asT(value: Any): T
 
     }
 
@@ -32,15 +43,15 @@ sealed class DataType<T>(
     abstract class Float<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
 
         /**
-         * @return [value] as a [Double]
+         * @return [value] as a [Double] or [Float]
          * @throws NullPointerException if [value] is `null`
          */
-        abstract fun asDouble(value: T): Double
+        abstract fun asNumber(value: T): Number
 
         /**
          * @return [value] as [T]
          */
-        abstract fun asT(value: Double): T
+        abstract fun asT(value: Number): T
 
     }
 
@@ -90,25 +101,31 @@ sealed class DataType<T>(
 
 private class Ints<T>(isNullable: Boolean, sizeBits: Int) : DataType.Integer<T>(isNullable, sizeBits) {
 
-    override fun asLong(value: T): Long {
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
+    override fun asNumber(value: T): Any {
         if (value === null) throw NullPointerException()
         return when (sizeBits) {
-            1 -> if (value as Boolean) 1 else 0
-            8 -> (value as Byte).toLong()
-            16 -> (value as Short).toLong()
-            32 -> (value as Int).toLong()
+            1 -> value as Boolean
+            8 -> value as Byte
+            16 -> value as Short
+            32 -> value as Int
             64 -> value as Long
             else -> throw AssertionError()
         }
     }
 
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    override fun asT(value: Long): T = when (sizeBits) {
-        1 -> value == 1L
-        8 -> value.toByte()
-        16 -> value.toShort()
-        32 -> value.toInt()
-        64 -> value
+    override fun asT(value: Any): T = when (sizeBits) {
+        1 -> value as Boolean
+        8 -> value as Byte
+        16 -> value as Short
+        32 -> value as Int
+        64 -> value as Long
         else -> throw AssertionError()
     } as T
 
@@ -132,19 +149,25 @@ private class Ints<T>(isNullable: Boolean, sizeBits: Int) : DataType.Integer<T>(
 
 private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Float<T>(isNullable, sizeBits) {
 
-    override fun asDouble(value: T): Double {
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
+    override fun asNumber(value: T): Number {
         if (value === null) throw NullPointerException()
         return when (sizeBits) {
-            32 -> (value as kotlin.Float).toDouble()
+            32 -> value as kotlin.Float
             64 -> value as Double
             else -> throw AssertionError()
         }
     }
 
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    override fun asT(value: Double): T = when (sizeBits) {
-        32 -> value.toFloat()
-        64 -> value
+    override fun asT(value: Number): T = when (sizeBits) {
+        32 -> value as kotlin.Float
+        64 -> value as Double
         else -> throw AssertionError()
     } as T
 
@@ -159,9 +182,15 @@ private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Float<T>(
 
 private class Strings<T>(isNullable: Boolean, maxLengthChars: Int) : DataType.String<T>(isNullable, maxLengthChars) {
 
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
     override fun asString(value: T): kotlin.String =
             if (value === null) throw NullPointerException() else value as kotlin.String
 
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
     @Suppress("UNCHECKED_CAST")
     override fun asT(value: kotlin.String): T =
             value as T
@@ -184,9 +213,15 @@ private class Strings<T>(isNullable: Boolean, maxLengthChars: Int) : DataType.St
 
 private class Bytes<T>(isNullable: Boolean, maxLength: Int) : DataType.Blob<T>(isNullable, maxLength) {
 
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
     override fun asByteArray(value: T): ByteArray =
             if (value === null) throw NullPointerException() else value as ByteArray
 
+    /**
+     * {@implNote does nothing but sanity checks}
+     */
     @Suppress("UNCHECKED_CAST")
     override fun asT(value: ByteArray): T =
             value as T
