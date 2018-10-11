@@ -152,7 +152,7 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
     override fun <T> getValue(field: FieldDef<TBL, T>): T =
             propOf(field).value
 
-    operator fun <T> get(col: Col<TBL, T>): SqlProperty<T> =
+    infix fun <T> prop(col: Col<TBL, T>): SqlProperty<T> =
             propOf(col)
 
     val isManaged: Boolean
@@ -165,7 +165,7 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
 
     infix fun <ForeTBL : Table<ForeTBL, ForeID, ForeREC>, ForeID : IdBound, ForeREC : Record<ForeTBL, ForeID>>
             Col<TBL, ForeID?>.toOneNullable(foreignTable: Table<ForeTBL, ForeID, ForeREC>): SqlProperty<ForeREC?> =
-            this@Record[this@toOneNullable].bind(
+            (this@Record prop this@toOneNullable).bind(
                     { id: ForeID? -> if (id == null) null else session[foreignTable].require(id) },
                     { it: ForeREC? -> it?.primaryKey }
             )
@@ -191,7 +191,7 @@ inline operator fun <TBL : Table<TBL, *, *>, T> Col<TBL, T>.minus(value: T): Col
  * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [TBL].
  */
 fun <TBL : Table<TBL, *, *>, T> propertyGetterOf(field: FieldDef<TBL, T>): (Record<TBL, *>) -> Property<T> =
-        { it[field] }
+        { it prop field }
 
 
 internal inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {

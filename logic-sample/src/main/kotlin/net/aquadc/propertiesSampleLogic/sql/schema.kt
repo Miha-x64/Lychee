@@ -17,8 +17,8 @@ fun Transaction.insertHuman(name: String, surname: String): Human =
         )
 
 class Human(session: Session, id: Long) : Record<Human.Schema, Long>(Human.Schema, session, id) {
-    val nameProp get() = this[Name]
-    val surnameProp get() = this[Surname]
+    val nameProp get() = this prop Name
+    val surnameProp get() = this prop Surname
     val carsProp = Car.OwnerId toMany Car
 
     val friends = session[Friendship]
@@ -35,8 +35,8 @@ class Human(session: Session, id: Long) : Record<Human.Schema, Long>(Human.Schem
 
 
 class Car(session: Session, id: Long) : Record<Car.Schema, Long>(Schema, session, id) {
-    val ownerProp = Schema.OwnerId toOne Human
-    val conditionerModelProp get() = this[Schema.ConditionerModel]
+    val ownerProp = OwnerId toOne Human
+    val conditionerModelProp get() = this prop ConditionerModel
 
     companion object Schema : Table<Schema, Long, Car>("cars", long, "_id") {
         val OwnerId = "owner_id" let long
