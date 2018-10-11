@@ -13,8 +13,8 @@ class SqlViewModel(
         fillIfEmpty()
     }
 
-    val titleProp = session[HumanTable].count().map { "Sample SQLite application ($it records)" }
-    val humanListProp = session[HumanTable].selectAll(HumanTable.Name.asc, HumanTable.Surname.asc)
+    val titleProp = session[Human].count().map { "Sample SQLite application ($it records)" }
+    val humanListProp = session[Human].selectAll(Human.Name.asc, Human.Surname.asc)
     val selectedProp = propertyOf<Human?>(null)
     private val namePatch = propertyOf(mapOf<Human, String>()).also {
         it.debounced(1000L).onEach { new ->
@@ -35,14 +35,14 @@ class SqlViewModel(
             .flatMapNotNullOrDefault(emptyList(), Human::carsProp)
             .flatMap { cars: List<Car> ->
                 cars
-                        .map(propertyGetterOf(CarTable.ConditionerModel))
+                        .map(propertyGetterOf(Car.ConditionerModel))
                         .mapValueList(List<String?>::filterNotNull)
             }.map { conditioners ->
                 if (conditioners.isEmpty()) "none"
                 else conditioners.joinToString(prefix = "Air conditioner(s) in car(s): [\n", postfix = "]")
             }
 
-    val nameProp = selectedProp.flatMapNotNullOrDefault("", propertyGetterOf(HumanTable.Name))
+    val nameProp = selectedProp.flatMapNotNullOrDefault("", propertyGetterOf(Human.Name))
     val editableNameProp = propertyOf("").also {
         it.onEach { newText ->
             selectedProp.value?.let {
@@ -68,7 +68,7 @@ class SqlViewModel(
     }
 
     private fun fillIfEmpty() {
-        if (session[HumanTable].count().value == 0L) {
+        if (session[Human].count().value == 0L) {
             session.withTransaction {
                 insertHuman("Stephen", "Hawking")
                 val relativist = insertHuman("Albert", "Einstein")
@@ -76,8 +76,9 @@ class SqlViewModel(
                 val electrician = insertHuman("Nikola", "Tesla")
 
                 // don't know anything about their friendship, just a sample
-                insert(FriendTable,
-                        FriendTable.LeftId - relativist.primaryKey, FriendTable.RightId - electrician.primaryKey
+                insert(Friendship,
+                        Friendship.LeftId - relativist.primaryKey,
+                        Friendship.RightId - electrician.primaryKey
                 )
 
                 val car = insertCar(electrician)

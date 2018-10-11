@@ -8,53 +8,56 @@ import net.aquadc.persistence.type.nullableString
 import net.aquadc.persistence.type.string
 
 
-val Tables = arrayOf(HumanTable, CarTable, FriendTable)
+val Tables = arrayOf(Human, Car, Friendship)
 
-object HumanTable : Table<HumanTable, Long, Human>("people", long, "_id") {
-    val Name = string immutable "name"
-    val Surname = string immutable "surname"
 
-    override fun create(session: Session, id: Long): Human = Human(session, id)
-}
 fun Transaction.insertHuman(name: String, surname: String): Human =
-        session[HumanTable].require(
-                insert(HumanTable, HumanTable.Name - name, HumanTable.Surname - surname)
+        session[Human].require(
+                insert(Human, Human.Name - name, Human.Surname - surname)
         )
 
-class Human(session: Session, id: Long) : Record<HumanTable, Long>(HumanTable, session, id) {
-    val nameProp get() = this[HumanTable.Name]
-    val surnameProp get() = this[HumanTable.Surname]
-    val carsProp = CarTable.OwnerId toMany CarTable
+class Human(session: Session, id: Long) : Record<Human.Schema, Long>(Human.Schema, session, id) {
+    val nameProp get() = this[Name]
+    val surnameProp get() = this[Surname]
+    val carsProp = Car.OwnerId toMany Car
 
-    val friends = session[FriendTable]
-            .select((FriendTable.LeftId eq id) or (FriendTable.RightId eq id))
+    val friends = session[Friendship]
+            .select((Friendship.LeftId eq id) or (Friendship.RightId eq id))
+
+    companion object Schema : Table<Schema, Long, Human>("people", long, "_id") {
+        val Name = string immutable "name"
+        val Surname = string immutable "surname"
+
+        override fun create(session: Session, id: Long): Human = Human(session, id)
+    }
 }
 
 
 
-object CarTable : Table<CarTable, Long, Car>("cars", long, "_id") {
-    val OwnerId = long immutable "owner_id"
-    val ConditionerModel = nullableString immutable "conditioner_model"
+class Car(session: Session, id: Long) : Record<Car.Schema, Long>(Schema, session, id) {
+    val ownerProp = Schema.OwnerId toOne Human
+    val conditionerModelProp get() = this[Schema.ConditionerModel]
 
-    override fun create(session: Session, id: Long): Car = Car(session, id)
-}
+    companion object Schema : Table<Schema, Long, Car>("cars", long, "_id") {
+        val OwnerId = long immutable "owner_id"
+        val ConditionerModel = nullableString immutable "conditioner_model"
 
-class Car(session: Session, id: Long) : Record<CarTable, Long>(CarTable, session, id) {
-    val ownerProp = CarTable.OwnerId toOne HumanTable
-    val conditionerModelProp get() = this[CarTable.ConditionerModel]
+        override fun create(session: Session, id: Long): Car = Car(session, id)
+    }
 }
 fun Transaction.insertCar(owner: Human): Car =
-        session[CarTable].require(insert(CarTable, CarTable.OwnerId - owner.primaryKey))
+        session[Car].require(insert(Car, Car.OwnerId - owner.primaryKey))
 
 
-object FriendTable : Table<FriendTable, Long, Friendship>("friends", long, "_id") {
-    val LeftId = long immutable "left"
-    val RightId = long immutable "right"
 
-    override fun create(session: Session, id: Long): Friendship = Friendship(session, id)
-}
+class Friendship(session: Session, id: Long) : Record<Friendship.Schema, Long>(Friendship, session, id) {
+    val leftProp = LeftId toOne Human
+    val rightProp = RightId toOne Human
 
-class Friendship(session: Session, id: Long) : Record<FriendTable, Long>(FriendTable, session, id) {
-    val leftProp = FriendTable.LeftId toOne HumanTable
-    val rightProp = FriendTable.RightId toOne HumanTable
+    companion object Schema : Table<Schema, Long, Friendship>("friends", long, "_id") {
+        val LeftId = long immutable "left"
+        val RightId = long immutable "right"
+
+        override fun create(session: Session, id: Long): Friendship = Friendship(session, id)
+    }
 }
