@@ -20,7 +20,7 @@ sealed class DataType<T>(
     abstract class Integer<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
 
         init {
-            check(Arrays.binarySearch(intSizes, sizeBits) >= 0) { "invalid integer size: $sizeBits bits" }
+            check(Arrays.binarySearch(intSizes, sizeBits) >= 0) { "invalid integer number size: $sizeBits bits" }
         }
 
         /**
@@ -41,6 +41,10 @@ sealed class DataType<T>(
      * @param sizeBits can be 32 or 64, doesn't depend on [isNullable]
      */
     abstract class Float<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
+
+        init {
+            check(sizeBits == 32 || sizeBits == 64) { "invalid floating-point number size: $sizeBits bits" }
+        }
 
         /**
          * @return [value] as a [Double] or [Float]
