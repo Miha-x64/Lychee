@@ -22,7 +22,7 @@ class SqlViewModel(
                 session.withTransaction {
                     new.forEach { (human, newName) ->
                         if (human.isManaged && human.nameProp.value != newName) { // if it was just deleted, ignore
-                            human.nameProp.set(newName)
+                            human[Human.Name] = newName
                         }
                     }
                 }
@@ -55,7 +55,7 @@ class SqlViewModel(
 
     val createClicked = propertyOf(false).also {
         it.clearEachAnd {
-            lastInserted.value = session.withTransaction { insertHuman("", "") }
+            lastInserted.value = session.withTransaction { insertHuman("<new>", "") }
         }
     }
 
@@ -82,9 +82,12 @@ class SqlViewModel(
                 )
 
                 val car = insertCar(electrician)
-                car.conditionerModelProp.set("the coolest air cooler")
+                car[Car.ConditionerModel] = "the coolest air cooler"
             }
         }
     }
+
+    fun nameSurnameProp(human: Human) =
+            human.nameProp.map { n -> "$n ${human.surname}" }
 
 }

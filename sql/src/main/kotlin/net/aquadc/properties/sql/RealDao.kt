@@ -28,12 +28,23 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     private val orderedSelections = ConcurrentHashMap<FieldDef<TBL, *>, Vector<MutableProperty<WhereCondition<out TBL>>>>()
 
-    internal fun <T> commitValue(localId: Long, column: Col<TBL, T>, value: T) {
+    @Suppress("UNCHECKED_CAST")
+    internal fun <T> commitValue(localId: Long, column: MutableCol<TBL, T>, value: T) {
         (records[localId]?.fields?.get(column.ordinal.toInt()) as ManagedProperty<Transaction, T>?)?.commit(value)
     }
 
     internal fun dropManagement(localId: Long) {
-        records.remove(localId)?.fields?.forEach(ManagedProperty<*, *>::dropManagement)
+        records.remove(localId)?.let { record ->
+            val defs = record.table.fields
+            val fields = record.fields
+            for (i in defs.indices) {
+                when (defs[i]) {
+                    is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *>).dropManagement()
+                    is FieldDef.Immutable -> { /* no-op */ }
+                }.also {  }
+            }
+            record.isManaged = false
+        }
     }
 
     internal fun onStructuralChange() {
@@ -100,19 +111,22 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     // region low-level Dao implementation
 
-    override fun <T> createFieldOf(col: Col<TBL, T>, id: ID): ManagedProperty<Transaction, T> {
+    override fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<Transaction, T> {
         val localId = lowSession.localId(table, id)
         return ManagedProperty(this, col, localId)
     }
+
+    override fun <T> getValueOf(col: Col<TBL, T>, id: ID): T =
+            getClean<T>(col, lowSession.localId(table, id))
 
     // endregion low-level Dao implementation
 
     // region Manager implementation
 
-    override fun <T> getDirty(column: FieldDef<*, T>, id: Long): T {
+    override fun <T> getDirty(column: FieldDef.Mutable<*, T>, id: Long): T {
         val transaction = lowSession.transaction ?: return unset()
 
-        val thisCol = transaction.updated?.getFor(column as Col<TBL, T>) ?: return unset()
+        val thisCol = transaction.updated?.getFor(column as MutableCol<TBL, T>) ?: return unset()
         // we've created this column, we can cast it to original type
 
         val localId = id
@@ -128,7 +142,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
         return lowSession.fetchSingle(col, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, column: FieldDef<*, T>, id: Long, update: T) {
+    override fun <T> set(transaction: Transaction, column: FieldDef.Mutable<*, T>, id: Long, update: T) {
         column as Col<TBL, T>
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
@@ -145,7 +159,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
             return
         }
 
-        transaction.update<TBL, ID, T>(table, lowSession.primaryKey(table, id), column, update)
+        transaction.update<TBL, ID, T>(table, lowSession.primaryKey(table, id), column as MutableCol<TBL, T>, update)
     }
 
     // endregion Manager implementation

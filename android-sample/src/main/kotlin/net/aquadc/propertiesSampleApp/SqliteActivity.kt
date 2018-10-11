@@ -14,7 +14,6 @@ import android.widget.TextView
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.android.bindings.widget.bindToText
-import net.aquadc.properties.mapWith
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.set
 import net.aquadc.properties.sql.AndroidSqliteSession
@@ -23,7 +22,7 @@ import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import net.aquadc.propertiesSampleLogic.sql.Tables
 import org.jetbrains.anko.*
-import org.jetbrains.anko.recyclerview.v7.recyclerView
+
 
 class SqliteActivity : Activity() {
 
@@ -135,7 +134,7 @@ class SqliteActivity : Activity() {
 
                     override fun onBindViewHolder(holder: SimpleHolder, position: Int) {
                         val human = list.value[position]
-                        holder.textProp.bindTo(human.nameProp.mapWith(human.surnameProp) { n, s -> "$n $s" })
+                        holder.textProp.bindTo(vm.nameSurnameProp(human))
                     }
 
                     override fun getItemCount(): Int =

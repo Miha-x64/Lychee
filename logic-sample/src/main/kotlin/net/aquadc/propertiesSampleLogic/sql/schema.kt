@@ -18,14 +18,14 @@ fun Transaction.insertHuman(name: String, surname: String): Human =
 
 class Human(session: Session, id: Long) : Record<Human.Schema, Long>(Human.Schema, session, id) {
     val nameProp get() = this prop Name
-    val surnameProp get() = this prop Surname
+    val surname get() = this[Surname]
     val carsProp = Car.OwnerId toMany Car
 
     val friends = session[Friendship]
             .select((Friendship.LeftId eq id) or (Friendship.RightId eq id))
 
     companion object Schema : Table<Schema, Long, Human>("people", long, "_id") {
-        val Name = "name" let string
+        val Name = "name" mut string
         val Surname = "surname" let string
 
         override fun create(session: Session, id: Long): Human = Human(session, id)
@@ -39,8 +39,8 @@ class Car(session: Session, id: Long) : Record<Car.Schema, Long>(Schema, session
     val conditionerModelProp get() = this prop ConditionerModel
 
     companion object Schema : Table<Schema, Long, Car>("cars", long, "_id") {
-        val OwnerId = "owner_id" let long
-        val ConditionerModel = "conditioner_model" let nullableString
+        val OwnerId = "owner_id" mut long
+        val ConditionerModel = "conditioner_model" mut nullableString
 
         override fun create(session: Session, id: Long): Car = Car(session, id)
     }
@@ -55,8 +55,8 @@ class Friendship(session: Session, id: Long) : Record<Friendship.Schema, Long>(F
     val rightProp = RightId toOne Human
 
     companion object Schema : Table<Schema, Long, Friendship>("friends", long, "_id") {
-        val LeftId = "left" let long
-        val RightId = "right" let long
+        val LeftId = "left" mut long
+        val RightId = "right" mut long
 
         override fun create(session: Session, id: Long): Friendship = Friendship(session, id)
     }

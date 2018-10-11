@@ -96,7 +96,7 @@ class SqliteApp : Application() {
                 super.updateItem(item, empty)
                 if (item != null && !empty) {
                     graphic = null
-                    textProperty().bind(item.nameProp.mapWith(item.surnameProp) { n, s -> "$n $s" }.fx())
+                    textProperty().bind(vm.nameSurnameProp(item).fx())
                 }
             }
         }

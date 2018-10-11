@@ -1,5 +1,7 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.FieldDef
+
 @Suppress(
         "PLATFORM_CLASS_MAPPED_TO_KOTLIN", // using finalization guard
         "ReplacePutWithAssignment" // shut up, I want to write my code in cute columns
@@ -46,20 +48,23 @@ internal class RealTransaction(
         // write all insertion fields as updates
         val updated = updated ?: UpdatesHashMap().also { updated = it }
         contentValues.forEach {
-            updated.put(it, localId)
+            when (it.col) {
+                is FieldDef.Mutable -> updated.put(it, localId)
+                is FieldDef.Immutable -> { }
+            }.also { }
         }
 
         return id
     }
 
     override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(
-            table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T
+            table: Table<TBL, ID, *>, id: ID, column: MutableCol<TBL, T>, value: T
     ) {
         checkOpenAndThread()
 
         lowSession.update(table, id, column, value)
 
-        (updated ?: HashMap<Col<*, *>, HashMap<Long, Any?>>().also { updated = it })
+        (updated ?: HashMap<MutableCol<*, *>, HashMap<Long, Any?>>().also { updated = it })
                 .getOrPut(column, ::HashMap)
                 .put(lowSession.localId(table, id), value)
     }
