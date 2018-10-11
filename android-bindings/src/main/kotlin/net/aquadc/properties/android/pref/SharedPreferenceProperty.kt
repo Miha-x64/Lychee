@@ -143,7 +143,7 @@ class SharedPreferenceProperty<T>
 @Suppress("UNCHECKED_CAST")
 private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String, default: T): T {
     when (this) {
-        is DataType.String ->
+        is DataType.Str ->
             return prefs.getString(key, null)?.let(::asT) ?: default
         is DataType.Blob ->
             return prefs.getString(key, null)?.let { asT(Base64.decode(it, Base64.DEFAULT)) } ?: default
@@ -166,7 +166,7 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String, default: 
                     else -> throw AssertionError()
                 }
             }
-            is DataType.Float -> {
+            is DataType.Floating -> {
                 val asNum = default?.let(::asNumber)
                 when (sizeBits) {
                     32 -> prefs.getLong(key, (asNum as Float?)?.let(java.lang.Float::floatToIntBits)?.toLong() ?: Long.MIN_VALUE)
@@ -176,7 +176,7 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String, default: 
                     else -> throw AssertionError()
                 }
             }
-            is DataType.String, is DataType.Blob -> throw AssertionError()
+            is DataType.Str, is DataType.Blob -> throw AssertionError()
         }
     } else {
         when (this) {
@@ -191,7 +191,7 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String, default: 
                     else -> throw AssertionError()
                 })
             }
-            is DataType.Float -> {
+            is DataType.Floating -> {
                 val defNum = asNumber(default)
                 asT(when (sizeBits) {
                     32 -> prefs.getFloat(key, defNum as Float)
@@ -199,7 +199,7 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String, default: 
                     else -> throw AssertionError()
                 })
             }
-            is DataType.String, is DataType.Blob -> throw AssertionError()
+            is DataType.Str, is DataType.Blob -> throw AssertionError()
         }
     }
 }
@@ -241,7 +241,7 @@ private fun Int.asBoolean(): Boolean? {
 
 private fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, value: T) {
     when (this) {
-        is DataType.String -> return editor.putString(key, value?.let(::asString)).ignored
+        is DataType.Str -> return editor.putString(key, value?.let(::asString)).ignored
         is DataType.Blob -> return editor.putString(key, value?.let { Base64.encodeToString(asByteArray(it), Base64.DEFAULT) }).ignored
     }
 
@@ -258,7 +258,7 @@ private fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, v
                     else -> throw AssertionError()
                 }
             }
-            is DataType.Float -> {
+            is DataType.Floating -> {
                 val asNum = value?.let(::asNumber)
                 when (sizeBits) {
                     32 -> editor.putLong(key, (asNum as Float?)?.let(java.lang.Float::floatToIntBits)?.toLong() ?: Long.MIN_VALUE).ignored
@@ -266,7 +266,7 @@ private fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, v
                     else -> throw AssertionError()
                 }
             }
-            is DataType.String, is DataType.Blob -> throw AssertionError()
+            is DataType.Str, is DataType.Blob -> throw AssertionError()
         }
     } else {
         when (this) {
@@ -281,7 +281,7 @@ private fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, v
                     else -> throw AssertionError()
                 }
             }
-            is DataType.Float -> {
+            is DataType.Floating -> {
                 val asNum = asNumber(value)
                 when (sizeBits) {
                     32 -> editor.putFloat(key, asNum as Float).ignored
@@ -289,7 +289,7 @@ private fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, v
                     else -> throw AssertionError()
                 }
             }
-            is DataType.String, is DataType.Blob -> throw AssertionError()
+            is DataType.Str, is DataType.Blob -> throw AssertionError()
         }
     }
 

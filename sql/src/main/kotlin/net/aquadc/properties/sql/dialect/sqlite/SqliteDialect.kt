@@ -93,8 +93,8 @@ object SqliteDialect : Dialect {
 
     private fun nameOf(dataType: DataType<*>): String = when (dataType) {
         is DataType.Integer<*> -> "INTEGER"
-        is DataType.Float<*> -> "REAL"
-        is DataType.String<*> -> "TEXT"
+        is DataType.Floating<*> -> "REAL"
+        is DataType.Str<*> -> "TEXT"
         is DataType.Blob<*> -> "BLOB"
     }
 

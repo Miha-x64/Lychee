@@ -40,7 +40,7 @@ sealed class DataType<T>(
     /**
      * @param sizeBits can be 32 or 64, doesn't depend on [isNullable]
      */
-    abstract class Float<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
+    abstract class Floating<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
 
         init {
             check(sizeBits == 32 || sizeBits == 64) { "invalid floating-point number size: $sizeBits bits" }
@@ -62,18 +62,18 @@ sealed class DataType<T>(
     /**
      * @param maxLengthChars can be [Byte.MAX_VALUE], [Short.MAX_VALUE], or [Int.MAX_VALUE], and used in SQL
      */
-    abstract class String<T> internal constructor(isNullable: Boolean, val maxLengthChars: Int) : DataType<T>(isNullable) {
+    abstract class Str<T> internal constructor(isNullable: Boolean, val maxLengthChars: Int) : DataType<T>(isNullable) {
 
         /**
-         * @return [value] as a [kotlin.String]
+         * @return [value] as a [String]
          * @throws NullPointerException if [value] is `null`
          */
-        abstract fun asString(value: T): kotlin.String
+        abstract fun asString(value: T): String
 
         /**
          * @return [value] as [T]
          */
-        abstract fun asT(value: kotlin.String): T
+        abstract fun asT(value: String): T
 
     }
 
@@ -95,9 +95,10 @@ sealed class DataType<T>(
 
     }
 
-//    abstract class List<L, E> internal constructor(isNullable: Boolean, eType: DataType<E>) : DataType<L>(isNullable) TODO
+//    abstract class Collect<C : Collection<E>, E> internal constructor(isNullable: Boolean, eType: DataType<E>) : DataType<C>(isNullable) TODO
 //    abstract class Map<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
 //    abstract class Union<T> internal constructor(isNullable: Boolean, types: List<DataType<out T>>) : DataType<T>(isNullable) TODO
+//    abstract class Struct<T> internal constructor(isNullable: Boolean, def: StructDef<T>) : DataType<T>(isNullable) TODO
 //    Date is not supported because it's mutable and the most parts of it are deprecated 20+ years ago. TODO consider
 
 
@@ -151,7 +152,7 @@ private class Ints<T>(isNullable: Boolean, sizeBits: Int) : DataType.Integer<T>(
 @JvmField val nullableLong: DataType.Integer<Long?> = Ints(true, 64)
 
 
-private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Float<T>(isNullable, sizeBits) {
+private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Floating<T>(isNullable, sizeBits) {
 
     /**
      * {@implNote does nothing but sanity checks}
@@ -159,7 +160,7 @@ private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Float<T>(
     override fun asNumber(value: T): Number {
         if (value === null) throw NullPointerException()
         return when (sizeBits) {
-            32 -> value as kotlin.Float
+            32 -> value as Float
             64 -> value as Double
             else -> throw AssertionError()
         }
@@ -170,7 +171,7 @@ private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Float<T>(
      */
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
     override fun asT(value: Number): T = when (sizeBits) {
-        32 -> value as kotlin.Float
+        32 -> value as Float
         64 -> value as Double
         else -> throw AssertionError()
     } as T
@@ -184,19 +185,19 @@ private class Floats<T>(isNullable: Boolean, sizeBits: Int) : DataType.Float<T>(
 @JvmField val nullableDouble: DataType<Double?> = Floats(true, 64)
 
 
-private class Strings<T>(isNullable: Boolean, maxLengthChars: Int) : DataType.String<T>(isNullable, maxLengthChars) {
+private class Strings<T>(isNullable: Boolean, maxLengthChars: Int) : DataType.Str<T>(isNullable, maxLengthChars) {
 
     /**
      * {@implNote does nothing but sanity checks}
      */
-    override fun asString(value: T): kotlin.String =
-            if (value === null) throw NullPointerException() else value as kotlin.String
+    override fun asString(value: T): String =
+            if (value === null) throw NullPointerException() else value as String
 
     /**
      * {@implNote does nothing but sanity checks}
      */
     @Suppress("UNCHECKED_CAST")
-    override fun asT(value: kotlin.String): T =
+    override fun asT(value: String): T =
             value as T
 
 }
