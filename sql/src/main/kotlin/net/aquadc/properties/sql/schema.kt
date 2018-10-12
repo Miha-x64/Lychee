@@ -134,9 +134,8 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
         val primaryKey: ID
 ) : BaseStruct<TBL>(table) {
 
-    @JvmField
-    @JvmSynthetic
-    internal val fields: Array<Any?> = // = ManagedProperty<Transaction, T> | T
+    @JvmField @JvmSynthetic
+    internal val values: Array<Any?> = // = ManagedProperty<Transaction, T> | T
             @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
             session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>).let { dao ->
                 table.fields.mapToArray { col ->
@@ -149,11 +148,11 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> propOf(field: FieldDef.Mutable<TBL, T>): SqlProperty<T> =
-            fields[field.ordinal.toInt()] as SqlProperty<T>
+            values[field.ordinal.toInt()] as SqlProperty<T>
 
     override fun <T> get(field: FieldDef<TBL, T>): T = when (field) {
         is FieldDef.Mutable -> propOf(field).value
-        is FieldDef.Immutable -> fields[field.ordinal.toInt()] as T
+        is FieldDef.Immutable -> values[field.ordinal.toInt()] as T
     }
 
     infix fun <T> prop(col: MutableCol<TBL, T>): SqlProperty<T> =

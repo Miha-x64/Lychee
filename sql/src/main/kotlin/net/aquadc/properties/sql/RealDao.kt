@@ -30,13 +30,13 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     @Suppress("UNCHECKED_CAST")
     internal fun <T> commitValue(localId: Long, column: MutableCol<TBL, T>, value: T) {
-        (records[localId]?.fields?.get(column.ordinal.toInt()) as ManagedProperty<Transaction, T>?)?.commit(value)
+        (records[localId]?.values?.get(column.ordinal.toInt()) as ManagedProperty<Transaction, T>?)?.commit(value)
     }
 
     internal fun dropManagement(localId: Long) {
         records.remove(localId)?.let { record ->
             val defs = record.table.fields
-            val fields = record.fields
+            val fields = record.values
             for (i in defs.indices) {
                 when (defs[i]) {
                     is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *>).dropManagement()

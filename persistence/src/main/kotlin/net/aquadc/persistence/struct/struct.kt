@@ -30,8 +30,7 @@ abstract class StructDef<SELF : StructDef<SELF>>(
      */
     val fields: List<FieldDef<SELF, *>> by lazy {
         val fields = tmpFields()
-        check(fields.isNotEmpty()) { "Struct must have at least one field." }
-        //          ^ note: isManaged also relies on the fact that any struct has at least one field.
+        check(fields.isNotEmpty()) { "Struct must have at least one field." } // fixme: is it necessary?
 
         val nameSet = HashSet<String>()
         for (i in fields.indices) {
