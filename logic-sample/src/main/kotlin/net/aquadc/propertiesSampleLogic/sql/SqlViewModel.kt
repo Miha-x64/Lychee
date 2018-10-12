@@ -18,7 +18,7 @@ class SqlViewModel(
     val selectedProp = propertyOf<Human?>(null)
     private val namePatch = propertyOf(mapOf<Human, String>()).also {
         it.debounced(1000L).onEach { new ->
-            if (new.isNotEmpty() && it.casValue(new, mapOf())) {
+            if (new.isNotEmpty() && it.casValue(new, emptyMap())) {
                 session.withTransaction {
                     new.forEach { (human, newName) ->
                         if (human.isManaged && human.nameProp.value != newName) { // if it was just deleted, ignore

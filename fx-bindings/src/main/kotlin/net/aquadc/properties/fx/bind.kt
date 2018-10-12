@@ -71,8 +71,7 @@ fun <T> Property<T>.fx(): ObservableValue<T> {
 fun <T> Property<List<T>>.fxList(): ObservableList<T> {
     val list = FXCollections.observableArrayList(value)
     addChangeListener { _, new ->
-        list.clear()
-        list.addAll(new)
+        list.setAll(new)
     }
     return list
 }

@@ -78,7 +78,7 @@ class SqliteApp : Application() {
 
                             children += JFXButton("Dump debug info").apply {
                                 setOnMouseClicked { _ ->
-                                    println(StringBuilder().also(sess::dump).toString())
+                                    println(buildString(sess::dump))
                                 }
                             }
                         }
