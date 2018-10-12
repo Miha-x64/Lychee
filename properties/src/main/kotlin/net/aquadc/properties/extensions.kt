@@ -88,3 +88,11 @@ fun <T : Any, U> Property<T?>.flatMapNotNullOrDefault(default: U, transform: (T)
     val fallbackProp = immutablePropertyOf(default)
     return flatMap { if (it == null) fallbackProp else transform(it) }
 }
+
+/**
+ * Drops current binding, if any.
+ */
+fun <T> MutableProperty<T>.unbind() {
+    val v = value
+    casValue(v, v)
+}
