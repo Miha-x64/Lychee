@@ -10,6 +10,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.StructDef
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.type.DataType
+import net.aquadc.properties.internal.Unset
 
 
 typealias IdBound = Any // Serializable in some frameworks
@@ -134,14 +135,17 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
         val primaryKey: ID
 ) : BaseStruct<TBL>(table) {
 
+    @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
+    private val dao
+        get() = session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>)
+
     @JvmField @JvmSynthetic
-    internal val values: Array<Any?> = // = ManagedProperty<Transaction, T> | T
-            @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
-            session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>).let { dao ->
+    internal val values: Array<Any?> = // = SqlProperty<T> | T
+            dao.let { dao ->
                 table.fields.mapToArray { col ->
                     when (col) {
                         is FieldDef.Mutable -> dao.createFieldOf(col as MutableCol<TBL, Nothing>, primaryKey)
-                        is FieldDef.Immutable -> dao.getValueOf(col, primaryKey)
+                        is FieldDef.Immutable -> Unset
                     }
                 }
             }
@@ -152,7 +156,16 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
 
     override fun <T> get(field: FieldDef<TBL, T>): T = when (field) {
         is FieldDef.Mutable -> propOf(field).value
-        is FieldDef.Immutable -> values[field.ordinal.toInt()] as T
+        is FieldDef.Immutable -> {
+            val index = field.ordinal.toInt()
+            val value = values[index]
+
+            if (value === Unset) {
+                val freshValue = dao.getValueOf(field, primaryKey)
+                values[index] = freshValue
+                freshValue
+            } else  value as T
+        }
     }
 
     infix fun <T> prop(col: MutableCol<TBL, T>): SqlProperty<T> =
