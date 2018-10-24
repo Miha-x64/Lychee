@@ -4,15 +4,15 @@ import javafx.application.Application
 import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.Scene
 import javafx.stage.Stage
+import net.aquadc.properties.persistence.ObservableStruct
 import net.aquadc.propertiesSampleLogic.User
-import net.aquadc.propertiesSampleLogic.defaultUser
 
 class FxNativeSample : Application() {
 
-    private val userProp = SimpleObjectProperty<User>(defaultUser)
+    private val user = ObservableStruct(User, false)
 
     override fun start(stage: Stage) {
-        val vm = FxViewModel(userProp)
+        val vm = FxViewModel(user)
         stage.scene = Scene(nativeView(vm), 400.0, 300.0)
         stage.show()
     }

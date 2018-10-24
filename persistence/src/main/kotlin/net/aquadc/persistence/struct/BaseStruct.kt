@@ -7,7 +7,7 @@ import java.util.*
  * Used for implementation inheritance, adds no contract and should not be treated as a separate type.
  */
 abstract class BaseStruct<DEF : StructDef<DEF>>(
-        final override val type: StructDef<DEF>
+        final override val type: DEF
 ) : Struct<DEF> {
 
     override fun equals(other: Any?): Boolean {

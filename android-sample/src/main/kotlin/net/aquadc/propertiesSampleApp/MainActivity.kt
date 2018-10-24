@@ -23,7 +23,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         // create or restore ViewModel
-        vm = (lastNonConfigurationInstance as MainVm?) ?: MainVm(app.userProp)
+        vm = (lastNonConfigurationInstance as MainVm?) ?: MainVm(app.user)
 
         // restore ViewModel's state in case of process death
         savedInstanceState?.getParcelable<ParcelPropertiesMemento>("vm")?.restoreTo(vm)
