@@ -84,7 +84,7 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
 /**
  * A bridge between [ObservableStruct] and [TransactionalPropertyStruct].
  */
-class Transactional<DEF : StructDef<DEF>>(
+@PublishedApi internal class Transactional<DEF : StructDef<DEF>>(
         private val observable: ObservableStruct<DEF>
 ) : BaseStruct<DEF>(observable.type), TransactionalPropertyStruct<DEF> {
 
@@ -134,3 +134,7 @@ class Transactional<DEF : StructDef<DEF>>(
     }
 
 }
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <DEF : StructDef<DEF>> ObservableStruct<DEF>.transactional(): TransactionalPropertyStruct<DEF> =
+        Transactional(this)

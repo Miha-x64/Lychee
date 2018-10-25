@@ -32,6 +32,9 @@ interface TransactionalStruct<DEF : StructDef<DEF>> : Struct<DEF> {
     fun beginTransaction(): StructTransaction<DEF>
 }
 
+/**
+ * A transaction on a single [Struct] instance.
+ */
 interface StructTransaction<DEF : StructDef<DEF>> : AutoCloseable {
     operator fun <T> set(field: FieldDef.Mutable<DEF, T>, update: T)
     fun setSuccessful()
