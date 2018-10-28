@@ -2,14 +2,14 @@
 
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.BaseStruct
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.StructDef
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.StructDef
-import net.aquadc.persistence.struct.BaseStruct
-import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.internal.Unset
 
 
@@ -35,7 +35,7 @@ interface Dao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> {
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
     // Note: returned [Property] is not managed itself, [Record]s are. fixme may be in LowLevel
-    fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<Transaction, T>
+    fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<TBL, Transaction, T>
     fun <T> getValueOf(col: Col<TBL, T>, id: ID): T
 }
 
@@ -129,26 +129,38 @@ typealias MutableCol<TBL, T> = FieldDef.Mutable<TBL, T>
  * Subclass it to provide your own getters and/or computed/foreign properties.
  * TODO: should I provide subclassing-less API, too?
  */
-open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
-        internal val table: Table<TBL, ID, *>,
-        internal val session: Session,
-        val primaryKey: ID
-) : BaseStruct<TBL>(table) {
+open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL>/*, TransactionalPropertyStruct<TBL>*/ {
+
+    internal val table: Table<TBL, ID, *>
+    internal val session: Session
+    val primaryKey: ID
 
     @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
     private val dao
         get() = session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>)
 
     @JvmField @JvmSynthetic
-    internal val values: Array<Any?> = // = SqlProperty<T> | T
-            dao.let { dao ->
-                table.fields.mapToArray { col ->
-                    when (col) {
-                        is FieldDef.Mutable -> dao.createFieldOf(col as MutableCol<TBL, Nothing>, primaryKey)
-                        is FieldDef.Immutable -> Unset
-                    }
+    internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
+
+    constructor(table: TBL, session: Session, primaryKey: ID) : super(table) {
+        this.table = table
+        this.session = session
+        this.primaryKey = primaryKey
+        this.values = @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
+        session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>).let { dao ->
+            table.fields.mapToArray { col ->
+                when (col) {
+                    is FieldDef.Mutable -> dao.createFieldOf(col as MutableCol<TBL, Nothing>, primaryKey)
+                    is FieldDef.Immutable -> Unset
                 }
             }
+        }
+    }
+
+    /*constructor(source: Struct<TBL>) : super(source.type) {
+        TODO
+    }*/
+
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> propOf(field: FieldDef.Mutable<TBL, T>): SqlProperty<T> =
@@ -189,6 +201,8 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound>(
     infix fun <ForeTBL : Table<ForeTBL, ForeID, ForeREC>, ForeID : IdBound, ForeREC : Record<ForeTBL, ForeID>>
             MutableCol<ForeTBL, ID>.toMany(foreignTable: Table<ForeTBL, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)
+
+    // TODO: relations for immutable cols
 
 }
 

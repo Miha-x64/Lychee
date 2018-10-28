@@ -1,11 +1,12 @@
 package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.source.DataReader
-import net.aquadc.persistence.struct.BaseStruct
-import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.StructDef
+import net.aquadc.persistence.struct.*
 import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.Property
+import net.aquadc.properties.TransactionalProperty
+import net.aquadc.properties.internal.ManagedProperty
+import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.propertyOf
 
 /**
@@ -18,7 +19,7 @@ import net.aquadc.properties.propertyOf
  *   * a mutator [set]
  *   * a property getter [prop]
  */
-class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF> {
+class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<DEF> {
 
     private val values: Array<Any?>
 
@@ -46,6 +47,21 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF> {
         values = vals
     }
 
+    /**
+     * Constructs a new observable struct filled with default values.
+     */
+    constructor(type: DEF, concurrent: Boolean) : super(type) {
+        val fields = type.fields
+        values = Array(fields.size) { i ->
+            val field = fields[i]
+            val value = field.default
+            when (field) {
+                is FieldDef.Mutable<DEF, *> -> propertyOf(value, concurrent)
+                is FieldDef.Immutable<DEF, *> -> value
+            }
+        }
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(field: FieldDef<DEF, T>): T {
         val value = values[field.ordinal.toInt()]
@@ -60,7 +76,61 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF> {
     }
 
     @Suppress("UNCHECKED_CAST")
-    infix fun <T> prop(field: FieldDef.Mutable<DEF, T>) =
+    override fun <T> prop(field: FieldDef.Mutable<DEF, T>) =
             (values[field.ordinal.toInt()] as MutableProperty<T>)
+
+}
+
+/**
+ * A bridge between [ObservableStruct] and [TransactionalPropertyStruct].
+ */
+class Transactional<DEF : StructDef<DEF>>(
+        private val observable: ObservableStruct<DEF>
+) : BaseStruct<DEF>(observable.type), TransactionalPropertyStruct<DEF> {
+
+    private val manager = object : Manager<DEF, StructTransaction<DEF>> {
+
+        override fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T =
+                net.aquadc.properties.internal.Unset as T
+
+        override fun <T> getClean(field: FieldDef<DEF, T>, id: Long): T =
+                get(field)
+
+        override fun <T> set(transaction: StructTransaction<DEF>, field: FieldDef.Mutable<DEF, T>, id: Long, update: T) {
+            (observable prop field).value = update
+        }
+
+    }
+
+    private val values = observable.type.fields.map {
+        when (it) {
+            is FieldDef.Mutable -> ManagedProperty(manager, it as FieldDef.Mutable<DEF, Any?>, -1, net.aquadc.properties.internal.Unset)
+            is FieldDef.Immutable -> observable[it]
+        }
+    }
+
+    override fun <T> get(field: FieldDef<DEF, T>): T {
+        val index = field.ordinal.toInt()
+        return when (field) {
+            is FieldDef.Mutable -> (values[index] as Property<T>).value
+            is FieldDef.Immutable -> values[index] as T
+        }
+    }
+
+    override fun <T> prop(field: FieldDef.Mutable<DEF, T>): TransactionalProperty<StructTransaction<DEF>, T> =
+            (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<DEF>, T>)
+
+    override fun beginTransaction(): StructTransaction<DEF> = object : PropStructTransaction<DEF>(this) {
+
+        override fun close() {
+            when (successful) {
+                true -> Unit // nothing to do here
+                false -> error("Oops... rollback is not supported") // TODO
+                null -> error("attempting to close an already closed transaction")
+            }
+            successful = null
+        }
+
+    }
 
 }

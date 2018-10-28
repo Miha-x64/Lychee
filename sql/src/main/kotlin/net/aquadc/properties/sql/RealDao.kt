@@ -16,7 +16,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
         private val lowSession: LowLevelSession,
         private val table: Table<TBL, ID, REC>,
         private val dialect: Dialect
-) : Dao<TBL, ID, REC>, Manager<Transaction> {
+) : Dao<TBL, ID, REC>, Manager<TBL, Transaction> {
 
     private val records = ConcurrentHashMap<Long, REC>()
 
@@ -30,7 +30,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     @Suppress("UNCHECKED_CAST")
     internal fun <T> commitValue(localId: Long, column: MutableCol<TBL, T>, value: T) {
-        (records[localId]?.values?.get(column.ordinal.toInt()) as ManagedProperty<Transaction, T>?)?.commit(value)
+        (records[localId]?.values?.get(column.ordinal.toInt()) as ManagedProperty<TBL, Transaction, T>?)?.commit(value)
     }
 
     internal fun dropManagement(localId: Long) {
@@ -39,7 +39,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
             val fields = record.values
             for (i in defs.indices) {
                 when (defs[i]) {
-                    is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *>).dropManagement()
+                    is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *>).dropManagement()
                     is FieldDef.Immutable -> { /* no-op */ }
                 }.also {  }
             }
@@ -111,9 +111,9 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     // region low-level Dao implementation
 
-    override fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<Transaction, T> {
+    override fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<TBL, Transaction, T> {
         val localId = lowSession.localId(table, id)
-        return ManagedProperty(this, col, localId)
+        return ManagedProperty(this, col, localId, unset())
     }
 
     override fun <T> getValueOf(col: Col<TBL, T>, id: ID): T =
@@ -123,10 +123,10 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     // region Manager implementation
 
-    override fun <T> getDirty(column: FieldDef.Mutable<*, T>, id: Long): T {
+    override fun <T> getDirty(field: FieldDef.Mutable<TBL, T>, id: Long): T {
         val transaction = lowSession.transaction ?: return unset()
 
-        val thisCol = transaction.updated?.getFor(column as MutableCol<TBL, T>) ?: return unset()
+        val thisCol = transaction.updated?.getFor(field as MutableCol<TBL, T>) ?: return unset()
         // we've created this column, we can cast it to original type
 
         val localId = id
@@ -135,15 +135,13 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(column: FieldDef<*, T>, id: Long): T {
-        val col = column as Col<TBL, T>
+    override fun <T> getClean(field: FieldDef<TBL, T>, id: Long): T {
         val primaryKey = lowSession.primaryKey(table, id)
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
-        return lowSession.fetchSingle(col, table, condition)
+        return lowSession.fetchSingle(field, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, column: FieldDef.Mutable<*, T>, id: Long, update: T) {
-        column as Col<TBL, T>
+    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<TBL, T>, id: Long, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
             if (ourTransact === null)
@@ -153,13 +151,13 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
         }
         ourTransact.checkOpenAndThread()
 
-        val dirty = getDirty(column, id)
-        val cleanEquals = dirty === Unset && getClean(column, id) === update
+        val dirty = getDirty(field, id)
+        val cleanEquals = dirty === Unset && getClean(field, id) === update
         if (dirty === update || cleanEquals) {
             return
         }
 
-        transaction.update<TBL, ID, T>(table, lowSession.primaryKey(table, id), column as MutableCol<TBL, T>, update)
+        transaction.update(table, lowSession.primaryKey(table, id), field, update)
     }
 
     // endregion Manager implementation

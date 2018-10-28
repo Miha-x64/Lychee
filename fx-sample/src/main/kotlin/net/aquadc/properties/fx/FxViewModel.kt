@@ -3,37 +3,41 @@ package net.aquadc.properties.fx
 import javafx.beans.binding.Bindings
 import javafx.beans.binding.StringBinding
 import javafx.beans.binding.When
+import javafx.beans.property.Property
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
+import net.aquadc.properties.function.areEqual
+import net.aquadc.properties.function.areNotEqual
+import net.aquadc.properties.mapWith
+import net.aquadc.properties.not
+import net.aquadc.properties.persistence.ObservableStruct
+import net.aquadc.properties.persistence.snapshots
 import net.aquadc.propertiesSampleLogic.User
 import java.util.concurrent.Callable
 
 class FxViewModel(
-        private val userProp: SimpleObjectProperty<User>
+        private val user: ObservableStruct<User>
 ) {
 
-    val emailProp: SimpleStringProperty
-    val nameProp: SimpleStringProperty
-    val surnameProp: SimpleStringProperty
+    private val editable = ObservableStruct(user, false)
 
-    init {
-        val currentUser = userProp.get()
-        emailProp = SimpleStringProperty(currentUser.email)
-        nameProp = SimpleStringProperty(currentUser.name)
-        surnameProp = SimpleStringProperty(currentUser.surname)
-    }
+    val emailProp: Property<String> = (editable prop User.Email).fx()
+    val nameProp: Property<String> = (editable prop User.Name).fx()
+    val surnameProp: Property<String> = (editable prop User.Surname).fx()
 
-    private val onScreenUserProp =
-            Bindings.createObjectBinding(Callable<User> {
-                User(emailProp.value, nameProp.value, surnameProp.value)
-            }, emailProp, nameProp, surnameProp)
+    val buttonEnabledProp = SimpleBooleanProperty().also { it.bind(
+            user.snapshots().mapWith(user.snapshots(), areNotEqual()).fx()
+    ) }
 
-    val buttonEnabledProp = !userProp.isEqualTo(onScreenUserProp)
-    val buttonTextProp: StringBinding = When(buttonEnabledProp).then("Save changes").otherwise("Nothing changed")
+    val buttonTextProp: StringBinding = When(buttonEnabledProp)
+            .then("Save changes").otherwise("Nothing changed")
 
 
     fun saveButtonClicked() {
-        userProp.set(onScreenUserProp.value)
+        user[User.Name] = editable[User.Name]
+        user[User.Surname] = editable[User.Surname]
+        user[User.Email] = editable[User.Email]
     }
 
 }

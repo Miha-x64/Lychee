@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 import net.aquadc.propertiesSampleLogic.User
 import org.jetbrains.anko.*
@@ -21,22 +22,22 @@ class MonolithicActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val user = app.userProp.value
+        val user = app.user
 
         verticalLayout {
             padding = dip(16)
 
-            emailInput = editText(user.email) {
+            emailInput = editText(user[User.Email]) {
                 id = 1
                 hint = "Email"
             }
 
-            nameInput = editText(user.name) {
+            nameInput = editText(user[User.Name]) {
                 id = 2
                 hint = "Name"
             }
 
-            surnameInput = editText(user.surname) {
+            surnameInput = editText(user[User.Surname]) {
                 id = 3
                 hint = "Surname"
             }
@@ -59,21 +60,23 @@ class MonolithicActivity : Activity() {
     }
 
     private fun textChanged() {
-        val usersEqual = gatherUser() == app.userProp.value
+        val usersEqual = gatherUser() == app.user.let { listOf(it[User.Email], it[User.Name], it[User.Surname]) }
 
         saveButton.isEnabled = !usersEqual
         saveButton.text = if (usersEqual) "Nothing changed" else "Save changes"
     }
 
     private fun saveButtonClicked() {
-        app.userProp.value = gatherUser()
+        app.user.transaction {
+            it[User.Email] = emailInput.text.toString()
+            it[User.Name] = nameInput.text.toString()
+            it[User.Surname] = surnameInput.text.toString()
+        }
         textChanged()
     }
 
-    private fun gatherUser() = User(
-            email = emailInput.text.toString(),
-            name = nameInput.text.toString(),
-            surname = surnameInput.text.toString())
+    private fun gatherUser() =
+            listOf(emailInput.text.toString(), nameInput.text.toString(), surnameInput.text.toString())
 
 }
 

@@ -1,9 +1,10 @@
 package net.aquadc.properties.sql.dialect.sqlite
 
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
-import net.aquadc.persistence.type.DataType
 
 /**
  * Implements SQLite [Dialect].
@@ -83,12 +84,37 @@ object SqliteDialect : Dialect {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
                 .append(table.idColName).append(' ').append(nameOf(table.idColType)).append(" PRIMARY KEY, ")
         table.fields.forEach { col ->
-            sb.append(col.name).append(' ').append(nameOf(col.type))
-            if (!col.type.isNullable) sb.append(" NOT NULL")
+            val type = col.type
+            sb.append(col.name).append(' ').append(nameOf(type))
+            if (!type.isNullable) sb.append(" NOT NULL")
+            if (col.hasDefault) sb.appendDefault(col)
             sb.append(", ")
         }
         sb.setLength(sb.length - 2) // trim last comma
         return sb.append(");").toString()
+    }
+
+    private fun <T> StringBuilder.appendDefault(col: FieldDef<out Table<*, *, *>, T>) {
+        val type = col.type
+        val value = col.default
+        append(" DEFAULT '")
+        when (type) {
+            is DataType.Integer -> append(type.asNumber(value).toString())
+            is DataType.Floating -> append(type.asNumber(value).toString())
+            is DataType.Str -> append(type.asString(value))
+            is DataType.Blob -> append("x'").appendHex(type.asByteArray(value)).append('\'')
+        }
+        append('\'')
+    }
+
+    private val hexChars = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
+    private fun StringBuilder.appendHex(bytes: ByteArray): StringBuilder {
+        for (b in bytes) {
+            val v = b.toInt() and 0xFF
+            append(hexChars[v ushr 4])
+            append(hexChars[v and 0x0F])
+        }
+        return this
     }
 
     private fun nameOf(dataType: DataType<*>): String = when (dataType) {

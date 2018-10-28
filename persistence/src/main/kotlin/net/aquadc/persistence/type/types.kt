@@ -96,7 +96,7 @@ sealed class DataType<T>(
     }
 
 //    abstract class Collect<C : Collection<E>, E> internal constructor(isNullable: Boolean, eType: DataType<E>) : DataType<C>(isNullable) TODO
-//    abstract class Map<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
+//    abstract class Dictionary<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
 //    abstract class Union<T> internal constructor(isNullable: Boolean, types: List<DataType<out T>>) : DataType<T>(isNullable) TODO
 //    abstract class Struct<T> internal constructor(isNullable: Boolean, def: StructDef<T>) : DataType<T>(isNullable) TODO
 //    Date is not supported because it's mutable and the most parts of it are deprecated 20+ years ago. TODO consider
@@ -204,16 +204,16 @@ private class Strings<T>(isNullable: Boolean, maxLengthChars: Int) : DataType.St
 
 /*
 @JvmField val smallString: DataType<String> = Strings(false, Byte.MAX_VALUE.toInt())
-@JvmField val smallNullableString: DataType<String?> = Strings(false, Byte.MAX_VALUE.toInt())
+@JvmField val smallNullableString: DataType<String?> = Strings(true, Byte.MAX_VALUE.toInt())
 
 @JvmField val mediumString: DataType<String> = Strings(false, Short.MAX_VALUE.toInt())
-@JvmField val mediumNullableString: DataType<String?> = Strings(false, Short.MAX_VALUE.toInt())
+@JvmField val mediumNullableString: DataType<String?> = Strings(true, Short.MAX_VALUE.toInt())
 
 @JvmField val largeString: DataType<String> = Strings(false, Int.MAX_VALUE)
-@JvmField val largeNullableString: DataType<String?> = Strings(false, Int.MAX_VALUE)
+@JvmField val largeNullableString: DataType<String?> = Strings(true, Int.MAX_VALUE)
 */
 @JvmField val string: DataType<String> = Strings(false, Int.MAX_VALUE)
-@JvmField val nullableString: DataType<String?> = Strings(false, Int.MAX_VALUE)
+@JvmField val nullableString: DataType<String?> = Strings(true, Int.MAX_VALUE)
 
 
 private class Bytes<T>(isNullable: Boolean, maxLength: Int) : DataType.Blob<T>(isNullable, maxLength) {
@@ -239,13 +239,13 @@ private const val bytesMessage =
 
 /*
 @JvmField val smallByteArray: DataType<ByteArray> = Bytes(false, Byte.MAX_VALUE.toInt())
-@JvmField val smallNullableByteArray: DataType<ByteArray?> = Bytes(false, Byte.MAX_VALUE.toInt())
+@JvmField val smallNullableByteArray: DataType<ByteArray?> = Bytes(true, Byte.MAX_VALUE.toInt())
 
 @JvmField val mediumByteArray: DataType<ByteArray> = Bytes(false, Short.MAX_VALUE.toInt())
-@JvmField val mediumNullableByteArray: DataType<ByteArray?> = Bytes(false, Short.MAX_VALUE.toInt())
+@JvmField val mediumNullableByteArray: DataType<ByteArray?> = Bytes(true, Short.MAX_VALUE.toInt())
 
 @JvmField val largeByteArray: DataType<ByteArray> = Bytes(false, Int.MAX_VALUE)
-@JvmField val largeNullableByteArray: DataType<ByteArray?> = Bytes(false, Int.MAX_VALUE)
+@JvmField val largeNullableByteArray: DataType<ByteArray?> = Bytes(true, Int.MAX_VALUE)
 */
 @Deprecated(bytesMessage, ReplaceWith("byteString"))
 @JvmField val byteArray: DataType<ByteArray> = Bytes(false, Int.MAX_VALUE)

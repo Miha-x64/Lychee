@@ -5,6 +5,7 @@ import com.jfoenix.controls.JFXTextField
 import javafx.geometry.Insets
 import javafx.scene.layout.VBox
 
+
 fun nativeView(viewModel: FxViewModel) = VBox(10.0).apply {
 
     padding = Insets(10.0, 10.0, 10.0, 10.0)
