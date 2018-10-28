@@ -10,6 +10,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
+import net.aquadc.properties.internal.Unset
 
 
 typealias IdBound = Any // Serializable in some frameworks
@@ -134,6 +135,10 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL>/*, Tr
     internal val session: Session
     val primaryKey: ID
 
+    @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
+    private val dao
+        get() = session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>)
+
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
 
@@ -146,7 +151,7 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL>/*, Tr
             table.fields.mapToArray { col ->
                 when (col) {
                     is FieldDef.Mutable -> dao.createFieldOf(col as MutableCol<TBL, Nothing>, primaryKey)
-                    is FieldDef.Immutable -> dao.getValueOf(col, primaryKey)
+                    is FieldDef.Immutable -> Unset
                 }
             }
         }
@@ -163,7 +168,16 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL>/*, Tr
 
     override fun <T> get(field: FieldDef<TBL, T>): T = when (field) {
         is FieldDef.Mutable -> propOf(field).value
-        is FieldDef.Immutable -> values[field.ordinal.toInt()] as T
+        is FieldDef.Immutable -> {
+            val index = field.ordinal.toInt()
+            val value = values[index]
+
+            if (value === Unset) {
+                val freshValue = dao.getValueOf(field, primaryKey)
+                values[index] = freshValue
+                freshValue
+            } else  value as T
+        }
     }
 
     infix fun <T> prop(col: MutableCol<TBL, T>): SqlProperty<T> =

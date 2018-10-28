@@ -167,10 +167,10 @@ inline fun <T, U> Property<T>.flatMap(noinline transform: (T) -> Property<U>): P
         `FlatMapped-`(this, transform)
 
 /**
- * Creates a [Property] which receives value of [compute]() every [delay].
+ * Creates a [Property] which receives value of [compute]() every [period].
  */
-inline fun <T> updatedEvery(delay: Long, unit: TimeUnit = TimeUnit.MILLISECONDS, crossinline compute: () -> T): Property<T> =
-        `TimeMapped-`(immutablePropertyOf(Unit), { compute() }, Schedule(delay, unit))
+inline fun <T> updatedEvery(period: Long, unit: TimeUnit = TimeUnit.MILLISECONDS, crossinline compute: () -> T): Property<T> =
+        `TimeMapped-`(immutablePropertyOf(Unit), { compute() }, Schedule(period, unit))
 
 
 //

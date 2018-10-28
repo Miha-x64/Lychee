@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.graphics.Color
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -49,7 +50,7 @@ class SqliteActivity : Activity() {
         if (inserted != null) vm.selectedProp.value = inserted
     }
 
-    private val selectedChanged: ChangeListener<Human?> = { _, selected ->
+    private val selectedChanged: ChangeListener<Human?> = { _, _ ->
         EditDialogFragment().show(fragmentManager, null)
     }
 
@@ -127,6 +128,7 @@ class SqliteActivity : Activity() {
                                         context.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)
                                         backgroundResource = tv.resourceId
                                         textAppearance = android.R.style.TextAppearance_Medium
+                                        textColor = Color.BLACK
                                     },
                                     { vm.selectedProp.value = list.value[it] },
                                     null
