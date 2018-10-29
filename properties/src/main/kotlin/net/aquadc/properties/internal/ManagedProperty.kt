@@ -14,7 +14,7 @@ import net.aquadc.persistence.struct.StructDef
 class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
         private var manager: Manager<DEF, TRANSACTION>?,
         private val field: FieldDef.Mutable<DEF, T>,
-        private val id: Long,
+        private val id: Long, // TODO: version without this field
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
 
@@ -88,21 +88,23 @@ class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
  * A manager of a property, e. g. a database session.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-interface Manager<DEF : StructDef<DEF>, TRANSACTION> {
+abstract class Manager<DEF : StructDef<DEF>, TRANSACTION> {
 
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T
+    @Suppress("UNCHECKED_CAST")
+    open fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T =
+            Unset as T
 
     /**
      * Returns clean value.
      */
-    fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T
+    abstract fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<DEF, T>, id: Long, update: T)
+    abstract fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<DEF, T>, id: Long, update: T)
 
 }

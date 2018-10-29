@@ -85,10 +85,7 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
         private val observable: ObservableStruct<DEF>
 ) : BaseStruct<DEF>(observable.type), TransactionalPropertyStruct<DEF> {
 
-    private val manager = object : Manager<DEF, StructTransaction<DEF>> {
-
-        override fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T =
-                net.aquadc.properties.internal.Unset as T
+    private val manager = object : Manager<DEF, StructTransaction<DEF>>() {
 
         override fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T =
                 get(field)

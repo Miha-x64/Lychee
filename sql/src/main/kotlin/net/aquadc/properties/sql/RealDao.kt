@@ -16,7 +16,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
         private val lowSession: LowLevelSession,
         private val table: Table<TBL, ID, REC>,
         private val dialect: Dialect
-) : Dao<TBL, ID, REC>, Manager<TBL, Transaction> {
+) : Dao<TBL, ID, REC>, Manager<TBL, Transaction>() {
 
     private val records = ConcurrentHashMap<Long, REC>()
 

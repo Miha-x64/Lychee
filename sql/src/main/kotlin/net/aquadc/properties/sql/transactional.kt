@@ -30,10 +30,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
                 ?: ManagedProperty(manager, field, -1, Unset as T).also { props[index] = it }
     }
 
-    private val manager = object : Manager<TBL, StructTransaction<TBL>> {
-
-        override fun <T> getDirty(field: FieldDef.Mutable<TBL, T>, id: Long): T =
-                Unset as T
+    private val manager = object : Manager<TBL, StructTransaction<TBL>>() {
 
         override fun <T> getClean(field: FieldDef.Mutable<TBL, T>, id: Long): T =
                 record[field]
