@@ -81,10 +81,7 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
 
 }
 
-/**
- * A bridge between [ObservableStruct] and [TransactionalPropertyStruct].
- */
-@PublishedApi internal class Transactional<DEF : StructDef<DEF>>(
+@PublishedApi internal class ObservableTransactionalAdapter<DEF : StructDef<DEF>>(
         private val observable: ObservableStruct<DEF>
 ) : BaseStruct<DEF>(observable.type), TransactionalPropertyStruct<DEF> {
 
@@ -93,7 +90,7 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
         override fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T =
                 net.aquadc.properties.internal.Unset as T
 
-        override fun <T> getClean(field: FieldDef<DEF, T>, id: Long): T =
+        override fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T =
                 get(field)
 
         override fun <T> set(transaction: StructTransaction<DEF>, field: FieldDef.Mutable<DEF, T>, id: Long, update: T) {
@@ -135,6 +132,9 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
 
 }
 
+/**
+ * A bridge between [ObservableStruct] and [TransactionalPropertyStruct].
+ */
 @Suppress("NOTHING_TO_INLINE")
 inline fun <DEF : StructDef<DEF>> ObservableStruct<DEF>.transactional(): TransactionalPropertyStruct<DEF> =
-        Transactional(this)
+        ObservableTransactionalAdapter(this)

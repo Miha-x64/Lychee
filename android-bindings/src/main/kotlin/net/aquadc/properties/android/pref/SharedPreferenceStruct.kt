@@ -119,7 +119,7 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
         override fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T =
                 Unset as T
 
-        override fun <T> getClean(field: FieldDef<DEF, T>, id: Long): T =
+        override fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T =
                 field.get(prefs)
 
         override fun <T> set(transaction: StructTransaction<DEF>, field: FieldDef.Mutable<DEF, T>, id: Long, update: T) {
@@ -142,17 +142,13 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
     override fun <T> prop(field: FieldDef.Mutable<DEF, T>) =
             (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<DEF>, T>)
 
-    override fun beginTransaction(): StructTransaction<DEF> = object : StructTransaction<DEF> {
+    override fun beginTransaction(): StructTransaction<DEF> = object : SimpleStructTransaction<DEF>() {
 
         private val ed = prefs.edit()
         private var success: Boolean? = false
 
         override fun <T> set(field: FieldDef.Mutable<DEF, T>, update: T) {
             field.type.put(ed, field.name, update)
-        }
-
-        override fun setSuccessful() {
-            success = true
         }
 
         override fun close() {

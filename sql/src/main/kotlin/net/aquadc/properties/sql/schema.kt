@@ -1,5 +1,3 @@
-@file:Suppress("KDocMissingDocumentation") // fixme add later
-
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.BaseStruct

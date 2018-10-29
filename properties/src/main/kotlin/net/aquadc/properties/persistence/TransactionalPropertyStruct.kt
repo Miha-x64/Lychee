@@ -39,16 +39,10 @@ fun <DEF : StructDef<DEF>> PropertyStruct<DEF>.snapshots(): Property<Struct<DEF>
  */
 abstract class PropStructTransaction<DEF : StructDef<DEF>>(
         private val struct: TransactionalPropertyStruct<DEF>
-) : StructTransaction<DEF> {
-
-    protected var successful: Boolean? = false
+) : SimpleStructTransaction<DEF>() {
 
     final override fun <T> set(field: FieldDef.Mutable<DEF, T>, update: T) {
         (struct prop field).setValue(this, update)
-    }
-
-    final override fun setSuccessful() {
-        successful = true
     }
 
 }

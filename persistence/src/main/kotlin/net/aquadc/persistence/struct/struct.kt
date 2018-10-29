@@ -40,6 +40,16 @@ interface StructTransaction<DEF : StructDef<DEF>> : AutoCloseable {
     fun setSuccessful()
 }
 
+abstract class SimpleStructTransaction<DEF : StructDef<DEF>> : StructTransaction<DEF>, AutoCloseable {
+
+    protected var successful: Boolean? = false
+
+    override fun setSuccessful() {
+        successful = true
+    }
+
+}
+
 inline fun <DEF : StructDef<DEF>, R> TransactionalStruct<DEF>.transaction(block: (StructTransaction<DEF>) -> R): R {
     val transaction = beginTransaction()
     try {

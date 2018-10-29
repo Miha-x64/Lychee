@@ -98,7 +98,7 @@ interface Manager<DEF : StructDef<DEF>, TRANSACTION> {
     /**
      * Returns clean value.
      */
-    fun <T> getClean(field: FieldDef<DEF, T>, id: Long): T
+    fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T
 
     /**
      * Sets 'dirty' value during [transaction].

@@ -117,7 +117,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
     }
 
     override fun <T> getValueOf(col: Col<TBL, T>, id: ID): T =
-            getClean<T>(col, lowSession.localId(table, id))
+            getValueInternal(col, id)
 
     // endregion low-level Dao implementation
 
@@ -135,8 +135,12 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(field: FieldDef<TBL, T>, id: Long): T {
+    override fun <T> getClean(field: FieldDef.Mutable<TBL, T>, id: Long): T {
         val primaryKey = lowSession.primaryKey(table, id)
+        return getValueInternal(field, primaryKey)
+    }
+
+    private fun <T> getValueInternal(field: FieldDef<TBL, T>, primaryKey: ID): T {
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(field, table, condition)
     }
