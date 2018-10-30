@@ -9,6 +9,9 @@ import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 
 typealias IdBound = Any // Serializable in some frameworks
@@ -37,7 +40,15 @@ interface Dao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> {
     fun <T> getValueOf(col: Col<TBL, T>, id: ID): T
 }
 
+/**
+ * Calls [block] within transaction to create, mutate, remove [Record]s.
+ */
+@UseExperimental(ExperimentalContracts::class)
 inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
+    contract {
+        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+    }
+
     val transaction = beginTransaction()
     try {
         val r = block(transaction)
@@ -127,7 +138,7 @@ typealias MutableCol<TBL, T> = FieldDef.Mutable<TBL, T>
  * Subclass it to provide your own getters and/or computed/foreign properties.
  * TODO: should I provide subclassing-less API, too?
  */
-open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL>/*, TransactionalPropertyStruct<TBL>*/ {
+open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL> {
 
     internal val table: Table<TBL, ID, *>
     internal val session: Session

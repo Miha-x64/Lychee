@@ -1,5 +1,9 @@
 package net.aquadc.persistence.struct
 
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
+
 
 /**
  * Represents an instance of a struct —
@@ -50,7 +54,15 @@ abstract class SimpleStructTransaction<DEF : StructDef<DEF>> : StructTransaction
 
 }
 
+/**
+ * Calls [block] inside a transaction to mutate [this].
+ */
+@UseExperimental(ExperimentalContracts::class)
 inline fun <DEF : StructDef<DEF>, R> TransactionalStruct<DEF>.transaction(block: (StructTransaction<DEF>) -> R): R {
+    contract {
+        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+    }
+
     val transaction = beginTransaction()
     try {
         val r = block(transaction)
