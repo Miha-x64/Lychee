@@ -1,4 +1,4 @@
-package net.aquadc.properties.android
+package net.aquadc.properties.android.persistence
 
 import android.os.Parcel
 import android.os.Parcelable

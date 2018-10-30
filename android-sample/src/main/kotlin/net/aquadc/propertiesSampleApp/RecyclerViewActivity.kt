@@ -51,10 +51,10 @@ class RecyclerViewActivity : Activity() {
                         holder.bind(diffData.value[position])
 
                 private var recyclers = 0
-                override fun onAttachedToRecyclerView(recyclerView: RecyclerView?) {
+                override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
                     if (recyclers++ == 0) diffData.addChangeListener(onChange)
                 }
-                override fun onDetachedFromRecyclerView(recyclerView: RecyclerView?) {
+                override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
                     if (--recyclers == 0) diffData.removeChangeListener(onChange)
                 }
                 private val onChange: (List<String>, List<String>, DiffUtil.DiffResult) -> Unit = { _, _, diff ->

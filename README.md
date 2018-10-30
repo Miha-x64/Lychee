@@ -208,7 +208,7 @@ class MainVm(
 -keepclassmembernames class net.aquadc.properties.internal.** {
   volatile <fields>;
 }
--keepclassmembernames class net.aquadc.properties.android.pref.SharedPreferenceProperty {
+-keepclassmembernames class net.aquadc.properties.android.persistence.pref.SharedPreferenceProperty {
   volatile <fields>;
 }
 ```

@@ -3,7 +3,7 @@ package net.aquadc.propertiesSampleApp
 import android.app.Application
 import android.preference.PreferenceManager
 import com.squareup.leakcanary.LeakCanary
-import net.aquadc.properties.android.pref.SharedPreferenceStruct
+import net.aquadc.properties.android.persistence.pref.SharedPreferenceStruct
 import net.aquadc.propertiesSampleLogic.User
 
 

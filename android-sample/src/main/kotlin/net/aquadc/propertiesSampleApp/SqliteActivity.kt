@@ -143,10 +143,10 @@ class SqliteActivity : Activity() {
                             list.value.size
 
                     private var recyclers = 0
-                    override fun onAttachedToRecyclerView(recyclerView: RecyclerView?) {
+                    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
                         if (recyclers++ == 0) list.addChangeListener(this)
                     }
-                    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView?) {
+                    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
                         if (--recyclers == 0) list.removeChangeListener(this)
                     }
 

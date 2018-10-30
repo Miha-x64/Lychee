@@ -1,7 +1,6 @@
-package net.aquadc.properties.android.pref
+package net.aquadc.properties.android.persistence.pref
 
 import android.content.SharedPreferences
-import android.util.Base64
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.MutableProperty

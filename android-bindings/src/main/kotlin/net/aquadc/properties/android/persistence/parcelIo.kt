@@ -1,11 +1,13 @@
-package net.aquadc.persistence.stream
+package net.aquadc.properties.android.persistence
 
 import android.os.Parcel
-import java.io.DataInput
-import java.io.DataOutput
+import net.aquadc.persistence.stream.CleverDataInput
+import net.aquadc.persistence.stream.CleverDataOutput
+import net.aquadc.persistence.stream.UnusedDataInputMethods
+import net.aquadc.persistence.stream.UnusedDataOutputMethods
 
 /**
- * Adapts several [Parcel] methods to conform Java's [DataInput].
+ * Adapts several [Parcel] methods to conform [CleverDataInput].
  */
 class ParcelInput(
         private val input: Parcel
@@ -36,7 +38,7 @@ class ParcelInput(
 }
 
 /**
- * Adapts several [Parcel] methods to conform Java's [DataOutput].
+ * Adapts several [Parcel] methods to conform [CleverDataOutput].
  */
 class ParcelOutput(
         private val output: Parcel
