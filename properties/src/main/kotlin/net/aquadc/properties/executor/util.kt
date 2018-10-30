@@ -28,18 +28,29 @@ internal object PlatformExecutors {
     init {
         val facs = ArrayList<() -> Executor?>(2)
 
+        findAndroidFactory(facs)
+        findFxFactory(facs)
+        findFjFactory(facs)
+        executorFactories = facs.toArray(arrayOfNulls(facs.size))
+    }
+
+    private fun findAndroidFactory(facs: ArrayList<() -> Executor?>) {
         try {
             facs.add(AndroidCurrentLooperExecutorFactory)
         } catch (ignored: NoClassDefFoundError) {
             // only Android has handlers, JDK doesn't
         }
+    }
 
+    private fun findFxFactory(facs: ArrayList<() -> Executor?>) {
         try {
             facs.add(JavaFxApplicationThreadExecutorFactory)
         } catch (ignored: NoClassDefFoundError) {
             // Android and some JDK builds do not contain JavaFX
         }
+    }
 
+    private fun findFjFactory(facs: ArrayList<() -> Executor?>) {
         try {
             ForkJoinTask.getPool() // ensure class available
             facs.add(object : () -> Executor? {
@@ -58,8 +69,6 @@ internal object PlatformExecutors {
         } catch (ignored: NoClassDefFoundError) {
             // only JDK 1.7+ and Android 21+ contain FJ
         }
-
-        executorFactories = facs.toArray(arrayOfNulls(facs.size))
     }
 
     internal fun executorForCurrentThread(): Executor =

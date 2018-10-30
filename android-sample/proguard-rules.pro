@@ -30,14 +30,19 @@
 #  public static ** valueOf(java.lang.String);
 }
 
-# using annotations with 'provided' scope
+# libs with compileOnly scope
 -dontwarn android.support.annotation.**
-
-# design lib with 'provided' scope
+-dontwarn android.support.v7.widget.**
 -dontwarn android.support.design.widget.**
+-dontwarn okio.**
 
 # bindings to JavaFX
 -dontwarn net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
+
+-assumenosideeffects class net.aquadc.properties.executor.PlatformExecutors {
+    private void findFxFactory(java.util.ArrayList); # bindings to JavaFX
+    private void findFjFactory(java.util.ArrayList); # If you're not going to addChangeListener() on ForkJoin threads
+}
 
 # keep volatile field names for AtomicFieldUpdater
 -keepclassmembernames class net.aquadc.properties.internal.** {
