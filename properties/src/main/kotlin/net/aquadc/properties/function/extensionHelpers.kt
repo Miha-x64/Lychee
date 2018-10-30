@@ -8,6 +8,222 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * Contains several general-purpose functions to pass into [net.aquadc.properties.map],
+ * [net.aquadc.properties.mapWith], [net.aquadc.properties.distinct] etc.
+ *
+ * Name 'Objectz' was chosen to avoid conflicting with [java.util.Objects].
+ */
+class Objectz private constructor(
+        private val mode: Int
+): (Any?, Any?) -> Any {
+
+    override fun invoke(p1: Any?, p2: Any?): Any = when (mode) {
+        1 -> p1 == p2
+        2 -> p1 != p2
+        3 -> p1 === p2
+        4 -> p1 !== p2
+        else -> throw AssertionError()
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    companion object {
+
+        /**
+         * A function which compares the given arguments using [Object.equals] operator function.
+         */
+        @JvmField val Equal: (Any?, Any?) -> Boolean =
+                Objectz(1) as (Any?, Any?) -> Boolean
+
+        /**
+         * A function which compares the given arguments using inverted return value of [Object.equals] operator function.
+         */
+        @JvmField val NotEqual: (Any?, Any?) -> Boolean =
+                Objectz(2) as (Any?, Any?) -> Boolean
+
+        /**
+         * A function which compares the given arguments by identity.
+         */
+        @JvmField val Identical: (Any?, Any?) -> Boolean =
+                Objectz(3) as (Any?, Any?) -> Boolean
+
+        /**
+         * A function which compares given arguments by identity and inverts this value.
+         */
+        @JvmField val NotIdentical: (Any?, Any?) -> Boolean =
+                Objectz(4) as (Any?, Any?) -> Boolean
+
+        /**
+         * A function which checks whether its argument is equal to `null`,
+         * i. e. it's a partially-applied version of [isIdenticalTo].
+         */
+        @JvmField val IsNull: (Any?) -> Boolean =
+                `AppliedFunc1-`(null, 4) as (Any?) -> Boolean
+
+        /**
+         * A function which checks whether its argument is not equal to `null`,
+         * i. e. it's a partially-applied version of [notIdenticalTo].
+         */
+        @JvmField val IsNotNull: (Any?) -> Boolean =
+                `AppliedFunc1-`(null, 6) as (Any?) -> Boolean
+
+    }
+
+}
+
+/**
+ * Contains several general-purpose array-related functions to pass into [net.aquadc.properties.map],
+ * [net.aquadc.properties.mapWith] etc.
+ *
+ * Name 'Arrayz' was chosen to avoid conflicting with [java.util.Arrays].
+ */
+class Arrayz private constructor(
+        private val mode: Int
+): (Any, Any) -> Any {
+
+    override fun invoke(p1: Any, p2: Any): Any = when (mode) {
+        0 -> Arrays.equals(p1 as BooleanArray, p2 as BooleanArray)
+        1 -> Arrays.equals(p1 as ByteArray, p2 as ByteArray)
+        2 -> Arrays.equals(p1 as ShortArray, p2 as ShortArray)
+        3 -> Arrays.equals(p1 as CharArray, p2 as CharArray)
+        4 -> Arrays.equals(p1 as IntArray, p2 as IntArray)
+        5 -> Arrays.equals(p1 as LongArray, p2 as LongArray)
+        6 -> Arrays.equals(p1 as FloatArray, p2 as FloatArray)
+        7 -> Arrays.equals(p1 as DoubleArray, p2 as DoubleArray)
+        8 -> Arrays.equals(p1 as Array<out Any?>, p2 as Array<out Any?>)
+        9 -> Arrays.deepEquals(p1 as Array<out Any?>, p2 as Array<out Any?>)
+        else -> throw AssertionError()
+    }
+
+    @Suppress("UNCHECKED_CAST") companion object {
+
+        /**
+         * A function which [Boolean] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val BooleansEqual: (BooleanArray, BooleanArray) -> Boolean =
+                Arrayz(0) as (BooleanArray, BooleanArray) -> Boolean
+
+        /**
+         * A function which [Byte] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val BytesEqual: (ByteArray, ByteArray) -> Boolean =
+                Arrayz(1) as (ByteArray, ByteArray) -> Boolean
+
+        /**
+         * A function which [Short] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val ShortsEqual: (ShortArray, ShortArray) -> Boolean =
+                Arrayz(2) as (ShortArray, ShortArray) -> Boolean
+
+        /**
+         * A function which [Char] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val CharsEqual: (CharArray, CharArray) -> Boolean =
+                Arrayz(3) as (CharArray, CharArray) -> Boolean
+
+        /**
+         * A function which [Int] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val IntsEqual: (IntArray, IntArray) -> Boolean =
+                Arrayz(4) as (IntArray, IntArray) -> Boolean
+
+        /**
+         * A function which [Long] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val LongsEqual: (LongArray, LongArray) -> Boolean =
+                Arrayz(5) as (LongArray, LongArray) -> Boolean
+
+        /**
+         * A function which [Float] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val FloatsEqual: (FloatArray, FloatArray) -> Boolean =
+                Arrayz(6) as (FloatArray, FloatArray) -> Boolean
+
+        /**
+         * A function which [Double] arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val DoublesEqual: (DoubleArray, DoubleArray) -> Boolean =
+                Arrayz(7) as (DoubleArray, DoubleArray) -> Boolean
+
+        /**
+         * A function which reference arrays with [java.util.Arrays.equals].
+         */
+        @JvmField val Equal: (Array<out Any?>, Array<out Any?>) -> Boolean =
+                Arrayz(8) as (Array<out Any?>, Array<out Any?>) -> Boolean
+
+        /**
+         * A function which reference arrays with [java.util.Arrays.deepEquals].
+         */
+        @JvmField val DeeplyEqual: (Array<out Any?>, Array<out Any?>) -> Boolean =
+                Arrayz(9) as (Array<out Any?>, Array<out Any?>) -> Boolean
+
+    }
+
+}
+
+/**
+ * Contains several general-purpose [CharSequence]-related functions to pass into [net.aquadc.properties.map],
+ * [net.aquadc.properties.mapWith] etc.
+ *
+ * The name 'CharSequencez' was chosen to be consistent with [Objectz] and [Arrayz]
+ * and avoid potential conflict with an utility-class.
+ */
+class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
+
+    override fun invoke(p1: Any): Any {
+        p1 as CharSequence
+        return when (mode) {
+            0 -> p1.isEmpty()
+            1 -> p1.isNotEmpty()
+            2 -> p1.isBlank()
+            3 -> p1.isNotBlank()
+            4 -> p1.length
+            5 -> p1.trim()
+            else -> throw AssertionError()
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    companion object {
+
+        /**
+         * A function which returns the result of invocation [CharSequence.isEmpty] on its argument.
+         */
+        @JvmField val Empty: (CharSequence) -> Boolean =
+                CharSequencez(0) as (CharSequence) -> Boolean
+
+        /**
+         * A function which returns the result of invocation [CharSequence.isNotEmpty] on its argument.
+         */
+        @JvmField val NotEmpty: (CharSequence) -> Boolean =
+                CharSequencez(1) as (CharSequence) -> Boolean
+
+        /**
+         * A function which returns the result of invocation [CharSequence.isBlank] on its argument.
+         */
+        @JvmField val Blank: (CharSequence) -> Boolean =
+                CharSequencez(2) as (CharSequence) -> Boolean
+
+        /**
+         * A function which returns the result of invocation [CharSequence.isNotBlank] on its argument.
+         */
+        @JvmField val NotBlank: (CharSequence) -> Boolean =
+                CharSequencez(3) as (CharSequence) -> Boolean
+
+        /**
+         * A function which returns the result of invocation [CharSequence.length] on its argument.
+         */
+        @JvmField val Length: (CharSequence) -> Int =
+                CharSequencez(4) as (CharSequence) -> Int
+
+        /**
+         * A function which returns the result of invocation [CharSequence.trim] on its argument.
+         */
+        @JvmField val Trim: (CharSequence) -> CharSequence =
+                CharSequencez(5) as (CharSequence) -> CharSequence
+    }
+}
+
 //
 // Boolean
 //
@@ -40,7 +256,13 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
 }
 
-@PublishedApi internal class `Functions1-`(
+/**
+ * Contains several general-purpose [Collection]-related functions to pass into [net.aquadc.properties.map],
+ * [net.aquadc.properties.mapWith] etc.
+ *
+ * Name 'Collectionz' was chosen to avoid conflicting with [java.util.Collections].
+ */
+class Collectionz private constructor(
         private val mode: Int
 ): (Any?) -> Any {
 
@@ -52,83 +274,28 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
 
     @Suppress("UNCHECKED_CAST")
-    @PublishedApi internal companion object {
-        @JvmField val IsEmptyCollection = `Functions1-`(1) as (Collection<*>?) -> Boolean
-        @JvmField val IsNonEmptyCollection = `Functions1-`(2) as (Collection<*>?) -> Boolean
-        @JvmField val Size = `Functions1-`(3) as (Collection<*>?) -> Int
+    companion object {
+
+        /**
+         * A function which returns the result of invocation [Collection.isEmpty] on its argument.
+         */
+        @JvmField val Empty: (Collection<*>?) -> Boolean =
+                Collectionz(1) as (Collection<*>?) -> Boolean
+
+        /**
+         * A function which returns the result of invocation [Collection.isNotEmpty] on its argument.
+         */
+        @JvmField val NotEmpty: (Collection<*>?) -> Boolean =
+                Collectionz(2) as (Collection<*>?) -> Boolean
+
+        /**
+         * A function which returns the result of invocation [Collection.size] on its argument.
+         */
+        @JvmField val Size: (Collection<*>?) -> Int =
+                Collectionz(3) as (Collection<*>?) -> Int
+
     }
 
-}
-
-@PublishedApi internal class `Functions2-`(
-        private val mode: Int
-): (Any?, Any?) -> Any {
-
-    override fun invoke(p1: Any?, p2: Any?): Any = when (mode) {
-        1 -> p1 == p2
-        2 -> p1 === p2
-        3 -> Arrays.equals(p1 as BooleanArray, p2 as BooleanArray)
-        4 -> Arrays.equals(p1 as ByteArray, p2 as ByteArray)
-        5 -> Arrays.equals(p1 as ShortArray, p2 as ShortArray)
-        6 -> Arrays.equals(p1 as CharArray, p2 as CharArray)
-        7 -> Arrays.equals(p1 as IntArray, p2 as IntArray)
-        8 -> Arrays.equals(p1 as LongArray, p2 as LongArray)
-        9 -> Arrays.equals(p1 as FloatArray, p2 as FloatArray)
-        10 -> Arrays.equals(p1 as DoubleArray, p2 as DoubleArray)
-        11 -> Arrays.equals(p1 as Array<out Any?>, p2 as Array<out Any?>)
-        12 -> Arrays.deepEquals(p1 as Array<out Any?>, p2 as Array<out Any?>)
-        13 -> p1 != p2
-        14 -> p1 !== p2
-        else -> throw AssertionError()
-    }
-
-    @Suppress("UNCHECKED_CAST") companion object {
-        @JvmField val Equality = `Functions2-`(1) as (Any?, Any?) -> Boolean
-        @JvmField val Identity = `Functions2-`(2) as (Any?, Any?) -> Boolean
-        @JvmField val Booleans = `Functions2-`(3) as (BooleanArray, BooleanArray) -> Boolean
-        @JvmField val Bytes = `Functions2-`(4) as (ByteArray, ByteArray) -> Boolean
-        @JvmField val Shorts = `Functions2-`(5) as (ShortArray, ShortArray) -> Boolean
-        @JvmField val Chars = `Functions2-`(6) as (CharArray, CharArray) -> Boolean
-        @JvmField val Ints = `Functions2-`(7) as (IntArray, IntArray) -> Boolean
-        @JvmField val Longs = `Functions2-`(8) as (LongArray, LongArray) -> Boolean
-        @JvmField val Floats = `Functions2-`(9) as (FloatArray, FloatArray) -> Boolean
-        @JvmField val Doubles = `Functions2-`(10) as (DoubleArray, DoubleArray) -> Boolean
-        @JvmField val Objects = `Functions2-`(11) as (Array<out Any?>, Array<out Any?>) -> Boolean
-        @JvmField val ObjectsDeep = `Functions2-`(12) as (Array<out Any?>, Array<out Any?>) -> Boolean
-        @JvmField val Inequality = `Functions2-`(13) as (Any?, Any?) -> Boolean
-        @JvmField val NonIdentity = `Functions2-`(14) as (Any?, Any?) -> Boolean
-    }
-
-}
-
-
-//
-// CharSequence
-//
-
-@PublishedApi internal class `CharSeqFunc-`(private val mode: Int) : (Any) -> Any {
-
-    override fun invoke(p1: Any): Any {
-        p1 as CharSequence
-        return when (mode) {
-            0 -> p1.isEmpty()
-            1 -> p1.isNotEmpty()
-            2 -> p1.isBlank()
-            3 -> p1.isNotBlank()
-            4 -> p1.length
-            5 -> p1.trim()
-            else -> throw AssertionError()
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST") companion object {
-        @JvmField val Empty = `CharSeqFunc-`(0) as (CharSequence) -> Boolean
-        @JvmField val NotEmpty = `CharSeqFunc-`(1) as (CharSequence) -> Boolean
-        @JvmField val Blank = `CharSeqFunc-`(2) as (CharSequence) -> Boolean
-        @JvmField val NotBlank = `CharSeqFunc-`(3) as (CharSequence) -> Boolean
-        @JvmField val Length = `CharSeqFunc-`(4) as (CharSequence) -> Int
-        @JvmField val Trim = `CharSeqFunc-`(5) as (CharSequence) -> CharSequence
-    }
 }
 
 
@@ -150,11 +317,6 @@ internal class `AppliedFunc1-`(
         5 -> p1 != value
         6 -> p1 !== value
         else -> throw AssertionError()
-    }
-
-    companion object {
-        @JvmField val IsNull = `AppliedFunc1-`(null, 4) as (Any?) -> Boolean
-        @JvmField val IsNotNull = `AppliedFunc1-`(null, 6) as (Any?) -> Boolean
     }
 
 }
@@ -180,7 +342,7 @@ internal object ToPair : (Any?, Any?) -> Any? {
 /**
  * Compares objects by their identity.
  */
-@Deprecated("use 'areIdentical' function instead", ReplaceWith("areIdentical()"), DeprecationLevel.ERROR)
+@Deprecated("moved", ReplaceWith("Objectz.Identical"), DeprecationLevel.ERROR)
 object Identity : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 === p2
 }
@@ -188,7 +350,7 @@ object Identity : (Any?, Any?) -> Boolean {
 /**
  * Compares objects with [Any.equals] operator function.
  */
-@Deprecated("use 'areEqual' function instead", ReplaceWith("areEqual()"), DeprecationLevel.ERROR)
+@Deprecated("moved", ReplaceWith("Objectz.Equal"), DeprecationLevel.ERROR)
 object Equals : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 == p2
 }

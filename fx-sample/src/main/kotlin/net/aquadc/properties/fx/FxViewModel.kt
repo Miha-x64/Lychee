@@ -1,20 +1,14 @@
 package net.aquadc.properties.fx
 
-import javafx.beans.binding.Bindings
 import javafx.beans.binding.StringBinding
 import javafx.beans.binding.When
 import javafx.beans.property.Property
 import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import net.aquadc.properties.function.areEqual
-import net.aquadc.properties.function.areNotEqual
+import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.mapWith
-import net.aquadc.properties.not
 import net.aquadc.properties.persistence.ObservableStruct
 import net.aquadc.properties.persistence.snapshots
 import net.aquadc.propertiesSampleLogic.User
-import java.util.concurrent.Callable
 
 class FxViewModel(
         private val user: ObservableStruct<User>
@@ -27,7 +21,7 @@ class FxViewModel(
     val surnameProp: Property<String> = (editable prop User.Surname).fx()
 
     val buttonEnabledProp = SimpleBooleanProperty().also { it.bind(
-            user.snapshots().mapWith(user.snapshots(), areNotEqual()).fx()
+            user.snapshots().mapWith(user.snapshots(), Objectz.NotEqual).fx()
     ) }
 
     val buttonTextProp: StringBinding = When(buttonEnabledProp)

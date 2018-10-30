@@ -1,9 +1,6 @@
 package net.aquadc.properties
 
-import net.aquadc.properties.function.isBlank
-import net.aquadc.properties.function.isEmptyCharSequence
-import net.aquadc.properties.function.isNonEmptyCharSequence
-import net.aquadc.properties.function.isNotBlank
+import net.aquadc.properties.function.*
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -25,10 +22,10 @@ class CharSeqExts {
     @Test fun empty() {
         val prop = propertyOf("")
 
-        val empty by prop.map(isEmptyCharSequence())
-        val notEmpty by prop.map(isNonEmptyCharSequence())
-        val blank by prop.map(isBlank())
-        val notBlank by prop.map(isNotBlank())
+        val empty by prop.map(CharSequencez.Empty)
+        val notEmpty by prop.map(CharSequencez.NotEmpty)
+        val blank by prop.map(CharSequencez.Blank)
+        val notBlank by prop.map(CharSequencez.NotBlank)
 
         assertTrue(empty)
         assertFalse(notEmpty)

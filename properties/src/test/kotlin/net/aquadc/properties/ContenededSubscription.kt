@@ -2,7 +2,7 @@ package net.aquadc.properties
 
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
-import net.aquadc.properties.function.areIdentical
+import net.aquadc.properties.function.Objectz
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.AssumptionViolatedException
@@ -42,7 +42,7 @@ class ContenededSubscription {
     }
 
     @Test fun contendConcDistinct() =
-            contend(concurrentPropertyOf("")) { it.distinct(areIdentical()) }
+            contend(concurrentPropertyOf("")) { it.distinct(Objectz.Identical) }
 
     private fun contend(original: MutableProperty<String>, transform: (MutableProperty<String>) -> Property<String>) {
         if (Runtime.getRuntime().availableProcessors() < 2) {

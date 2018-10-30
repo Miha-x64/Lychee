@@ -2,7 +2,7 @@ package net.aquadc.propertiesSampleLogic
 
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.*
-import net.aquadc.properties.function.areNotEqual
+import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.persistence.*
 import net.aquadc.properties.persistence.memento.PersistableProperties
 import java.util.concurrent.TimeUnit
@@ -45,7 +45,7 @@ class MainVm(
 
     val emailValidProp = emailProp.map { it.contains("@") }
 
-    private val usersDifferProp = user.snapshots().mapWith(editableUser.snapshots(), areNotEqual())
+    private val usersDifferProp = user.snapshots().mapWith(editableUser.snapshots(), Objectz.NotEqual)
 
     val buttonEnabledProp = usersDifferProp and emailValidProp
     val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }

@@ -1,7 +1,6 @@
 package net.aquadc.properties
 
-import net.aquadc.properties.function.areEqual
-import net.aquadc.properties.function.areIdentical
+import net.aquadc.properties.function.Objectz
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -58,7 +57,7 @@ class CommonTest {
     }
 
     private fun testEquals(original: MutableProperty<String>) {
-        val dist = original.distinct(areEqual())
+        val dist = original.distinct(Objectz.Equal)
         assertEquals(original.value, original.value)
         var called = 0
         dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
@@ -84,7 +83,7 @@ class CommonTest {
 
     // different props have different identity, so we are going to test only mutable and mapped
     private fun testIdentity(original: MutableProperty<String>) {
-        val dist = original.distinct(areIdentical())
+        val dist = original.distinct(Objectz.Identical)
         var called = 0
         dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
         original.value = original.value

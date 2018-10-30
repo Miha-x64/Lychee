@@ -25,7 +25,7 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
 @Deprecated("Was generalized.", ReplaceWith("mapWith(that, areEqual())",
         "net.aquadc.properties.mapWith", "net.aquadc.properties.function.areEqual"))
 inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
-        mapWith(that, areEqual())
+        mapWith(that, Objectz.Equal)
 
 //
 // Boolean actions
@@ -61,44 +61,44 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
 /**
  * Returns a property representing [CharSequence.length].
  */
-@Deprecated("Was generalized.", ReplaceWith("map(length())",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.length"))
-inline val Property<CharSequence>.length: Property<Int> get() = map(length())
+@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Length)",
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
+inline val Property<CharSequence>.length: Property<Int> get() = map(CharSequencez.Length)
 
 /**
  * Returns a property representing emptiness ([CharSequence.isEmpty]).
  */
-@Deprecated("Was generalized.", ReplaceWith("map(isEmptyCharSequence())",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.isEmptyCharSequence"))
-inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(isEmptyCharSequence())
+@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Empty)",
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
+inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSequencez.Empty)
 
 /**
  * Returns a property representing non-emptiness ([CharSequence.isNotEmpty]).
  */
-@Deprecated("Was generalized.", ReplaceWith("map(isNonEmptyCharSequence())",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.isNonEmptyCharSequence"))
-inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(isNonEmptyCharSequence())
+@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.NotEmpty)",
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
+inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSequencez.NotEmpty)
 
 /**
  * Returns a property representing blankness ([CharSequence.isBlank]).
  */
-@Deprecated("Was generalized.", ReplaceWith("map(isBlank())",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.isBlank"))
-inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(isBlank())
+@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Blank)",
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
+inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSequencez.Blank)
 
 /**
  * Returns a property representing non-blankness ([CharSequence.isNotBlank]).
  */
-@Deprecated("Was generalized.", ReplaceWith("map(isNotBlank())",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.isNotBlank"))
-inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(isNotBlank())
+@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.NotBlank)",
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
+inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSequencez.NotBlank)
 
 /**
  * Returns a property representing a trimmed CharSequence ([CharSequence.trim]).
  */
-@Deprecated("Was generalized.", ReplaceWith("map(trimmed())",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.trimmed"))
-inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(trimmed())
+@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Trim)",
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
+inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(CharSequencez.Trim)
 
 
 //

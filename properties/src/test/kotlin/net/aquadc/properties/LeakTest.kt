@@ -2,7 +2,7 @@ package net.aquadc.properties
 
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
-import net.aquadc.properties.function.areIdentical
+import net.aquadc.properties.function.Objectz
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.lang.ref.WeakReference
@@ -57,10 +57,10 @@ class LeakTest {
     }
 
     @Test fun leakUnsDistinct() =
-            leak(propertyOf("")) { it.distinct(areIdentical()) }
+            leak(propertyOf("")) { it.distinct(Objectz.Identical) }
 
     @Test fun leakConcDistinct() =
-            leak(concurrentPropertyOf("")) { it.distinct(areIdentical()) }
+            leak(concurrentPropertyOf("")) { it.distinct(Objectz.Identical) }
 
     @Test fun leakUnsBidi() = leak(propertyOf("a")) { prop ->
         prop.bind({ "_$it" }, { it: String -> it.substring(1) })

@@ -1,7 +1,7 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.properties.*
-import net.aquadc.properties.function.isNotNull
+import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.sql.*
 
 
@@ -29,7 +29,7 @@ class SqlViewModel(
             }
         }
     }
-    val actionsEnabledProp = selectedProp.map(isNotNull())
+    val actionsEnabledProp = selectedProp.map(Objectz.IsNotNull)
 
     val airConditionersTextProp = selectedProp
             .flatMapNotNullOrDefault(emptyList(), Human::carsProp)
