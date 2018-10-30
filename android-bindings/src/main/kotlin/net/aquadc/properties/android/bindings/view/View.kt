@@ -98,8 +98,8 @@ private class SetBackground(
     }
 
     companion object {
-        val Drawable = SetBackground(false)
-        val Color = SetBackground(true)
+        @JvmField val Drawable = SetBackground(false)
+        @JvmField val Color = SetBackground(true)
     }
 
 }

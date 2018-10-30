@@ -2,14 +2,15 @@ package net.aquadc.persistence.type
 
 
 @Suppress("RedundantModalityModifier")
-@PublishedApi internal open class EnumType<E : Enum<E>>(
+@PublishedApi internal open class EnumType<E/* : Enum<E>*/>(
         isNullable: Boolean,
         private val enumType: Class<E>
 ) : DataType.Str<E>(isNullable, Byte.MAX_VALUE.toInt()) {
 
-    override fun asString(value: E): kotlin.String =
-            value.name
+    override fun asString(value: E): String =
+            (value as Enum<*>).name
 
+    @Suppress("UPPER_BOUND_VIOLATED")
     override fun asT(value: kotlin.String): E =
             java.lang.Enum.valueOf<E>(enumType, value)
 
@@ -30,45 +31,47 @@ inline fun <reified E : Enum<E>> enum(): DataType.Str<E> =
  * Creates a type for [E] enum type.
  * [values] sample: `E.values()`
  * [nameProp] sample: `E::name`
- * [default] sample: `{ E.UNKNOWN }`
+ * [fallback] sample: `{ E.UNSUPPORTED }`
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <reified E : Enum<E>> enum(
         values: Array<E>,
-        crossinline nameProp: (E) -> String = Enum<E>::name,
-        crossinline default: (String) -> E = {
+        crossinline nameProp: (E) -> String = { enum: Enum<E> -> enum.name },
+        crossinline fallback: (String) -> E = {
             throw AssertionError("No enum constant with name $it in type ${E::class.java.name}")
         }
 ): DataType.Str<E> =
-        object : EnumType<E>(false, E::class.java) {
+        object : DataType.Str<Any?>(false, Byte.MAX_VALUE.toInt()) {
 
             private val lookup =
                     values.associateByTo(HashMap(values.size), nameProp).also { check(it.size == values.size) {
                         "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
-            override fun asT(value: kotlin.String): E =
-                    lookup[value] ?: default(value)
+            override fun asT(value: String): Any? =
+                    lookup[value] ?: fallback(value)
 
-            override fun asString(value: E): kotlin.String =
-                    nameProp(value)
+            override fun asString(value: Any?): String =
+                    nameProp(value as E)
 
-        }
+        } as DataType.Str<E>
 
 /**
  * Creates a custom type for [E] enum type.
  * [lookup] sample: `{ name -> E.values().firstOrNull { it.someCustomName == name } ?: E.UNKNOWN }`
  * [asString] sample: `E::someCustomName`
  */
+@Suppress("UNCHECKED_CAST")
 inline fun <reified E : Enum<E>> enum(
         crossinline lookup: (String) -> E,
         crossinline asString: (E) -> String
 ): DataType.Str<E> =
-        object : EnumType<E>(false, E::class.java) {
+        object : DataType.Str<Any?>(false, Byte.MAX_VALUE.toInt()) {
 
-            override fun asT(value: String): E =
+            override fun asT(value: String): Any? =
                     lookup.invoke(value)
 
-            override fun asString(value: E): String =
-                    asString.invoke(value)
+            override fun asString(value: Any?): String =
+                    asString.invoke(value as E)
 
-        }
+        } as DataType.Str<E>

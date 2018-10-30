@@ -7,17 +7,16 @@ import java.util.*
  * Represents a way of storing a value.
  */
 sealed class DataType<T>(
-        val isNullable: Boolean
+        @JvmField val isNullable: Boolean
 ) {
-
-    private companion object {
-        private val intSizes = intArrayOf(1, 8, 16, 32, 64)
-    }
 
     /**
      * @param sizeBits can be 1, 8, 16, 32, or 64, and doesn't depend on [isNullable], i. e. nullability info is ignored
      */
-    abstract class Integer<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
+    abstract class Integer<T>(
+            isNullable: Boolean,
+            @JvmField val sizeBits: Int
+    ) : DataType<T>(isNullable) {
 
         init {
             check(Arrays.binarySearch(intSizes, sizeBits) >= 0) { "invalid integer number size: $sizeBits bits" }
@@ -35,12 +34,20 @@ sealed class DataType<T>(
          */
         abstract fun asT(value: Any): T
 
+        // *ahem* https://youtrack.jetbrains.com/issue/KT-15595
+        private companion object {
+            @JvmField val intSizes = intArrayOf(1, 8, 16, 32, 64)
+        }
+
     }
 
     /**
      * @param sizeBits can be 32 or 64, doesn't depend on [isNullable]
      */
-    abstract class Floating<T> internal constructor(isNullable: Boolean, val sizeBits: Int) : DataType<T>(isNullable) {
+    abstract class Floating<T>(
+            isNullable: Boolean,
+            @JvmField val sizeBits: Int
+    ) : DataType<T>(isNullable) {
 
         init {
             check(sizeBits == 32 || sizeBits == 64) { "invalid floating-point number size: $sizeBits bits" }
@@ -62,7 +69,10 @@ sealed class DataType<T>(
     /**
      * @param maxLengthChars can be [Byte.MAX_VALUE], [Short.MAX_VALUE], or [Int.MAX_VALUE], and used in SQL
      */
-    abstract class Str<T> internal constructor(isNullable: Boolean, val maxLengthChars: Int) : DataType<T>(isNullable) {
+    abstract class Str<T>(
+            isNullable: Boolean,
+            @JvmField val maxLengthChars: Int
+    ) : DataType<T>(isNullable) {
 
         /**
          * @return [value] as a [String]
@@ -80,7 +90,10 @@ sealed class DataType<T>(
     /**
      * @param maxLength can be [Byte.MAX_VALUE], [Short.MAX_VALUE], or [Int.MAX_VALUE], and used in SQL
      */
-    abstract class Blob<T> internal constructor(isNullable: Boolean, val maxLength: Int) : DataType<T>(isNullable) {
+    abstract class Blob<T>(
+            isNullable: Boolean,
+            @JvmField val maxLength: Int
+    ) : DataType<T>(isNullable) {
 
         /**
          * @return [value] as [ByteArray]

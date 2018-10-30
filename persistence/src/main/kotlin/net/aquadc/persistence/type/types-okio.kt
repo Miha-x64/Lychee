@@ -3,13 +3,12 @@ package net.aquadc.persistence.type
 import okio.ByteString
 
 
-private class ByteStr<T : ByteString?>(
+private class ByteStr<T>(
         isNullable: Boolean, maxLength: Int
 ) : DataType.Blob<T>(isNullable, maxLength) {
 
     override fun asByteArray(value: T): ByteArray =
-            if (value === null) throw NullPointerException()
-            else value.toByteArray()
+            (value as ByteString).toByteArray()
 
     @Suppress("UNCHECKED_CAST")
     override fun asT(value: ByteArray): T =

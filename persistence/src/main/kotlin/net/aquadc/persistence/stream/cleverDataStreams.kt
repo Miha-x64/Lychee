@@ -2,7 +2,11 @@ package net.aquadc.persistence.stream
 
 import java.io.*
 
-
+/**
+ * More usable [DataOutput] subtype.
+ * Methods from [UnusedDataOutputMethods] won't be used.
+ * @see CleverDataOutputStream
+ */
 interface CleverDataOutput : DataOutput {
 
     /**
@@ -17,6 +21,11 @@ interface CleverDataOutput : DataOutput {
 
 }
 
+/**
+ * More usable [DataInput] subtype.
+ * Methods from [UnusedDataInputMethods] won't be used.
+ * @see CleverDataInputStream
+ */
 interface CleverDataInput : DataInput {
 
     /**
@@ -31,6 +40,9 @@ interface CleverDataInput : DataInput {
 
 }
 
+/**
+ * Simple [CleverDataOutput] implementation — a more usable data output stream.
+ */
 class CleverDataOutputStream(output: OutputStream) : DataOutputStream(output), CleverDataOutput {
 
     override fun writeBytes(bytes: ByteArray?) {
@@ -53,6 +65,9 @@ class CleverDataOutputStream(output: OutputStream) : DataOutputStream(output), C
 
 }
 
+/**
+ * Simple [CleverDataInput] implementation — a more usable data input stream.
+ */
 class CleverDataInputStream(input: InputStream) : DataInputStream(input), CleverDataInput {
 
     override fun readBytes(): ByteArray? {

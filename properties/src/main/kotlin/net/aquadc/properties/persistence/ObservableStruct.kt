@@ -82,7 +82,7 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
 }
 
 @PublishedApi internal class ObservableTransactionalAdapter<DEF : StructDef<DEF>>(
-        private val observable: ObservableStruct<DEF>
+        @JvmField @JvmSynthetic internal val observable: ObservableStruct<DEF>
 ) : BaseStruct<DEF>(observable.type), TransactionalPropertyStruct<DEF> {
 
     private val manager = object : Manager<DEF, StructTransaction<DEF>>() {

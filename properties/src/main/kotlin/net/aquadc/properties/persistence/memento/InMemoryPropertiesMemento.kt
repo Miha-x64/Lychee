@@ -8,8 +8,8 @@ import net.aquadc.properties.persistence.*
 
 class InMemoryPropertiesMemento : PropertiesMemento {
 
-    private val types = ArrayList<Any?>() // E = Converter | Class<Enum<E>> | null
-    private val vals = ArrayList<Any?>()
+    @JvmField @JvmSynthetic internal val types = ArrayList<Any?>() // E = Converter | Class<Enum<E>> | null
+    @JvmField @JvmSynthetic internal val vals = ArrayList<Any?>()
 
     constructor(properties: PersistableProperties) {
         properties.saveOrRestore(object : PropertyIo {

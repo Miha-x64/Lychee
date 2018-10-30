@@ -1,10 +1,8 @@
 package net.aquadc.persistence.struct
 
 import net.aquadc.persistence.type.DataType
-import java.util.*
 import java.util.Collections.unmodifiableList
 import java.util.Collections.unmodifiableMap
-import kotlin.collections.HashSet
 
 /**
  * Declares a struct (or DTO).
@@ -20,7 +18,7 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
     /**
      * A temporary list of [FieldDef]s used while [StructDef] is getting constructed.
      */
-    private var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
+    @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
 
     /**
      * A list of fields of this struct.
@@ -30,40 +28,27 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
      *   so let it be synchronized (it's default [lazy] mode).
      * }
      */
-    val fields: List<FieldDef<SELF, *>> by lazy {
-        val fields = tmpFields()
-        check(fields.isNotEmpty()) { "Struct must have at least one field." } // fixme: is it necessary?
+    val fields: List<FieldDef<SELF, *>>
+        get() = _fields.value
+    private val _fields =
+            lazy(LazyFields(0) as () -> List<FieldDef<SELF, *>>)
 
-        val nameSet = HashSet<String>()
-        for (i in fields.indices) {
-            val col = fields[i]
-            if (!nameSet.add(col.name)) {
-                throw IllegalStateException("duplicate column: `$name`.`${col.name}`")
-            }
-        }
+    val byName: Map<String, FieldDef<SELF, *>>
+        get() = _byName.value
+    private val _byName =
+            lazy(LazyFields(1) as () -> Map<String, FieldDef<SELF, *>>)
 
-        val frozen = unmodifiableList(fields)
-        beforeFreeze(nameSet, frozen)
-        tmpFields = null
-        frozen
-    }
-
-    val byName by lazy {
-        unmodifiableMap<String, FieldDef<SELF, *>>(
-                fields.associateByTo(HashMap(), FieldDef<SELF, *>::name)
-        )
-    }
-
-    val mutableFields: List<FieldDef.Mutable<SELF, *>> by lazy {
-        unmodifiableList(fields.filterIsInstance<FieldDef.Mutable<SELF, *>>())
-    }
+    val mutableFields: List<FieldDef.Mutable<SELF, *>>
+        get() = _mutableFields.value
+    private val _mutableFields =
+            lazy(LazyFields(2) as () -> List<FieldDef.Mutable<SELF, *>>)
 
     /**
      * Gets called before this fully initialized structDef gets used for the first time.
      */
     protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *>>) { }
 
-    private fun tmpFields() =
+    @JvmSynthetic internal fun tmpFields() =
             tmpFields ?: throw IllegalStateException("table `$name` is already initialized")
 
     /**
@@ -95,6 +80,43 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
         return col
     }
 
+    private inner class LazyFields(
+            private val mode: Int
+    ) : () -> Any? {
+
+        override fun invoke(): Any? = when (mode) {
+            0 -> {
+                val fields = tmpFields()
+                check(fields.isNotEmpty()) { "Struct must have at least one field." } // fixme: is it necessary?
+
+                val nameSet = HashSet<String>()
+                for (i in fields.indices) {
+                    val col = fields[i]
+                    if (!nameSet.add(col.name)) {
+                        throw IllegalStateException("duplicate column: `$name`.`${col.name}`")
+                    }
+                }
+
+                val frozen = unmodifiableList(fields)
+                beforeFreeze(nameSet, frozen)
+                tmpFields = null
+                frozen
+            }
+
+            1 ->
+                unmodifiableMap<String, FieldDef<SELF, *>>(
+                        fields.associateByTo(HashMap(), FieldDef<SELF, *>::name)
+                )
+
+            2 ->
+                unmodifiableList(fields.filterIsInstance<FieldDef.Mutable<SELF, *>>())
+
+            else ->
+                throw AssertionError()
+        }
+
+    }
+
 }
 
 /**
@@ -104,13 +126,12 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
  * @see Struct
  * @see Mutable
  * @see Immutable
- * TODO: replace with inline-class wrapping Byte
  */
 sealed class FieldDef<DEF : StructDef<DEF>, T>(
-        val structDef: StructDef<DEF>,
-        val name: String,
-        val type: DataType<T>,
-        val ordinal: Byte,
+        @JvmField val structDef: StructDef<DEF>,
+        @JvmField val name: String,
+        @JvmField val type: DataType<T>,
+        @JvmField val ordinal: Byte,
         default: T
 ) {
 
@@ -124,7 +145,7 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
         get() = if (_default === Unset) throw NoSuchElementException() else _default
 
     val hasDefault: Boolean
-        get() = _default !== Unset
+        @JvmName("hasDefault") get() = _default !== Unset
 
     override fun toString(): String = structDef.name + '.' + name
 
@@ -152,4 +173,4 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
 
 }
 
-private val Unset = Any()
+@JvmField @JvmSynthetic internal val Unset = Any()

@@ -46,7 +46,7 @@ interface StructTransaction<DEF : StructDef<DEF>> : AutoCloseable {
 
 abstract class SimpleStructTransaction<DEF : StructDef<DEF>> : StructTransaction<DEF>, AutoCloseable {
 
-    protected var successful: Boolean? = false
+    @JvmField protected var successful: Boolean? = false
 
     override fun setSuccessful() {
         successful = true

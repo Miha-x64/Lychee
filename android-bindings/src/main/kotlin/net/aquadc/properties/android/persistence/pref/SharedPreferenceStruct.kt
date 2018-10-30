@@ -25,7 +25,7 @@ import java.lang.IllegalStateException
  */
 class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, TransactionalPropertyStruct<DEF> {
 
-    private val values: Array<Any?> // = ManagedProperty<DEF, StructTransaction<DEF>, T> | T
+    @JvmField @JvmSynthetic internal val values: Array<Any?> // = ManagedProperty<DEF, StructTransaction<DEF>, T> | T
     @JvmField @JvmSynthetic internal val prefs: SharedPreferences
 
     /**
