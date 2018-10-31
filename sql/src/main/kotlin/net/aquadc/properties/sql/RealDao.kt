@@ -7,6 +7,7 @@ import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.properties.function.Arrayz
+import net.aquadc.properties.internal.IdManagedProperty
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -113,7 +114,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     override fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<TBL, Transaction, T> {
         val localId = lowSession.localId(table, id)
-        return ManagedProperty(this, col, localId, unset())
+        return IdManagedProperty(this, col, localId, unset())
     }
 
     override fun <T> getValueOf(col: Col<TBL, T>, id: ID): T =

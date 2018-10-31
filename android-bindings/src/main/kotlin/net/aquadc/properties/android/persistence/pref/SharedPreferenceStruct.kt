@@ -37,7 +37,7 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
             val field = fields[i]
             val value = source[field]
             when (field) {
-                is FieldDef.Mutable<DEF, *> -> ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, -1, value)
+                is FieldDef.Mutable<DEF, *> -> ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, value)
                 is FieldDef.Immutable<DEF, *> -> value
             }
             (field.type as DataType<Any?>).put(ed, field.name, value)
@@ -56,7 +56,7 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
         this.values = Array(fields.size) {
             val field = fields[it]
             when (field) {
-                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, -1, Unset)
+                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, Unset)
                 is FieldDef.Immutable -> Unset
             }
         }

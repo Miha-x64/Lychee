@@ -11,12 +11,14 @@ import net.aquadc.persistence.struct.StructDef
  * Note: [manager] is not volatile and requires external synchronization if used (e. g. [dropManagement]) concurrently
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
+open class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
         private var manager: Manager<DEF, TRANSACTION>?,
         private val field: FieldDef.Mutable<DEF, T>,
-        private val id: Long, // TODO: version without this field
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
+
+    protected open val id: Long
+        get() = -1
 
     override val value: T
         get() {
@@ -80,9 +82,18 @@ class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
                             if (ref !== Unset) ". Last remembered value: '$ref'" else "")
 
     override fun toString(): String =
-            "ManagedProperty(at $field#$id)"
+            "ManagedProperty(at $field)"
 
 }
+
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+class IdManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
+        manager: Manager<DEF, TRANSACTION>?,
+        field: FieldDef.Mutable<DEF, T>,
+        override val id: Long,
+        initialValue: T
+) : ManagedProperty<DEF, TRANSACTION, T>(manager, field, initialValue)
 
 /**
  * A manager of a property, e. g. a database session.

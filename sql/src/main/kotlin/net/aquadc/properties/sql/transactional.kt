@@ -27,7 +27,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
     override fun <T> prop(field: FieldDef.Mutable<TBL, T>): TransactionalProperty<StructTransaction<TBL>, T> {
         val index = field.ordinal.toInt()
         return (props[index] as? ManagedProperty<TBL, StructTransaction<TBL>, T>)
-                ?: ManagedProperty(manager, field, -1, Unset as T).also { props[index] = it }
+                ?: ManagedProperty(manager, field, Unset as T).also { props[index] = it }
     }
 
     private val manager = object : Manager<TBL, StructTransaction<TBL>>() {

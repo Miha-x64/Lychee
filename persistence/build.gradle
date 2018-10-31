@@ -7,7 +7,6 @@ repositories {
 }
 
 dependencies {
-    compileOnly files("$android_sdk_dir/platforms/android-$target_android_version/android.jar")
     compile 'org.jetbrains.kotlin:kotlin-stdlib'
     compileOnly "com.android.support:support-annotations:$support_version"
     compileOnly 'com.squareup.okio:okio:1.15.0'

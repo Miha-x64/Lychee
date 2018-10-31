@@ -84,7 +84,7 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
 
     private val values = observable.type.fields.map {
         when (it) {
-            is FieldDef.Mutable -> ManagedProperty(manager, it as FieldDef.Mutable<DEF, Any?>, -1, net.aquadc.properties.internal.Unset)
+            is FieldDef.Mutable -> ManagedProperty(manager, it as FieldDef.Mutable<DEF, Any?>, net.aquadc.properties.internal.Unset)
             is FieldDef.Immutable -> observable[it]
         }
     }
