@@ -272,28 +272,36 @@ class JdbcSession(
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
     private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
         val i = 1 + index
-        val ret = when (this) {
-            is DataType.Integer -> asT(when (sizeBits) {
+
+        val value = when (this) {
+            is DataType.Integer -> when (sizeBits) {
                 1 -> resultSet.getBoolean(i)
                 8 -> resultSet.getByte(i)
                 16 -> resultSet.getShort(i)
                 32 -> resultSet.getInt(i)
                 64 -> resultSet.getLong(i)
                 else -> throw AssertionError()
-            })
-            is DataType.Floating -> asT(when (sizeBits) {
+            }
+            is DataType.Floating -> when (sizeBits) {
                 32 -> resultSet.getFloat(i)
                 64 -> resultSet.getDouble(i)
                 else -> throw AssertionError()
-            })
-            is DataType.Str -> asT(resultSet.getString(i))
-            is DataType.Blob -> asT(resultSet.getBytes(i))
+            }
+            is DataType.Str -> resultSet.getString(i)
+            is DataType.Blob -> resultSet.getBytes(i)
         }
 
         return if (resultSet.wasNull()) {
             check(isNullable)
             null as T
-        } else ret
+        } else {
+            when (this) {
+                is DataType.Integer -> asT(value)
+                is DataType.Floating -> asT(value as Number)
+                is DataType.Str -> asT(value as String)
+                is DataType.Blob -> asT(value as ByteArray)
+            }
+        }
     }
 
 }
