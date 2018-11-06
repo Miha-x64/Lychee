@@ -17,7 +17,7 @@ import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.android.bindings.widget.bindToText
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.set
-import net.aquadc.properties.sql.AndroidSqliteSession
+import net.aquadc.properties.sql.SqliteSession
 import net.aquadc.properties.sql.createTable
 import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
@@ -33,7 +33,7 @@ class SqliteActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         vm = (lastNonConfigurationInstance as? SqlViewModel) ?:
-                SqlViewModel(AndroidSqliteSession(Helper(applicationContext).writableDatabase))
+                SqlViewModel(SqliteSession(Helper(applicationContext).writableDatabase))
 
         if (savedInstanceState == null) {
             fragmentManager

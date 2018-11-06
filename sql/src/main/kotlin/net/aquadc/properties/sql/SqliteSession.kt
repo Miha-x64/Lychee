@@ -15,7 +15,7 @@ import kotlin.concurrent.getOrSet
  * Represents a connection with an [SQLiteDatabase].
  */
 // TODO: use simpleQueryForLong and simpleQueryForString with compiled statements where possible
-class AndroidSqliteSession(
+class SqliteSession(
         private val connection: SQLiteDatabase
 ) : Session {
 
@@ -104,7 +104,7 @@ class AndroidSqliteSession(
                     connection.setTransactionSuccessful()
                 }
                 connection.endTransaction()
-                this@AndroidSqliteSession.transaction = null
+                this@SqliteSession.transaction = null
 
                 if (successful) {
                     transaction.deliverChanges()
@@ -169,7 +169,7 @@ class AndroidSqliteSession(
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
-            get() = this@AndroidSqliteSession.transaction
+            get() = this@SqliteSession.transaction
 
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
@@ -198,7 +198,7 @@ class AndroidSqliteSession(
     // endregion transactions and modifying statements
 
     override fun toString(): String =
-            "AndroidSqliteSession(connection=$connection)"
+            "SqliteSession(connection=$connection)"
 
 
     fun dump(sb: StringBuilder) {
