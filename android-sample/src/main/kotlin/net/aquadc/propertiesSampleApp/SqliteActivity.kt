@@ -18,7 +18,7 @@ import net.aquadc.properties.android.bindings.widget.bindToText
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.set
 import net.aquadc.properties.sql.AndroidSqliteSession
-import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.properties.sql.createTable
 import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import net.aquadc.propertiesSampleLogic.sql.Tables
@@ -65,7 +65,7 @@ class SqliteActivity : Activity() {
     ) : SQLiteOpenHelper(context, "people", null, 1) {
 
         override fun onCreate(db: SQLiteDatabase) {
-            Tables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
+            Tables.forEach(db::createTable)
         }
 
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {

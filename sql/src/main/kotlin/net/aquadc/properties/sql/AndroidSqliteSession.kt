@@ -1,3 +1,4 @@
+@file:JvmName("SqliteUtils")
 package net.aquadc.properties.sql
 
 import android.database.Cursor
@@ -298,4 +299,11 @@ class AndroidSqliteSession(
         return toByte()
     }
 
+}
+
+/**
+ * Calls [SQLiteDatabase.execSQL] for the given [table] in [this] database.
+ */
+fun SQLiteDatabase.createTable(table: Table<*, Long, *>) {
+    execSQL(SqliteDialect.createTable(table))
 }
