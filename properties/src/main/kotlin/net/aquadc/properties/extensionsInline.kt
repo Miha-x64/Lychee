@@ -53,6 +53,17 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
     }
 }
 
+/**
+ * Every time property becomes non-null,
+ * it will be nulled and [action] will be performed.
+ */
+inline fun <T : Any> MutableProperty<T?>.clearEachAnd(crossinline action: (T) -> Unit): Unit = onEach {
+    if (it != null) {
+        value = null
+        action(it)
+    }
+}
+
 
 //
 // CharSequence
