@@ -1,6 +1,5 @@
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.source.DataReader
 import net.aquadc.persistence.struct.*
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
@@ -14,7 +13,6 @@ import net.aquadc.properties.propertyOf
  * This is a reference implementation:
  * * every struct should have
  *   * a constructor copying from [Struct]
- *   * a constructor reading from [DataReader]
  * * every mutable observable [Struct] implementation should have
  *   * a mutator [set]
  *   * a property getter [prop]
@@ -33,18 +31,6 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
                 is FieldDef.Immutable<DEF, *> -> value
             }
         }
-    }
-
-    constructor(reader: DataReader, type: DEF, concurrent: Boolean) : super(type) {
-        val vals = reader.readKeyValuePairs(type)
-        val fields = type.fields
-        for (i in fields.indices) {
-            when (fields[i]) {
-                is FieldDef.Mutable<DEF, *> -> vals[i] = propertyOf(vals[i], concurrent)
-                is FieldDef.Immutable<DEF, *> -> { /* we already have a value in vals[i] */ }
-            }
-        }
-        values = vals
     }
 
     /**

@@ -1,7 +1,6 @@
 package net.aquadc.properties.android.persistence.pref
 
 import android.content.SharedPreferences
-import net.aquadc.persistence.source.DataReader
 import net.aquadc.persistence.struct.*
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
@@ -10,7 +9,6 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.persistence.TransactionalPropertyStruct
-import java.lang.IllegalStateException
 
 /**
  * Represents a [Struct] stored in [SharedPreferences].
@@ -45,29 +43,6 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
             (field.type as DataType<Any?>).put(ed, field.name, value)
         }
         ed.apply()
-        this.prefs = prefs
-        prefs.registerOnSharedPreferenceChangeListener(manager)
-    }
-
-    /**
-     * Copies data from [reader] to [prefs].
-     * Overwrites existing data, if any.
-     */
-    constructor(reader: DataReader, type: DEF, prefs: SharedPreferences) : super(type) {
-        val vals = reader.readKeyValuePairs(type)
-        val fields = type.fields
-        val ed = prefs.edit()
-        for (i in fields.indices) {
-            val field = fields[i]
-            val value = vals[i]
-            when (field) {
-                is FieldDef.Mutable<DEF, *> -> vals[i] = ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, -1, value)
-                is FieldDef.Immutable<DEF, *> -> { /* we already have a value in vals[i] */ }
-            }
-            (field.type as DataType<Any?>).put(ed, field.name, value)
-        }
-        ed.apply()
-        this.values = vals
         this.prefs = prefs
         prefs.registerOnSharedPreferenceChangeListener(manager)
     }
