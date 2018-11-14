@@ -4,6 +4,7 @@ package net.aquadc.properties
 
 import net.aquadc.properties.function.Collectionz
 import net.aquadc.properties.function.`AppliedFunc1-`
+import net.aquadc.properties.function.identity
 import net.aquadc.properties.internal.`MultiMapped-`
 
 
@@ -13,7 +14,11 @@ import net.aquadc.properties.internal.`MultiMapped-`
 inline fun <T, R> Collection<Property<T>>.mapValueList(noinline transform: (List<T>) -> R): Property<R> =
         `MultiMapped-`(this, transform)
 
-// TODO: Collection<Property<T>>.valueList corner case
+/**
+ * Maps a list of properties into a single [Property] containing a [List] of their values.
+ */
+inline fun <T> Collection<Property<T>>.valueList(): Property<List<T>> =
+        `MultiMapped-`(this, identity())
 
 /**
  * Folds a list of properties into a single [Property].
