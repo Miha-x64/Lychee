@@ -105,7 +105,8 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
             val value = field.get(sharedPreferences)
             when (field) {
                 is FieldDef.Mutable -> (values[idx] as ManagedProperty<DEF, StructTransaction<DEF>, Any?>).commit(value)
-                is FieldDef.Immutable -> throw IllegalStateException("Immutable field $field in $prefs was mutated externally!") // fixme: check SharedPreferences.toString
+                is FieldDef.Immutable -> throw IllegalStateException("Immutable field $field in $prefs was mutated externally!")
+                // there will be ugly but a bit informative toString. Deal with it
             }.also { }
         }
 
