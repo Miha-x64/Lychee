@@ -1,11 +1,9 @@
-package net.aquadc.properties.persistence
+package net.aquadc.persistence.stream
 
-import net.aquadc.persistence.stream.CleverDataInput
-import net.aquadc.persistence.stream.CleverDataOutput
 import net.aquadc.persistence.type.DataType
 
-// TODO: move to persistence
-internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
+
+fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
     check(value !== null || isNullable)
 
     // these values can be put into stream along with nullability info
@@ -46,7 +44,7 @@ internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
 
 private val boolDictionary = arrayOf(null, false, true)
 @Suppress("UNCHECKED_CAST")
-internal fun <T> DataType<T>.read(input: CleverDataInput): T {
+fun <T> DataType<T>.read(input: CleverDataInput): T {
     when (this) {
         is DataType.Simple<T> -> {
             val value = when (kind) {

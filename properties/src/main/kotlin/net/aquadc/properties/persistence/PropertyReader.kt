@@ -1,6 +1,7 @@
 package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.stream.CleverDataInput
+import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
 import java.lang.Double.longBitsToDouble
