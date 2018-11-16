@@ -245,50 +245,58 @@ class SqliteSession(
             statement.bindNull(i)
         } else {
             when (this) {
-                is DataType.Integer -> {
-                    val num = asNumber(value)
-                    when (sizeBits) {
-                        1 -> statement.bindLong(i, if (num as Boolean) 1 else 0)
-                        8, 16, 32, 64 -> statement.bindLong(i, (num as Number).toLong())
-                        else -> throw AssertionError()
+                is DataType.Simple<T> -> {
+                    val v = encode(value)
+                    when (kind) {
+                        DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
+                        DataType.Simple.Kind.I8,
+                        DataType.Simple.Kind.I16,
+                        DataType.Simple.Kind.I32,
+                        DataType.Simple.Kind.I64 -> statement.bindLong(i, (v as Number).toLong())
+                        DataType.Simple.Kind.F32,
+                        DataType.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
+                        DataType.Simple.Kind.Str -> statement.bindString(i, v as String)
+                        DataType.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
                     }
                 }
-                is DataType.Floating -> statement.bindDouble(i, (asNumber(value).toDouble()))
-                is DataType.Str -> statement.bindString(i, asString(value))
-                is DataType.Blob -> statement.bindBlob(i, asByteArray(value))
             }.also { }
         }
     }
 
     private fun <T> DataType<T>.asString(value: T): String = when (this) {
-        is DataType.Integer -> asNumber(value).toString()
-        is DataType.Floating -> asNumber(value).toString()
-        is DataType.Str -> asString(value)
-        is DataType.Blob -> TODO("binding a BLOB as selectionArgs?")
+        is DataType.Simple<T> -> {
+            val v = encode(value!!)
+            when (kind) {
+                DataType.Simple.Kind.Bool,
+                DataType.Simple.Kind.I8,
+                DataType.Simple.Kind.I16,
+                DataType.Simple.Kind.I32,
+                DataType.Simple.Kind.I64,
+                DataType.Simple.Kind.F32,
+                DataType.Simple.Kind.F64 -> value.toString()
+                DataType.Simple.Kind.Str -> value as String
+                DataType.Simple.Kind.Blob -> TODO("binding a BLOB as selectionArgs?")
+            }
+        }
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
     private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T {
-        return if (cursor.isNull(index)) {
-            check(isNullable)
-            null as T
-        } else {
-            when (this) {
-                is DataType.Integer -> asT(when (sizeBits) {
-                    1 -> cursor.getInt(index) == 1
-                    8 -> cursor.getShort(index).assertFitsByte()
-                    16 -> cursor.getShort(index)
-                    32 -> cursor.getInt(index)
-                    64 -> cursor.getLong(index)
-                    else -> throw AssertionError()
-                })
-                is DataType.Floating -> asT(when (sizeBits) {
-                    32 -> cursor.getInt(index)
-                    64 -> cursor.getLong(index)
-                    else -> throw AssertionError()
-                })
-                is DataType.Str -> asT(cursor.getString(index))
-                is DataType.Blob -> asT(cursor.getBlob(index))
+        return if (cursor.isNull(index))
+            check(isNullable).let { null as T }
+        else when (this) {
+            is DataType.Simple<T> -> {
+                when (kind) {
+                    DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
+                    DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
+                    DataType.Simple.Kind.I16 -> cursor.getShort(index)
+                    DataType.Simple.Kind.I32 -> cursor.getInt(index)
+                    DataType.Simple.Kind.I64 -> cursor.getLong(index)
+                    DataType.Simple.Kind.F32 -> cursor.getFloat(index)
+                    DataType.Simple.Kind.F64 -> cursor.getDouble(index)
+                    DataType.Simple.Kind.Str -> cursor.getString(index)
+                    DataType.Simple.Kind.Blob -> cursor.getBlob(index)
+                } as T
             }
         }
     }

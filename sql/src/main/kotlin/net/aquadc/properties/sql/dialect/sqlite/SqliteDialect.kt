@@ -97,14 +97,23 @@ object SqliteDialect : Dialect {
     private fun <T> StringBuilder.appendDefault(col: FieldDef<out Table<*, *, *>, T>) {
         val type = col.type
         val value = col.default
-        append(" DEFAULT '")
+        append(" DEFAULT ")
         when (type) {
-            is DataType.Integer -> append(type.asNumber(value).toString())
-            is DataType.Floating -> append(type.asNumber(value).toString())
-            is DataType.Str -> append(type.asString(value))
-            is DataType.Blob -> append("x'").appendHex(type.asByteArray(value)).append('\'')
-        }
-        append('\'')
+            is DataType.Simple<T> -> {
+                val v = type.encode(value)
+                when (type.kind) {
+                    DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
+                    DataType.Simple.Kind.I8,
+                    DataType.Simple.Kind.I16,
+                    DataType.Simple.Kind.I32,
+                    DataType.Simple.Kind.I64,
+                    DataType.Simple.Kind.F32,
+                    DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
+                    DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
+                    DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
+                }
+            }
+        }.also { }
     }
 
     private val hexChars = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
@@ -118,10 +127,19 @@ object SqliteDialect : Dialect {
     }
 
     private fun nameOf(dataType: DataType<*>): String = when (dataType) {
-        is DataType.Integer<*> -> "INTEGER"
-        is DataType.Floating<*> -> "REAL"
-        is DataType.Str<*> -> "TEXT"
-        is DataType.Blob<*> -> "BLOB"
+        is DataType.Simple<*> -> {
+            when (dataType.kind) {
+                DataType.Simple.Kind.Bool,
+                DataType.Simple.Kind.I8,
+                DataType.Simple.Kind.I16,
+                DataType.Simple.Kind.I32,
+                DataType.Simple.Kind.I64 -> "INTEGER"
+                DataType.Simple.Kind.F32,
+                DataType.Simple.Kind.F64 -> "REAL"
+                DataType.Simple.Kind.Str -> "TEXT"
+                DataType.Simple.Kind.Blob -> "BLOB"
+            }
+        }
     }
 
 }

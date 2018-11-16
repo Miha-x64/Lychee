@@ -16,40 +16,32 @@ internal fun <T> DataType<T>.get(prefs: SharedPreferences, name: String, default
     return if (value === null/* && !isNullable*/) default else value
 }
 
-// ^ commented out 'isNullable': we use default value even for nullable types. Fixme: is this correct?
+// ^ commented out 'isNullable': we use default value even for nullable types
 
 // NOTE: `null` means 'absent' here
 @Suppress("UNCHECKED_CAST")
 private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T? {
     if (!prefs.contains(key)) return null
 
-    val map = prefs.all // sadly, copying prefs fully is the only way to aceive correctness concurrently
+    val map = prefs.all // sadly, copying prefs fully is the only way to achieve correctness concurrently
 
     val value = map[key]
     if (value === null) return null
 
     return when (this) {
-        is DataType.Integer -> {
-            @Suppress("IMPLICIT_CAST_TO_ANY")
-            asT(when (sizeBits) {
-                1 -> value as Boolean
-                8 -> (value as Int).assertFitsByte()
-                16 -> (value as Int).assertFitsShort()
-                32 -> value as Int
-                64 -> value as Long
-                else -> throw AssertionError()
+        is DataType.Simple<T> -> {
+            decode(when (kind) {
+                DataType.Simple.Kind.Bool -> value as Boolean
+                DataType.Simple.Kind.I8 -> (value as Int).assertFitsByte()
+                DataType.Simple.Kind.I16 -> (value as Int).assertFitsShort()
+                DataType.Simple.Kind.I32 -> value as Int
+                DataType.Simple.Kind.I64 -> value as Long
+                DataType.Simple.Kind.F32 -> value as Float
+                DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(value as Long)
+                DataType.Simple.Kind.Str -> value as String
+                DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
             })
         }
-        is DataType.Floating -> {
-            @Suppress("IMPLICIT_CAST_TO_ANY")
-            asT(when (sizeBits) {
-                32 -> value as Float
-                64 -> java.lang.Double.longBitsToDouble(value as Long)
-                else -> throw AssertionError()
-            })
-        }
-        is DataType.Str -> asT(value as String)
-        is DataType.Blob -> asT(Base64.decode(value as String, Base64.DEFAULT))
     }
 }
 
@@ -70,27 +62,20 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
         return editor.remove(key).ignored
 
     when (this) {
-        is DataType.Integer -> {
-            val asNum = asNumber(value)
-            when (sizeBits) {
-                1 -> editor.putBoolean(key, asNum as Boolean).ignored
-                8 -> editor.putInt(key, (asNum as Byte).toInt()).ignored
-                16 -> editor.putInt(key, (asNum as Short).toInt()).ignored
-                32 -> editor.putInt(key, asNum as Int).ignored
-                64 -> editor.putLong(key, asNum as Long).ignored
-                else -> throw AssertionError()
-            }
+        is DataType.Simple<T> -> {
+            val v = encode(value)
+            when (kind) {
+                DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean).ignored
+                DataType.Simple.Kind.I8 -> editor.putInt(key, (v as Byte).toInt()).ignored
+                DataType.Simple.Kind.I16 -> editor.putInt(key, (v as Short).toInt()).ignored
+                DataType.Simple.Kind.I32 -> editor.putInt(key, v as Int).ignored
+                DataType.Simple.Kind.I64 -> editor.putLong(key, v as Long).ignored
+                DataType.Simple.Kind.F32 -> editor.putFloat(key, v as Float).ignored
+                DataType.Simple.Kind.F64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(v as Double)).ignored
+                DataType.Simple.Kind.Str -> editor.putString(key, v as String).ignored
+                DataType.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT)).ignored
+            }.also { }
         }
-        is DataType.Floating -> {
-            val asNum = asNumber(value)
-            when (sizeBits) {
-                32 -> editor.putFloat(key, asNum as Float).ignored
-                64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(asNum as Double)).ignored
-                else -> throw AssertionError()
-            }
-        }
-        is DataType.Str -> return editor.putString(key, asString(value)).ignored
-        is DataType.Blob -> return editor.putString(key, Base64.encodeToString(asByteArray(value), Base64.DEFAULT)).ignored
     }
 
 }

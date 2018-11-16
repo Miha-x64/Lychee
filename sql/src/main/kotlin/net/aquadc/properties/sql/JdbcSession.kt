@@ -244,27 +244,21 @@ class JdbcSession(
             statement.setNull(i, Types.NULL)
         } else {
             when (this) {
-                is DataType.Integer -> {
-                    val v = asNumber(value)
-                    when (sizeBits) {
-                        1 -> statement.setBoolean(i, v as Boolean)
-                        8 -> statement.setByte(i, v as Byte)
-                        16 -> statement.setShort(i, v as Short)
-                        32 -> statement.setInt(i, v as Int)
-                        64 -> statement.setLong(i, v as Long)
-                        else -> throw AssertionError()
+                is DataType.Simple<T> -> {
+                    val v = encode(value)
+                    when (kind) {
+                        DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
+                        DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
+                        DataType.Simple.Kind.I16 -> statement.setShort(i, v as Short)
+                        DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
+                        DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
+                        DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
+                        DataType.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
+                        DataType.Simple.Kind.Str -> statement.setString(i, v as String)
+                        // not sure whether setBlob should be used:
+                        DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
                     }
                 }
-                is DataType.Floating -> {
-                    val v = asNumber(value)
-                    when (sizeBits) {
-                        32 -> statement.setFloat(i, v as Float)
-                        64 -> statement.setDouble(i, v as Double)
-                        else -> throw AssertionError()
-                    }
-                }
-                is DataType.Str -> statement.setString(i, asString(value))
-                is DataType.Blob -> statement.setObject(i, asByteArray(value)) // not sure whether setBlob should be used
             }.also { }
         }
     }
@@ -274,34 +268,23 @@ class JdbcSession(
         val i = 1 + index
 
         val value = when (this) {
-            is DataType.Integer -> when (sizeBits) {
-                1 -> resultSet.getBoolean(i)
-                8 -> resultSet.getByte(i)
-                16 -> resultSet.getShort(i)
-                32 -> resultSet.getInt(i)
-                64 -> resultSet.getLong(i)
-                else -> throw AssertionError()
+            is DataType.Simple -> when (kind) {
+                DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
+                DataType.Simple.Kind.I8 -> resultSet.getByte(i)
+                DataType.Simple.Kind.I16 -> resultSet.getShort(i)
+                DataType.Simple.Kind.I32 -> resultSet.getInt(i)
+                DataType.Simple.Kind.I64 -> resultSet.getLong(i)
+                DataType.Simple.Kind.F32 -> resultSet.getFloat(i)
+                DataType.Simple.Kind.F64 -> resultSet.getDouble(i)
+                DataType.Simple.Kind.Str -> resultSet.getString(i)
+                DataType.Simple.Kind.Blob -> resultSet.getBytes(i)
             }
-            is DataType.Floating -> when (sizeBits) {
-                32 -> resultSet.getFloat(i)
-                64 -> resultSet.getDouble(i)
-                else -> throw AssertionError()
-            }
-            is DataType.Str -> resultSet.getString(i)
-            is DataType.Blob -> resultSet.getBytes(i)
         }
 
-        return if (resultSet.wasNull()) {
-            check(isNullable)
-            null as T
-        } else {
-            when (this) {
-                is DataType.Integer -> asT(value)
-                is DataType.Floating -> asT(value as Number)
-                is DataType.Str -> asT(value as String)
-                is DataType.Blob -> asT(value as ByteArray)
-            }
-        }
+        return if (resultSet.wasNull())
+            check(isNullable).let { null as T }
+        else
+            decode(value)
     }
 
 }

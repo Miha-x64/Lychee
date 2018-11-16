@@ -4,16 +4,19 @@ import net.aquadc.persistence.stream.CleverDataInput
 import net.aquadc.persistence.stream.CleverDataOutput
 import net.aquadc.persistence.type.DataType
 
+// TODO: move to persistence
 internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
     check(value !== null || isNullable)
 
-    // these values can simply be put into stream
+    // these values can be put into stream along with nullability info
     when (this) {
-        is DataType.Str -> return output.writeString(value?.let(::asString))
-        is DataType.Blob -> return output.writeBytes(value?.let(::asByteArray))
-        is DataType.Integer -> {
-            if (sizeBits == 1) {
-                return output.writeByte(value?.let { if (asNumber(it) as Boolean) 1 else 0 } ?: -1)
+        is DataType.Simple<T> -> {
+            when (kind) {
+                DataType.Simple.Kind.Bool ->
+                    return output.writeByte(value?.let { if (encode(it) as Boolean) 1 else 0 } ?: -1)
+                DataType.Simple.Kind.Str -> return output.writeString(value?.let { encode(it) as String })
+                DataType.Simple.Kind.Blob -> return output.writeBytes(value?.let { encode(it) as ByteArray })
+                else -> { /* continue */ }
             }
         }
     }
@@ -26,58 +29,38 @@ internal fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
     }
 
     return when (this) {
-        is DataType.Integer -> {
-            val num = asNumber(value)
-            when (sizeBits) {
-                // 1 was already handled
-                8 -> output.writeByte((num as Byte).toInt())
-                16 -> output.writeShort((num as Short).toInt())
-                32 -> output.writeInt(num as Int)
-                64 -> output.writeLong(num as Long)
-                else -> throw AssertionError()
+        is DataType.Simple<T> -> {
+            val num = encode(value)
+            when (kind) {
+                DataType.Simple.Kind.I8 -> output.writeByte((num as Byte).toInt())
+                DataType.Simple.Kind.I16 -> output.writeShort((num as Short).toInt())
+                DataType.Simple.Kind.I32 -> output.writeInt(num as Int)
+                DataType.Simple.Kind.I64 -> output.writeLong(num as Long)
+                DataType.Simple.Kind.F32 -> output.writeInt(java.lang.Float.floatToIntBits(num as Float))
+                DataType.Simple.Kind.F64 -> output.writeLong(java.lang.Double.doubleToLongBits(value as Double))
+                DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
             }
         }
-        is DataType.Floating -> {
-            val num = asNumber(value)
-            when (sizeBits) {
-                32 -> output.writeInt(java.lang.Float.floatToIntBits(num as Float))
-                64 -> output.writeLong(java.lang.Double.doubleToLongBits(value as Double))
-                else -> throw AssertionError()
-            }
-        }
-        is DataType.Str,
-        is DataType.Blob -> throw AssertionError()
     }
 }
 
+private val boolDictionary = arrayOf(null, false, true)
 @Suppress("UNCHECKED_CAST")
 internal fun <T> DataType<T>.read(input: CleverDataInput): T {
     when (this) {
-        is DataType.Str -> {
-            val str = input.readString()
-            return if (str == null) {
-                check(isNullable); null
-            } else {
-                asT(str)
-            } as T
-        }
-        is DataType.Blob -> {
-            val bytes = input.readBytes()
-            return if (bytes == null) {
-                check(isNullable); null
-            } else {
-                asT(bytes)
-            } as T
-        }
-        is DataType.Integer -> {
-            if (sizeBits == 1) {
-                val bool = input.readByte().toInt()
-                return if (bool == -1) {
-                    check(isNullable); null
-                } else {
-                    asT(bool == 1)
-                } as T
+        is DataType.Simple<T> -> {
+            val value = when (kind) {
+                DataType.Simple.Kind.Bool -> boolDictionary[input.readByte().toInt() + 1]
+                DataType.Simple.Kind.Str -> input.readString()
+                DataType.Simple.Kind.Blob -> input.readBytes()
+                else -> boolDictionary // it's private — using as 'Unset' marker
             }
+
+            if (value === null)
+                return check(isNullable).let { null as T }
+
+            if (value !== boolDictionary) // i. e. 'not unset'
+                return decode(value)
         }
     }
 
@@ -85,21 +68,17 @@ internal fun <T> DataType<T>.read(input: CleverDataInput): T {
         return null as T
     }
 
-    return when (this) {
-        is DataType.Integer -> asT(when (sizeBits) {
-            // 1 was already handled
-            8 -> input.readByte()
-            16 -> input.readShort()
-            32 -> input.readInt()
-            64 -> input.readLong()
-            else -> throw AssertionError()
-        })
-        is DataType.Floating -> asT(when (sizeBits) {
-            32 -> java.lang.Float.intBitsToFloat(input.readInt())
-            64 -> java.lang.Double.longBitsToDouble(input.readLong())
-            else -> throw AssertionError()
-        })
-
-        is DataType.Str, is DataType.Blob -> throw AssertionError()
-    }
+    return decode(when (this) {
+        is DataType.Simple<T> -> {
+            when (kind) {
+                DataType.Simple.Kind.I8 -> input.readByte()
+                DataType.Simple.Kind.I16 -> input.readShort()
+                DataType.Simple.Kind.I32 -> input.readInt()
+                DataType.Simple.Kind.I64 -> input.readLong()
+                DataType.Simple.Kind.F32 -> java.lang.Float.intBitsToFloat(input.readInt())
+                DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(input.readLong())
+                DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
+            }
+        }
+    })
 }
