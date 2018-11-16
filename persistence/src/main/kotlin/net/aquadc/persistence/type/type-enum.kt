@@ -44,6 +44,6 @@ inline fun <reified E : Any, U : Any> enum(
 
 @PublishedApi internal class NoConstant(private val t: Class<*>) : (Any?) -> Any? {
     override fun invoke(p1: Any?): Any? {
-        throw AssertionError("No enum constant with name $p1 in type $t")
+        throw NoSuchElementException("No enum constant with name $p1 in type $t")
     }
 }

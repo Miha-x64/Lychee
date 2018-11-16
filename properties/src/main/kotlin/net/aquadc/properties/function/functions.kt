@@ -166,7 +166,7 @@ class Arrayz private constructor(
  * [net.aquadc.properties.mapWith] etc.
  *
  * The name 'CharSequencez' was chosen to be consistent with [Objectz] and [Arrayz]
- * and avoid potential conflict with an utility-class.
+ * and avoid potential conflict with an arbitrary utility-class.
  */
 class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
 
@@ -222,6 +222,43 @@ class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
         @JvmField val Trim: (CharSequence) -> CharSequence =
                 CharSequencez(5) as (CharSequence) -> CharSequence
     }
+}
+
+/**
+ * Contains several general-purpose [Enum]-related functions to pass into [net.aquadc.properties.map],
+ * [net.aquadc.properties.mapWith], [net.aquadc.persistence.type.enum] etc.
+ *
+ * The name 'Enumz' was chosen to be consistent with [Objectz] and [Arrayz]
+ * and avoid potential conflict with an arbitrary utility-class.
+ */
+class Enumz private constructor(private val mode: Int) : (Any?) -> Any? {
+
+    override fun invoke(p1: Any?): Any? {
+        val enum = p1 as Enum<*>
+        return when (mode) {
+            0 -> p1.name
+            1 -> p1.ordinal
+            else -> throw AssertionError()
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    companion object {
+
+        /**
+         * A function which returns [Enum.name] of a passed [Enum] instance.
+         */
+        @JvmField val Name: (Enum<*>) -> String =
+                Enumz(0) as (Enum<*>) -> String
+
+        /**
+         * A function which returns [Enum.ordinal] of a passed [Enum] instance.
+         */
+        @JvmField val Ordinal: (Enum<*>) -> Int =
+                Enumz(1) as (Enum<*>) -> Int
+
+    }
+
 }
 
 //
