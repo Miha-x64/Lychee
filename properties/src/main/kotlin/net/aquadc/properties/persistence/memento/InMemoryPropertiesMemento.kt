@@ -1,6 +1,6 @@
 package net.aquadc.properties.persistence.memento
 
-import net.aquadc.persistence.stream.CleverDataOutput
+import net.aquadc.persistence.stream.BetterDataOutput
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
@@ -94,7 +94,7 @@ class InMemoryPropertiesMemento : PropertiesMemento {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun writeTo(output: CleverDataOutput) {
+    fun writeTo(output: BetterDataOutput) {
         for (i in types.indices) {
             val type = types[i]
             val value = vals[0]
@@ -108,7 +108,7 @@ class InMemoryPropertiesMemento : PropertiesMemento {
         }
     }
 
-    private fun writeValue(output: CleverDataOutput, value: Any?) {
+    private fun writeValue(output: BetterDataOutput, value: Any?) {
         @Suppress("UNCHECKED_CAST")
         when (value) {
             is CharArray -> output.writeCharArray(value)
@@ -121,7 +121,7 @@ class InMemoryPropertiesMemento : PropertiesMemento {
         }
     }
 
-    private fun <E : Enum<E>> writeEnum(output: CleverDataOutput, type: Class<E>, value: Any) {
+    private fun <E : Enum<E>> writeEnum(output: BetterDataOutput, type: Class<E>, value: Any) {
         @Suppress("UNCHECKED_CAST")
         when (value) {
             type.isInstance(value) -> output.writeString((value as Enum<*>).name)

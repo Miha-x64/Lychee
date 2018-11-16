@@ -3,7 +3,7 @@ package net.aquadc.persistence.stream
 import net.aquadc.persistence.type.DataType
 
 
-fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
+fun <T> DataType<T>.write(output: BetterDataOutput, value: T) {
     check(value !== null || isNullable)
 
     // these values can be put into stream along with nullability info
@@ -44,7 +44,7 @@ fun <T> DataType<T>.write(output: CleverDataOutput, value: T) {
 
 private val boolDictionary = arrayOf(null, false, true)
 @Suppress("UNCHECKED_CAST")
-fun <T> DataType<T>.read(input: CleverDataInput): T {
+fun <T> DataType<T>.read(input: BetterDataInput): T {
     when (this) {
         is DataType.Simple<T> -> {
             val value = when (kind) {

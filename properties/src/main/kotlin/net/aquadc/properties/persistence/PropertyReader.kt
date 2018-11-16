@@ -1,6 +1,6 @@
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.stream.CleverDataInput
+import net.aquadc.persistence.stream.BetterDataInput
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
@@ -12,7 +12,7 @@ import java.util.*
  * Reads data from [input] into properties.
  */
 class PropertyReader(
-        private val input: CleverDataInput
+        private val input: BetterDataInput
 ) : PropertyIo {
 
     override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {

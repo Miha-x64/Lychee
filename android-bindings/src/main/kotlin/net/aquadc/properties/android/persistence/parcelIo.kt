@@ -1,17 +1,17 @@
 package net.aquadc.properties.android.persistence
 
 import android.os.Parcel
-import net.aquadc.persistence.stream.CleverDataInput
-import net.aquadc.persistence.stream.CleverDataOutput
+import net.aquadc.persistence.stream.BetterDataInput
+import net.aquadc.persistence.stream.BetterDataOutput
 import net.aquadc.persistence.stream.UnusedDataInputMethods
 import net.aquadc.persistence.stream.UnusedDataOutputMethods
 
 /**
- * Adapts several [Parcel] methods to conform [CleverDataInput].
+ * Adapts several [Parcel] methods to conform [BetterDataInput].
  */
 class ParcelInput(
         private val input: Parcel
-) : UnusedDataInputMethods(), CleverDataInput {
+) : UnusedDataInputMethods(), BetterDataInput {
 
     override fun readByte(): Byte =
             input.readByte()
@@ -38,11 +38,11 @@ class ParcelInput(
 }
 
 /**
- * Adapts several [Parcel] methods to conform [CleverDataOutput].
+ * Adapts several [Parcel] methods to conform [BetterDataOutput].
  */
 class ParcelOutput(
         private val output: Parcel
-) : UnusedDataOutputMethods(), CleverDataOutput {
+) : UnusedDataOutputMethods(), BetterDataOutput {
 
     override fun writeByte(v: Int): Unit =
             output.writeByte(v.toByte())

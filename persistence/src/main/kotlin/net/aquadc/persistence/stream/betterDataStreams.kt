@@ -5,9 +5,9 @@ import java.io.*
 /**
  * More usable [DataOutput] subtype.
  * Methods from [UnusedDataOutputMethods] won't be used.
- * @see CleverDataOutputStream
+ * @see BetterDataOutputStream
  */
-interface CleverDataOutput : DataOutput {
+interface BetterDataOutput : DataOutput {
 
     /**
      * Writes the given [bytes] including its nullability info, and length, if applicable.
@@ -24,9 +24,9 @@ interface CleverDataOutput : DataOutput {
 /**
  * More usable [DataInput] subtype.
  * Methods from [UnusedDataInputMethods] won't be used.
- * @see CleverDataInputStream
+ * @see BetterDataInputStream
  */
-interface CleverDataInput : DataInput {
+interface BetterDataInput : DataInput {
 
     /**
      * Reads a [ByteArray] from this stream.
@@ -41,9 +41,9 @@ interface CleverDataInput : DataInput {
 }
 
 /**
- * Simple [CleverDataOutput] implementation — a more usable data output stream.
+ * Simple [BetterDataOutput] implementation — a more usable data output stream.
  */
-class CleverDataOutputStream(output: OutputStream) : DataOutputStream(output), CleverDataOutput {
+class BetterDataOutputStream(output: OutputStream) : DataOutputStream(output), BetterDataOutput {
 
     override fun writeBytes(bytes: ByteArray?) {
         if (bytes == null) {
@@ -66,9 +66,9 @@ class CleverDataOutputStream(output: OutputStream) : DataOutputStream(output), C
 }
 
 /**
- * Simple [CleverDataInput] implementation — a more usable data input stream.
+ * Simple [BetterDataInput] implementation — a more usable data input stream.
  */
-class CleverDataInputStream(input: InputStream) : DataInputStream(input), CleverDataInput {
+class BetterDataInputStream(input: InputStream) : DataInputStream(input), BetterDataInput {
 
     override fun readBytes(): ByteArray? {
         val size = readInt()

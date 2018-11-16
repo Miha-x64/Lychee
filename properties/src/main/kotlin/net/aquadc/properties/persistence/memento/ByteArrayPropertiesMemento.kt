@@ -1,7 +1,7 @@
 package net.aquadc.properties.persistence.memento
 
-import net.aquadc.persistence.stream.CleverDataInputStream
-import net.aquadc.persistence.stream.CleverDataOutputStream
+import net.aquadc.persistence.stream.BetterDataInputStream
+import net.aquadc.persistence.stream.BetterDataOutputStream
 import net.aquadc.properties.persistence.PropertyReader
 import net.aquadc.properties.persistence.PropertyWriter
 import java.io.*
@@ -16,17 +16,17 @@ class ByteArrayPropertiesMemento(
     constructor() : this(ByteArray(0))
 
     constructor(properties: PersistableProperties) : this(ByteArrayOutputStream().let { os ->
-        properties.saveOrRestore(PropertyWriter(CleverDataOutputStream(os)))
+        properties.saveOrRestore(PropertyWriter(BetterDataOutputStream(os)))
         os.toByteArray()
     })
 
     constructor(memento: InMemoryPropertiesMemento) : this(ByteArrayOutputStream().let { os ->
-        memento.writeTo(CleverDataOutputStream(os))
+        memento.writeTo(BetterDataOutputStream(os))
         os.toByteArray()
     })
 
     override fun restoreTo(target: PersistableProperties) {
-        target.saveOrRestore(PropertyReader(CleverDataInputStream(ByteArrayInputStream(bytes))))
+        target.saveOrRestore(PropertyReader(BetterDataInputStream(ByteArrayInputStream(bytes))))
     }
 
     override fun writeExternal(out: ObjectOutput) {

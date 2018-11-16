@@ -2,7 +2,7 @@ package net.aquadc.properties.android.persistence
 
 import android.os.Parcel
 import android.os.Parcelable
-import net.aquadc.persistence.stream.CleverDataOutputStream
+import net.aquadc.persistence.stream.BetterDataOutputStream
 import net.aquadc.properties.persistence.memento.ByteArrayPropertiesMemento
 import net.aquadc.properties.persistence.memento.InMemoryPropertiesMemento
 import net.aquadc.properties.persistence.memento.PersistableProperties
@@ -45,7 +45,7 @@ class ParcelPropertiesMemento : PropertiesMemento, Parcelable {
         bytes?.let { return it }
 
         val os = ByteArrayOutputStream()
-        memento!!.writeTo(CleverDataOutputStream(os))
+        memento!!.writeTo(BetterDataOutputStream(os))
         val bytes = os.toByteArray()
         this.bytes = bytes
         return bytes

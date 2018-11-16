@@ -1,6 +1,6 @@
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.stream.CleverDataOutput
+import net.aquadc.persistence.stream.BetterDataOutput
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
@@ -11,7 +11,7 @@ import java.lang.Float.floatToIntBits
  * Writes data from properties into [output].
  */
 class PropertyWriter(
-        private val output: CleverDataOutput
+        private val output: BetterDataOutput
 ) : PropertyIo {
 
     override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
@@ -47,31 +47,31 @@ class PropertyWriter(
 
 }
 
-internal fun CleverDataOutput.writeCharArray(value: CharArray) {
+internal fun BetterDataOutput.writeCharArray(value: CharArray) {
     writeInt(value.size)
     value.forEach { writeShort(it.toInt()) }
 }
-internal fun CleverDataOutput.writeIntArray(value: IntArray) {
+internal fun BetterDataOutput.writeIntArray(value: IntArray) {
     writeInt(value.size)
     value.forEach(::writeInt)
 }
-internal fun CleverDataOutput.writeLongArray(value: LongArray) {
+internal fun BetterDataOutput.writeLongArray(value: LongArray) {
     writeInt(value.size)
     value.forEach(::writeLong)
 }
-internal fun CleverDataOutput.writeFloatArray(value: FloatArray) {
+internal fun BetterDataOutput.writeFloatArray(value: FloatArray) {
     writeInt(value.size)
     value.forEach { writeInt(floatToIntBits(it)) }
 }
-internal fun CleverDataOutput.writeDoubleArray(value: DoubleArray) {
+internal fun BetterDataOutput.writeDoubleArray(value: DoubleArray) {
     writeInt(value.size)
     value.forEach { writeLong(doubleToLongBits(it)) }
 }
-internal fun CleverDataOutput.writeStringList(value: List<String>) {
+internal fun BetterDataOutput.writeStringList(value: List<String>) {
     writeInt(value.size)
     for (i in 0 until value.size) writeString(value[i])
 }
-internal fun <E : Enum<E>> CleverDataOutput.writeEnumSet(value: Set<E>) {
+internal fun <E : Enum<E>> BetterDataOutput.writeEnumSet(value: Set<E>) {
     writeInt(value.size)
     value.forEach { writeString(it.name) }
 }
