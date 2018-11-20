@@ -155,13 +155,14 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     private fun concNotifyAll(old: T, new: T, diff: D) {
         var i = 0
         var listeners = concState().get().listeners
-        while (i < listeners.size) {
+        val size = listeners.size // listeners.size may change, but we don't want to touch those newly added ones
+        while (i < size) {
             val listener = listeners[i]
             if (listener != null) {
                 notify(listener, old, new, diff)
             }
 
-            // read volatile listeners on every step, they may be added or nulled out!
+            // read volatile listeners on every step, they may be nulled out!
             listeners = concState().get().listeners
             i++
         }
@@ -219,25 +220,25 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     }
 
     private fun nonSyncNotifyAll(old: T, new: T, diff: D) {
-        var listeners = nonSyncListeners!!
+        // take them at the beginning of notification,
+        // so we won't touch listeners added during this notification cycle
+        val listeners = nonSyncListeners!!
 
         var i = 0
         if (listeners !is Array<*>) { // single listener
             @Suppress("UNCHECKED_CAST")
             notify(listeners as LISTENER, old, new, diff)
 
-            listeners = nonSyncListeners!!
-            if (listeners is Array<*>) {
-                i = 1 // transformed to array during notification, start from second item
-            } else {
-                return
-            }
+            /*listeners = nonSyncListeners!! // Wrong behaviour: check for new listeners and notify them all
+            if (listeners is Array<*>)
+                i = 1 // [wrong] transformed to array during notification, start from the second item
+            else*/
+            return
         }
 
         // array of listeners
 
-        while (true) { // size may change, so we can't use Kotlin's for loop (iterator) here
-            listeners as Array<*> // smart-cast doesn't work when assignment below exists
+        while (true) { // [wrong] size may change, so we can't use Kotlin's for loop (iterator) here
 
             if (i == listeners.size)
                 break
@@ -249,8 +250,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             }
             i++
 
-            if (i == listeners.size)
-                listeners = nonSyncListeners as Array<*>
+            /*[wrong] if (i == listeners.size) listeners = nonSyncListeners as Array<*> */
         }
     }
 

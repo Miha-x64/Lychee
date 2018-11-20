@@ -16,73 +16,69 @@ class SubscriptionTest {
     private fun subscribe(conc: Boolean) {
         val prop = propertyOf(false, conc)
 
-        var l2Called = false
+        var l2Called = 0
 
         val l2 = { _: Boolean, _: Boolean ->
-            l2Called = true
+            l2Called++; Unit
         }
 
         val l1 = { _: Boolean, _: Boolean ->
             prop.addUnconfinedChangeListener(l2)
-            Unit
         }
 
         prop.addUnconfinedChangeListener(l1)
 
         prop.value = false
 
-        assertTrue(l2Called)
+        // l2 was added during l1 notification.
+        // It had a chance to see the last Property.value and thus doesn't need notification
+        assertEquals(0, l2Called)
 
-        l2Called = false
         prop.removeChangeListener(l1)
 
         assertTrue(prop.casValue(false, true))
         assertFalse(prop.casValue(false, true))
-        assertTrue(l2Called)
+        assertEquals(1, l2Called) // 1 CAS succeeded
 
-        l2Called = false
         prop.removeChangeListener(l2)
 
         prop.value = false
-        assertFalse(l2Called)
+        assertEquals(1, l2Called) // we've unsubscribed, must not increment
     }
 
     @Test fun confinedSubscribe() {
         val prop = concurrentPropertyOf(false)
 
-        var l2Called by concurrentPropertyOf(false)
+        val l2Called = concurrentPropertyOf(0)
 
         val l2 = { _: Boolean, _: Boolean ->
-            l2Called = true
+            l2Called.update { it+1 }; Unit
         }
 
         val pool = Executors.newSingleThreadExecutor()
 
         val l1 = { _: Boolean, _: Boolean ->
             prop.addChangeListenerOn(pool, l2)
-            Unit
         }
 
         prop.addUnconfinedChangeListener(l1)
 
         prop.value = false
         Thread.sleep(10)
-        assertTrue(l2Called)
+        assertEquals(0, l2Called.value)
 
-        l2Called = false
         prop.removeChangeListener(l1)
 
         assertTrue(prop.casValue(false, true))
         assertFalse(prop.casValue(false, true))
         Thread.sleep(10)
-        assertTrue(l2Called)
+        assertEquals(1, l2Called.value)
 
-        l2Called = false
         prop.removeChangeListener(l2)
 
         prop.value = false
         Thread.sleep(10)
-        assertFalse(l2Called)
+        assertEquals(1, l2Called.value)
     }
 
     @Test fun concUnsubscribe() = unsubscribe(true)
@@ -96,13 +92,11 @@ class SubscriptionTest {
         var l3Called = 0
 
         val l1 = { _: Boolean, _: Boolean ->
-            l1Called++
-            Unit
+            l1Called++; Unit
         }
 
         val l3 = { _: Boolean, _: Boolean ->
-            l3Called++
-            Unit
+            l3Called++; Unit
         }
 
         val l2 = object : ChangeListener<Boolean> {
