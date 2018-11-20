@@ -65,6 +65,13 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
     override fun <T> prop(field: FieldDef.Mutable<DEF, T>) =
             (values[field.ordinal.toInt()] as MutableProperty<T>)
 
+    /**
+     * A bridge between [ObservableStruct] and [TransactionalPropertyStruct].
+     */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun transactional(): TransactionalPropertyStruct<DEF> =
+            ObservableTransactionalAdapter(this)
+
 }
 
 @PublishedApi internal class ObservableTransactionalAdapter<DEF : StructDef<DEF>>(
@@ -114,10 +121,3 @@ class ObservableStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, PropertyStruct<D
     }
 
 }
-
-/**
- * A bridge between [ObservableStruct] and [TransactionalPropertyStruct].
- */
-@Suppress("NOTHING_TO_INLINE")
-inline fun <DEF : StructDef<DEF>> ObservableStruct<DEF>.transactional(): TransactionalPropertyStruct<DEF> =
-        ObservableTransactionalAdapter(this)
