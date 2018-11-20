@@ -1,3 +1,4 @@
+@file:JvmName("PropertyStructs")
 package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.struct.*
@@ -31,6 +32,9 @@ interface TransactionalPropertyStruct<DEF : StructDef<DEF>> : PropertyStruct<DEF
 }
 
 
+/**
+ * Returns a [Property] containing snapshots of [this] mutable struct.
+ */
 fun <DEF : StructDef<DEF>> PropertyStruct<DEF>.snapshots(): Property<Struct<DEF>> =
         type.mutableFields.map { prop(it) }.mapValueList { StructSnapshot(type, it) }
 
