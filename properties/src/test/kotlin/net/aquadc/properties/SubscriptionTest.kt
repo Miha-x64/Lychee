@@ -132,15 +132,21 @@ class SubscriptionTest {
         val prop = propertyOf(0, conc)
 
         var v1 = 0
+        var l1Called = 0
         var v2 = 0
+        var l2Called = 0
 
         val l2 = { _: Int, new: Int ->
+            l2Called++
             v2 = new
+            if (new < 20) prop.value = 20
         }
 
         val l1 = { _: Int, new: Int ->
+            l1Called++
             v1 = new
-            if (new != 10) prop.value = 10
+            if (new < 10) prop.value = 10
+            else if (new < 20) prop.value = 20
         }
 
         prop.addUnconfinedChangeListener(l1)
@@ -148,8 +154,18 @@ class SubscriptionTest {
 
         prop.value = 1
 
-        assertEquals(10, v1)
-        assertEquals(10, v2)
+        /*
+        notify(1): queue=[10, 20]
+        notify(10): queue=[20, 20, 20]
+        notify(20): queue=[20, 20]
+        notify(20): queue=[20]
+        notify(20)
+         */
+        assertEquals(5, l1Called)
+        assertEquals(5, l2Called)
+
+        assertEquals(20, v1)
+        assertEquals(20, v2)
     }
 
     @Test fun onEach() {
