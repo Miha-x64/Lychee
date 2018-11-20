@@ -92,19 +92,20 @@ inline fun <reified E : Enum<E>> enumSet(
         enumSetInternal(E::class.java, enumValues(), encodeAs, ordinal)
 
 
+@Suppress("UNCHECKED_CAST")
 @PublishedApi internal fun <E> enumSetInternal(
         type: Class<E>,
         values: Array<E>,
         encodeAs: DataType.Simple<Long>,
         ordinal: (E) -> Int
 ): DataType.Simple<Set<E>> =
-        object : DataType.Simple<Set<E>>(false, encodeAs.kind) {
+        object : DataType.Simple<Any?>(false, encodeAs.kind) {
 
             init {
                 if (values.size > 64) throw UnsupportedOperationException("Enums with >64 values (JumboEnumSets) are not supported.")
             }
 
-            override fun decode(value: Any): Set<E> {
+            override fun decode(value: Any): Any? {
                 var bitmask = encodeAs.decode(value)
                 @Suppress("UPPER_BOUND_VIOLATED")
                 val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet()
@@ -120,10 +121,10 @@ inline fun <reified E : Enum<E>> enumSet(
                 return set
             }
 
-            override fun encode(value: Set<E>): Any =
-                    encodeAs.encode(value.fold(0L) { acc, e -> acc or (1L shl ordinal(e)) })
+            override fun encode(value: Any?): Any =
+                    encodeAs.encode((value as Set<E>).fold(0L) { acc, e -> acc or (1L shl ordinal(e)) })
 
-        }
+        } as DataType.Simple<Set<E>>
 
 
 // TODO: add Set<Enum> as List<String> support
