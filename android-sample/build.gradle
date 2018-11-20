@@ -7,7 +7,7 @@ android {
     buildToolsVersion build_tools_version
 
     defaultConfig {
-        applicationId "net.aquadc.properties.android.sample"
+        applicationId "net.aquadc.propertiesSampleApp"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
