@@ -1,5 +1,7 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.type.long
@@ -25,23 +27,23 @@ class JdbcSession(
     private val lock = ReentrantReadWriteLock()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(
-            table: Table<TBL, ID, REC>
-    ): Dao<TBL, ID, REC> =
-            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as Dao<TBL, ID, REC>
+    override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(
+            table: Table<SCH, ID, REC>
+    ): Dao<SCH, ID, REC> =
+            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as Dao<SCH, ID, REC>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<Col<*, *>>>, PreparedStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *, *>, Col<*, *>>, PreparedStatement>()
+    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<FieldDef<*, *>>>, PreparedStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, PreparedStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
     private val lowLevel = object : LowLevelSession {
 
-        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> exists(table: Table<TBL, ID, *>, primaryKey: ID): Boolean {
+        override fun <SCH : Schema<SCH>, ID : IdBound> exists(table: Table<SCH, ID, *>, primaryKey: ID): Boolean {
             val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
             return when (count) {
                 0L -> false
@@ -50,12 +52,12 @@ class JdbcSession(
             }
         }
 
-        private fun <TBL : Table<TBL, *, *>> insertStatementWLocked(table: Table<TBL, *, *>, cols: Array<Col<TBL, *>>): PreparedStatement =
+        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>, cols: Array<FieldDef<SCH, *>>): PreparedStatement =
                 insertStatements.getOrPut(Pair(table, cols.asList())) {
                     connection.prepareStatement(dialect.insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
                 }
 
-        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, cols: Array<FieldDef<SCH, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
             cols.forEachIndexed { idx, col -> col.type.erased.bind(statement, idx, vals[idx]) }
             check(statement.executeUpdate() == 1)
@@ -63,12 +65,12 @@ class JdbcSession(
             return keys.fetchSingle(table.idColType)
         }
 
-        private fun <TBL : Table<TBL, *, *>> updateStatementWLocked(table: Table<TBL, *, *>, col: Col<TBL, *>): PreparedStatement =
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, col: FieldDef<SCH, *>): PreparedStatement =
                 updateStatements.getOrPut(Pair(table, col)) {
                     connection.prepareStatement(dialect.updateFieldQuery(table, col))
                 }
 
-        override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T) {
+        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
             column.type.bind(statement, 0, value)
             table.idColType.bind(statement, 1, id)
@@ -116,11 +118,11 @@ class JdbcSession(
             }
         }
 
-        private fun <ID : IdBound, TBL : Table<TBL, ID, *>> select(
+        private fun <ID : IdBound, SCH : Schema<SCH>> select(
                 columnName: String?,
-                table: Table<TBL, ID, *>,
-                condition: WhereCondition<out TBL>,
-                order: Array<out Order<out TBL>>
+                table: Table<SCH, ID, *>,
+                condition: WhereCondition<out SCH>,
+                order: Array<out Order<out SCH>>
         ): ResultSet {
             val query =
                     if (columnName == null) dialect.selectCountQuery(table, condition)
@@ -135,20 +137,20 @@ class JdbcSession(
                         list.forEachIndexed { idx, (name, value) ->
                             val conv =
                                     if (name == table.idColName) table.idColType
-                                    else table.fields.first { it.name == name }.type
+                                    else table.schema.fields.first { it.name == name }.type
                             conv.erased.bind(stmt, idx, value)
                         }
                     }
                     .executeQuery()
         }
 
-        override fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(
-                column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>
+        override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
+                column: FieldDef<SCH, T>, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
         ): T =
                 select(column.name, table, condition, NoOrder).fetchSingle(column.type)
 
-        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
-                table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
+        override fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
+                table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColType)
@@ -162,7 +164,7 @@ class JdbcSession(
             return values
         }
 
-        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchCount(table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): Long =
+        override fun <ID : IdBound, SCH : Schema<SCH>> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>): Long =
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
@@ -171,11 +173,11 @@ class JdbcSession(
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
         @Suppress("UNCHECKED_CAST")
-        override fun <TBL : Table<TBL, *, *>, T : Any> reusableCond(
-                table: Table<TBL, *, *>, colName: String, value: T
-        ): ColCond<TBL, T> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<TBL, T>>).getOrSet {
-                ColCond(table.fields[0] as Col<TBL, T>, " = ?", value)
+        override fun <SCH : Schema<SCH>, T : Any> reusableCond(
+                table: Table<SCH, *, *>, colName: String, value: T
+        ): ColCond<SCH, T> {
+            val condition = (localReusableCond as ThreadLocal<ColCond<SCH, T>>).getOrSet {
+                ColCond(table.schema.fields[0] as FieldDef<SCH, T>, " = ?", value)
             }
             condition.colName = colName
             condition.valueOrValues = value

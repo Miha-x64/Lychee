@@ -11,9 +11,7 @@ import java.util.Collections.unmodifiableMap
  * @see Struct
  * @see FieldDef
  */
-abstract class Schema<SELF : Schema<SELF>>(
-        val name: String // TODO: move to Table if not necessary here
-) {
+abstract class Schema<SELF : Schema<SELF>> {
 
     /**
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
@@ -49,7 +47,7 @@ abstract class Schema<SELF : Schema<SELF>>(
     protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *>>) { }
 
     @JvmSynthetic internal fun tmpFields() =
-            tmpFields ?: throw IllegalStateException("table `$name` is already initialized")
+            tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 
     /**
      * Creates, remembers and returns a new mutable field definition without default value.
@@ -93,7 +91,7 @@ abstract class Schema<SELF : Schema<SELF>>(
                 for (i in fields.indices) {
                     val col = fields[i]
                     if (!nameSet.add(col.name)) {
-                        throw IllegalStateException("duplicate column: `$name`.`${col.name}`")
+                        throw IllegalStateException("duplicate column: `${this@Schema.javaClass.simpleName}`.`${col.name}`")
                     }
                 }
 
@@ -147,7 +145,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset
 
-    override fun toString(): String = schema.name + '.' + name
+    override fun toString(): String = schema.javaClass.simpleName + '.' + name
 
     /**
      * Represents a mutable field of a [Struct]: its value can be changed.

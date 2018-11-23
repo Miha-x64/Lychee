@@ -1,6 +1,7 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Schema
 
 @Suppress(
         "PLATFORM_CLASS_MAPPED_TO_KOTLIN", // using finalization guard
@@ -26,16 +27,16 @@ internal class RealTransaction(
 
     // TODO: use special collections for Longs
 
-    override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(
-            table: Table<TBL, ID, *>, vararg contentValues: ColValue<TBL, *>
+    override fun <SCH : Schema<SCH>, ID : IdBound> insert(
+            table: Table<SCH, ID, *>, vararg contentValues: ColValue<SCH, *>
     ): ID {
         checkOpenAndThread()
 
         val size = contentValues.size
-        val cols = arrayOfNulls<Col<TBL, *>>(size)
+        val cols = arrayOfNulls<FieldDef<SCH, *>>(size)
         val vals = arrayOfNulls<Any>(size)
         scatter(contentValues, colsToFill = cols, valsToFill = vals)
-        cols as Array<Col<TBL, *>>
+        cols as Array<FieldDef<SCH, *>>
 
         val id = lowSession.insert(table, cols, vals)
         val localId = lowSession.localId(table, id)
@@ -49,7 +50,7 @@ internal class RealTransaction(
         val updated = updated ?: UpdatesHashMap().also { updated = it }
         contentValues.forEach {
             when (it.col) {
-                is FieldDef.Mutable -> updated.put(it, localId)
+                is FieldDef.Mutable -> updated.put(table, it, localId)
                 is FieldDef.Immutable -> { }
             }.also { }
         }
@@ -57,19 +58,19 @@ internal class RealTransaction(
         return id
     }
 
-    override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(
-            table: Table<TBL, ID, *>, id: ID, column: MutableCol<TBL, T>, value: T
+    override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
+            table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T
     ) {
         checkOpenAndThread()
 
         lowSession.update(table, id, column, value)
 
-        (updated ?: HashMap<MutableCol<*, *>, HashMap<Long, Any?>>().also { updated = it })
-                .getOrPut(column, ::HashMap)
+        (updated ?: HashMap<Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>, HashMap<Long, Any?>>().also { updated = it })
+                .getOrPut(table to column, ::HashMap)
                 .put(lowSession.localId(table, id), value)
     }
 
-    override fun <TBL : Table<TBL, ID, *>, ID : IdBound> delete(record: Record<TBL, ID>) {
+    override fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>) {
         checkOpenAndThread()
         check(session === record.session)
 
@@ -104,9 +105,10 @@ internal class RealTransaction(
 
         // value changes
         val upd = updated
-        upd?.forEach { (col, localIdToVal) ->
+        upd?.forEach { (tblToCol, localIdToVal) ->
+            val (table, col) = tblToCol
             localIdToVal.forEach { (localId, value) ->
-                lowSession.daos[col.schema]?.erased?.commitValue(localId, col.erased, value)
+                lowSession.daos[table]?.erased?.commitValue(localId, col.erased, value)
                 Unit
             }
         }
@@ -120,10 +122,10 @@ internal class RealTransaction(
                 if (table in changedTables) {
                     dao.onStructuralChange()
                 } else if (upd != null) {
-                    val updatedInTable = upd.keys.filter { it.schema == table }
+                    val updatedInTable = upd.keys.filter { it.first == table }
                     if (updatedInTable.isNotEmpty()) {
                         @Suppress("UPPER_BOUND_VIOLATED", "UNCHECKED_CAST")
-                        dao.erased.onOrderChange(updatedInTable as List<Col<Any, *>>)
+                        dao.erased.onOrderChange(updatedInTable as List<Pair<Table<Any, *, *>, FieldDef<Any, *>>>)
                     }
                 }
 
@@ -144,9 +146,9 @@ internal class RealTransaction(
         }
     }
 
-    private fun <TBL : Table<TBL, *, *>> scatter(
-            contentValues: Array<out ColValue<TBL, *>>,
-            colsToFill: Array<Col<TBL, *>?>, valsToFill: Array<Any?>) {
+    private fun <SCH : Schema<SCH>> scatter(
+            contentValues: Array<out ColValue<SCH, *>>,
+            colsToFill: Array<FieldDef<SCH, *>?>, valsToFill: Array<Any?>) {
         contentValues.forEachIndexed { i, pair ->
             colsToFill[i] = pair.col
             valsToFill[i] = pair.value

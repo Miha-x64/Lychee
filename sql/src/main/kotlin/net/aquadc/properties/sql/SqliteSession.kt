@@ -4,6 +4,8 @@ package net.aquadc.properties.sql
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteStatement
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.long
@@ -22,24 +24,24 @@ class SqliteSession(
     private val lock = ReentrantReadWriteLock()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(table: Table<TBL, ID, REC>): Dao<TBL, ID, REC> =
+    override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(table: Table<SCH, ID, REC>): Dao<SCH, ID, REC> =
             lowLevel.daos.getOrPut(table) {
                 check(table.idColType === long)
                 RealDao(this, lowLevel, table, SqliteDialect)
-            } as Dao<TBL, ID, REC>
+            } as Dao<SCH, ID, REC>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
 //    private val selectStatements = ThreadLocal<HashMap<String, SQLiteStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<Col<*, *>>>, SQLiteStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *, *>, Col<*, *>>, SQLiteStatement>()
+    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<FieldDef<*, *>>>, SQLiteStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, SQLiteStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, SQLiteStatement>()
 
     private val lowLevel = object : LowLevelSession {
 
-        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> exists(table: Table<TBL, ID, *>, primaryKey: ID): Boolean {
+        override fun <SCH : Schema<SCH>, ID : IdBound> exists(table: Table<SCH, ID, *>, primaryKey: ID): Boolean {
 
             val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
             return when (count) {
@@ -49,12 +51,12 @@ class SqliteSession(
             }
         }
 
-        private fun <TBL : Table<TBL, *, *>> insertStatementWLocked(table: Table<TBL, *, *>, cols: Array<Col<TBL, *>>): SQLiteStatement =
+        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>, cols: Array<FieldDef<SCH, *>>): SQLiteStatement =
                 insertStatements.getOrPut(Pair(table, cols.asList())) {
                     connection.compileStatement(SqliteDialect.insertQuery(table, cols))
                 }
 
-        override fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, cols: Array<Col<TBL, *>>, vals: Array<Any?>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, cols: Array<FieldDef<SCH, *>>, vals: Array<Any?>): ID {
             val statement = insertStatementWLocked(table, cols)
             cols.forEachIndexed { idx, col -> col.type.erased.bind(statement, idx, vals[idx]) }
             val id = statement.executeInsert()
@@ -62,12 +64,12 @@ class SqliteSession(
             return id as ID
         }
 
-        private fun <TBL : Table<TBL, *, *>> updateStatementWLocked(table: Table<TBL, *, *>, col: Col<TBL, *>): SQLiteStatement =
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, col: FieldDef<SCH, *>): SQLiteStatement =
                 updateStatements.getOrPut(Pair(table, col)) {
                     connection.compileStatement(SqliteDialect.updateFieldQuery(table, col))
                 }
 
-        override fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: Col<TBL, T>, value: T) {
+        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T) {
             val statement = updateStatementWLocked(table, column)
             column.type.bind(statement, 0, value)
             table.idColType.bind(statement, 1, id)
@@ -114,11 +116,11 @@ class SqliteSession(
             }
         }
 
-        private fun <ID : IdBound, TBL : Table<TBL, ID, *>> select(
+        private fun <ID : IdBound, SCH : Schema<SCH>> select(
                 columnName: String?,
-                table: Table<TBL, ID, *>,
-                condition: WhereCondition<out TBL>,
-                order: Array<out Order<out TBL>>
+                table: Table<SCH, ID, *>,
+                condition: WhereCondition<out SCH>,
+                order: Array<out Order<out SCH>>
         ): Cursor {
             val args = ArrayList<Pair<String, Any>>() // why not `Any?`? Because you can't treat ` = ?` as `IS NULL`.
             condition.appendValuesTo(args)
@@ -126,7 +128,7 @@ class SqliteSession(
             val selectionArgs = args.mapToArray { (name, value) ->
                 val conv = // looks like a slow place
                         if (name == table.idColName) table.idColType
-                        else table.fields.first { it.name == name }.type
+                        else table.schema.fields.first { it.name == name }.type
                 conv.erased.asString(value)
             }
 
@@ -141,11 +143,13 @@ class SqliteSession(
             }
         }
 
-        override fun <ID : IdBound, TBL : Table<TBL, ID, *>, T> fetchSingle(column: Col<TBL, T>, table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): T =
+        override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
+                column: FieldDef<SCH, T>, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+        ): T =
                 select(column.name, table, condition, NoOrder).fetchSingle(column.type)
 
-        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchPrimaryKeys(
-                table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>
+        override fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
+                table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColType) // type here is obviously 'long', may seriously optimize this place
@@ -165,7 +169,7 @@ class SqliteSession(
             return values as List<T>
         }
 
-        override fun <ID : IdBound, TBL : Table<TBL, ID, *>> fetchCount(table: Table<TBL, ID, *>, condition: WhereCondition<out TBL>): Long =
+        override fun <ID : IdBound, SCH : Schema<SCH>> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>): Long =
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
@@ -173,9 +177,9 @@ class SqliteSession(
 
         @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
-        override fun <TBL : Table<TBL, *, *>, T : Any> reusableCond(table: Table<TBL, *, *>, colName: String, value: T): ColCond<TBL, T> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<TBL, T>>).getOrSet {
-                ColCond(table.fields[0] as Col<TBL, T>, " = ?", value)
+        override fun <SCH : Schema<SCH>, T : Any> reusableCond(table: Table<SCH, *, *>, colName: String, value: T): ColCond<SCH, T> {
+            val condition = (localReusableCond as ThreadLocal<ColCond<SCH, T>>).getOrSet {
+                ColCond(table.schema.fields[0] as FieldDef<SCH, T>, " = ?", value)
             }
             condition.colName = colName
             condition.valueOrValues = value

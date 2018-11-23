@@ -20,24 +20,24 @@ typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
 interface Session {
 
-    operator fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> get(
-            table: Table<TBL, ID, REC>
-    ): Dao<TBL, ID, REC>
+    operator fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(
+            table: Table<SCH, ID, REC>
+    ): Dao<SCH, ID, REC>
 
     fun beginTransaction(): Transaction
 
 }
 
-interface Dao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> {
+interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
-    fun select(condition: WhereCondition<out TBL>, order: Array<out Order<TBL>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty
+    fun select(condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty
     // todo raw queries, joins
-    fun count(condition: WhereCondition<out TBL>): Property<Long>
+    fun count(condition: WhereCondition<out SCH>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
     // Note: returned [Property] is not managed itself, [Record]s are. fixme may be in LowLevel
-    fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<TBL, Transaction, T>
-    fun <T> getValueOf(col: Col<TBL, T>, id: ID): T
+    fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T>
+    fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T
 }
 
 /**
@@ -59,16 +59,16 @@ inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
     }
 }
 
-fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> Dao<TBL, ID, REC>.require(id: ID): REC =
+fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.require(id: ID): REC =
         find(id) ?: throw IllegalStateException("No record found in `$this` for ID $id")
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> Dao<TBL, ID, REC>.select(
-        condition: WhereCondition<out TBL>, vararg order: Order<TBL>/* TODO: prefetch */
+inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.select(
+        condition: WhereCondition<out SCH>, vararg order: Order<SCH>/* TODO: prefetch */
 ): Property<List<REC>> =
         select(condition, order)
 
-fun <TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>> Dao<TBL, ID, REC>.selectAll(vararg order: Order<TBL>): Property<List<REC>> =
+fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.selectAll(vararg order: Order<SCH>): Property<List<REC>> =
         select(WhereCondition.Empty, order)
 
 fun Dao<*, *, *>.count(): Property<Long> =
@@ -81,29 +81,29 @@ interface Transaction : AutoCloseable {
 
     val session: Session
 
-    fun <TBL : Table<TBL, ID, *>, ID : IdBound> insert(table: Table<TBL, ID, *>, vararg contentValues: ColValue<TBL, *>): ID
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, vararg contentValues: ColValue<SCH, *>): ID
 
-    fun <TBL : Table<TBL, ID, *>, ID : IdBound, T> update(table: Table<TBL, ID, *>, id: ID, column: MutableCol<TBL, T>, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T)
 
-    fun <TBL : Table<TBL, ID, *>, ID : IdBound> delete(record: Record<TBL, ID>)
+    fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
 
     fun setSuccessful()
 
-    operator fun <REC : Record<TBL, ID>, TBL : Table<TBL, ID, REC>, ID : IdBound, T> REC.set(field: MutableCol<TBL, T>, new: T) {
+    operator fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.set(field: FieldDef.Mutable<SCH, T>, new: T) {
         (this prop field).setValue(this@Transaction, new)
     }
 
 }
 
-class Order<TBL : Table<TBL, *, *>>(
-        @JvmField internal val col: Col<TBL, *>,
+class Order<SCH : Schema<SCH>>(
+        @JvmField internal val col: FieldDef<SCH, *>,
         @JvmField internal val desc: Boolean
 )
 
-val <TBL : Table<TBL, *, *>> Col<TBL, *>.asc: Order<TBL>
+val <SCH : Schema<SCH>> FieldDef<SCH, *>.asc: Order<SCH>
     get() = Order(this, false)
 
-val <TBL : Table<TBL, *, *>> Col<TBL, *>.desc: Order<TBL>
+val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
     get() = Order(this, true)
 
 
@@ -114,24 +114,20 @@ val <TBL : Table<TBL, *, *>> Col<TBL, *>.desc: Order<TBL>
  * @param REC type of record, which can be simply `Record<SCH>` or a custom class extending [Record]
  * TODO aggregate instead of extending
  */
-abstract class Table<SCH : Table<SCH, ID, REC>, ID : IdBound, REC : Record<SCH, ID>>(
-        name: String,
+abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
+        val schema: SCH,
+        val name: String,
         val idColType: DataType<ID>,
         val idColName: String
-) : Schema<SCH>(name) {
+) {
 
+    abstract fun newRecord(session: Session, id: ID): REC
 
-    abstract fun create(session: Session, id: ID): REC // TODO: rename: instantiate, instantiateRecord, createRecord, newRecord
-
-    final override fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<TBL, *>>) {
-        check(idColName !in nameSet) { "duplicate column: `$name`.`$idColName`" }
+    init {
+        check(schema.fields.all { idColName != it.name }) { "duplicate column: `$name`.`$idColName`" }
     }
 
 }
-
-
-typealias Col<TBL, T> = FieldDef<TBL, T>
-typealias MutableCol<TBL, T> = FieldDef.Mutable<TBL, T>
 
 
 /**
@@ -139,44 +135,44 @@ typealias MutableCol<TBL, T> = FieldDef.Mutable<TBL, T>
  * Subclass it to provide your own getters and/or computed/foreign properties.
  * TODO: should I provide subclassing-less API, too?
  */
-open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL> {
+open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
 
-    internal val table: Table<TBL, ID, *>
+    internal val table: Table<SCH, ID, *>
     internal val session: Session
     val primaryKey: ID
 
     @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
     private val dao
-        get() = session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>)
+        get() = session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>)
 
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
 
-    constructor(table: TBL, session: Session, primaryKey: ID) : super(table) {
+    constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) : super(table.schema) {
         this.table = table
         this.session = session
         this.primaryKey = primaryKey
         this.values = @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
-        session.get<TBL, ID, Record<TBL, ID>>(table as Table<TBL, ID, Record<TBL, ID>>).let { dao ->
-            table.fields.mapToArray { col ->
+        session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>).let { dao ->
+            table.schema.fields.mapToArray { col ->
                 when (col) {
-                    is FieldDef.Mutable -> dao.createFieldOf(col as MutableCol<TBL, Nothing>, primaryKey)
+                    is FieldDef.Mutable -> dao.createFieldOf(col as FieldDef.Mutable<SCH, Nothing>, primaryKey)
                     is FieldDef.Immutable -> Unset
                 }
             }
         }
     }
 
-    /*constructor(source: Struct<TBL>) : super(source.type) {
+    /*constructor(source: Struct<SCH>) : super(source.type) {
         TODO
     }*/
 
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> propOf(field: FieldDef.Mutable<TBL, T>): SqlProperty<T> =
+    private fun <T> propOf(field: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
             values[field.ordinal.toInt()] as SqlProperty<T>
 
-    override fun <T> get(field: FieldDef<TBL, T>): T = when (field) {
+    override fun <T> get(field: FieldDef<SCH, T>): T = when (field) {
         is FieldDef.Mutable -> propOf(field).value
         is FieldDef.Immutable -> {
             val index = field.ordinal.toInt()
@@ -190,26 +186,26 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL> {
         }
     }
 
-    infix fun <T> prop(col: MutableCol<TBL, T>): SqlProperty<T> =
+    infix fun <T> prop(col: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
             propOf(col)
 
     var isManaged: Boolean = true
         @JvmSynthetic internal set
 
-    @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeTBL> won't be, too
-    infix fun <ForeTBL : Table<ForeTBL, ForeID, ForeREC>, ForeID : IdBound, ForeREC : Record<ForeTBL, ForeID>>
-            MutableCol<TBL, ForeID>.toOne(foreignTable: Table<ForeTBL, ForeID, ForeREC>): SqlProperty<ForeREC> =
-            (this as MutableCol<TBL, ForeID?>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
+    @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
+    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
+            FieldDef.Mutable<SCH, ForeID>.toOne(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC> =
+            (this as FieldDef.Mutable<SCH, ForeID?>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
 
-    infix fun <ForeTBL : Table<ForeTBL, ForeID, ForeREC>, ForeID : IdBound, ForeREC : Record<ForeTBL, ForeID>>
-            MutableCol<TBL, ForeID?>.toOneNullable(foreignTable: Table<ForeTBL, ForeID, ForeREC>): SqlProperty<ForeREC?> =
+    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
+            FieldDef.Mutable<SCH, ForeID?>.toOneNullable(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC?> =
             (this@Record prop this@toOneNullable).bind(
                     { id: ForeID? -> if (id == null) null else session[foreignTable].require(id) },
                     { it: ForeREC? -> it?.primaryKey }
             )
 
-    infix fun <ForeTBL : Table<ForeTBL, ForeID, ForeREC>, ForeID : IdBound, ForeREC : Record<ForeTBL, ForeID>>
-            MutableCol<ForeTBL, ID>.toMany(foreignTable: Table<ForeTBL, ForeID, ForeREC>): Property<List<ForeREC>> =
+    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
+            FieldDef.Mutable<ForeSCH, ID>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)
 
     // TODO: relations for immutable cols
@@ -217,20 +213,20 @@ open class Record<TBL : Table<TBL, ID, *>, ID : IdBound> : BaseStruct<TBL> {
 }
 
 
-class ColValue<TBL : Table<TBL, *, *>, T>(val col: Col<TBL, T>, val value: T)
+class ColValue<SCH : Schema<SCH>, T>(val col: FieldDef<SCH, T>, val value: T)
 
 /**
  * Creates a type-safe mapping from a column to its value.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline operator fun <TBL : Table<TBL, *, *>, T> Col<TBL, T>.minus(value: T): ColValue<TBL, T> =
+inline operator fun <SCH : Schema<SCH>, T> FieldDef<SCH, T>.minus(value: T): ColValue<SCH, T> =
         ColValue(this, value)
 
 
 /**
- * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [TBL].
+ * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [SCH].
  */
-fun <TBL : Table<TBL, *, *>, T> propertyGetterOf(field: MutableCol<TBL, T>): (Record<TBL, *>) -> Property<T> =
+fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T>): (Record<SCH, *>) -> Property<T> =
         { it prop field }
 
 

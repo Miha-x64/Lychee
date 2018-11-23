@@ -1,42 +1,44 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.Schema
 
-internal class PrimaryKeys<TBL : Table<TBL, ID, *>, ID : IdBound>(
-        private val table: Table<TBL, ID, *>,
+
+internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
+        private val table: Table<SCH, ID, *>,
         private val lowSession: LowLevelSession,
-        private val order: Array<out Order<TBL>>
-) : (WhereCondition<out TBL>) -> Array<ID> {
+        private val order: Array<out Order<SCH>>
+) : (WhereCondition<out SCH>) -> Array<ID> {
 
-    override fun invoke(condition: WhereCondition<out TBL>): Array<ID> =
+    override fun invoke(condition: WhereCondition<out SCH>): Array<ID> =
             lowSession.fetchPrimaryKeys(table, condition, order)
 
 }
 
-internal class Query<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>>(
-        private val dao: Dao<TBL, ID, REC>,
-        private val table: Table<TBL, ID, REC>,
+internal class Query<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
+        private val dao: Dao<SCH, ID, REC>,
+        private val table: Table<SCH, ID, REC>,
         private val lowSession: LowLevelSession,
-        private val condition: WhereCondition<out TBL>,
-        private val order: Array<out Order<TBL>>
-): (Array<ID>) -> Selection<TBL, ID, REC> {
+        private val condition: WhereCondition<out SCH>,
+        private val order: Array<out Order<SCH>>
+): (Array<ID>) -> Selection<SCH, ID, REC> {
 
-    override fun invoke(primaryKeys: Array<ID>): Selection<TBL, ID, REC> =
+    override fun invoke(primaryKeys: Array<ID>): Selection<SCH, ID, REC> =
             Selection(dao, lowSession.fetchPrimaryKeys(table, condition, order))
 
 }
 
-internal class Count<TBL : Table<TBL, ID, *>, ID : IdBound>(
-        private val table: Table<TBL, ID, *>,
+internal class Count<SCH : Schema<SCH>, ID : IdBound>(
+        private val table: Table<SCH, ID, *>,
         private val lowSession: LowLevelSession
-): (WhereCondition<out TBL>) -> Long {
+): (WhereCondition<out SCH>) -> Long {
 
-    override fun invoke(condition: WhereCondition<out TBL>): Long =
+    override fun invoke(condition: WhereCondition<out SCH>): Long =
             lowSession.fetchCount(table, condition)
 
 }
 
-internal class Selection<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>>(
-        private val dao: Dao<TBL, ID, REC>,
+internal class Selection<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
+        private val dao: Dao<SCH, ID, REC>,
         private val primaryKeys: Array<ID>
 ) : AbstractList<REC>() {
 

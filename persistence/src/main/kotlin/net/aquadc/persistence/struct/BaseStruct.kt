@@ -34,7 +34,7 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
     }
 
     override fun toString(): String = buildString {
-        append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.name).append('(')
+        append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.javaClass.simpleName).append('(')
         val fields = schema.fields
         for (i in fields.indices) {
             val field = fields[i]

@@ -13,8 +13,8 @@ class SqlViewModel(
         fillIfEmpty()
     }
 
-    val titleProp = session[Human].count().map { "Sample SQLite application ($it records)" }
-    val humanListProp = session[Human].selectAll(Human.Name.asc, Human.Surname.asc)
+    val titleProp = session[Human.Tbl].count().map { "Sample SQLite application ($it records)" }
+    val humanListProp = session[Human.Tbl].selectAll(Human.Name.asc, Human.Surname.asc)
     val selectedProp = propertyOf<Human?>(null)
     private val namePatch = propertyOf(mapOf<Human, String>()).also {
         it.debounced(1000L).onEach { new ->
@@ -68,7 +68,7 @@ class SqlViewModel(
     }
 
     private fun fillIfEmpty() {
-        if (session[Human].count().value == 0L) {
+        if (session[Human.Tbl].count().value == 0L) {
             session.withTransaction {
                 insertHuman("Stephen", "Hawking")
                 val relativist = insertHuman("Albert", "Einstein")
@@ -76,7 +76,7 @@ class SqlViewModel(
                 val electrician = insertHuman("Nikola", "Tesla")
 
                 // don't know anything about their friendship, just a sample
-                insert(Friendship,
+                insert(Friendship.Tbl,
                         Friendship.LeftId - relativist.primaryKey,
                         Friendship.RightId - electrician.primaryKey
                 )

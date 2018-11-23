@@ -6,37 +6,38 @@ import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.function.Arrayz
 import net.aquadc.properties.internal.IdManagedProperty
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 // TODO: evicting stale records, counts, and selections
-internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>>(
+internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val session: Session,
         private val lowSession: LowLevelSession,
-        private val table: Table<TBL, ID, REC>,
+        private val table: Table<SCH, ID, REC>,
         private val dialect: Dialect
-) : Dao<TBL, ID, REC>, Manager<TBL, Transaction>() {
+) : Dao<SCH, ID, REC>, Manager<SCH, Transaction>() {
 
     private val records = ConcurrentHashMap<Long, REC>()
 
     // SELECT COUNT(*) WHERE ...
-    private val counts = ConcurrentHashMap<WhereCondition<out TBL>, MutableProperty<WhereCondition<out TBL>>>()
+    private val counts = ConcurrentHashMap<WhereCondition<out SCH>, MutableProperty<WhereCondition<out SCH>>>()
 
     // SELECT _id WHERE ...
-    private val selections = Vector<MutableProperty<WhereCondition<out TBL>>>() // coding like in 1995, yay! TODO: deduplication
+    private val selections = Vector<MutableProperty<WhereCondition<out SCH>>>() // coding like in 1995, yay! TODO: deduplication
 
-    private val orderedSelections = ConcurrentHashMap<FieldDef<TBL, *>, Vector<MutableProperty<WhereCondition<out TBL>>>>()
+    private val orderedSelections = ConcurrentHashMap<FieldDef<SCH, *>, Vector<MutableProperty<WhereCondition<out SCH>>>>()
 
     @Suppress("UNCHECKED_CAST")
-    internal fun <T> commitValue(localId: Long, column: MutableCol<TBL, T>, value: T) {
-        (records[localId]?.values?.get(column.ordinal.toInt()) as ManagedProperty<TBL, Transaction, T>?)?.commit(value)
+    internal fun <T> commitValue(localId: Long, column: FieldDef.Mutable<SCH, T>, value: T) {
+        (records[localId]?.values?.get(column.ordinal.toInt()) as ManagedProperty<SCH, Transaction, T>?)?.commit(value)
     }
 
     internal fun dropManagement(localId: Long) {
         records.remove(localId)?.let { record ->
-            val defs = record.table.fields
+            val defs = record.table.schema.fields
             val fields = record.values
             for (i in defs.indices) {
                 when (defs[i]) {
@@ -59,8 +60,8 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
         }
     }
 
-    internal fun onOrderChange(affectedCols: List<Col<TBL, *>>) {
-        affectedCols.forEach { col ->
+    internal fun onOrderChange(affectedCols: List<Pair<Table<SCH, *, *>, FieldDef<SCH, *>>>) {
+        affectedCols.forEach { (_, col) ->
             orderedSelections[col]?.forEach {
                 it.value = it.value
             }
@@ -90,10 +91,10 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
     override fun find(id: ID): REC? {
         if (!lowSession.exists(table, id)) return null
         val localId = lowSession.localId(table, id)
-        return records.getOrPut<Long, REC>(localId) { table.create(session, id) }
+        return records.getOrPut<Long, REC>(localId) { table.newRecord(session, id) }
     }
 
-    override fun select(condition: WhereCondition<out TBL>, vararg order: Order<TBL>): Property<List<REC>> {
+    override fun select(condition: WhereCondition<out SCH>, vararg order: Order<SCH>): Property<List<REC>> {
         val prop = concurrentPropertyOf(condition)
         selections.add(prop)
         order.forEach { orderedSelections.getOrPut(it.col, ::Vector).add(prop) }
@@ -103,7 +104,7 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
                 .map(Query(this, table, lowSession, condition, order))
     }
 
-    override fun count(condition: WhereCondition<out TBL>): Property<Long> =
+    override fun count(condition: WhereCondition<out SCH>): Property<Long> =
             counts.getOrPut(condition) {
                 concurrentPropertyOf(condition)
             }.map(Count(table, lowSession)) // todo cache, too
@@ -112,22 +113,22 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
 
     // region low-level Dao implementation
 
-    override fun <T> createFieldOf(col: MutableCol<TBL, T>, id: ID): ManagedProperty<TBL, Transaction, T> {
+    override fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T> {
         val localId = lowSession.localId(table, id)
         return IdManagedProperty(this, col, localId, unset())
     }
 
-    override fun <T> getValueOf(col: Col<TBL, T>, id: ID): T =
+    override fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T =
             getValueInternal(col, id)
 
     // endregion low-level Dao implementation
 
     // region Manager implementation
 
-    override fun <T> getDirty(field: FieldDef.Mutable<TBL, T>, id: Long): T {
+    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: Long): T {
         val transaction = lowSession.transaction ?: return unset()
 
-        val thisCol = transaction.updated?.getFor(field as MutableCol<TBL, T>) ?: return unset()
+        val thisCol = transaction.updated?.getFor(table, field) ?: return unset()
         // we've created this column, we can cast it to original type
 
         val localId = id
@@ -136,17 +137,17 @@ internal class RealDao<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(field: FieldDef.Mutable<TBL, T>, id: Long): T {
+    override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T {
         val primaryKey = lowSession.primaryKey(table, id)
         return getValueInternal(field, primaryKey)
     }
 
-    private fun <T> getValueInternal(field: FieldDef<TBL, T>, primaryKey: ID): T {
+    private fun <T> getValueInternal(field: FieldDef<SCH, T>, primaryKey: ID): T {
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(field, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<TBL, T>, id: Long, update: T) {
+    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, id: Long, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
             if (ourTransact === null)

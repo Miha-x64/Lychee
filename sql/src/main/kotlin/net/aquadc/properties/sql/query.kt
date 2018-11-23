@@ -1,18 +1,18 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.internal.emptyArrayOf
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
-import java.lang.StringBuilder
-import java.util.*
 
 
 /**
- * A condition for record of type [TBL].
+ * A condition for record of type [SCH].
  * API is mostly borrowed from
  * https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/DaoCore/src/main/java/org/greenrobot/greendao/Property.java
  */
-interface WhereCondition<TBL : Table<TBL, *, *>> {
+interface WhereCondition<SCH : Schema<SCH>> {
 
     /**
      * Appends corresponding part of SQL query to [builder] using [dialect].
@@ -34,7 +34,7 @@ interface WhereCondition<TBL : Table<TBL, *, *>> {
 
 }
 
-internal class ColCond<TBL : Table<TBL, *, *>, T> : WhereCondition<TBL> {
+internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
 
     // mutable for internal code, he-he
     @JvmField @JvmSynthetic internal var colName: String
@@ -42,14 +42,14 @@ internal class ColCond<TBL : Table<TBL, *, *>, T> : WhereCondition<TBL> {
     private val singleValue: Boolean
     @JvmField @JvmSynthetic internal var valueOrValues: Any // if (singleValue) Any else Array<Any>
 
-    constructor(col: Col<TBL, T>, op: CharSequence, value: Any) {
+    constructor(col: FieldDef<SCH, T>, op: CharSequence, value: Any) {
         this.colName = col.name
         this.op = op
         this.singleValue = true
         this.valueOrValues = value
     }
 
-    constructor(col: Col<TBL, T>, op: CharSequence, values: Array<Any>) {
+    constructor(col: FieldDef<SCH, T>, op: CharSequence, values: Array<Any>) {
         this.colName = col.name
         this.op = op
         this.singleValue = false
@@ -66,11 +66,11 @@ internal class ColCond<TBL : Table<TBL, *, *>, T> : WhereCondition<TBL> {
 
 }
 
-internal class BiCond<TBL : Table<TBL, *, *>>(
-        private val left: WhereCondition<TBL>,
+internal class BiCond<SCH : Schema<SCH>>(
+        private val left: WhereCondition<SCH>,
         private val and: Boolean,
-        private val right: WhereCondition<TBL>
-) : WhereCondition<TBL> {
+        private val right: WhereCondition<SCH>
+) : WhereCondition<SCH> {
 
     override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder {
         builder.append('(')
@@ -87,50 +87,50 @@ internal class BiCond<TBL : Table<TBL, *, *>>(
 
 }
 
-infix fun <TBL : Table<TBL, *, *>, T> Col<TBL, T>.eq(value: T): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T> FieldDef<SCH, T>.eq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
         else ColCond(this, " = ?", value as Any)
 
-infix fun <TBL : Table<TBL, *, *>, T> Col<TBL, T>.notEq(value: T): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T> FieldDef<SCH, T>.notEq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
         else ColCond(this, " <> ?", value as Any)
 
-infix fun <TBL : Table<TBL, *, *>, T : String?> Col<TBL, T>.like(value: String): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : String?> FieldDef<SCH, T>.like(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ?", value)
 
-infix fun <TBL : Table<TBL, *, *>, T : String?> Col<TBL, T>.notLike(value: String): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : String?> FieldDef<SCH, T>.notLike(value: String): WhereCondition<SCH> =
         ColCond(this, " NOT LIKE ?", value)
 
 // let U be nullable, but not T
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.between(range: Array<T>): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.between(range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.notBetween(range: Array<T>): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.notBetween(range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.isIn(values: Array<T>): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.isIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.notIn(values: Array<T>): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.notIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.greaterThan(value: T): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.greaterThan(value: T): WhereCondition<SCH> =
         ColCond(this, " > ?", value)
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.greaterOrEq(value: T): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.greaterOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " >= ?", value)
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.lessThan(value: T): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.lessThan(value: T): WhereCondition<SCH> =
         ColCond(this, " < ?", value)
 
-infix fun <TBL : Table<TBL, *, *>, T : Any, U : T> Col<TBL, U>.lessOrEq(value: T): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.lessOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " <= ?", value)
 
 
-infix fun <TBL : Table<TBL, *, *>> WhereCondition<TBL>.and(that: WhereCondition<TBL>): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.and(that: WhereCondition<SCH>): WhereCondition<SCH> =
         BiCond(this, true, that)
 
-infix fun <TBL : Table<TBL, *, *>> WhereCondition<TBL>.or(that: WhereCondition<TBL>): WhereCondition<TBL> =
+infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.or(that: WhereCondition<SCH>): WhereCondition<SCH> =
         BiCond(this, false, that)
 
 
