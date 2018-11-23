@@ -3,28 +3,28 @@
 package net.aquadc.persistence.struct
 
 @PublishedApi
-internal class Getter<DEF : StructDef<DEF>, T>(
-        private val struct: Struct<DEF>?,
-        private val field: FieldDef<DEF, T>
-) : () -> T, (Struct<DEF>) -> T {
+internal class Getter<SCH : Schema<SCH>, T>(
+        private val struct: Struct<SCH>?,
+        private val field: FieldDef<SCH, T>
+) : () -> T, (Struct<SCH>) -> T {
 
     override fun invoke(): T =
             struct!![field]
 
-    override fun invoke(p1: Struct<DEF>): T =
+    override fun invoke(p1: Struct<SCH>): T =
             p1[field]
 
 }
 
 /**
- * Creates a getter, i. e. a function which returns value of a pre-set [field] of a given [DEF].
+ * Creates a getter, i. e. a function which returns value of a pre-set [field] of a given [SCH].
  */
-inline fun <DEF : StructDef<DEF>, T> getterOf(field: FieldDef<DEF, T>): (Struct<DEF>) -> T =
+inline fun <SCH : Schema<SCH>, T> getterOf(field: FieldDef<SCH, T>): (Struct<SCH>) -> T =
         Getter(null, field)
 
 /**
- * Creates a getter applied to [this] [DEF],
+ * Creates a getter applied to [this] [SCH],
  * i. e. a function which returns a value of a pre-set [field] of a pre-set (struct)[this].
  */
-inline fun <DEF : StructDef<DEF>, T> Struct<DEF>.getterOf(field: FieldDef<DEF, T>): () -> T =
+inline fun <SCH : Schema<SCH>, T> Struct<SCH>.getterOf(field: FieldDef<SCH, T>): () -> T =
         Getter(this, field)

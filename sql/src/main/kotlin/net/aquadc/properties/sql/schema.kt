@@ -2,7 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.StructDef
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
@@ -109,15 +109,16 @@ val <TBL : Table<TBL, *, *>> Col<TBL, *>.desc: Order<TBL>
 
 /**
  * Represents a table, i. e. defines structs which can be persisted in a database.
- * @param TBL self, i. e. this table
+ * @param SCH self, i. e. this table
  * @param ID  primary key type
- * @param REC type of record, which can be simply `Record<TBL>` or a custom class extending [Record]
+ * @param REC type of record, which can be simply `Record<SCH>` or a custom class extending [Record]
+ * TODO aggregate instead of extending
  */
-abstract class Table<TBL : Table<TBL, ID, REC>, ID : IdBound, REC : Record<TBL, ID>>(
+abstract class Table<SCH : Table<SCH, ID, REC>, ID : IdBound, REC : Record<SCH, ID>>(
         name: String,
         val idColType: DataType<ID>,
         val idColName: String
-) : StructDef<TBL>(name) {
+) : Schema<SCH>(name) {
 
 
     abstract fun create(session: Session, id: ID): REC // TODO: rename: instantiate, instantiateRecord, createRecord, newRecord

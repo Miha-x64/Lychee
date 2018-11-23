@@ -5,22 +5,22 @@ import android.support.annotation.RestrictTo
 /**
  * Represents a fully-immutable snapshot of a struct.
  */
-class StructSnapshot<DEF : StructDef<DEF>> : BaseStruct<DEF> {
+class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
     private val values: Array<Any?>
 
-    constructor(source: Struct<DEF>) : super(source.type) {
-        val fields = type.fields
+    constructor(source: Struct<SCH>) : super(source.schema) {
+        val fields = schema.fields
         this.values = Array(fields.size) { i -> source[fields[i]] }
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(type: DEF, values: List<Any?>) : super(type) {
+    constructor(type: SCH, values: List<Any?>) : super(type) {
         this.values = values.toTypedArray()
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(field: FieldDef<DEF, T>): T =
+    override fun <T> get(field: FieldDef<SCH, T>): T =
             values[field.ordinal.toInt()] as T
 
 }

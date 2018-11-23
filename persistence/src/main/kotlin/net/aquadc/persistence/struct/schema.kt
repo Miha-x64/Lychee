@@ -11,12 +11,12 @@ import java.util.Collections.unmodifiableMap
  * @see Struct
  * @see FieldDef
  */
-abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
+abstract class Schema<SELF : Schema<SELF>>(
         val name: String // TODO: move to Table if not necessary here
 ) {
 
     /**
-     * A temporary list of [FieldDef]s used while [StructDef] is getting constructed.
+     * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
      */
     @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
 
@@ -64,7 +64,7 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
         val converter = dataType
-        val col = FieldDef.Mutable(this@StructDef, this, converter, fields.size.toByte(), default)
+        val col = FieldDef.Mutable(this@Schema, this, converter, fields.size.toByte(), default)
         fields.add(col)
         return col
     }
@@ -75,7 +75,7 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
     protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
         val converter = dataType
-        val col = FieldDef.Immutable(this@StructDef, this, converter, fields.size.toByte())
+        val col = FieldDef.Immutable(this@Schema, this, converter, fields.size.toByte())
         fields.add(col)
         return col
     }
@@ -127,8 +127,8 @@ abstract class StructDef<SELF : StructDef<SELF>>( // TODO: rename to 'Schema'
  * @see Mutable
  * @see Immutable
  */
-sealed class FieldDef<DEF : StructDef<DEF>, T>(
-        @JvmField val structDef: StructDef<DEF>,
+sealed class FieldDef<SCH : Schema<SCH>, T>(
+        @JvmField val schema: Schema<SCH>,
         @JvmField val name: String,
         @JvmField val type: DataType<T>,
         @JvmField val ordinal: Byte,
@@ -147,29 +147,29 @@ sealed class FieldDef<DEF : StructDef<DEF>, T>(
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset
 
-    override fun toString(): String = structDef.name + '.' + name
+    override fun toString(): String = schema.name + '.' + name
 
     /**
      * Represents a mutable field of a [Struct]: its value can be changed.
      */
-    class Mutable<DEF : StructDef<DEF>, T> internal constructor(
-            structDef: StructDef<DEF>,
+    class Mutable<SCH : Schema<SCH>, T> internal constructor(
+            schema: Schema<SCH>,
             name: String,
             converter: DataType<T>,
             ordinal: Byte,
             default: T
-    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal, default)
+    ) : FieldDef<SCH, T>(schema, name, converter, ordinal, default)
 
     /**
      * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
      */
     @Suppress("UNCHECKED_CAST")
-    class Immutable<DEF : StructDef<DEF>, T> internal constructor(
-            structDef: StructDef<DEF>,
+    class Immutable<SCH : Schema<SCH>, T> internal constructor(
+            schema: Schema<SCH>,
             name: String,
             converter: DataType<T>,
             ordinal: Byte
-    ) : FieldDef<DEF, T>(structDef, name, converter, ordinal, Unset as T)
+    ) : FieldDef<SCH, T>(schema, name, converter, ordinal, Unset as T)
 
 }
 

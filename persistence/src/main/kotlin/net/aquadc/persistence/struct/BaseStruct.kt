@@ -6,15 +6,15 @@ import java.util.*
  * Implements basic [Struct] capabilities.
  * Used for implementation inheritance, adds no contract and should not be treated as a separate type.
  */
-abstract class BaseStruct<DEF : StructDef<DEF>>(
-        final override val type: DEF
-) : Struct<DEF> {
+abstract class BaseStruct<SCH : Schema<SCH>>(
+        final override val schema: SCH
+) : Struct<SCH> {
 
     override fun equals(other: Any?): Boolean {
-        if (other !is Struct<*> || other.type !== type) return false
+        if (other !is Struct<*> || other.schema !== schema) return false
         @Suppress("UNCHECKED_CAST")
-        other as Struct<DEF> // other.type is our type, so it's safe
-        val fields = type.fields
+        other as Struct<SCH> // other.type is our type, so it's safe
+        val fields = schema.fields
         for (i in fields.indices) {
             val field = fields[i]
             val our = this[field]
@@ -26,7 +26,7 @@ abstract class BaseStruct<DEF : StructDef<DEF>>(
 
     override fun hashCode(): Int {
         var result = 0
-        val fields = type.fields
+        val fields = schema.fields
         for (i in fields.indices) {
             result = 31 * result + this[fields[i]].realHashCode()
         }
@@ -34,8 +34,8 @@ abstract class BaseStruct<DEF : StructDef<DEF>>(
     }
 
     override fun toString(): String = buildString {
-        append(this@BaseStruct.javaClass.simpleName).append(':').append(type.name).append('(')
-        val fields = type.fields
+        append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.name).append('(')
+        val fields = schema.fields
         for (i in fields.indices) {
             val field = fields[i]
             append(field.name).append('=').append(this@BaseStruct[field].realToString()).append(", ")

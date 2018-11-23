@@ -45,10 +45,10 @@ sealed class DataType<T>(
             private val elementType: DataType.Simple<T>
     ) : DataType<C>(isNullable)
 
-    abstract class StructCollection<DEF : StructDef<DEF>>(
+    abstract class StructCollection<SCH : StructDef<SCH>>(
             isNullable: Boolean,
-            private val type: DEF
-    ) : DataType<Collection<Struct<DEF>>>(isNullable)*/
+            private val type: SCH
+    ) : DataType<Collection<Struct<SCH>>>(isNullable)*/
 
 //    abstract class Dictionary<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
 //    abstract class Union<T> internal constructor(isNullable: Boolean, types: List<DataType<out T>>) : DataType<T>(isNullable) TODO

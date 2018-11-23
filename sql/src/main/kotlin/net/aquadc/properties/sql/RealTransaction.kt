@@ -106,7 +106,7 @@ internal class RealTransaction(
         val upd = updated
         upd?.forEach { (col, localIdToVal) ->
             localIdToVal.forEach { (localId, value) ->
-                lowSession.daos[col.structDef]?.erased?.commitValue(localId, col.erased, value)
+                lowSession.daos[col.schema]?.erased?.commitValue(localId, col.erased, value)
                 Unit
             }
         }
@@ -120,7 +120,7 @@ internal class RealTransaction(
                 if (table in changedTables) {
                     dao.onStructuralChange()
                 } else if (upd != null) {
-                    val updatedInTable = upd.keys.filter { it.structDef == table }
+                    val updatedInTable = upd.keys.filter { it.schema == table }
                     if (updatedInTable.isNotEmpty()) {
                         @Suppress("UPPER_BOUND_VIOLATED", "UNCHECKED_CAST")
                         dao.erased.onOrderChange(updatedInTable as List<Col<Any, *>>)

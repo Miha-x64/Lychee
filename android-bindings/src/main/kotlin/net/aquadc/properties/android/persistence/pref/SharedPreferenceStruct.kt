@@ -21,24 +21,24 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
  * and you will see [FieldDef.default] value.
  * To avoid inconsistencies, either use non-nullable types, or use `null` [FieldDef.default] value.
  */
-class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, TransactionalPropertyStruct<DEF> {
+class SharedPreferenceStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, TransactionalPropertyStruct<SCH> {
 
-    @JvmField @JvmSynthetic internal val values: Array<Any?> // = ManagedProperty<DEF, StructTransaction<DEF>, T> | T
+    @JvmField @JvmSynthetic internal val values: Array<Any?> // = ManagedProperty<SCH, StructTransaction<SCH>, T> | T
     @JvmField @JvmSynthetic internal val prefs: SharedPreferences
 
     /**
      * Copies data from [source] into [prefs].
      * Overwrites existing data, if any.
      */
-    constructor(source: Struct<DEF>, prefs: SharedPreferences) : super(source.type) {
-        val fields = type.fields
+    constructor(source: Struct<SCH>, prefs: SharedPreferences) : super(source.schema) {
+        val fields = schema.fields
         val ed = prefs.edit()
         this.values = Array(fields.size) { i ->
             val field = fields[i]
             val value = source[field]
             when (field) {
-                is FieldDef.Mutable<DEF, *> -> ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, value)
-                is FieldDef.Immutable<DEF, *> -> value
+                is FieldDef.Mutable<SCH, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, value)
+                is FieldDef.Immutable<SCH, *> -> value
             }
             (field.type as DataType<Any?>).put(ed, field.name, value)
         }
@@ -51,12 +51,12 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
      * Reads, writes, observes [prefs],
      * assuming fields are either have values previously written to [prefs] or have [FieldDef.default] ones.
      */
-    constructor(type: DEF, prefs: SharedPreferences) : super(type) {
+    constructor(type: SCH, prefs: SharedPreferences) : super(type) {
         val fields = type.fields
         this.values = Array(fields.size) {
             val field = fields[it]
             when (field) {
-                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<DEF, Any?>, Unset)
+                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, Unset)
                 is FieldDef.Immutable -> Unset
             }
         }
@@ -65,7 +65,7 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
     }
 
 
-    override fun <T> get(field: FieldDef<DEF, T>): T {
+    override fun <T> get(field: FieldDef<SCH, T>): T {
         val value = values[field.ordinal.toInt()]
         return when (field) {
             is FieldDef.Mutable -> (value as Property<T>).value
@@ -83,7 +83,7 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
 
     private val manager = PrefManager()
 
-    private inner class PrefManager : Manager<DEF, StructTransaction<DEF>>(), SharedPreferences.OnSharedPreferenceChangeListener {
+    private inner class PrefManager : Manager<SCH, StructTransaction<SCH>>(), SharedPreferences.OnSharedPreferenceChangeListener {
 
         /* non-KDOC
          * getDirty implNote:
@@ -91,20 +91,20 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
          *   Thus, 'dirty' state is nonsensical here.
          */
 
-        override fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T =
+        override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T =
                 field.get(prefs)
 
-        override fun <T> set(transaction: StructTransaction<DEF>, field: FieldDef.Mutable<DEF, T>, id: Long, update: T) {
+        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, id: Long, update: T) {
             transaction.set(field, update)
         }
 
         // `SharedPreferences` keeps a weak reference and not going to leak us
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-            val field = type.byName[key] ?: return
+            val field = schema.byName[key] ?: return
             val idx = field.ordinal.toInt()
             val value = field.get(sharedPreferences)
             when (field) {
-                is FieldDef.Mutable -> (values[idx] as ManagedProperty<DEF, StructTransaction<DEF>, Any?>).commit(value)
+                is FieldDef.Mutable -> (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?>).commit(value)
                 is FieldDef.Immutable -> throw IllegalStateException("Immutable field $field in $prefs was mutated externally!")
                 // there will be ugly but a bit informative toString. Deal with it
             }.also { }
@@ -112,15 +112,15 @@ class SharedPreferenceStruct<DEF : StructDef<DEF>> : BaseStruct<DEF>, Transactio
 
     }
 
-    override fun <T> prop(field: FieldDef.Mutable<DEF, T>) =
-            (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<DEF>, T>)
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T>) =
+            (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<SCH>, T>)
 
-    override fun beginTransaction(): StructTransaction<DEF> = object : SimpleStructTransaction<DEF>() {
+    override fun beginTransaction(): StructTransaction<SCH> = object : SimpleStructTransaction<SCH>() {
 
         private val ed = prefs.edit()
         private var success: Boolean? = false
 
-        override fun <T> set(field: FieldDef.Mutable<DEF, T>, update: T) {
+        override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) {
             field.type.put(ed, field.name, update)
         }
 

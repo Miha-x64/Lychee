@@ -4,47 +4,46 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-
 /**
  * Represents an instance of a struct —
  * a map with keys of type [FieldDef] (can be treated as [String] or [Byte])
  * and heterogeneous statically typed values.
- * @see StructDef
+ * @see Schema
  * @see FieldDef
  * @see TransactionalStruct
  * @see StructSnapshot — fully immutable implementation
  * @see net.aquadc.properties.persistence.ObservableStruct from `:properties` — observable implementation
  */
-interface Struct<DEF : StructDef<DEF>> {
+interface Struct<SCH : Schema<SCH>> {
 
     /**
      * Represents the type of this struct.
      */
-    val type: DEF
+    val schema: SCH
 
     /**
      * Returns the value of the requested field.
      */
-    operator fun <T> get(field: FieldDef<DEF, T>): T
+    operator fun <T> get(field: FieldDef<SCH, T>): T
 
 }
 
 /**
  * A struct which can be mutated inside a transaction.
  */
-interface TransactionalStruct<DEF : StructDef<DEF>> : Struct<DEF> {
-    fun beginTransaction(): StructTransaction<DEF>
+interface TransactionalStruct<SCH : Schema<SCH>> : Struct<SCH> {
+    fun beginTransaction(): StructTransaction<SCH>
 }
 
 /**
  * A transaction on a single [Struct] instance.
  */
-interface StructTransaction<DEF : StructDef<DEF>> : AutoCloseable {
-    operator fun <T> set(field: FieldDef.Mutable<DEF, T>, update: T)
+interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
+    operator fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T)
     fun setSuccessful()
 }
 
-abstract class SimpleStructTransaction<DEF : StructDef<DEF>> : StructTransaction<DEF>, AutoCloseable {
+abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SCH>, AutoCloseable {
 
     @JvmField protected var successful: Boolean? = false
 
@@ -58,7 +57,7 @@ abstract class SimpleStructTransaction<DEF : StructDef<DEF>> : StructTransaction
  * Calls [block] inside a transaction to mutate [this].
  */
 @UseExperimental(ExperimentalContracts::class)
-inline fun <DEF : StructDef<DEF>, R> TransactionalStruct<DEF>.transaction(block: (StructTransaction<DEF>) -> R): R {
+inline fun <SCH : Schema<SCH>, R> TransactionalStruct<SCH>.transaction(block: (StructTransaction<SCH>) -> R): R {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }

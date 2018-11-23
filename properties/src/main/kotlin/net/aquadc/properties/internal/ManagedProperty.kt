@@ -3,7 +3,7 @@ package net.aquadc.properties.internal
 import android.support.annotation.RestrictTo
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.StructDef
+import net.aquadc.persistence.struct.Schema
 
 /**
  * A property whose value can be changed inside a transaction.
@@ -11,9 +11,9 @@ import net.aquadc.persistence.struct.StructDef
  * Note: [manager] is not volatile and requires external synchronization if used (e. g. [dropManagement]) concurrently
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-open class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
-        private var manager: Manager<DEF, TRANSACTION>?,
-        private val field: FieldDef.Mutable<DEF, T>,
+open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T> constructor(
+        private var manager: Manager<SCH, TRANSACTION>?,
+        private val field: FieldDef.Mutable<SCH, T>,
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
 
@@ -76,7 +76,7 @@ open class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
     val isManaged: Boolean
         get() = manager != null
 
-    private fun requireManaged(): Manager<DEF, TRANSACTION> =
+    private fun requireManaged(): Manager<SCH, TRANSACTION> =
             manager ?: throw IllegalStateException(
                     "${toString()} is not managed anymore, e. g. was removed from underlying storage" +
                             if (ref !== Unset) ". Last remembered value: '$ref'" else "")
@@ -88,34 +88,34 @@ open class ManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
 
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class IdManagedProperty<DEF : StructDef<DEF>, TRANSACTION, T> constructor(
-        manager: Manager<DEF, TRANSACTION>?,
-        field: FieldDef.Mutable<DEF, T>,
+class IdManagedProperty<SCH : Schema<SCH>, TRANSACTION, T> constructor(
+        manager: Manager<SCH, TRANSACTION>?,
+        field: FieldDef.Mutable<SCH, T>,
         override val id: Long,
         initialValue: T
-) : ManagedProperty<DEF, TRANSACTION, T>(manager, field, initialValue)
+) : ManagedProperty<SCH, TRANSACTION, T>(manager, field, initialValue)
 
 /**
  * A manager of a property, e. g. a database session.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-abstract class Manager<DEF : StructDef<DEF>, TRANSACTION> {
+abstract class Manager<SCH : Schema<SCH>, TRANSACTION> {
 
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
     @Suppress("UNCHECKED_CAST")
-    open fun <T> getDirty(field: FieldDef.Mutable<DEF, T>, id: Long): T =
+    open fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: Long): T =
             Unset as T
 
     /**
      * Returns clean value.
      */
-    abstract fun <T> getClean(field: FieldDef.Mutable<DEF, T>, id: Long): T
+    abstract fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    abstract fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<DEF, T>, id: Long, update: T)
+    abstract fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: Long, update: T)
 
 }

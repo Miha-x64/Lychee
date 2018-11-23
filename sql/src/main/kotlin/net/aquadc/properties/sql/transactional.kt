@@ -13,8 +13,8 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
         private val record: REC
 ) : TransactionalPropertyStruct<TBL> {
 
-    override val type: TBL
-        get() = record.type
+    override val schema: TBL
+        get() = record.schema
 
     override fun <T> get(field: FieldDef<TBL, T>): T =
             record[field]
@@ -22,7 +22,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
     // places for immutable fields remain nulls,
     // places for mutable are occupied by our wrappers
     // TODO: smaller array size :)
-    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<TBL>, *>>(record.type.fields.size)
+    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<TBL>, *>>(record.schema.fields.size)
 
     override fun <T> prop(field: FieldDef.Mutable<TBL, T>): TransactionalProperty<StructTransaction<TBL>, T> {
         val index = field.ordinal.toInt()
