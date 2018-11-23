@@ -4,7 +4,6 @@ import javafx.application.Application
 import javafx.scene.Scene
 import javafx.stage.Stage
 import net.aquadc.properties.persistence.ObservableStruct
-import net.aquadc.properties.persistence.transactional
 import net.aquadc.propertiesSampleLogic.MainVm
 import net.aquadc.propertiesSampleLogic.User
 
