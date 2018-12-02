@@ -2,10 +2,10 @@ package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.struct.*
 import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
-import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.properties.internal.Manager
+import net.aquadc.properties.executor.InPlaceWorker
+import net.aquadc.properties.function.identity
+import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.propertyOf
 
 /**
@@ -78,34 +78,16 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         @JvmField @JvmSynthetic internal val observable: ObservableStruct<SCH>
 ) : BaseStruct<SCH>(observable.schema), TransactionalPropertyStruct<SCH> {
 
-    private val manager = object : Manager<SCH, StructTransaction<SCH>>() {
+    private val values = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(observable.schema.fields.size)
 
-        override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T =
-                observable[field]
+    override fun <T> get(field: FieldDef<SCH, T>): T =
+            observable[field]
 
-        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, id: Long, update: T) {
-            (observable prop field).value = update
-        }
-
-    }
-
-    private val values = observable.schema.fields.map {
-        when (it) {
-            is FieldDef.Mutable -> ManagedProperty(manager, it as FieldDef.Mutable<SCH, Any?>, net.aquadc.properties.internal.Unset)
-            is FieldDef.Immutable -> observable[it]
-        }
-    }
-
-    override fun <T> get(field: FieldDef<SCH, T>): T {
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> {
         val index = field.ordinal.toInt()
-        return when (field) {
-            is FieldDef.Mutable -> (values[index] as Property<T>).value
-            is FieldDef.Immutable -> values[index] as T
-        }
+        val prop = values[index] ?: (observable prop field).transactional<SCH, T>().also { values[index] = it }
+        return (prop as TransactionalProperty<StructTransaction<SCH>, T>)
     }
-
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> =
-            (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<SCH>, T>)
 
     override fun beginTransaction(): StructTransaction<SCH> = object : PropStructTransaction<SCH>(this) {
 
@@ -119,5 +101,13 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         }
 
     }
+
+    private fun <SCH : Schema<SCH>, T> MutableProperty<T>
+            .transactional(): TransactionalProperty<StructTransaction<SCH>, T> =
+            object : `Mapped-`<T, T>(this@transactional, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
+                override fun setValue(transaction: StructTransaction<SCH>, value: T) {
+                    this@transactional.value = value
+                }
+            }
 
 }
