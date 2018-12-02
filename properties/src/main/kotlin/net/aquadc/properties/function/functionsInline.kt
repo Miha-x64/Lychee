@@ -34,16 +34,16 @@ inline fun notEqualTo(that: Any?): (Any?) -> Boolean =
 
 /**
  * A function which checks identity of its argument with [that],
- * i. e. it's a partially-applied version of [Objectz.Identical].
+ * i. e. it's a partially-applied version of [Objectz.Same].
  */
 @Suppress("UNCHECKED_CAST") // using 'Any?' return type to avoid bridge method generation
-inline fun isIdenticalTo(that: Any?): (Any?) -> Boolean =
+inline fun isSameAs(that: Any?): (Any?) -> Boolean =
         `AppliedFunc1-`(that, 4) as (Any?) -> Boolean
 
 /**
  * A function which checks identity of its argument with [that] and inverts this value,
- * i. e. it's a partially-applied version of [Objectz.NotIdentical].
+ * i. e. it's a partially-applied version of [Objectz.NotSame].
  */
 @Suppress("UNCHECKED_CAST") // using 'Any?' return type to avoid bridge method generation
-inline fun notIdenticalTo(that: Any?): (Any?) -> Boolean =
+inline fun notSameAs(that: Any?): (Any?) -> Boolean =
         `AppliedFunc1-`(that, 6) as (Any?) -> Boolean

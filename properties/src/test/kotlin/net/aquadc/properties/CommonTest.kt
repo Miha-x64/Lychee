@@ -83,7 +83,7 @@ class CommonTest {
 
     // different props have different identity, so we are going to test only mutable and mapped
     private fun testIdentity(original: MutableProperty<String>) {
-        val dist = original.distinct(Objectz.Identical)
+        val dist = original.distinct(Objectz.Same)
         var called = 0
         dist.addUnconfinedChangeListener { _, _ -> called++; Unit }
         original.value = original.value

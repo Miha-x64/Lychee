@@ -44,25 +44,25 @@ class Objectz private constructor(
         /**
          * A function which compares the given arguments by identity.
          */
-        @JvmField val Identical: (Any?, Any?) -> Boolean =
+        @JvmField val Same: (Any?, Any?) -> Boolean =
                 Objectz(3) as (Any?, Any?) -> Boolean
 
         /**
          * A function which compares given arguments by identity and inverts this value.
          */
-        @JvmField val NotIdentical: (Any?, Any?) -> Boolean =
+        @JvmField val NotSame: (Any?, Any?) -> Boolean =
                 Objectz(4) as (Any?, Any?) -> Boolean
 
         /**
          * A function which checks whether its argument is equal to `null`,
-         * i. e. it's a partially-applied version of [isIdenticalTo].
+         * i. e. it's a partially-applied version of [isSameAs].
          */
         @JvmField val IsNull: (Any?) -> Boolean =
                 `AppliedFunc1-`(null, 4) as (Any?) -> Boolean
 
         /**
          * A function which checks whether its argument is not equal to `null`,
-         * i. e. it's a partially-applied version of [notIdenticalTo].
+         * i. e. it's a partially-applied version of [notSameAs].
          */
         @JvmField val IsNotNull: (Any?) -> Boolean =
                 `AppliedFunc1-`(null, 6) as (Any?) -> Boolean
@@ -379,7 +379,7 @@ internal object ToPair : (Any?, Any?) -> Any? {
 /**
  * Compares objects by their identity.
  */
-@Deprecated("moved", ReplaceWith("Objectz.Identical"), DeprecationLevel.ERROR)
+@Deprecated("moved", ReplaceWith("Objectz.Same"), DeprecationLevel.ERROR)
 object Identity : (Any?, Any?) -> Boolean {
     override fun invoke(p1: Any?, p2: Any?): Boolean = p1 === p2
 }
