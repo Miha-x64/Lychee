@@ -81,7 +81,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     private val manager = object : Manager<SCH, StructTransaction<SCH>>() {
 
         override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T =
-                get(field)
+                observable[field]
 
         override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, id: Long, update: T) {
             (observable prop field).value = update
