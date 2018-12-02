@@ -1,8 +1,6 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.struct.BaseStruct
-import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.*
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
@@ -91,6 +89,20 @@ interface Transaction : AutoCloseable {
 
     operator fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.set(field: FieldDef.Mutable<SCH, T>, new: T) {
         (this prop field).setValue(this@Transaction, new)
+    }
+
+    /**
+     * Updates all [fields] with values from [source].
+     */
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.setFrom(
+            source: Struct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
+    ) {
+        source.schema.forEach(fields) {
+            mutateFrom(source, it) // capture type
+        }
+    }
+    private inline fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.mutateFrom(source: Struct<SCH>, field: FieldDef.Mutable<SCH, T>) {
+        this[field] = source[field]
     }
 
 }

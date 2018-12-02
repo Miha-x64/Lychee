@@ -28,6 +28,7 @@ interface Struct<SCH : Schema<SCH>> {
 
 }
 
+
 /**
  * A struct which can be mutated inside a transaction.
  */
@@ -41,6 +42,20 @@ interface TransactionalStruct<SCH : Schema<SCH>> : Struct<SCH> {
 interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
     operator fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T)
     fun setSuccessful()
+}
+
+/**
+ * Updates all [fields] with values from [source].
+ */
+fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
+        source: Struct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
+) {
+    source.schema.forEach(fields) {
+        mutateFrom(source, it) // capture type
+    }
+}
+private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(source: Struct<SCH>, field: FieldDef.Mutable<SCH, T>) {
+    this[field] = source[field]
 }
 
 abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SCH>, AutoCloseable {

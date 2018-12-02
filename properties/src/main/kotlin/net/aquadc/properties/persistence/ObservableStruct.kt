@@ -14,7 +14,7 @@ import net.aquadc.properties.propertyOf
  * * every struct should have
  *   * a constructor copying from [Struct]
  * * every mutable observable [Struct] implementation should have
- *   * a mutator [set]
+ *   * [set], [setFrom] mutators
  *   * a property getter [prop]
  */
 class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH> {
@@ -59,6 +59,18 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
     operator fun <T> set(field: FieldDef.Mutable<SCH, T>, value: T) {
         prop(field).value = value
+    }
+
+    /**
+     * Updates all [fields] with values from [source].
+     */
+    fun setFrom(source: Struct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>) {
+        schema.forEach(fields) {
+            mutateFrom(source, it) // capture type
+        }
+    }
+    private inline fun <T> mutateFrom(source: Struct<SCH>, field: FieldDef.Mutable<SCH, T>) {
+        this[field] = source[field]
     }
 
     @Suppress("UNCHECKED_CAST")

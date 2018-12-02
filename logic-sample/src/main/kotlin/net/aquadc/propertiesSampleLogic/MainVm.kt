@@ -1,5 +1,7 @@
 package net.aquadc.propertiesSampleLogic
 
+import net.aquadc.persistence.struct.plus
+import net.aquadc.persistence.struct.setFrom
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
@@ -25,12 +27,9 @@ class MainVm(
     val surnameProp get() = editableUser prop User.Surname
 
     val buttonClickedProp = propertyOf(false).also {
-        it.clearEachAnd { // perform action
+        it.clearEachAnd {
             user.transaction { t ->
-                t[User.Email] = editableUser[User.Email]
-                t[User.Name] = editableUser[User.Name]
-                t[User.Surname] = editableUser[User.Surname]
-                // TODO: special method for patching
+                t.setFrom<User>(editableUser, User.Email + User.Name + User.Surname)
             }
         }
     }
@@ -48,6 +47,8 @@ class MainVm(
     private val usersDifferProp = user.snapshots().mapWith(editableUser.snapshots(), Objectz.NotEqual)
 
     val buttonEnabledProp = usersDifferProp and emailValidProp
+
+    // just for sample
     val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
 
 }

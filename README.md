@@ -148,22 +148,30 @@ Common ViewModel:
 
 ```kt
 class MainVm(
-        private val userProp: MutableProperty<InMemoryUser>
+        // 'user' is backed by whatever data source — in-memory, database, file, ...
+        private val user: TransactionalPropertyStruct<User>
 ) : PersistableProperties {
 
     // user input
 
-    val emailProp = propertyOf(userProp.value.email)
-    val nameProp = propertyOf(userProp.value.name)
-    val surnameProp = propertyOf(userProp.value.surname)
+    // clone 'user' into memory
+    private val editableUser = ObservableStruct(user, false)
+
+    // expose properties for View
+    val emailProp get() = editableUser prop User.Email
+    val nameProp get() = editableUser prop User.Name
+    val surnameProp get() = editableUser prop User.Surname
+
     val buttonClickedProp = propertyOf(false).also {
-    // reset flag and perform action — store User being edited into memory
+        // reset flag and perform action — patch 'user' with values from memory
         it.clearEachAnd {
-            userProp.value = editedUser.snapshot()
+            user.transaction { t ->
+                t.setFrom<User>(editableUser, User.Email + User.Name + User.Surname)
+            }
         }
     }
 
-    // preserve/restore state of this ViewModel
+    // preserve/restore state of this ViewModel (for Android)
     override fun saveOrRestore(d: PropertyIo) {
         d x emailProp
         d x nameProp
@@ -174,19 +182,10 @@ class MainVm(
 
     val emailValidProp = emailProp.map { it.contains("@") }
 
-    private val editedUser = OnScreenUser(
-            emailProp = emailProp,
-            nameProp = nameProp,
-            surnameProp = surnameProp
-    )
+    // compare snapshots
+    private val usersDifferProp = user.snapshots().mapWith(editableUser.snapshots(), Objectz.NotEqual)
 
-    // check equals() every time User on screen or in memory gets changed
-    private val usersEqualProp = listOf(userProp, emailProp, nameProp, surnameProp)
-            .mapValueList { _ -> userProp.value.equals(editedUser) }
-
-    val buttonEnabledProp = usersEqualProp.mapWith(emailValidProp) { equal, valid -> !equal && valid }
-    val buttonTextProp = usersEqualProp.map { if (it) "Nothing changed" else "Save changes" }
-    val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
+    val buttonEnabledProp = usersDifferProp and emailValidProp
 
 }
 ```
