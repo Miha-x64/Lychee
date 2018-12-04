@@ -133,7 +133,10 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         val idColName: String
 ) {
 
-    abstract fun newRecord(session: Session, id: ID): REC
+    /**
+     * Instantiates a record. Typically consists of a single constructor call.
+     */
+    abstract fun newRecord(session: Session, primaryKey: ID): REC
 
     init {
         check(schema.fields.all { idColName != it.name }) { "duplicate column: `$name`.`$idColName`" }
