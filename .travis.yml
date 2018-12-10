@@ -17,7 +17,7 @@ before_install:
 #  - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl -s https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url')
 
 script:
-  - ./gradlew clean :presistence:test :properties:test :fx-bindings:test --info --stacktrace
+  - ./gradlew clean :persistence:test :properties:test :fx-bindings:test --info --stacktrace
 
 #after_success:
 #  - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r properties/build/reports/jacoco/test/jacocoTestReport.xml
