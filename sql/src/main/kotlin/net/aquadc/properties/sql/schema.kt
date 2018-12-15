@@ -168,7 +168,8 @@ class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
 open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
 
     internal val table: Table<SCH, ID, *>
-    internal val session: Session
+    protected val session: Session
+    internal val _session get() = session
     val primaryKey: ID
 
     @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
@@ -182,20 +183,26 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
         this.table = table
         this.session = session
         this.primaryKey = primaryKey
-        this.values = @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
-        session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>).let { dao ->
-            table.schema.fields.mapToArray { col ->
-                when (col) {
-                    is FieldDef.Mutable -> dao.createFieldOf(col as FieldDef.Mutable<SCH, Nothing>, primaryKey)
-                    is FieldDef.Immutable -> Unset
-                }
-            }
-        }
+        this.values = createValues(session, table, primaryKey)
     }
 
-    /*constructor(source: Struct<SCH>) : super(source.type) {
-        TODO
-    }*/
+    constructor(table: Table<SCH, ID, *>, transaction: Transaction, source: Struct<SCH>) : super(table.schema) {
+        this.table = table
+        this.session = transaction.session
+        this.primaryKey = transaction.insert(table, source)
+        this.values = createValues(session, table, primaryKey)
+    }
+
+    @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
+    private fun createValues(session: Session, table: Table<SCH, ID, *>, primaryKey: ID): Array<Any?> =
+            session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>).let { dao ->
+                table.schema.fields.mapToArray { col ->
+                    when (col) {
+                        is FieldDef.Mutable -> dao.createFieldOf(col as FieldDef.Mutable<SCH, Nothing>, primaryKey)
+                        is FieldDef.Immutable -> Unset
+                    }
+                }
+            }
 
 
     @Suppress("UNCHECKED_CAST")

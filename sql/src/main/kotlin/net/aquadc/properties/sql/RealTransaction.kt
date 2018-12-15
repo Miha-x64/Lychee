@@ -70,7 +70,7 @@ internal class RealTransaction(
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>) {
         checkOpenAndThread()
-        check(session === record.session)
+        check(session === record._session)
 
         val table = record.table
         val localId = lowSession.deleteAndGetLocalId(table, record.primaryKey)

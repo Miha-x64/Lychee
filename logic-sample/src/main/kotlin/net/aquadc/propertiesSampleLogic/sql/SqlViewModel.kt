@@ -77,10 +77,7 @@ class SqlViewModel(
                 val electrician = insertHuman("Nikola", "Tesla")
 
                 // don't know anything about their friendship, just a sample
-                insert(Friendship.Tbl, Friendship {
-                    it[Friendship.LeftId] = relativist.primaryKey
-                    it[Friendship.RightId] = electrician.primaryKey
-                })
+                insertFriendship(relativist, electrician)
 
                 val car = insertCar(electrician)
                 car[Car.ConditionerModel] = "the coolest air cooler"
