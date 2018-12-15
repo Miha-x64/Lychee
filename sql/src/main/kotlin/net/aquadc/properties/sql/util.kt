@@ -14,8 +14,8 @@ internal typealias UpdatesHashMap = HashMap<
 internal fun <SCH : Schema<SCH>, T> UpdatesHashMap.getFor(table: Table<SCH, *, *>, col: FieldDef.Mutable<SCH, T>): HashMap<Long, T>? =
         get(table to col) as HashMap<Long, T>?
 
-internal fun <SCH : Schema<SCH>, T> UpdatesHashMap.put(table: Table<SCH, *, *>, cv: ColValue<SCH, T>, localId: Long) {
-    (this as HashMap<Pair<Table<SCH, *, *>, FieldDef<SCH, T>>, HashMap<Long, Any?>>).getOrPut(table to cv.col, ::HashMap)[localId] = cv.value
+internal fun <SCH : Schema<SCH>, T> UpdatesHashMap.put(table: Table<SCH, *, *>, field: FieldDef<SCH, T>, value: T, localId: Long) {
+    (this as HashMap<Pair<Table<SCH, *, *>, FieldDef<SCH, T>>, HashMap<Long, Any?>>).getOrPut(table to field, ::HashMap)[localId] = value
 }
 
 @Suppress("UPPER_BOUND_VIOLATED")

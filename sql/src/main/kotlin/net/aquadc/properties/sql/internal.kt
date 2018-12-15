@@ -2,11 +2,12 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 
 
 internal interface LowLevelSession {
     fun <SCH : Schema<SCH>, ID : IdBound> exists(table: Table<SCH, ID, *>, primaryKey: ID): Boolean
-    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, cols: Array<FieldDef<SCH, *>>, vals: Array<Any?>): ID
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T)
     fun <ID : IdBound> localId(table: Table<*, ID, *>, id: ID): Long
     fun <ID : IdBound> primaryKey(table: Table<*, ID, *>, localId: Long): ID

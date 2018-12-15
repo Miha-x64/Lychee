@@ -12,7 +12,7 @@ import net.aquadc.properties.sql.dialect.appendPlaceholders
  */
 object SqliteDialect : Dialect {
 
-    override fun <SCH : Schema<SCH>> insertQuery(table: Table<SCH, *, *>, cols: Array<FieldDef<SCH, *>>): String =
+    override fun <SCH : Schema<SCH>> insertQuery(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String =
             StringBuilder("INSERT INTO ").appendName(table.name)
                     .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                     .toString()
@@ -72,10 +72,10 @@ object SqliteDialect : Dialect {
     override fun StringBuilder.appendName(name: String): StringBuilder =
             append('"').append(name.replace("\"", "\"\"")).append('"')
 
-    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: Array<FieldDef<SCH, *>>): StringBuilder = apply {
+    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: List<FieldDef<SCH, *>>): StringBuilder = apply {
         if (cols.isNotEmpty()) {
-            cols.forEach { col ->
-                appendName(col.name).append(", ")
+            for (i in cols.indices) {
+                appendName(cols[i].name).append(", ")
             }
             setLength(length - 2) // trim comma
         }

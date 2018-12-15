@@ -1,5 +1,6 @@
 package net.aquadc.propertiesSampleLogic.sql
 
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.sql.*
@@ -76,10 +77,10 @@ class SqlViewModel(
                 val electrician = insertHuman("Nikola", "Tesla")
 
                 // don't know anything about their friendship, just a sample
-                insert(Friendship.Tbl,
-                        Friendship.LeftId - relativist.primaryKey,
-                        Friendship.RightId - electrician.primaryKey
-                )
+                insert(Friendship.Tbl, Friendship {
+                    it[Friendship.LeftId] = relativist.primaryKey
+                    it[Friendship.RightId] = electrician.primaryKey
+                })
 
                 val car = insertCar(electrician)
                 car[Car.ConditionerModel] = "the coolest air cooler"

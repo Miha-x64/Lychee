@@ -140,7 +140,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     private val _default = default
 
     val default: T
-        get() = if (_default === Unset) throw NoSuchElementException() else _default
+        get() = if (_default === Unset) throw NoSuchElementException("no default value for $this") else _default
 
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset

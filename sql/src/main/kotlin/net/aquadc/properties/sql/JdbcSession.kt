@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.type.long
@@ -37,7 +38,7 @@ class JdbcSession(
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<FieldDef<*, *>>>, PreparedStatement>()
+    private val insertStatements = HashMap<Table<*, *, *>, PreparedStatement>()
     private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, PreparedStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
@@ -52,14 +53,18 @@ class JdbcSession(
             }
         }
 
-        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>, cols: Array<FieldDef<SCH, *>>): PreparedStatement =
-                insertStatements.getOrPut(Pair(table, cols.asList())) {
-                    connection.prepareStatement(dialect.insertQuery(table, cols), Statement.RETURN_GENERATED_KEYS)
+        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): PreparedStatement =
+                insertStatements.getOrPut(table) {
+                    connection.prepareStatement(dialect.insertQuery(table, table.schema.fields), Statement.RETURN_GENERATED_KEYS)
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, cols: Array<FieldDef<SCH, *>>, vals: Array<Any?>): ID {
-            val statement = insertStatementWLocked(table, cols)
-            cols.forEachIndexed { idx, col -> col.type.erased.bind(statement, idx, vals[idx]) }
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+            val statement = insertStatementWLocked(table)
+            val fields = table.schema.fields
+            for (i in fields.indices) {
+                val field = fields[i]
+                field.type.erased.bind(statement, i, data[field])
+            }
             check(statement.executeUpdate() == 1)
             val keys = statement.generatedKeys
             return keys.fetchSingle(table.idColType)

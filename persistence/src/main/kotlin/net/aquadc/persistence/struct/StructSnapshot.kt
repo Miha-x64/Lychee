@@ -15,8 +15,11 @@ class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(type: SCH, values: List<Any?>) : super(type) {
-        this.values = values.toTypedArray()
+    constructor(schema: SCH, values: List<Any?>) : this(schema, values.toTypedArray())
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    constructor(schema: SCH, values: Array<Any?>) : super(schema) {
+        this.values = values
     }
 
     @Suppress("UNCHECKED_CAST")

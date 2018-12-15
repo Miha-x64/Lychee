@@ -11,6 +11,8 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib"
     compile project(':properties')
     compile project(':persistence')
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
 compileKotlin {

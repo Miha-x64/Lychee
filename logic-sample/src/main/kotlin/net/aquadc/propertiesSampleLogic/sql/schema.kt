@@ -3,6 +3,7 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.properties.sql.*
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullableString
@@ -14,7 +15,10 @@ val Tables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tb
 
 fun Transaction.insertHuman(name: String, surname: String): Human =
         session[Human.Tbl].require(
-                insert(Human.Tbl, Human.Name - name, Human.Surname - surname)
+                insert(Human.Tbl, Human {
+                    it[Human.Name] = name
+                    it[Human.Surname] = surname
+                })
         )
 
 class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, session, id) {
@@ -30,7 +34,7 @@ class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, ses
         val Surname = "surname" let string
     }
     object Tbl : Table<Sch, Long, Human>(Sch, "people", long, "_id") {
-        override fun newRecord(session: Session, id: Long): Human = Human(session, id)
+        override fun newRecord(session: Session, primaryKey: Long): Human = Human(session, primaryKey)
     }
 }
 
@@ -42,14 +46,16 @@ class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) 
 
     companion object Sch : Schema<Sch>() {
         val OwnerId = "owner_id" mut long
-        val ConditionerModel = "conditioner_model" mut nullableString
+        val ConditionerModel = "conditioner_model".mut(nullableString, default = null)
     }
     object Tbl : Table<Sch, Long, Car>(Sch, "cars", long, "_id") {
-        override fun newRecord(session: Session, id: Long): Car = Car(session, id)
+        override fun newRecord(session: Session, primaryKey: Long): Car = Car(session, primaryKey)
     }
 }
 fun Transaction.insertCar(owner: Human): Car =
-        session[Car.Tbl].require(insert(Car.Tbl, Car.OwnerId - owner.primaryKey))
+        session[Car.Tbl].require(insert(Car.Tbl, Car {
+            it[Car.OwnerId] = owner.primaryKey
+        }))
 
 
 
@@ -62,6 +68,6 @@ class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Frie
         val RightId = "right" mut long
     }
     object Tbl : Table<Sch, Long, Friendship>(Sch, "friends", long, "_id") {
-        override fun newRecord(session: Session, id: Long): Friendship = Friendship(session, id)
+        override fun newRecord(session: Session, primaryKey: Long): Friendship = Friendship(session, primaryKey)
     }
 }

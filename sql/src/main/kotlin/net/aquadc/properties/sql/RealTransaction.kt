@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 
 @Suppress(
         "PLATFORM_CLASS_MAPPED_TO_KOTLIN", // using finalization guard
@@ -28,17 +29,11 @@ internal class RealTransaction(
     // TODO: use special collections for Longs
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(
-            table: Table<SCH, ID, *>, vararg contentValues: ColValue<SCH, *>
+            table: Table<SCH, ID, *>, data: Struct<SCH>
     ): ID {
         checkOpenAndThread()
 
-        val size = contentValues.size
-        val cols = arrayOfNulls<FieldDef<SCH, *>>(size)
-        val vals = arrayOfNulls<Any>(size)
-        scatter(contentValues, colsToFill = cols, valsToFill = vals)
-        cols as Array<FieldDef<SCH, *>>
-
-        val id = lowSession.insert(table, cols, vals)
+        val id = lowSession.insert(table, data)
         val localId = lowSession.localId(table, id)
 
         // remember we've added a record
@@ -48,9 +43,12 @@ internal class RealTransaction(
 
         // write all insertion fields as updates
         val updated = updated ?: UpdatesHashMap().also { updated = it }
-        contentValues.forEach {
-            when (it.col) {
-                is FieldDef.Mutable -> updated.put(table, it, localId)
+
+        val fields = table.schema.fields
+        for (i in fields.indices) {
+            val field = fields[i]
+            when (field) {
+                is FieldDef.Mutable -> updated.put(table, field as FieldDef<SCH, Any?>, data[field], localId)
                 is FieldDef.Immutable -> { }
             }.also { }
         }
@@ -143,15 +141,6 @@ internal class RealTransaction(
     override fun finalize() {
         if (thread !== null) {
             throw IllegalStateException("unclosed transaction being finalized, originally created at", createdAt)
-        }
-    }
-
-    private fun <SCH : Schema<SCH>> scatter(
-            contentValues: Array<out ColValue<SCH, *>>,
-            colsToFill: Array<FieldDef<SCH, *>?>, valsToFill: Array<Any?>) {
-        contentValues.forEachIndexed { i, pair ->
-            colsToFill[i] = pair.col
-            valsToFill[i] = pair.value
         }
     }
 

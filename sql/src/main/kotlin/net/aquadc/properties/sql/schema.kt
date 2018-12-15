@@ -79,7 +79,7 @@ interface Transaction : AutoCloseable {
 
     val session: Session
 
-    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, vararg contentValues: ColValue<SCH, *>): ID
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T)
 
@@ -141,6 +141,21 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     init {
         check(schema.fields.all { idColName != it.name }) { "duplicate column: `$name`.`$idColName`" }
     }
+
+}
+
+/**
+ * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
+ */
+class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
+        schema: SCH,
+        name: String,
+        idColType: DataType<ID>,
+        idColName: String
+) : Table<SCH, ID, Record<SCH, ID>>(schema, name, idColType, idColName) {
+
+    override fun newRecord(session: Session, primaryKey: ID): Record<SCH, ID> =
+            Record(this, session, primaryKey)
 
 }
 
@@ -226,16 +241,6 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
     // TODO: relations for immutable cols
 
 }
-
-
-class ColValue<SCH : Schema<SCH>, T>(val col: FieldDef<SCH, T>, val value: T)
-
-/**
- * Creates a type-safe mapping from a column to its value.
- */
-@Suppress("NOTHING_TO_INLINE")
-inline operator fun <SCH : Schema<SCH>, T> FieldDef<SCH, T>.minus(value: T): ColValue<SCH, T> =
-        ColValue(this, value)
 
 
 /**

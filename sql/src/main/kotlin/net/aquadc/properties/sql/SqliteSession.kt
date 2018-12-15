@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.long
@@ -35,7 +36,7 @@ class SqliteSession(
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
 //    private val selectStatements = ThreadLocal<HashMap<String, SQLiteStatement>>()
-    private val insertStatements = HashMap<Pair<Table<*, *, *>, List<FieldDef<*, *>>>, SQLiteStatement>()
+    private val insertStatements = HashMap<Table<*, *, *>, SQLiteStatement>()
     private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, SQLiteStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, SQLiteStatement>()
 
@@ -51,14 +52,18 @@ class SqliteSession(
             }
         }
 
-        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>, cols: Array<FieldDef<SCH, *>>): SQLiteStatement =
-                insertStatements.getOrPut(Pair(table, cols.asList())) {
-                    connection.compileStatement(SqliteDialect.insertQuery(table, cols))
+        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): SQLiteStatement =
+                insertStatements.getOrPut(table) {
+                    connection.compileStatement(SqliteDialect.insertQuery(table, table.schema.fields))
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, cols: Array<FieldDef<SCH, *>>, vals: Array<Any?>): ID {
-            val statement = insertStatementWLocked(table, cols)
-            cols.forEachIndexed { idx, col -> col.type.erased.bind(statement, idx, vals[idx]) }
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+            val statement = insertStatementWLocked(table)
+            val fields = table.schema.fields
+            for (i in fields.indices) {
+                val field = fields[i]
+                field.type.erased.bind(statement, i, data[field])
+            }
             val id = statement.executeInsert()
             check(id != -1L)
             return id as ID
