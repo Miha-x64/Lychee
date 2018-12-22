@@ -61,9 +61,8 @@ fun <T> Property<T>.onEach(func: (T) -> Unit) {
         // if calledRef is still not null
         // and has value of 'false',
         // then our function was not called yet.
-        if (proxy.calledRef?.compareAndSet(false, true) == true) {
+        if (proxy.compareAndSet(false, true)) {
             func(value) // run function, ASAP!
-            proxy.calledRef = null
         } // else we have more fresh value, don't call func
     } else {
         addChangeListener { _, new -> func(new) }

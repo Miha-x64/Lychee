@@ -393,15 +393,10 @@ object Equals : (Any?, Any?) -> Boolean {
 }
 
 @PublishedApi
-internal abstract class OnEach<T> : ChangeListener<T>, (T) -> Unit {
-
-    internal var calledRef: AtomicBoolean? = AtomicBoolean(false)
+internal abstract class OnEach<T> : AtomicBoolean(), ChangeListener<T>, (T) -> Unit {
 
     override fun invoke(old: T, new: T) {
-        calledRef?.let {
-            it.set(true) // set eagerly, null out in lazy way
-            calledRef = null
-        }
+        set(true)
         invoke(new)
     }
 
