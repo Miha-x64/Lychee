@@ -13,6 +13,7 @@ dependencies {
     compile project(':persistence')
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile 'org.xerial:sqlite-jdbc:3.23.1'
 }
 
 compileKotlin {
