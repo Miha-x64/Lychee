@@ -1,12 +1,13 @@
 package net.aquadc.properties.internal
 
+import android.support.annotation.RestrictTo
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.executor.*
 
-
-internal open class `Mapped-`<in O, out T>(
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+open class `Mapped-`<in O, out T>(
         @JvmField internal val original: Property<@UnsafeVariance O>,
         @JvmField internal val map: (O) -> T,
         mapOn: Worker

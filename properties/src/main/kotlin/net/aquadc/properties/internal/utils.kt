@@ -1,6 +1,7 @@
 @file:JvmName("Internal\$Utils")
 package net.aquadc.properties.internal
 
+import android.support.annotation.RestrictTo
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 
@@ -65,7 +66,7 @@ internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T,
  * Despite this class is public, it is a private API. Don't ever touch this. Never.
  * Seriously. You're were warned.
  */
-@[JvmField JvmSynthetic Deprecated("Damn, don't touch this. Really.")]
+@[JvmField JvmSynthetic RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)]
 val Unset: Any = Any()
 
 @[JvmField JvmSynthetic] internal val SingleNull = arrayOfNulls<Any>(1)
