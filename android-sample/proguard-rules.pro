@@ -43,6 +43,9 @@
     private void findFxFactory(java.util.ArrayList); # bindings to JavaFX
     private void findFjFactory(java.util.ArrayList); # If you're not going to addChangeListener() on ForkJoin threads
 }
+-assumenosideeffects class net.aquadc.persistence.type.NoOp {
+    private void sanityCheck(java.lang.Object);
+}
 
 # keep volatile field names for AtomicFieldUpdater
 -keepclassmembernames class net.aquadc.properties.internal.** {

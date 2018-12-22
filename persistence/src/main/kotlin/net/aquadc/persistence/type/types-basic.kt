@@ -21,7 +21,7 @@ private class NoOp<T>(isNullable: Boolean, kind: Kind) : DataType.Simple<T>(isNu
         return value as T
     }
 
-    private fun sanityCheck(value: Any?) { // TODO: add a ProGuard rule to remove it
+    private fun sanityCheck(value: Any?) {
         if (value === null) throw NullPointerException()
         when (kind) {
             DataType.Simple.Kind.Bool -> value as Boolean
