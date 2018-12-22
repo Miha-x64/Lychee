@@ -28,9 +28,9 @@ internal class RealTransaction(
 
     // TODO: use special collections for Longs
 
-    override fun <SCH : Schema<SCH>, ID : IdBound> insert(
-            table: Table<SCH, ID, *>, data: Struct<SCH>
-    ): ID {
+    override fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(
+            table: Table<SCH, ID, REC>, data: Struct<SCH>
+    ): REC {
         checkOpenAndThread()
 
         val id = lowSession.insert(table, data)
@@ -53,7 +53,7 @@ internal class RealTransaction(
             }.also { }
         }
 
-        return id
+        return session[table].require(id)
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(

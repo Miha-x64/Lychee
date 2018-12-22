@@ -3,27 +3,23 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
-import net.aquadc.properties.sql.*
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullableString
 import net.aquadc.persistence.type.string
+import net.aquadc.properties.sql.*
 
 
 val Tables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tbl)
 
 
 fun Transaction.insertHuman(name: String, surname: String): Human =
-        Human(this, Human.build {
+        insert(Human.Tbl, Human.build {
                 it[Human.Name] = name
                 it[Human.Surname] = surname
         })
 
-class Human : Record<Human.Sch, Long> {
-
-    constructor(session: Session, id: Long) : super(Human.Tbl, session, id)
-    constructor(transaction: Transaction, source: Struct<Human.Sch>) : super(Human.Tbl, transaction, source)
+class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, session, id) {
 
     val nameProp get() = this prop Name
     val surname get() = this[Surname]
@@ -43,14 +39,11 @@ class Human : Record<Human.Sch, Long> {
 
 
 fun Transaction.insertCar(owner: Human): Car =
-        Car(this, Car.build {
+        insert(Car.Tbl, Car.build {
             it[Car.OwnerId] = owner.primaryKey
         })
 
-class Car : Record<Car.Sch, Long> {
-
-    constructor(session: Session, id: Long) : super(Tbl, session, id)
-    constructor(transaction: Transaction, source: Struct<Sch>) : super(Tbl, transaction, source)
+class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) {
 
     val ownerProp = OwnerId toOne Human.Tbl
     val conditionerModelProp get() = this prop ConditionerModel
@@ -67,15 +60,12 @@ class Car : Record<Car.Sch, Long> {
 
 
 fun Transaction.insertFriendship(left: Human, right: Human): Friendship =
-        Friendship(this, Friendship.build {
+        insert(Friendship.Tbl, Friendship.build {
             it[Friendship.LeftId] = left.primaryKey
             it[Friendship.RightId] = right.primaryKey
         })
 
-class Friendship : Record<Friendship.Sch, Long> {
-
-    constructor(session: Session, id: Long) : super(Tbl, session, id)
-    constructor(transaction: Transaction, source: Struct<Sch>) : super(Tbl, transaction, source)
+class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Tbl, session, id) {
 
     val leftProp = LeftId toOne Human.Tbl
     val rightProp = RightId toOne Human.Tbl

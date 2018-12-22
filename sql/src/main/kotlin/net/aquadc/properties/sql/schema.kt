@@ -79,7 +79,7 @@ interface Transaction : AutoCloseable {
 
     val session: Session
 
-    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T)
 
@@ -179,17 +179,14 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
 
+    /**
+     * Creates new record.
+     * Note that such a record is managed and alive (will receive updates) only if created by [Dao].
+     */
     constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) : super(table.schema) {
         this.table = table
         this.session = session
         this.primaryKey = primaryKey
-        this.values = createValues(session, table, primaryKey)
-    }
-
-    constructor(table: Table<SCH, ID, *>, transaction: Transaction, source: Struct<SCH>) : super(table.schema) {
-        this.table = table
-        this.session = transaction.session
-        this.primaryKey = transaction.insert(table, source)
         this.values = createValues(session, table, primaryKey)
     }
 
