@@ -4,7 +4,7 @@ package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.invoke
+import net.aquadc.persistence.struct.build
 import net.aquadc.properties.sql.*
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullableString
@@ -15,7 +15,7 @@ val Tables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tb
 
 
 fun Transaction.insertHuman(name: String, surname: String): Human =
-        Human(this, Human {
+        Human(this, Human.build {
                 it[Human.Name] = name
                 it[Human.Surname] = surname
         })
@@ -43,7 +43,7 @@ class Human : Record<Human.Sch, Long> {
 
 
 fun Transaction.insertCar(owner: Human): Car =
-        Car(this, Car {
+        Car(this, Car.build {
             it[Car.OwnerId] = owner.primaryKey
         })
 
@@ -67,7 +67,7 @@ class Car : Record<Car.Sch, Long> {
 
 
 fun Transaction.insertFriendship(left: Human, right: Human): Friendship =
-        Friendship(this, Friendship {
+        Friendship(this, Friendship.build {
             it[Friendship.LeftId] = left.primaryKey
             it[Friendship.RightId] = right.primaryKey
         })

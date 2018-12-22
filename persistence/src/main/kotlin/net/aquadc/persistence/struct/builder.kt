@@ -3,7 +3,7 @@ package net.aquadc.persistence.struct
 /**
  * Builds a [StructSnapshot] or throws if field value neither specified explicitly nor has a default.
  */
-inline operator fun <SCH : Schema<SCH>> SCH.invoke(build: (StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
+inline fun <SCH : Schema<SCH>> SCH.build(build: (StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
     val builder = newBuilder<SCH>(this)
     build(builder)
     return builder.finish(this)
