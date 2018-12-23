@@ -119,6 +119,7 @@ abstract class Schema<SELF : Schema<SELF>> {
 
 /**
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
+ * When treated as a function, returns value of this [FieldDef] on a given [Struct].
  * Note: constructors are internal to guarantee correct [ordinal] values.
  * @see StructDef
  * @see Struct
@@ -131,7 +132,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
         @JvmField val type: DataType<T>,
         @JvmField val ordinal: Byte,
         default: T
-) {
+) : (Struct<SCH>) -> T {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
@@ -144,6 +145,9 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
 
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset
+
+    override fun invoke(p1: Struct<SCH>): T =
+            p1[this]
 
     override fun toString(): String = schema.javaClass.simpleName + '.' + name
 
