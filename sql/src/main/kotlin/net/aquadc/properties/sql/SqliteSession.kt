@@ -2,7 +2,10 @@
 package net.aquadc.properties.sql
 
 import android.database.Cursor
+import android.database.sqlite.SQLiteCursor
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteProgram
+import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
@@ -131,20 +134,33 @@ class SqliteSession(
             val argValues = ArrayList<Any>()
             condition.appendValuesTo(argNames, argValues)
 
-            val selectionArgs = mapBothToArray(argNames, argValues) { name, value ->
-                val conv =
-                        if (name == table.idColName) table.idColType
-                        else table.schema.fieldsByName[name]!!.type
-                conv.erased.asString(value)
-            }
-
             return with(SqliteDialect) {
-                connection.query(
-                        table.name, // ...may reuse a single array
+                val sql = SQLiteQueryBuilder.buildQueryString( // fixme: building SQL myself may save some allocations
+                        /*distinct=*/false,
+                        table.name,
                         if (columnName == null) arrayOf("COUNT(*)") else arrayOf(columnName),
-                        StringBuilder().appendWhereClause(condition).toString(), selectionArgs,
-                        null, null,
-                        if (order.isEmpty()) null else StringBuilder().appendOrderClause(order).toString()
+                        StringBuilder().appendWhereClause(condition).toString(),
+                        /*groupBy=*/null,
+                        /*having=*/null,
+                        if (order.isEmpty()) null else StringBuilder().appendOrderClause(order).toString(),
+                        /*limit=*/null
+                )
+
+                // a workaround for binding BLOBS, as suggested in https://stackoverflow.com/a/23159664/3050249
+                connection.rawQueryWithFactory(
+                        { db, masterQuery, editTable, query ->
+                            forEachOfBoth(argNames, argValues) { idx, name, value ->
+                                val conv =
+                                        if (name == table.idColName) table.idColType
+                                        else table.schema.fieldsByName[name]!!.type
+                                conv.erased.bind(query, idx, value)
+                            }
+                            SQLiteCursor(masterQuery, editTable, query)
+                        },
+                        sql,
+                        /*selectionArgs=*/null,
+                        SQLiteDatabase.findEditTable(table.name),
+                        /*cancellationSignal=*/null
                 )
             }
         }
@@ -248,7 +264,7 @@ class SqliteSession(
         }
     }
 
-    private fun <T> DataType<T>.bind(statement: SQLiteStatement, index: Int, value: T) {
+    private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
         val i = 1 + index
         if (value == null) {
             check(isNullable)
@@ -270,23 +286,6 @@ class SqliteSession(
                     }
                 }
             }.also { }
-        }
-    }
-
-    private fun <T> DataType<T>.asString(value: T): String = when (this) {
-        is DataType.Simple<T> -> {
-            val v = encode(value!!)
-            when (kind) {
-                DataType.Simple.Kind.Bool,
-                DataType.Simple.Kind.I8,
-                DataType.Simple.Kind.I16,
-                DataType.Simple.Kind.I32,
-                DataType.Simple.Kind.I64,
-                DataType.Simple.Kind.F32,
-                DataType.Simple.Kind.F64 -> value.toString()
-                DataType.Simple.Kind.Str -> value as String
-                DataType.Simple.Kind.Blob -> TODO("binding a BLOB as selectionArgs?")
-            }
         }
     }
 
