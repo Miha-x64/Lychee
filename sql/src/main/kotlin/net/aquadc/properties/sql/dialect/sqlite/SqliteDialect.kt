@@ -88,7 +88,7 @@ object SqliteDialect : Dialect {
             val type = col.type
             sb.append(col.name).append(' ').append(nameOf(type))
             if (!type.isNullable) sb.append(" NOT NULL")
-            if (col.hasDefault) sb.appendDefault(col)
+            if (col.hasDefault) sb.appendDefault(col) // fixme: effectively useless
             sb.append(", ")
         }
         sb.setLength(sb.length - 2) // trim last comma
@@ -99,22 +99,26 @@ object SqliteDialect : Dialect {
         val type = col.type
         val value = col.default
         append(" DEFAULT ")
-        when (type) {
-            is DataType.Simple<T> -> {
-                val v = type.encode(value)
-                when (type.kind) {
-                    DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
-                    DataType.Simple.Kind.I8,
-                    DataType.Simple.Kind.I16,
-                    DataType.Simple.Kind.I32,
-                    DataType.Simple.Kind.I64,
-                    DataType.Simple.Kind.F32,
-                    DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
-                    DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
-                    DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
+        if (value === null) {
+            append("NULL")
+        } else {
+            when (type) {
+                is DataType.Simple<T> -> {
+                    val v = type.encode(value)
+                    when (type.kind) {
+                        DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
+                        DataType.Simple.Kind.I8,
+                        DataType.Simple.Kind.I16,
+                        DataType.Simple.Kind.I32,
+                        DataType.Simple.Kind.I64,
+                        DataType.Simple.Kind.F32,
+                        DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
+                        DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
+                        DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
+                    }
                 }
-            }
-        }.also { }
+            }.also { }
+        }
     }
 
     private val hexChars = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
