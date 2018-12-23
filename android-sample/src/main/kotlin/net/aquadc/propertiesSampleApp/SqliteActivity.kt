@@ -124,11 +124,8 @@ class SqliteActivity : Activity() {
                                     TextView(parent.context).apply {
                                         layoutParams = RecyclerView.LayoutParams(matchParent, wrapContent)
                                         setPadding(dip(16), dip(8), dip(16), dip(8))
-                                        val tv = TypedValue()
-                                        context.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)
-                                        backgroundResource = tv.resourceId
-                                        textAppearance = android.R.style.TextAppearance_Medium
-                                        textColor = Color.BLACK
+                                        backgroundResource = attr(android.R.attr.selectableItemBackground).resourceId
+                                        textAppearance = attr(android.R.attr.textAppearanceListItemSmall).resourceId
                                     },
                                     { vm.selectedProp.value = list.value[it] },
                                     null
