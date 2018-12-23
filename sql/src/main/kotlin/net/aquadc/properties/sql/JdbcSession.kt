@@ -137,12 +137,13 @@ class JdbcSession(
                     .getOrSet(::HashMap)
                     .getOrPut(query) { connection.prepareStatement(query) }
                     .also { stmt ->
-                        val list = ArrayList<Pair<String, Any>>()
-                        condition.appendValuesTo(list)
-                        list.forEachIndexed { idx, (name, value) ->
+                        val argNames = ArrayList<String>()
+                        val argValues = ArrayList<Any>()
+                        condition.appendValuesTo(argNames, argValues)
+                        forEachOfBoth(argNames, argValues) { idx, name, value ->
                             val conv =
                                     if (name == table.idColName) table.idColType
-                                    else table.schema.fields.first { it.name == name }.type
+                                    else table.schema.fieldsByName[name]!!.type
                             conv.erased.bind(stmt, idx, value)
                         }
                     }

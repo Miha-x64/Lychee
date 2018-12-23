@@ -31,7 +31,7 @@ abstract class Schema<SELF : Schema<SELF>> {
     private val _fields =
             lazy(LazyFields(0) as () -> List<FieldDef<SELF, *>>)
 
-    val byName: Map<String, FieldDef<SELF, *>>
+    val fieldsByName: Map<String, FieldDef<SELF, *>>
         get() = _byName.value
     private val _byName =
             lazy(LazyFields(1) as () -> Map<String, FieldDef<SELF, *>>)

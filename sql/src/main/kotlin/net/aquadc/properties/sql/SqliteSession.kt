@@ -127,13 +127,14 @@ class SqliteSession(
                 condition: WhereCondition<out SCH>,
                 order: Array<out Order<out SCH>>
         ): Cursor {
-            val args = ArrayList<Pair<String, Any>>() // why not `Any?`? Because you can't treat ` = ?` as `IS NULL`.
-            condition.appendValuesTo(args)
+            val argNames = ArrayList<String>()
+            val argValues = ArrayList<Any>()
+            condition.appendValuesTo(argNames, argValues)
 
-            val selectionArgs = args.mapToArray { (name, value) ->
-                val conv = // looks like a slow place
+            val selectionArgs = mapBothToArray(argNames, argValues) { name, value ->
+                val conv =
                         if (name == table.idColName) table.idColType
-                        else table.schema.fields.first { it.name == name }.type
+                        else table.schema.fieldsByName[name]!!.type
                 conv.erased.asString(value)
             }
 

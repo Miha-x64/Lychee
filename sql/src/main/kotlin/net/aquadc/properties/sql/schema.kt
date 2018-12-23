@@ -262,3 +262,22 @@ internal inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Arra
     @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
     return array as Array<R>
 }
+
+internal inline fun <T, U, reified R> mapBothToArray(left: List<T>, right: List<U>, transform: (T, U) -> R): Array<R> {
+    val size = left.size
+    check(right.size == size)
+    val array = arrayOfNulls<R>(size)
+    for (i in 0 until size) {
+        array[i] = transform(left[i], right[i])
+    }
+    @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
+    return array as Array<R>
+}
+
+internal inline fun <T, U> forEachOfBoth(left: List<T>, right: List<U>, block: (Int, T, U) -> Unit): Unit {
+    val size = left.size
+    check(right.size == size)
+    for (i in 0 until size) {
+        block(i, left[i], right[i])
+    }
+}

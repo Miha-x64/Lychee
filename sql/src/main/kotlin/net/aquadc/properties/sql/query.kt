@@ -20,16 +20,17 @@ interface WhereCondition<SCH : Schema<SCH>> {
     fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder
 
     /**
-     * Appends contained colName-value-pairs to the given [list].
+     * Appends contained colName-value-pairs to the given [colNames] and [colValues] lists.
+     * [colValues] has non-nullable type because you can't treat ` = ?` as `IS NULL`.
      */
-    fun appendValuesTo(list: ArrayList<Pair<@ParameterName("colName") String, @ParameterName("value") Any>>)
+    fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>)
 
     /**
      * Represents an absence of any conditions.
      */
     object Empty : WhereCondition<Nothing> {
         override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-        override fun appendValuesTo(list: ArrayList<Pair<String, Any>>) = Unit
+        override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) = Unit
     }
 
 }
@@ -59,9 +60,16 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder =
             with(dialect) { builder.appendName(colName) }.append(op)
 
-    override fun appendValuesTo(list: ArrayList<Pair<String, Any>>) {
-        if (singleValue) list.add(colName to valueOrValues)
-        else (valueOrValues as Array<out Any>).forEach { value -> list.add(colName to value) }
+    override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {
+        if (singleValue) {
+            colNames.add(colName)
+            colValues.add(valueOrValues)
+        } else {
+            (valueOrValues as Array<out Any>).forEach { value ->
+                colNames.add(colName)
+                colValues.add(value)
+            }
+        }
     }
 
 }
@@ -80,9 +88,9 @@ internal class BiCond<SCH : Schema<SCH>>(
                 .append(')')
     }
 
-    override fun appendValuesTo(list: ArrayList<Pair<String, Any>>) {
-        left.appendValuesTo(list)
-        right.appendValuesTo(list)
+    override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {
+        left.appendValuesTo(colNames, colValues)
+        right.appendValuesTo(colNames, colValues)
     }
 
 }

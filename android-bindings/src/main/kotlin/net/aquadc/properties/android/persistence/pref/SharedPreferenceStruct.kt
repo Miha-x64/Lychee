@@ -100,7 +100,7 @@ class SharedPreferenceStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactional
 
         // `SharedPreferences` keeps a weak reference and not going to leak us
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-            val field = schema.byName[key] ?: return
+            val field = schema.fieldsByName[key] ?: return
             val idx = field.ordinal.toInt()
             val value = field.get(sharedPreferences)
             when (field) {
