@@ -142,4 +142,7 @@ infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.or(that: WhereCondition<SCH>):
         BiCond(this, false, that)
 
 
+/**
+ * Builder for [between] and [notBetween]. E. g. `(SomeSchema.Field between lower..upper)`
+ */
 inline operator fun <reified T> T.rangeTo(that: T): Array<T> = arrayOf(this, that)
