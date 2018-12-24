@@ -98,9 +98,9 @@ class SqlPropTest {
     private fun createTestRecord() =
             sess.withTransaction {
                 insert(SomeTable, SomeSchema.build {
-                    it[SomeSchema.A] = "first"
-                    it[SomeSchema.B] = 2
-                    it[SomeSchema.C] = 3
+                    it[A] = "first"
+                    it[B] = 2
+                    it[C] = 3
                 })
             }
 

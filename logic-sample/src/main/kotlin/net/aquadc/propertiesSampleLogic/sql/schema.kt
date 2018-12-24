@@ -15,8 +15,8 @@ val Tables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tb
 
 fun Transaction.insertHuman(name: String, surname: String): Human =
         insert(Human.Tbl, Human.build {
-                it[Human.Name] = name
-                it[Human.Surname] = surname
+                it[Name] = name
+                it[Surname] = surname
         })
 
 class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, session, id) {
@@ -40,7 +40,7 @@ class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, ses
 
 fun Transaction.insertCar(owner: Human): Car =
         insert(Car.Tbl, Car.build {
-            it[Car.OwnerId] = owner.primaryKey
+            it[OwnerId] = owner.primaryKey
         })
 
 class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) {
@@ -61,8 +61,8 @@ class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) 
 
 fun Transaction.insertFriendship(left: Human, right: Human): Friendship =
         insert(Friendship.Tbl, Friendship.build {
-            it[Friendship.LeftId] = left.primaryKey
-            it[Friendship.RightId] = right.primaryKey
+            it[LeftId] = left.primaryKey
+            it[RightId] = right.primaryKey
         })
 
 class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Tbl, session, id) {
