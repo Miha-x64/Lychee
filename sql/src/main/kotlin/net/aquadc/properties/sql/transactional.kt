@@ -18,13 +18,10 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
     override fun <T> get(field: FieldDef<SCH, T>): T =
             record[field]
 
-    // places for immutable fields remain nulls,
-    // places for mutable ones are lazily occupied by our wrappers
-    // TODO: smaller array size :)
-    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(record.schema.fields.size)
+    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(record.schema.mutableFields.size)
 
     override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> {
-        val index = field.ordinal.toInt()
+        val index = field.mutableOrdinal.toInt()
         return (props[index] as TransactionalProperty<StructTransaction<SCH>, T>?)
                 ?: record.prop(field).transactional(field).also { props[index] = it }
     }

@@ -90,14 +90,14 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         @JvmField @JvmSynthetic internal val observable: ObservableStruct<SCH>
 ) : BaseStruct<SCH>(observable.schema), TransactionalPropertyStruct<SCH> {
 
-    private val values = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(observable.schema.fields.size)
+    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(observable.schema.mutableFields.size)
 
     override fun <T> get(field: FieldDef<SCH, T>): T =
             observable[field]
 
     override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> {
-        val index = field.ordinal.toInt()
-        val prop = values[index] ?: (observable prop field).transactional<SCH, T>().also { values[index] = it }
+        val index = field.mutableOrdinal.toInt()
+        val prop = props[index] ?: (observable prop field).transactional<SCH, T>().also { props[index] = it }
         return (prop as TransactionalProperty<StructTransaction<SCH>, T>)
     }
 
