@@ -41,6 +41,13 @@ abstract class Schema<SELF : Schema<SELF>> {
     private val _mutableFields =
             lazy(LazyFields(2) as () -> List<FieldDef.Mutable<SELF, *>>)
 
+    val immutableFields: List<FieldDef.Immutable<SELF, *>>
+        get() = _immutableFields.value
+    private val _immutableFields =
+            lazy(LazyFields(3) as () -> List<FieldDef.Immutable<SELF, *>>)
+
+    private var tmpMutableCount: Byte = 0
+
     /**
      * Gets called before this fully initialized structDef gets used for the first time.
      */
@@ -62,7 +69,7 @@ abstract class Schema<SELF : Schema<SELF>> {
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
         val converter = dataType
-        val col = FieldDef.Mutable(this@Schema, this, converter, fields.size.toByte(), default)
+        val col = FieldDef.Mutable(this@Schema, this, converter, fields.size.toByte(), default, tmpMutableCount++)
         fields.add(col)
         return col
     }
@@ -73,7 +80,7 @@ abstract class Schema<SELF : Schema<SELF>> {
     protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
         val converter = dataType
-        val col = FieldDef.Immutable(this@Schema, this, converter, fields.size.toByte())
+        val col = FieldDef.Immutable(this@Schema, this, converter, fields.size.toByte(), (fields.size - tmpMutableCount).toByte())
         fields.add(col)
         return col
     }
@@ -108,6 +115,9 @@ abstract class Schema<SELF : Schema<SELF>> {
 
             2 ->
                 unmodifiableList(fields.filterIsInstance<FieldDef.Mutable<SELF, *>>())
+
+            3 ->
+                unmodifiableList(fields.filterIsInstance<FieldDef.Immutable<SELF, *>>())
 
             else ->
                 throw AssertionError()
@@ -159,7 +169,8 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
             name: String,
             converter: DataType<T>,
             ordinal: Byte,
-            default: T
+            default: T,
+            @JvmField val mutableOrdinal: Byte
     ) : FieldDef<SCH, T>(schema, name, converter, ordinal, default)
 
     /**
@@ -170,7 +181,8 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
             schema: Schema<SCH>,
             name: String,
             converter: DataType<T>,
-            ordinal: Byte
+            ordinal: Byte,
+            @JvmField val immutableOrdinal: Byte
     ) : FieldDef<SCH, T>(schema, name, converter, ordinal, Unset as T)
 
 }
