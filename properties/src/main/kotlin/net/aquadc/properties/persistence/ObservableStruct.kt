@@ -33,9 +33,9 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         }
     }
 
-    /**
+    /*
      * Constructs a new observable struct filled with default values.
-     */
+     * unsafe
     constructor(type: SCH, concurrent: Boolean) : super(type) {
         val fields = type.fields
         values = Array(fields.size) { i ->
@@ -46,7 +46,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
                 is FieldDef.Immutable<SCH, *> -> value
             }
         }
-    }
+    }*/
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(field: FieldDef<SCH, T>): T {
