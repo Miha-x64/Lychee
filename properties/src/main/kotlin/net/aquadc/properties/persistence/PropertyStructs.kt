@@ -46,16 +46,3 @@ fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> =
                 }
             })
         }
-
-/**
- * 'Template method' implementation for the case where ManagedProperty's Manager performs writes.
- */
-abstract class PropStructTransaction<SCH : Schema<SCH>>(
-        private val struct: TransactionalPropertyStruct<SCH>
-) : SimpleStructTransaction<SCH>() {
-
-    final override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) {
-        (struct prop field).setValue(this, update)
-    }
-
-}

@@ -1,10 +1,18 @@
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.struct.*
+import net.aquadc.persistence.struct.BaseStruct
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.SimpleStructTransaction
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructTransaction
+import net.aquadc.persistence.struct.forEach
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.identity
+import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.propertyOf
 
@@ -97,16 +105,29 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
     override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> {
         val index = field.mutableOrdinal.toInt()
-        val prop = props[index] ?: (observable prop field).transactional<SCH, T>().also { props[index] = it }
+        val prop = props[index] ?: observable.transactional(field).also { props[index] = it }
         return (prop as TransactionalProperty<StructTransaction<SCH>, T>)
     }
 
-    override fun beginTransaction(): StructTransaction<SCH> = object : PropStructTransaction<SCH>(this) {
+    override fun beginTransaction(): StructTransaction<SCH> = object : SimpleStructTransaction<SCH>() {
+
+        private val patch = Array<Any?>(schema.mutableFields.size) { Unset }
+
+        override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) {
+            patch[field.mutableOrdinal.toInt()] = update
+        }
 
         override fun close() {
             when (successful) {
-                true -> Unit // nothing to do here
-                false -> error("Oops... rollback is not supported") // TODO
+                true -> {
+                    val fields = schema.mutableFields
+                    for (i in fields.indices) {
+                        if (patch[i] !== Unset) {
+                            (observable.prop(fields[i]) as MutableProperty<Any?>).value = patch[i]
+                        }
+                    }
+                }
+                false -> Unit // nothing to do here
                 null -> error("attempting to close an already closed transaction")
             }
             successful = null
@@ -114,11 +135,11 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
     }
 
-    private fun <SCH : Schema<SCH>, T> MutableProperty<T>
-            .transactional(): TransactionalProperty<StructTransaction<SCH>, T> =
-            object : `Mapped-`<T, T>(this@transactional, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
+    private fun <T> ObservableStruct<SCH>
+            .transactional(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> =
+            object : `Mapped-`<T, T>(this@transactional prop field, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
                 override fun setValue(transaction: StructTransaction<SCH>, value: T) {
-                    this@transactional.value = value
+                    transaction[field] = value
                 }
             }
 

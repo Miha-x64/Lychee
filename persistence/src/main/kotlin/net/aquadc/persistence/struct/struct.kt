@@ -72,14 +72,14 @@ abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SC
  * Calls [block] inside a transaction to mutate [this].
  */
 @UseExperimental(ExperimentalContracts::class)
-inline fun <SCH : Schema<SCH>, R> TransactionalStruct<SCH>.transaction(block: (StructTransaction<SCH>) -> R): R {
+inline fun <SCH : Schema<SCH>, R> TransactionalStruct<SCH>.transaction(block: SCH.(StructTransaction<SCH>) -> R): R {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
 
     val transaction = beginTransaction()
     try {
-        val r = block(transaction)
+        val r = schema.block(transaction)
         transaction.setSuccessful()
         return r
     } finally {
