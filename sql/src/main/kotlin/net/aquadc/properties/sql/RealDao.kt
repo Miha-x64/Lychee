@@ -9,6 +9,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.function.Arrayz
 import net.aquadc.properties.internal.IdManagedProperty
+import net.aquadc.properties.internal.`Mapped-`
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,7 +24,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     private val records = ConcurrentHashMap<Long, REC>()
 
     // SELECT COUNT(*) WHERE ...
-    private val counts = ConcurrentHashMap<WhereCondition<out SCH>, MutableProperty<WhereCondition<out SCH>>>()
+    private val counts = ConcurrentHashMap<WhereCondition<out SCH>, `Mapped-`<WhereCondition<out SCH>, Long>>()
 
     // SELECT _id WHERE ...
     private val selections = Vector<MutableProperty<WhereCondition<out SCH>>>() // coding like in 1995, yay! TODO: deduplication
@@ -55,8 +56,10 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         selections.forEach {
             it.value = it.value
         }
-        counts.forEach { (_, it) ->
-            it.value = it.value
+        counts.values.forEach { it ->
+            (it.original as MutableProperty).let {
+                it.value = it.value
+            }
         }
     }
 
@@ -106,8 +109,8 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     override fun count(condition: WhereCondition<out SCH>): Property<Long> =
             counts.getOrPut(condition) {
-                concurrentPropertyOf(condition)
-            }.map(Count(table, lowSession)) // todo cache, too
+                concurrentPropertyOf(condition).map(Count(table, lowSession)) as `Mapped-`<WhereCondition<out SCH>, Long>
+            }
 
     // endregion Dao implementation
 
