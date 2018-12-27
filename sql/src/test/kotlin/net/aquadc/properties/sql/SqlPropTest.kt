@@ -5,6 +5,7 @@ import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.properties.testing.SomeSchema
 import org.junit.Assert.*
 import org.junit.Test
 import java.sql.DriverManager
