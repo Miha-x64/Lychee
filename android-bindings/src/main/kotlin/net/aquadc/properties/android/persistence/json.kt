@@ -14,7 +14,32 @@ import net.aquadc.persistence.type.DataType
 
 
 /**
- * Reads a single [StructSnapshot] according to [SCH],
+ * Reads a JSON 'array' of 'objects' as a list of [StructSnapshot]s according to [SCH],
+ * consuming both opening and closing square braces.
+ * Each object is read using [read].
+ */
+fun <SCH : Schema<SCH>> JsonReader.readListOf(schema: SCH): List<StructSnapshot<SCH>> {
+    beginArray()
+    val list = if (!hasNext()) emptyList() else {
+        val first = read(schema)
+
+        if (!hasNext()) listOf(first) else {
+            val list = ArrayList<StructSnapshot<SCH>>()
+            list.add(first)
+
+            do list.add(read(schema))
+            while (hasNext())
+
+            list
+        }
+    }
+    endArray()
+
+    return list
+}
+
+/**
+ * Reads a JSON 'object' as a single [StructSnapshot] according to [SCH],
  * ignoring key-value pairs not listed in [SCH],
  * consuming both opening and closing curly braces.
  * Throws an exception if there was no value for any [FieldDef] without a default value,
@@ -52,6 +77,17 @@ private fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilde
             })
         }
     }
+}
+
+/**
+ * Writes a list of [Struct]s as a JSON 'array' of 'objects',
+ * including both opening and closing square braces.
+ * Each object is written using [write] ([Struct]) overload`.
+ */
+fun <SCH : Schema<SCH>> JsonWriter.write(list: List<Struct<SCH>>) {
+    beginArray()
+    list.forEach { write(it) }
+    endArray()
 }
 
 /**
