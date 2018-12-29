@@ -7,6 +7,8 @@ import android.support.annotation.RestrictTo
  */
 class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
+    // may become an inline-class when hashCode/equals will be allowed
+
     private val values: Array<Any?>
 
     constructor(source: Struct<SCH>) : super(source.schema) {

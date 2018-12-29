@@ -112,6 +112,7 @@ class Order<SCH : Schema<SCH>>(
         @JvmField internal val col: FieldDef<SCH, *>,
         @JvmField internal val desc: Boolean
 ) {
+    // may become an inline-class when hashCode/equals will be allowed
 
     override fun hashCode(): Int = // yep, orders on different structs may have interfering hashes
             (if (desc) 0x100 else 0) or col.ordinal.toInt()
