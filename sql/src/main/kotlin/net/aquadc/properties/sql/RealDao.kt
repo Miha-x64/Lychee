@@ -1,19 +1,29 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.properties.*
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.Property
+import net.aquadc.properties.concurrentPropertyOf
+import net.aquadc.properties.distinct
 import net.aquadc.properties.function.Arrayz
 import net.aquadc.properties.internal.IdManagedProperty
+import net.aquadc.properties.internal.`Distinct-`
 import net.aquadc.properties.internal.`Mapped-`
-import java.util.*
+import net.aquadc.properties.map
+import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
-// TODO: evicting stale records, counts, and selections
+
 internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val session: Session,
         private val lowSession: LowLevelSession,
@@ -21,23 +31,27 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val dialect: Dialect
 ) : Dao<SCH, ID, REC>, Manager<SCH, Transaction>() {
 
-    private val records = ConcurrentHashMap<Long, REC>()
+    // there's no ReferenceQueue, just evict when reference gets nulled out
+
+    private val recordRefs = ConcurrentHashMap<Long, WeakReference<REC>>()
 
     // SELECT COUNT(*) WHERE ...
-    private val counts = ConcurrentHashMap<WhereCondition<out SCH>, `Mapped-`<WhereCondition<out SCH>, Long>>()
+    private val counts = ConcurrentHashMap<WhereCondition<out SCH>, WeakReference<`Mapped-`<WhereCondition<out SCH>, Long>>>()
 
     // SELECT _id WHERE ...
-    private val selections = Vector<MutableProperty<WhereCondition<out SCH>>>() // coding like in 1995, yay! TODO: deduplication
-
-    private val orderedSelections = ConcurrentHashMap<FieldDef<SCH, *>, Vector<MutableProperty<WhereCondition<out SCH>>>>()
+    private val selections = ConcurrentHashMap<ConditionAndOrder<SCH>, WeakReference<Property<List<REC>>>>()
+    // same items here, but in different format
+    private val selectionsByOrder = ConcurrentHashMap<FieldDef<SCH, *>, CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>>()
 
     @Suppress("UNCHECKED_CAST")
     internal fun <T> commitValue(localId: Long, column: FieldDef.Mutable<SCH, T>, value: T) {
-        (records[localId]?.values?.get(column.ordinal.toInt()) as ManagedProperty<SCH, Transaction, T>?)?.commit(value)
+        recordRefs.getWeakOrRemove(localId)?.let { rec ->
+            (rec.values[column.ordinal.toInt()] as ManagedProperty<SCH, Transaction, T>).commit(value)
+        }
     }
 
     internal fun dropManagement(localId: Long) {
-        records.remove(localId)?.let { record ->
+        recordRefs.remove(localId)?.get()?.let { record ->
             val defs = record.table.schema.fields
             val fields = record.values
             for (i in defs.indices) {
@@ -53,40 +67,79 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     internal fun onStructuralChange() {
         // TODO: trigger this only if something has changed
 
-        selections.forEach {
-            it.value = it.value
-        }
-        counts.values.forEach { it ->
-            (it.original as MutableProperty).let {
-                it.value = it.value
-            }
+        selections.values.iterateWeakOrRemove(::updateSelection)
+
+        counts.values.iterateWeakOrRemove {
+            (it.original as MutableProperty).let { it.value = it.value } // trigger update
         }
     }
 
     internal fun onOrderChange(affectedCols: List<Pair<Table<SCH, *, *>, FieldDef<SCH, *>>>) {
         affectedCols.forEach { (_, col) ->
-            orderedSelections[col]?.forEach {
-                it.value = it.value
-            }
+            selectionsByOrder[col]?.iterateWeakOrRemove(::updateSelection)
         }
+    }
+
+    private fun updateSelection(selection: Property<List<REC>>) {
+        val mapped = selection as `Mapped-`<*, *>
+        val distinct = mapped.original as `Distinct-`
+        val anotherMapped = distinct.original as `Mapped-`<*, *>
+        val mutable = anotherMapped.original as MutableProperty<WhereCondition<out SCH>> // lol, some bad code right here
+        mutable.value = mutable.value
     }
 
     fun dump(prefix: String, sb: StringBuilder) {
         sb.append(prefix).append("records\n")
-        records.forEach { (localId, rec) ->
-            sb.append(prefix).append(" ").append(localId).append(" : ").append(rec).append("\n")
+        recordRefs.forEach { (localId, recRef) ->
+            recRef.get()?.let { rec ->
+                sb.append(prefix).append(" ").append(localId).append(" : ").append(rec).append("\n")
+            }
         }
 
         sb.append(prefix).append("counts\n")
-        counts.keys.forEach { cond ->
-            sb.append(prefix).append(" ").let { cond.appendSqlTo(dialect, it) }.append("\n")
+        counts.entries.forEach { (cond, ref) ->
+            if (ref.get() != null)
+                sb.append(prefix).append(" ").let { cond.appendSqlTo(dialect, it) }.append("\n")
         }
 
         sb.append(prefix).append("selections\n")
-        selections.forEach { sel ->
-            sb.append(prefix).append(" ").let { sel.value.appendSqlTo(dialect, it) }.append("\n")
+        selections.forEach { (cor, ref) ->
+            if (ref.get() !== null) {
+                sb.append(prefix).append(" ").let {
+                    cor.condition.appendSqlTo(dialect, it)
+                    if (!cor.order.isEmpty()) {
+                        it.append(" ORDER BY ...")
+                    }
+                }
+                sb.append("\n")
+            }
         }
 
+    }
+
+    private fun <K, V : Any> ConcurrentMap<K, WeakReference<V>>.getWeakOrRemove(key: K): V? {
+        val ref = get(key)
+        return if (ref === null) {
+            null
+        } else {
+            val value = ref.get()
+            if (value === null) {
+                remove(key, ref)
+                null
+            } else {
+                value
+            }
+        }
+    }
+
+    private fun <E : Any> MutableIterable<WeakReference<E>>.iterateWeakOrRemove(func: (E) -> Unit) {
+        val itr = iterator()
+        while (itr.hasNext()) {
+            val ref = itr.next()
+            val el = ref.get()
+            if (el === null) itr.remove()
+            else func(el)
+        }
     }
 
     // region Dao implementation
@@ -94,21 +147,29 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     override fun find(id: ID): REC? {
         if (!lowSession.exists(table, id)) return null
         val localId = lowSession.localId(table, id)
-        return records.getOrPut<Long, REC>(localId) { table.newRecord(session, id) }
+        return recordRefs.getOrPutWeak(localId) { table.newRecord(session, id) }
     }
 
     override fun select(condition: WhereCondition<out SCH>, vararg order: Order<SCH>): Property<List<REC>> {
-        val prop = concurrentPropertyOf(condition)
-        selections.add(prop)
-        order.forEach { orderedSelections.getOrPut(it.col, ::Vector).add(prop) }
+        val cor = ConditionAndOrder(condition, order)
+        val ref: WeakReference<Property<List<REC>>>
+        val prop: Property<List<REC>>
+        selections.getOrPutWeak(cor, {
+            concurrentPropertyOf(cor)
+                    .map(PrimaryKeys(table, lowSession))
+                    .distinct(Arrayz.Equal)
+                    .map(Query(this))
+        }) { r, p ->
+            // ugly one ;)
+            ref = r
+            prop = p
+        }
+        order.forEach { selectionsByOrder.getOrPut(it.col, ::CopyOnWriteArraySet).add(ref) }
         return prop
-                .map(PrimaryKeys(table, lowSession, order))
-                .distinct(Arrayz.Equal)
-                .map(Query(this, table, lowSession, condition, order))
     }
 
     override fun count(condition: WhereCondition<out SCH>): Property<Long> =
-            counts.getOrPut(condition) {
+            counts.getOrPutWeak(condition) {
                 concurrentPropertyOf(condition).map(Count(table, lowSession)) as `Mapped-`<WhereCondition<out SCH>, Long>
             }
 
@@ -177,4 +238,24 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     private inline fun <T> unset(): T =
             Unset as T
 
+}
+
+private inline fun <K, V : Any> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V): V =
+        getOrPutWeak(key, create) { _, v -> v }
+
+@UseExperimental(ExperimentalContracts::class)
+private inline fun <K, V : Any, R> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V, success: (WeakReference<V>, V) -> R): R {
+    contract {
+        callsInPlace(success, InvocationKind.EXACTLY_ONCE)
+    }
+
+    while (true) {
+        val ref = getOrPut(key) {
+            // putIfAbsent here may return either newly created or concurrently inserted value
+            WeakReference(create())
+        }
+        val value = ref.get()
+        if (value === null) remove(key, ref)
+        else return success(ref, value)
+    }
 }

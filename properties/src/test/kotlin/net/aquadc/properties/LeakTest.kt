@@ -3,7 +3,7 @@ package net.aquadc.properties
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.Objectz
-import org.junit.Assert.assertEquals
+import net.aquadc.properties.testing.assertGarbage
 import org.junit.Test
 import java.lang.ref.WeakReference
 import java.util.concurrent.ForkJoinPool
@@ -94,17 +94,6 @@ class LeakTest {
 
         // hold the original property!
         original.value = "changed"
-    }
-
-    private fun assertGarbage(ref: WeakReference<*>) {
-        System.gc()
-        if (ref.get() != null) {
-            // this happens sometimes
-            Thread.yield()
-            System.gc()
-            Thread.yield()
-        }
-        assertEquals(null, ref.get())
     }
 
 }

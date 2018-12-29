@@ -1,12 +1,13 @@
 package net.aquadc.properties.internal
 
+import android.support.annotation.RestrictTo
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
 
-@PublishedApi
-internal class `Distinct-`<out T>(
-        private val original: Property<T>,
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+class `Distinct-`<out T>(
+        @JvmField @JvmSynthetic val original: Property<T>,
         private val areEqual: (T, T) -> Boolean
 ) : `-Notifier`<T>(original.isConcurrent), ChangeListener<@UnsafeVariance T> {
 

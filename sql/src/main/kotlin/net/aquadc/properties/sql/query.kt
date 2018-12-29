@@ -1,10 +1,14 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.realHashCode
+import net.aquadc.persistence.reallyEqual
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.internal.emptyArrayOf
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
+import java.lang.Math.max
+import java.lang.Math.min
 
 
 /**
@@ -72,6 +76,26 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ColCond<*, *>) return false
+
+        if (colName != other.colName) return false
+        if (op != other.op) return false
+        if (singleValue != other.singleValue) return false
+        if (!reallyEqual(valueOrValues, other.valueOrValues)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = colName.hashCode()
+        result = 31 * result + op.hashCode()
+        result = 31 * result + singleValue.hashCode()
+        result = 31 * result + valueOrValues.realHashCode()
+        return result
+    }
+
 }
 
 internal class BiCond<SCH : Schema<SCH>>(
@@ -91,6 +115,25 @@ internal class BiCond<SCH : Schema<SCH>>(
     override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {
         left.appendValuesTo(colNames, colValues)
         right.appendValuesTo(colNames, colValues)
+    }
+
+    override fun hashCode(): Int {
+        val lh = left.hashCode()
+        val rh = right.hashCode()
+        val low = 31 * min(lh, rh)
+        val hi = max(lh, rh)
+        return if (and) low and hi else low or hi
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other === this) return true
+        if (other !is BiCond<*>) return false
+
+        if (other.and != and) return false
+        if (other.left == left && other.right == right) return true
+        if (other.left == right && other.right == left) return true
+
+        return false
     }
 
 }

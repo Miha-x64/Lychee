@@ -85,6 +85,9 @@ abstract class Schema<SELF : Schema<SELF>> {
         return col
     }
 
+    override fun toString(): String =
+            javaClass.simpleName
+
     private inner class LazyFields(
             private val mode: Int
     ) : () -> Any? {

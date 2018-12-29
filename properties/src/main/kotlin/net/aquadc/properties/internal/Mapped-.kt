@@ -9,7 +9,7 @@ import net.aquadc.properties.executor.*
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 open class `Mapped-`<in O, out T>(
         @JvmField @JvmSynthetic val original: Property<@UnsafeVariance O>,
-        @JvmField internal val map: (O) -> T,
+        @JvmField @JvmSynthetic internal val map: (O) -> T,
         mapOn: Worker
 ) : `Notifier-1AtomicRef`<T, @UnsafeVariance T>(original.isConcurrent, unset()) {
 

@@ -111,7 +111,16 @@ interface Transaction : AutoCloseable {
 class Order<SCH : Schema<SCH>>(
         @JvmField internal val col: FieldDef<SCH, *>,
         @JvmField internal val desc: Boolean
-)
+) {
+
+    override fun hashCode(): Int = // yep, orders on different structs may have interfering hashes
+            (if (desc) 0x100 else 0) or col.ordinal.toInt()
+
+    override fun equals(other: Any?): Boolean =
+            other === this ||
+                    (other is Order<*> && other.col === col && other.desc == desc)
+
+}
 
 val <SCH : Schema<SCH>> FieldDef<SCH, *>.asc: Order<SCH>
     get() = Order(this, false)
@@ -125,7 +134,6 @@ val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
  * @param SCH self, i. e. this table
  * @param ID  primary key type
  * @param REC type of record, which can be simply `Record<SCH>` or a custom class extending [Record]
- * TODO aggregate instead of extending
  */
 abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         val schema: SCH,
@@ -142,6 +150,9 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     init {
         check(schema.fields.all { idColName != it.name }) { "duplicate column: `$name`.`$idColName`" }
     }
+
+    override fun toString(): String =
+            "Table(schema=$schema, name=$name, ${1+schema.fields.size} columns)"
 
 }
 
