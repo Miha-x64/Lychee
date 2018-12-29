@@ -4,6 +4,8 @@ import android.content.SharedPreferences
 import android.util.Base64
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.type.DataType
+import net.aquadc.properties.android.persistence.assertFitsByte
+import net.aquadc.properties.android.persistence.assertFitsShort
 
 
 internal fun <T> FieldDef<*, T>.get(prefs: SharedPreferences): T {
@@ -43,18 +45,6 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T? {
             })
         }
     }
-}
-
-private fun Int.assertFitsByte(): Byte {
-    if (this !in Byte.MIN_VALUE..Byte.MAX_VALUE)
-        throw IllegalStateException("value ${this} cannot be fit into a byte")
-    return toByte()
-}
-
-private fun Int.assertFitsShort(): Byte {
-    if (this !in Short.MIN_VALUE..Short.MAX_VALUE)
-        throw IllegalStateException("value ${this} cannot be fit into a short")
-    return toByte()
 }
 
 internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, value: T) {
