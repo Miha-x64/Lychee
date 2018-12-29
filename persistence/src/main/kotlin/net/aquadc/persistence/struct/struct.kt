@@ -1,9 +1,5 @@
 package net.aquadc.persistence.struct
 
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
-
 /**
  * Represents an instance of a struct —
  * a map with keys of type [FieldDef] (can be treated as [String] or [Byte])
@@ -44,20 +40,6 @@ interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
     fun setSuccessful()
 }
 
-/**
- * Updates all [fields] with values from [source].
- */
-fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
-        source: Struct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
-) {
-    source.schema.forEach(fields) {
-        mutateFrom(source, it) // capture type
-    }
-}
-private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(source: Struct<SCH>, field: FieldDef.Mutable<SCH, T>) {
-    this[field] = source[field]
-}
-
 abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SCH>, AutoCloseable {
 
     @JvmField protected var successful: Boolean? = false
@@ -66,23 +48,4 @@ abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SC
         successful = true
     }
 
-}
-
-/**
- * Calls [block] inside a transaction to mutate [this].
- */
-@UseExperimental(ExperimentalContracts::class)
-inline fun <SCH : Schema<SCH>, R> TransactionalStruct<SCH>.transaction(block: SCH.(StructTransaction<SCH>) -> R): R {
-    contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-    }
-
-    val transaction = beginTransaction()
-    try {
-        val r = schema.block(transaction)
-        transaction.setSuccessful()
-        return r
-    } finally {
-        transaction.close()
-    }
 }
