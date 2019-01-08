@@ -5,11 +5,14 @@ import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
+import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
 
 
@@ -84,9 +87,13 @@ private fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilde
  * including both opening and closing square braces.
  * Each object is written using [write] ([Struct]) overload`.
  */
-fun <SCH : Schema<SCH>> JsonWriter.write(list: List<Struct<SCH>>) {
+fun <SCH : Schema<SCH>> JsonWriter.write(
+        list: List<Struct<SCH>>,
+        fields: FieldSet<SCH, FieldDef<SCH, *>> =
+                list.firstOrNull()?.schema?.allFieldSet() ?: /* otherwise it doesn't matter */ FieldSet(0)
+) {
     beginArray()
-    list.forEach { write(it) }
+    list.forEach { write(it, fields) }
     endArray()
 }
 
@@ -95,13 +102,14 @@ fun <SCH : Schema<SCH>> JsonWriter.write(list: List<Struct<SCH>>) {
  * including [FieldDef]s where value is equal to the default one,
  * writing both opening and closing curly braces.
  */
-fun <SCH : Schema<SCH>> JsonWriter.write(struct: Struct<SCH>) {
+fun <SCH : Schema<SCH>> JsonWriter.write(
+        struct: Struct<SCH>,
+        fields: FieldSet<SCH, FieldDef<SCH, *>> =
+                struct.schema.allFieldSet()
+) {
     beginObject()
-    val fields = struct.schema.fields
-    for (i in fields.indices) {
-        val field = fields[i]
+    struct.schema.forEach(fields) { field ->
         name(field.name)
-
         writeValueFrom(struct, field)
     }
     endObject()
