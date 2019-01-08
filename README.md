@@ -32,7 +32,11 @@ dependencies {
 
 # reactive-properties
 
-Properties (subjects) inspired by JavaFX MVVM-like approach. A `Property` provides functionality similar to `BehaviorSubject` in RxJava, or `Property` in JavaFX, or `LiveData` in Android Arch.
+Properties (subjects) inspired by [JavaFX](https://wiki.openjdk.java.net/display/OpenJFX/Main)
+and [Vue.js](https://vuejs.org/) MVVM-like approach.
+A `Property` provides functionality similar to
+`BehaviorSubject` in RxJava, or `Property` in JavaFX,
+or `LiveData` in Android Arch.
 
 * Simple and easy-to-use
 * Lightweight: core + android-bindings are <1000 methods, also highly optimized for runtime
