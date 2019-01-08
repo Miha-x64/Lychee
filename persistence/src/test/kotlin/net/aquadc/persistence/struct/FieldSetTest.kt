@@ -6,6 +6,8 @@ import org.junit.Test
 
 class FieldSetTest {
 
+    // TODO: should test 64-field schema!
+
     @Test fun emptyEach() {
         SomeSchema.forEach(emptyFieldSet()) {
             fail()

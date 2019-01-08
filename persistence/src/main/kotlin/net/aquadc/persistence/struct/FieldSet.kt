@@ -2,6 +2,8 @@
 
 package net.aquadc.persistence.struct
 
+import android.support.annotation.RestrictTo
+
 
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> emptyFieldSet(): FieldSet<SCH, F> =
         FieldSet(0L)
@@ -26,7 +28,7 @@ inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *>) -> 
 
 
 fun <SCH : Schema<SCH>> SCH.allFieldSet(): FieldSet<SCH, FieldDef<SCH, *>> =
-        fieldsWhere { true }
+        FieldSet((1L shl fields.size) - 1)
 
 fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
         fieldsWhere { it is FieldDef.Mutable } as FieldSet<SCH, FieldDef.Mutable<SCH, *>>
@@ -41,10 +43,10 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> F.plus(other: F): 
 inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, G : F, H : F> FieldSet<SCH, G>.plus(more: H): FieldSet<SCH, F> =
         FieldSet(bitmask or (1L shl more.ordinal.toInt()))
 
-inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> FieldSet<SCH, F>.contains(field: FieldDef<SCH, *>): Boolean =
+inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDef<SCH, *>): Boolean =
         (bitmask and (1L shl field.ordinal.toInt())) != 0L
 
-inline fun <SCH: Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<SCH, F>, func: (F) -> Unit) {
+inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<SCH, F>, func: (F) -> Unit) {
     val fields = fields
     var ord = 0
     var mask = set.bitmask
@@ -62,6 +64,6 @@ inline fun <SCH: Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<SC
  * Similar to [Set]<FieldDef<SCH, FLD>>.
  */
 inline class FieldSet<SCH : Schema<SCH>, FLD : FieldDef<SCH, *>>
-/*internal*/ @Deprecated("Don't. Touch. This. Directly.") constructor(
+/*internal*/ @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) @Deprecated("Don't. Touch. This. Directly.") constructor(
         @PublishedApi internal val bitmask: Long
 )
