@@ -94,38 +94,38 @@ class InMemoryPropertiesMemento : PropertiesMemento {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun writeTo(output: BetterDataOutput) {
+    fun <K> writeTo(kind: BetterDataOutput<K>, output: K) {
         for (i in types.indices) {
             val type = types[i]
             val value = vals[0]
             @Suppress("UPPER_BOUND_VIOLATED")
             when (type) {
-                is DataType<*> -> (type as DataType<Any?>).write(output, value)
-                null -> writeValue(output, value)
-                is Class<*> -> writeEnum<Any>(output, type as Class<Any>, value!!)
+                is DataType<*> -> (type as DataType<Any?>).write(kind, output, value)
+                null -> writeValue<K>(kind, output, value)
+                is Class<*> -> writeEnum<K, Any>(kind, output, type as Class<Any>, value!!)
                 else -> throw AssertionError()
             }
         }
     }
 
-    private fun writeValue(output: BetterDataOutput, value: Any?) {
+    private fun <K> writeValue(kind: BetterDataOutput<K>, output: K, value: Any?) {
         @Suppress("UNCHECKED_CAST")
         when (value) {
-            is CharArray -> output.writeCharArray(value)
-            is IntArray -> output.writeIntArray(value)
-            is LongArray -> output.writeLongArray(value)
-            is FloatArray -> output.writeFloatArray(value)
-            is DoubleArray -> output.writeDoubleArray(value)
-            is List<*> -> output.writeStringList(value as List<String>)
+            is CharArray -> kind.writeCharArray(output, value)
+            is IntArray -> kind.writeIntArray(output, value)
+            is LongArray -> kind.writeLongArray(output, value)
+            is FloatArray -> kind.writeFloatArray(output, value)
+            is DoubleArray -> kind.writeDoubleArray(output, value)
+            is List<*> -> kind.writeStringList(output, value as List<String>)
             else -> throw AssertionError()
         }
     }
 
-    private fun <E : Enum<E>> writeEnum(output: BetterDataOutput, type: Class<E>, value: Any) {
+    private fun <K, E : Enum<E>> writeEnum(kind: BetterDataOutput<K>, output: K, type: Class<E>, value: Any) {
         @Suppress("UNCHECKED_CAST")
         when (value) {
-            type.isInstance(value) -> output.writeString((value as Enum<*>).name)
-            value is Set<*> -> output.writeEnumSet(value as Set<E>)
+            type.isInstance(value) -> kind.writeString(output, (value as Enum<*>).name)
+            value is Set<*> -> kind.writeEnumSet(output, value as Set<E>)
             else -> throw AssertionError()
         }
     }

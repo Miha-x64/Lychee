@@ -10,68 +10,69 @@ import java.lang.Float.floatToIntBits
 /**
  * Writes data from properties into [output].
  */
-class PropertyWriter(
-        private val output: BetterDataOutput
+class PropertyWriter<T>(
+        private val kind: BetterDataOutput<T>,
+        private val output: T
 ) : PropertyIo {
 
     override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
-        write(output, prop.value)
+        write(kind, output, prop.value)
     }
 
     override fun chars(prop: MutableProperty<CharArray>) {
-        output.writeCharArray(prop.value)
+        kind.writeCharArray(output, prop.value)
     }
     override fun ints(prop: MutableProperty<IntArray>) {
-        output.writeIntArray(prop.value)
+        kind.writeIntArray(output, prop.value)
     }
     override fun longs(prop: MutableProperty<LongArray>) {
-        output.writeLongArray(prop.value)
+        kind.writeLongArray(output, prop.value)
     }
     override fun floats(prop: MutableProperty<FloatArray>) {
-        output.writeFloatArray(prop.value)
+        kind.writeFloatArray(output, prop.value)
     }
     override fun doubles(prop: MutableProperty<DoubleArray>) {
-        output.writeDoubleArray(prop.value)
+        kind.writeDoubleArray(output, prop.value)
     }
 
     override fun stringList(prop: MutableProperty<List<String>>) {
-        output.writeStringList(prop.value)
+        kind.writeStringList(output, prop.value)
     }
 
     override fun <E : Enum<E>> enum(prop: MutableProperty<E>, type: Class<E>) {
-        output.writeString(prop.value.name)
+        kind.writeString(output, prop.value.name)
     }
     override fun <E : Enum<E>> enumSet(prop: MutableProperty<Set<E>>, type: Class<E>) {
-        output.writeEnumSet(prop.value)
+        kind.writeEnumSet(output, prop.value)
     }
 
 }
 
-internal fun BetterDataOutput.writeCharArray(value: CharArray) {
-    writeInt(value.size)
-    value.forEach { writeShort(it.toInt()) }
+internal fun <T> BetterDataOutput<T>.writeCharArray(output: T, value: CharArray) {
+    writeInt(output, value.size)
+    value.forEach { writeShort(output, it.toShort()) }
 }
-internal fun BetterDataOutput.writeIntArray(value: IntArray) {
-    writeInt(value.size)
-    value.forEach(::writeInt)
+internal fun <T> BetterDataOutput<T>.writeIntArray(output: T, value: IntArray) {
+    writeInt(output, value.size)
+    value.forEach { writeInt(output, it) }
 }
-internal fun BetterDataOutput.writeLongArray(value: LongArray) {
-    writeInt(value.size)
-    value.forEach(::writeLong)
+internal fun <T> BetterDataOutput<T>.writeLongArray(output: T, value: LongArray) {
+    writeInt(output, value.size)
+    value.forEach { writeLong(output, it) }
 }
-internal fun BetterDataOutput.writeFloatArray(value: FloatArray) {
-    writeInt(value.size)
-    value.forEach { writeInt(floatToIntBits(it)) }
+internal fun <T> BetterDataOutput<T>.writeFloatArray(output: T, value: FloatArray) {
+    writeInt(output, value.size)
+    value.forEach { writeInt(output, floatToIntBits(it)) }
 }
-internal fun BetterDataOutput.writeDoubleArray(value: DoubleArray) {
-    writeInt(value.size)
-    value.forEach { writeLong(doubleToLongBits(it)) }
+internal fun <T> BetterDataOutput<T>.writeDoubleArray(output: T, value: DoubleArray) {
+    writeInt(output, value.size)
+    value.forEach { writeLong(output, doubleToLongBits(it)) }
 }
-internal fun BetterDataOutput.writeStringList(value: List<String>) {
-    writeInt(value.size)
-    for (i in 0 until value.size) writeString(value[i])
+internal fun <T> BetterDataOutput<T>.writeStringList(output: T, value: List<String>) {
+    writeInt(output, value.size)
+    for (i in value.indices) writeString(output, value[i])
 }
-internal fun <E : Enum<E>> BetterDataOutput.writeEnumSet(value: Set<E>) {
-    writeInt(value.size)
-    value.forEach { writeString(it.name) }
+internal fun <T, E : Enum<E>> BetterDataOutput<T>.writeEnumSet(output: T, value: Set<E>) {
+    writeInt(output, value.size)
+    value.forEach { writeString(output, it.name) }
 }

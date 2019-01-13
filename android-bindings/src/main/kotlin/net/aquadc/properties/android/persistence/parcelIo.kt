@@ -3,66 +3,50 @@ package net.aquadc.properties.android.persistence
 import android.os.Parcel
 import net.aquadc.persistence.stream.BetterDataInput
 import net.aquadc.persistence.stream.BetterDataOutput
-import net.aquadc.persistence.stream.UnusedDataInputMethods
-import net.aquadc.persistence.stream.UnusedDataOutputMethods
 
 /**
- * Adapts several [Parcel] methods to conform [BetterDataInput].
+ * Adapts several [Parcel] methods to conform [BetterDataInput] and [BetterDataOutput].
  */
-class ParcelInput(
-        private val input: Parcel
-) : UnusedDataInputMethods(), BetterDataInput {
+object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
 
-    override fun readByte(): Byte =
+    // input
+
+    override fun readByte(input: Parcel): Byte =
             input.readByte()
 
-    override fun readShort(): Short {
-        val int = input.readInt()
-        if (int < Short.MIN_VALUE || int > Short.MAX_VALUE)
-            throw ArithmeticException("$int cannot be interpreted as a 16-byte integer (Short)")
-        return int.toShort()
-    }
+    override fun readShort(input: Parcel): Short =
+            input.readInt().assertFitsShort()
 
-    override fun readInt(): Int =
+    override fun readInt(input: Parcel): Int =
             input.readInt()
 
-    override fun readLong(): Long =
+    override fun readLong(input: Parcel): Long =
             input.readLong()
 
-    override fun readBytes(): ByteArray? =
+    override fun readBytes(input: Parcel): ByteArray? =
             input.createByteArray()
 
-    override fun readString(): String? =
+    override fun readString(input: Parcel): String? =
             input.readString()
 
-}
+    // output
 
-/**
- * Adapts several [Parcel] methods to conform [BetterDataOutput].
- */
-class ParcelOutput(
-        private val output: Parcel
-) : UnusedDataOutputMethods(), BetterDataOutput {
+    override fun writeByte(output: Parcel, byte: Byte) =
+            output.writeByte(byte)
 
-    override fun writeByte(v: Int): Unit =
-            output.writeByte(v.toByte())
+    override fun writeShort(output: Parcel, short: Short) =
+            output.writeInt(short.toInt())
 
-    override fun writeShort(v: Int) {
-        if (v < Short.MIN_VALUE || v > Short.MAX_VALUE)
-            throw ArithmeticException("$v cannot be interpreted as a 16-byte integer (Short)")
-        output.writeInt(v)
-    }
+    override fun writeInt(output: Parcel, int: Int) =
+            output.writeInt(int)
 
-    override fun writeInt(v: Int): Unit =
-            output.writeInt(v)
+    override fun writeLong(output: Parcel, long: Long) =
+            output.writeLong(long)
 
-    override fun writeLong(v: Long): Unit =
-            output.writeLong(v)
-
-    override fun writeBytes(bytes: ByteArray?): Unit =
+    override fun writeBytes(output: Parcel, bytes: ByteArray?) =
             output.writeByteArray(bytes)
 
-    override fun writeString(string: String?): Unit =
+    override fun writeString(output: Parcel, string: String?) =
             output.writeString(string)
 
 }

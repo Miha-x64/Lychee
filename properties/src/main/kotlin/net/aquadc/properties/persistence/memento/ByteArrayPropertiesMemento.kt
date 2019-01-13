@@ -1,10 +1,15 @@
 package net.aquadc.properties.persistence.memento
 
-import net.aquadc.persistence.stream.BetterDataInputStream
-import net.aquadc.persistence.stream.BetterDataOutputStream
+import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.properties.persistence.PropertyReader
 import net.aquadc.properties.persistence.PropertyWriter
-import java.io.*
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.Externalizable
+import java.io.ObjectInput
+import java.io.ObjectOutput
 
 /**
  * Captures values of properties into a [ByteArray] eagerly.
@@ -16,17 +21,17 @@ class ByteArrayPropertiesMemento(
     constructor() : this(ByteArray(0))
 
     constructor(properties: PersistableProperties) : this(ByteArrayOutputStream().let { os ->
-        properties.saveOrRestore(PropertyWriter(BetterDataOutputStream(os)))
+        properties.saveOrRestore(PropertyWriter(DataStreams, DataOutputStream(os)))
         os.toByteArray()
     })
 
     constructor(memento: InMemoryPropertiesMemento) : this(ByteArrayOutputStream().let { os ->
-        memento.writeTo(BetterDataOutputStream(os))
+        memento.writeTo(DataStreams, DataOutputStream(os))
         os.toByteArray()
     })
 
     override fun restoreTo(target: PersistableProperties) {
-        target.saveOrRestore(PropertyReader(BetterDataInputStream(ByteArrayInputStream(bytes))))
+        target.saveOrRestore(PropertyReader(DataStreams, DataInputStream(ByteArrayInputStream(bytes))))
     }
 
     override fun writeExternal(out: ObjectOutput) {
