@@ -11,7 +11,7 @@ sealed class DataType<T>(
 ) {
 
     /**
-     * A simple, non-composite (and thus composable) type.
+     * A simple, non-composite (and thus easily composable) type.
      */
     abstract class Simple<T>(
             isNullable: Boolean,
@@ -40,15 +40,15 @@ sealed class DataType<T>(
 
     }
 
-    /*abstract class Collect<C : Collection<T>?, T>(
-            isNullable: Boolean,
-            private val elementType: DataType.Simple<T>
-    ) : DataType<C>(isNullable)
+    // TODO: move Schema here
 
-    abstract class StructCollection<SCH : StructDef<SCH>>(
+    // TODO: Patch/Diff/Delta/Partial
+
+    /*abstract class SetOf<C : Set<T>?, T>(
             isNullable: Boolean,
-            private val type: SCH
-    ) : DataType<Collection<Struct<SCH>>>(isNullable)*/
+            private val elementType: DataType<T>
+    ) : DataType<C>(isNullable)*/
+
 
 //    abstract class Dictionary<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
 //    abstract class Union<T> internal constructor(isNullable: Boolean, types: List<DataType<out T>>) : DataType<T>(isNullable) TODO

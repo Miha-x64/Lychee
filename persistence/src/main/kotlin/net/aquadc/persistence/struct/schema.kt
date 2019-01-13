@@ -10,6 +10,8 @@ import java.util.Collections.unmodifiableMap
  * to final classes with only public fields, no methods and no supertypes.
  * @see Struct
  * @see FieldDef
+ *
+ * Note: will become a subclass of [DataType].
  */
 abstract class Schema<SELF : Schema<SELF>> {
 
