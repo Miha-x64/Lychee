@@ -1,5 +1,6 @@
 package net.aquadc.propertiesSampleApp
 
+import android.app.Activity
 import android.app.Application
 import android.preference.PreferenceManager
 import com.squareup.leakcanary.LeakCanary
@@ -23,3 +24,5 @@ class App : Application() {
     }
 
 }
+
+inline val Activity.app get() = application as App
