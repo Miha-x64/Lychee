@@ -16,10 +16,3 @@ dependencies {
     testCompile 'org.xerial:sqlite-jdbc:3.23.1'
     testCompile project(':testing')
 }
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.6"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.6"
-}

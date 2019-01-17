@@ -13,13 +13,6 @@ dependencies {
     testCompile project(':testing')
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.6"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.6"
-}
-
 jacocoTestReport {
     reports {
         xml.enabled true
