@@ -8,11 +8,11 @@ repositories {
 
 dependencies {
     compileOnly files("$android_sdk_dir/platforms/android-$target_android_version/android.jar")
-    compile "org.jetbrains.kotlin:kotlin-stdlib"
-    compile project(':properties')
-    compile project(':persistence')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation project(':properties')
+    implementation project(':persistence')
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile 'org.xerial:sqlite-jdbc:3.23.1'
-    testCompile project(':testing')
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation 'org.xerial:sqlite-jdbc:3.23.1'
+    testImplementation project(':testing')
 }

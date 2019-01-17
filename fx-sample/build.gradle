@@ -6,12 +6,12 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    compile 'com.jfoenix:jfoenix:1.4.0'
-    compile project(':fx-bindings')
-    compile project(':logic-sample')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'com.jfoenix:jfoenix:1.4.0'
+    implementation project(':fx-bindings')
+    implementation project(':logic-sample')
 
-    compile 'org.xerial:sqlite-jdbc:3.23.1'
-    compile project(':sql')
-    compile 'com.squareup.okio:okio:1.15.0'
+    implementation 'org.xerial:sqlite-jdbc:3.23.1'
+    implementation project(':sql')
+    implementation 'com.squareup.okio:okio:1.15.0'
 }
