@@ -47,14 +47,14 @@ inline fun <reified E : Enum<E>, U : Any> enum(
         encode: (E) -> U,
         fallback: (U) -> E
 ): DataType.Simple<E> =
-        object : DataType.Simple<Any?>(false, encodeAs.kind) {
+        object : DataType.Simple<Any?>(encodeAs.kind) {
 
             private val lookup =
                     values.associateByTo(HashMap(values.size), encode).also { check(it.size == values.size) {
                         "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
-            override fun decode(value: Any): Any? {
+            override fun decode(value: Any?): Any? {
                 val u = encodeAs.decode(value)
                 return lookup[u] ?: fallback(u)
             }
@@ -99,13 +99,13 @@ inline fun <reified E : Enum<E>> enumSet(
         encodeAs: DataType.Simple<Long>,
         ordinal: (E) -> Int
 ): DataType.Simple<Set<E>> =
-        object : DataType.Simple<Any?>(false, encodeAs.kind) {
+        object : DataType.Simple<Any?>(encodeAs.kind) {
 
             init {
                 if (values.size > 64) throw UnsupportedOperationException("Enums with >64 values (JumboEnumSets) are not supported.")
             }
 
-            override fun decode(value: Any): Any? {
+            override fun decode(value: Any?): Any? {
                 var bitmask = encodeAs.decode(value)
                 @Suppress("UPPER_BOUND_VIOLATED")
                 val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet()
@@ -121,7 +121,7 @@ inline fun <reified E : Enum<E>> enumSet(
                 return set
             }
 
-            override fun encode(value: Any?): Any =
+            override fun encode(value: Any?): Any? =
                     encodeAs.encode((value as Set<E>).fold(0L) { acc, e -> acc or (1L shl ordinal(e)) })
 
         } as DataType.Simple<Set<E>>

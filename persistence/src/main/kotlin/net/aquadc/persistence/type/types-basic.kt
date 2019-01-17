@@ -2,7 +2,7 @@
 package net.aquadc.persistence.type
 
 
-private class NoOp<T>(isNullable: Boolean, kind: Kind) : DataType.Simple<T>(isNullable, kind) {
+private class NoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 
     /**
      * {@implNote does nothing but sanity checks}
@@ -16,7 +16,7 @@ private class NoOp<T>(isNullable: Boolean, kind: Kind) : DataType.Simple<T>(isNu
      * {@implNote does nothing but sanity checks}
      */
     @Suppress("UNCHECKED_CAST")
-    override fun decode(value: Any): T {
+    override fun decode(value: Any?): T {
         sanityCheck(value)
         return value as T
     }
@@ -38,58 +38,31 @@ private class NoOp<T>(isNullable: Boolean, kind: Kind) : DataType.Simple<T>(isNu
 
 }
 
-/*
-@JvmField val smallString: DataType.Simple<String> = NoOp(false, DataType.Simple.Kind.TinyStr)
-@JvmField val smallNullableString: DataType.Simple<String?> = NoOp(true, DataType.Simple.Kind.TinyStr)
-
-@JvmField val mediumString: DataType.Simple<String> = NoOp(false, DataType.Simple.Kind.Str)
-@JvmField val mediumNullableString: DataType.Simple<String?> = NoOp(true, DataType.Simple.Kind.Str)
-
-@JvmField val largeString: DataType.Simple<String> = NoOp(false, DataType.Simple.Kind.BigStr)
-@JvmField val largeNullableString: DataType.Simple<String?> = NoOp(true, DataType.Simple.Kind.BigStr)
-*/
-@JvmField val string: DataType.Simple<String> = NoOp(false, DataType.Simple.Kind.Str)
-@JvmField val nullableString: DataType.Simple<String?> = NoOp(true, DataType.Simple.Kind.Str)
+@JvmField val string: DataType.Simple<String> = NoOp(DataType.Simple.Kind.Str)
 
 
 private const val bytesMessage =
         "Note: if you mutate array, we won't notice — you must set() it in a transaction. " +
                 "Consider using immutable ByteString instead."
 
-/*
-@JvmField val smallByteArray: DataType<ByteArray> = Bytes(false, DataType.Simple.Kind.TinyBlob)
-@JvmField val smallNullableByteArray: DataType<ByteArray?> = Bytes(true, DataType.Simple.Kind.TinyBlob)
-
-@JvmField val mediumByteArray: DataType<ByteArray> = Bytes(false, DataType.Simple.Kind.Blob)
-@JvmField val mediumNullableByteArray: DataType<ByteArray?> = Bytes(true, DataType.Simple.Kind.Blob)
-
-@JvmField val largeByteArray: DataType<ByteArray> = Bytes(false, DataType.Simple.Kind.BigBlob)
-@JvmField val largeNullableByteArray: DataType<ByteArray?> = Bytes(true, DataType.Simple.Kind.BigBlob)
-*/
 @Deprecated(bytesMessage, ReplaceWith("byteString"))
-@JvmField val byteArray: DataType.Simple<ByteArray> = NoOp(false, DataType.Simple.Kind.Blob)
+@JvmField val byteArray: DataType.Simple<ByteArray> = NoOp(DataType.Simple.Kind.Blob)
 
-@Deprecated(bytesMessage, ReplaceWith("nullableByteString"))
-@JvmField val nullableByteArray: DataType.Simple<ByteArray?> = NoOp(true, DataType.Simple.Kind.Blob)
+@JvmField val bool: DataType.Simple<Boolean> = NoOp(DataType.Simple.Kind.Bool)
 
-@JvmField val bool: DataType.Simple<Boolean> = NoOp(false, DataType.Simple.Kind.Bool)
-@JvmField val nullableBool: DataType.Simple<Boolean?> = NoOp(true, DataType.Simple.Kind.Bool)
+@JvmField val byte: DataType.Simple<Byte> = NoOp(DataType.Simple.Kind.I8)
 
-@JvmField val byte: DataType.Simple<Byte> = NoOp(false, DataType.Simple.Kind.I8)
-@JvmField val nullableByte: DataType.Simple<Byte?> = NoOp(true, DataType.Simple.Kind.I8)
+@JvmField val short: DataType.Simple<Short> = NoOp(DataType.Simple.Kind.I16)
 
-@JvmField val short: DataType.Simple<Short> = NoOp(false, DataType.Simple.Kind.I16)
-@JvmField val nullableShort: DataType.Simple<Short?> = NoOp(true, DataType.Simple.Kind.I16)
+@JvmField val int: DataType.Simple<Int> = NoOp(DataType.Simple.Kind.I32)
 
-@JvmField val int: DataType.Simple<Int> = NoOp(false, DataType.Simple.Kind.I32)
-@JvmField val nullableInt: DataType.Simple<Int?> = NoOp(true, DataType.Simple.Kind.I32)
-
-@JvmField val long: DataType.Simple<Long> = NoOp(false, DataType.Simple.Kind.I64)
-@JvmField val nullableLong: DataType.Simple<Long?> = NoOp(true, DataType.Simple.Kind.I64)
+@JvmField val long: DataType.Simple<Long> = NoOp(DataType.Simple.Kind.I64)
 
 
-@JvmField val float: DataType.Simple<Float> = NoOp(false, DataType.Simple.Kind.F32)
-@JvmField val nullableFloat: DataType.Simple<Float?> = NoOp(true, DataType.Simple.Kind.F32)
+@JvmField val float: DataType.Simple<Float> = NoOp(DataType.Simple.Kind.F32)
 
-@JvmField val double: DataType.Simple<Double> = NoOp(false, DataType.Simple.Kind.F64)
-@JvmField val nullableDouble: DataType.Simple<Double?> = NoOp(true, DataType.Simple.Kind.F64)
+@JvmField val double: DataType.Simple<Double> = NoOp(DataType.Simple.Kind.F64)
+
+
+inline fun <T : Any> nullable(type: DataType<T>): DataType.Nullable<T> =
+        DataType.Nullable(type)

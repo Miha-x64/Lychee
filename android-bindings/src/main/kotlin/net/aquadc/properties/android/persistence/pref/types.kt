@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import android.util.Base64
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.match
 import net.aquadc.properties.android.persistence.assertFitsByte
 import net.aquadc.properties.android.persistence.assertFitsShort
 
@@ -30,20 +31,18 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T? {
     val value = map[key]
     if (value === null) return null
 
-    return when (this) {
-        is DataType.Simple<T> -> {
-            decode(when (kind) {
-                DataType.Simple.Kind.Bool -> value as Boolean
-                DataType.Simple.Kind.I8 -> (value as Int).assertFitsByte()
-                DataType.Simple.Kind.I16 -> (value as Int).assertFitsShort()
-                DataType.Simple.Kind.I32 -> value as Int
-                DataType.Simple.Kind.I64 -> value as Long
-                DataType.Simple.Kind.F32 -> value as Float
-                DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(value as Long)
-                DataType.Simple.Kind.Str -> value as String
-                DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
-            })
-        }
+    return match { _, simple ->
+        decode(when (simple.kind) {
+            DataType.Simple.Kind.Bool -> value as Boolean
+            DataType.Simple.Kind.I8 -> (value as Int).assertFitsByte()
+            DataType.Simple.Kind.I16 -> (value as Int).assertFitsShort()
+            DataType.Simple.Kind.I32 -> value as Int
+            DataType.Simple.Kind.I64 -> value as Long
+            DataType.Simple.Kind.F32 -> value as Float
+            DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(value as Long)
+            DataType.Simple.Kind.Str -> value as String
+            DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
+        })
     }
 }
 
@@ -51,21 +50,19 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
     if (value === null)
         return editor.remove(key).ignored
 
-    when (this) {
-        is DataType.Simple<T> -> {
-            val v = encode(value)
-            when (kind) {
-                DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean).ignored
-                DataType.Simple.Kind.I8 -> editor.putInt(key, (v as Byte).toInt()).ignored
-                DataType.Simple.Kind.I16 -> editor.putInt(key, (v as Short).toInt()).ignored
-                DataType.Simple.Kind.I32 -> editor.putInt(key, v as Int).ignored
-                DataType.Simple.Kind.I64 -> editor.putLong(key, v as Long).ignored
-                DataType.Simple.Kind.F32 -> editor.putFloat(key, v as Float).ignored
-                DataType.Simple.Kind.F64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(v as Double)).ignored
-                DataType.Simple.Kind.Str -> editor.putString(key, v as String).ignored
-                DataType.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT)).ignored
-            }.also { }
-        }
+    match { _, simple ->
+        val v = encode(value)
+        when (simple.kind) {
+            DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean).ignored
+            DataType.Simple.Kind.I8 -> editor.putInt(key, (v as Byte).toInt()).ignored
+            DataType.Simple.Kind.I16 -> editor.putInt(key, (v as Short).toInt()).ignored
+            DataType.Simple.Kind.I32 -> editor.putInt(key, v as Int).ignored
+            DataType.Simple.Kind.I64 -> editor.putLong(key, v as Long).ignored
+            DataType.Simple.Kind.F32 -> editor.putFloat(key, v as Float).ignored
+            DataType.Simple.Kind.F64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(v as Double)).ignored
+            DataType.Simple.Kind.Str -> editor.putString(key, v as String).ignored
+            DataType.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT)).ignored
+        }.also { }
     }
 
 }

@@ -6,6 +6,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.match
 import java.sql.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -247,27 +248,25 @@ class JdbcSession(
 
     private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
         val i = 1 + index
-        if (value == null) {
-            check(isNullable)
-            statement.setNull(i, Types.NULL)
-        } else {
-            when (this) {
-                is DataType.Simple<T> -> {
-                    val v = encode(value)
-                    when (kind) {
-                        DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
-                        DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
-                        DataType.Simple.Kind.I16 -> statement.setShort(i, v as Short)
-                        DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
-                        DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
-                        DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
-                        DataType.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
-                        DataType.Simple.Kind.Str -> statement.setString(i, v as String)
-                        // not sure whether setBlob should be used:
-                        DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
-                    }
-                }
-            }.also { }
+        match { isNullable, simple ->
+            if (value == null) {
+                check(isNullable)
+                statement.setNull(i, Types.NULL)
+            } else {
+                val v = encode(value)
+                when (simple.kind) {
+                    DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
+                    DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
+                    DataType.Simple.Kind.I16 -> statement.setShort(i, v as Short)
+                    DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
+                    DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
+                    DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
+                    DataType.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
+                    DataType.Simple.Kind.Str -> statement.setString(i, v as String)
+                    // not sure whether setBlob should be used:
+                    DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
+                }.also { }
+            }
         }
     }
 
@@ -275,8 +274,8 @@ class JdbcSession(
     private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
         val i = 1 + index
 
-        val value = when (this) {
-            is DataType.Simple -> when (kind) {
+        return match { isNullable, simple ->
+            val v = when (simple.kind) {
                 DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
                 DataType.Simple.Kind.I8 -> resultSet.getByte(i)
                 DataType.Simple.Kind.I16 -> resultSet.getShort(i)
@@ -287,12 +286,11 @@ class JdbcSession(
                 DataType.Simple.Kind.Str -> resultSet.getString(i)
                 DataType.Simple.Kind.Blob -> resultSet.getBytes(i)
             }
-        }
 
-        return if (resultSet.wasNull())
-            check(isNullable).let { null as T }
-        else
-            decode(value)
+            // must check, will get zeroes otherwise
+            if (resultSet.wasNull()) check(isNullable).let { null as T }
+            else decode(v)
+        }
     }
 
 }

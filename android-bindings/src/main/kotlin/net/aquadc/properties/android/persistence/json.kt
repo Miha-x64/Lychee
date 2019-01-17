@@ -14,6 +14,7 @@ import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.match
 
 
 /**
@@ -63,11 +64,11 @@ fun <SCH : Schema<SCH>> JsonReader.read(schema: SCH): StructSnapshot<SCH> = sche
 private fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilder<SCH>, field: FieldDef<SCH, T>) {
     val type = field.type
 
-    target[field] = if (type.isNullable && peek() === JsonToken.NULL) {
-        null as T
-    } else {
-        when (type) {
-            is DataType.Simple -> type.decode(when (type.kind) {
+    target[field] = type.match { isNullable, simple ->
+        if (isNullable && peek() === JsonToken.NULL) {
+            null as T
+        } else {
+            type.decode(when (simple.kind) {
                 DataType.Simple.Kind.Bool -> nextBoolean()
                 DataType.Simple.Kind.I8 -> nextInt().assertFitsByte()
                 DataType.Simple.Kind.I16 -> nextInt().assertFitsShort()
@@ -119,24 +120,23 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
 private fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: Struct<SCH>, field: FieldDef<SCH, T>) {
     val type = field.type
     val value = struct[field]
-    if (type.isNullable && value === null) {
-        nullValue()
-    } else {
-        when (type) {
-            is DataType.Simple -> {
-                val raw = type.encode(value)
-                when (type.kind) {
-                    DataType.Simple.Kind.Bool -> value(raw as Boolean)
-                    DataType.Simple.Kind.I8 -> value((raw as Byte).toInt())
-                    DataType.Simple.Kind.I16 -> value((raw as Short).toInt())
-                    DataType.Simple.Kind.I32 -> value(raw as Int)
-                    DataType.Simple.Kind.I64 -> value(raw as Double)
-                    DataType.Simple.Kind.F32 -> value(raw as Float)
-                    DataType.Simple.Kind.F64 -> value(raw as Double)
-                    DataType.Simple.Kind.Str -> value(raw as String)
-                    DataType.Simple.Kind.Blob -> Base64.encode(raw as ByteArray, Base64.DEFAULT)
-                }
-            }
+
+    type.match { isNullable, simple ->
+        if (isNullable && value === null) {
+            nullValue()
+        } else {
+            val raw = type.encode(value)
+            when (simple.kind) {
+                DataType.Simple.Kind.Bool -> value(raw as Boolean)
+                DataType.Simple.Kind.I8 -> value((raw as Byte).toInt())
+                DataType.Simple.Kind.I16 -> value((raw as Short).toInt())
+                DataType.Simple.Kind.I32 -> value(raw as Int)
+                DataType.Simple.Kind.I64 -> value(raw as Double)
+                DataType.Simple.Kind.F32 -> value(raw as Float)
+                DataType.Simple.Kind.F64 -> value(raw as Double)
+                DataType.Simple.Kind.Str -> value(raw as String)
+                DataType.Simple.Kind.Blob -> Base64.encode(raw as ByteArray, Base64.DEFAULT)
+            }.also { }
         }
-    }.also { }
+    }
 }

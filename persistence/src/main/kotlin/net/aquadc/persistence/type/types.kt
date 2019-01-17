@@ -6,37 +6,51 @@ package net.aquadc.persistence.type
  * 'Encoded' type is Any to avoid creating many different types inside a sealed class —
  * that would impede decorating existing [DataType] implementations.
  */
-sealed class DataType<T>(
-        @JvmField val isNullable: Boolean
-) {
+sealed class DataType<T> {
+
+    /**
+     * Converts persistable value into its in-memory representation.
+     * @return in-memory view on [value]
+     */
+    abstract fun decode(value: Any?): T
+
+    /**
+     * Converts in-memory value into its persistable representation.
+     * @return persistable view on [value]
+     */
+    abstract fun encode(value: T): Any?
+
+
+    /**
+     * Adds nullability to [actualType].
+     * Wraps only non-nullable type.
+     * (However, [Simple] can easily be nullable.)
+     */
+    class Nullable<T : Any>(
+            val actualType: DataType<T>
+    ) : DataType<T?>() {
+
+        override fun decode(value: Any?): T? =
+                if (value === null) null else actualType.decode(value)
+
+        override fun encode(value: T?): Any? =
+                if (value === null) null else actualType.encode(value)
+
+    }
 
     /**
      * A simple, non-composite (and thus easily composable) type.
      */
     abstract class Simple<T>(
-            isNullable: Boolean,
             val kind: Kind
-    ) : DataType<T>(isNullable) {
+    ) : DataType<T>() {
 
         enum class Kind {
             Bool,
             I8, I16, I32, I64,
             F32, F64,
-            /*TinyStr,*/ Str, /*BigStr,*/
-            /*TinyBlob,*/ Blob, /*BigBlob*/
+            Str, Blob
         }
-
-        /**
-         * @return [value] of type according to [kind]
-         * @throws NullPointerException if [value] is null
-         */
-        abstract fun decode(value: Any): T
-
-        /**
-         * @return [value] as [T]
-         * @throws NullPointerException if [value] is null
-         */
-        abstract fun encode(value: T): Any
 
     }
 
@@ -57,3 +71,14 @@ sealed class DataType<T>(
 
 
 }
+
+inline fun <T, R> DataType<T>.match(simple: (isNullable: Boolean, DataType.Simple<T>) -> R): R =
+        when (this) {
+            is DataType.Nullable<*> -> when (actualType) {
+                is DataType.Nullable<*> -> throw AssertionError()
+                // Nullable<T?> wraps DataType<T> where T : Any
+                // so, Nullable<T> wraps DataType<T!!> where T : Any?
+                is DataType.Simple -> @Suppress("UNCHECKED_CAST") simple(true, actualType as DataType.Simple<T>)
+            }
+            is DataType.Simple -> simple(false, this)
+        }

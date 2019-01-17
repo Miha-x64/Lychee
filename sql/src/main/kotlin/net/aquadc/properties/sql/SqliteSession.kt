@@ -13,6 +13,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.match
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
@@ -266,48 +267,42 @@ class SqliteSession(
 
     private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
         val i = 1 + index
-        if (value == null) {
-            check(isNullable)
-            statement.bindNull(i)
-        } else {
-            when (this) {
-                is DataType.Simple<T> -> {
-                    val v = encode(value)
-                    when (kind) {
-                        DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
-                        DataType.Simple.Kind.I8,
-                        DataType.Simple.Kind.I16,
-                        DataType.Simple.Kind.I32,
-                        DataType.Simple.Kind.I64 -> statement.bindLong(i, (v as Number).toLong())
-                        DataType.Simple.Kind.F32,
-                        DataType.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
-                        DataType.Simple.Kind.Str -> statement.bindString(i, v as String)
-                        DataType.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
-                    }
-                }
-            }.also { }
+        match { isNullable, simple ->
+            if (value == null) {
+                check(isNullable)
+                statement.bindNull(i)
+            } else {
+                val v = encode(value)
+                when (simple.kind) {
+                    DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
+                    DataType.Simple.Kind.I8,
+                    DataType.Simple.Kind.I16,
+                    DataType.Simple.Kind.I32,
+                    DataType.Simple.Kind.I64 -> statement.bindLong(i, (v as Number).toLong())
+                    DataType.Simple.Kind.F32,
+                    DataType.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
+                    DataType.Simple.Kind.Str -> statement.bindString(i, v as String)
+                    DataType.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
+                }.also { }
+            }
         }
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T {
-        return if (cursor.isNull(index))
+    private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = match { isNullable, simple ->
+        if (cursor.isNull(index))
             check(isNullable).let { null as T }
-        else when (this) {
-            is DataType.Simple<T> -> {
-                when (kind) {
-                    DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
-                    DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
-                    DataType.Simple.Kind.I16 -> cursor.getShort(index)
-                    DataType.Simple.Kind.I32 -> cursor.getInt(index)
-                    DataType.Simple.Kind.I64 -> cursor.getLong(index)
-                    DataType.Simple.Kind.F32 -> cursor.getFloat(index)
-                    DataType.Simple.Kind.F64 -> cursor.getDouble(index)
-                    DataType.Simple.Kind.Str -> cursor.getString(index)
-                    DataType.Simple.Kind.Blob -> cursor.getBlob(index)
-                } as T
-            }
-        }
+        else when (simple.kind) {
+            DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
+            DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
+            DataType.Simple.Kind.I16 -> cursor.getShort(index)
+            DataType.Simple.Kind.I32 -> cursor.getInt(index)
+            DataType.Simple.Kind.I64 -> cursor.getLong(index)
+            DataType.Simple.Kind.F32 -> cursor.getFloat(index)
+            DataType.Simple.Kind.F64 -> cursor.getDouble(index)
+            DataType.Simple.Kind.Str -> cursor.getString(index)
+            DataType.Simple.Kind.Blob -> cursor.getBlob(index)
+        } as T
     }
 
     private fun Short.assertFitsByte(): Byte {

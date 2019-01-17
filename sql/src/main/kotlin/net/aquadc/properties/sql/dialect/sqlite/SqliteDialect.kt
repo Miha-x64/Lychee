@@ -3,6 +3,7 @@ package net.aquadc.properties.sql.dialect.sqlite
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.match
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
@@ -83,12 +84,14 @@ object SqliteDialect : Dialect {
 
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-                .append(table.idColName).append(' ').append(nameOf(table.idColType)).append(" PRIMARY KEY, ")
+                .append(table.idColName).append(' ').appendNameOf(table.idColType).append(" PRIMARY KEY, ")
         table.schema.fields.forEach { col ->
             val type = col.type
-            sb.append(col.name).append(' ').append(nameOf(type))
-            if (!type.isNullable) sb.append(" NOT NULL")
-            if (col.hasDefault) sb.appendDefault(col) // fixme: effectively useless
+            sb.append(col.name).append(' ').appendNameOf(type)
+
+            /* this is useless since we can store only a full struct with all fields filled:
+            if (col.hasDefault) sb.appendDefault(col) */
+
             sb.append(", ")
         }
         sb.setLength(sb.length - 2) // trim last comma
@@ -99,25 +102,23 @@ object SqliteDialect : Dialect {
         val type = col.type
         val value = col.default
         append(" DEFAULT ")
-        if (value === null) {
-            append("NULL")
-        } else {
-            when (type) {
-                is DataType.Simple<T> -> {
-                    val v = type.encode(value)
-                    when (type.kind) {
-                        DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
-                        DataType.Simple.Kind.I8,
-                        DataType.Simple.Kind.I16,
-                        DataType.Simple.Kind.I32,
-                        DataType.Simple.Kind.I64,
-                        DataType.Simple.Kind.F32,
-                        DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
-                        DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
-                        DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
-                    }
-                }
-            }.also { }
+        type.match { _, simple ->
+            if (value === null) {
+                append("NULL")
+            } else {
+                val v = type.encode(value)
+                when (simple.kind) {
+                    DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
+                    DataType.Simple.Kind.I8,
+                    DataType.Simple.Kind.I16,
+                    DataType.Simple.Kind.I32,
+                    DataType.Simple.Kind.I64,
+                    DataType.Simple.Kind.F32,
+                    DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
+                    DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
+                    DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
+                }.also { }
+            }
         }
     }
 
@@ -131,20 +132,20 @@ object SqliteDialect : Dialect {
         return this
     }
 
-    private fun nameOf(dataType: DataType<*>): String = when (dataType) {
-        is DataType.Simple<*> -> {
-            when (dataType.kind) {
-                DataType.Simple.Kind.Bool,
-                DataType.Simple.Kind.I8,
-                DataType.Simple.Kind.I16,
-                DataType.Simple.Kind.I32,
-                DataType.Simple.Kind.I64 -> "INTEGER"
-                DataType.Simple.Kind.F32,
-                DataType.Simple.Kind.F64 -> "REAL"
-                DataType.Simple.Kind.Str -> "TEXT"
-                DataType.Simple.Kind.Blob -> "BLOB"
-            }
-        }
+    private fun StringBuilder.appendNameOf(dataType: DataType<*>) = dataType.match { isNullable, simple ->
+        append(when (simple.kind) {
+            DataType.Simple.Kind.Bool,
+            DataType.Simple.Kind.I8,
+            DataType.Simple.Kind.I16,
+            DataType.Simple.Kind.I32,
+            DataType.Simple.Kind.I64 -> "INTEGER"
+            DataType.Simple.Kind.F32,
+            DataType.Simple.Kind.F64 -> "REAL"
+            DataType.Simple.Kind.Str -> "TEXT"
+            DataType.Simple.Kind.Blob -> "BLOB"
+        })
+        if (!isNullable) append(" NOT NULL")
+        this
     }
 
 }

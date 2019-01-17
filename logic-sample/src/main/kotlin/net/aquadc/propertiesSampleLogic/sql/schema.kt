@@ -5,7 +5,7 @@ package net.aquadc.propertiesSampleLogic.sql
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.long
-import net.aquadc.persistence.type.nullableString
+import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.sql.*
 
@@ -50,7 +50,7 @@ class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) 
 
     companion object Sch : Schema<Sch>() {
         val OwnerId = "owner_id" mut long
-        val ConditionerModel = "conditioner_model".mut(nullableString, default = null)
+        val ConditionerModel = "conditioner_model".mut(nullable(string), default = null)
     }
     object Tbl : Table<Sch, Long, Car>(Sch, "cars", long, "_id") {
         override fun newRecord(session: Session, primaryKey: Long): Car = Car(session, primaryKey)
