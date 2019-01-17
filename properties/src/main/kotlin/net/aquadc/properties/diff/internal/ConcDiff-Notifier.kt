@@ -34,7 +34,9 @@ internal abstract class `ConcDiff-Notifier`<T, D> : `-Listeners`<T, D, Function<
 
     override fun addChangeListenerOn(executor: Executor, onChangeWithDiff: DiffChangeListener<T, D>) =
             concAddChangeListenerInternal(
-                    if (executor === UnconfinedExecutor) onChangeWithDiff else ConfinedDiffChangeListener(executor, onChangeWithDiff)
+                    // if it is not only Function3 but also Function2,
+                    if (executor === UnconfinedExecutor && onChangeWithDiff !is Function2<*, *, *>) onChangeWithDiff
+                    else ConfinedDiffChangeListener(executor, onChangeWithDiff)
             )
 
     final override fun removeChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
