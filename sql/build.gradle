@@ -7,7 +7,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly files("$android_sdk_dir/platforms/android-$target_android_version/android.jar")
+    compileOnly files(android_jar)
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation project(':properties')
     implementation project(':persistence')
