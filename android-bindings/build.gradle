@@ -1,7 +1,37 @@
-apply plugin: 'kotlin'
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion target_android_version
+    buildToolsVersion build_tools_version
+
+    defaultConfig {
+        minSdkVersion 12 // View.OnAttachStateChangeListener is since 12
+        targetSdkVersion target_android_version
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+}
+
+repositories {
+    google()
+}
 
 dependencies {
-    compileOnly files(android_jar)
+    // these are *.aar deps which can be opened only by Android plug-in
     compileOnly "com.android.support:support-annotations:$support_version"
     compileOnly "com.android.support:design:$support_version"
     compileOnly "com.android.support:cardview-v7:$support_version"
