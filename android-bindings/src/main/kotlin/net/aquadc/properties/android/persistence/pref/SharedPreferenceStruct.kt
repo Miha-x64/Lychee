@@ -118,19 +118,18 @@ class SharedPreferenceStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactional
     override fun beginTransaction(): StructTransaction<SCH> = object : SimpleStructTransaction<SCH>() {
 
         private val ed = prefs.edit()
-        private var success: Boolean? = false
 
         override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) {
             field.type.put(ed, field.name, update)
         }
 
         override fun close() {
-            when (success) {
+            when (successful) {
                 true -> ed.apply() // SharedPrefs will trigger listeners automatically, nothing to do here
                 false -> Unit // nothing to do here
                 null -> error("attempting to close an already closed transaction")
             }
-            success = null
+            successful = null
         }
 
     }
