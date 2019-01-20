@@ -33,9 +33,9 @@ interface Property<out T> {
      * Subscribe on value changes on current thread.
      * Acts like [MutableList.add]: [onChange] will be added even if it is already added.
      * Will work only on threads which can accept tasks:
-     * * JavaFX Application thread (via [Platform]);
-     * * Android Looper thread;
-     * * a thread of a [ForkJoinPool] (not reliable because it is a pool, not a single thread).
+     * * JavaFX Application thread (via [Platform]), when :fx-bindings available;
+     * * Android Looper thread, when :android-bindings available;
+     * * a thread of a single-thread [ForkJoinPool].
      * @throws UnsupportedOperationException if this thread's executor cannot be identified
      */
     fun addChangeListener(onChange: ChangeListener<T>)
