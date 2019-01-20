@@ -1,12 +1,12 @@
 package net.aquadc.persistence.struct
 
+import net.aquadc.properties.testing.Schema63
+import net.aquadc.properties.testing.Schema64
 import net.aquadc.properties.testing.SomeSchema
 import org.junit.Assert.*
 import org.junit.Test
 
 class FieldSetTest {
-
-    // TODO: should test 64-field schema!
 
     @Test fun emptyEach() {
         SomeSchema.forEach(emptyFieldSet()) {
@@ -55,6 +55,18 @@ class FieldSetTest {
         assertEquals(listOf(SomeSchema.A, SomeSchema.B, SomeSchema.C), list)
     }
 
+    @Test fun allEach63() {
+        val list = ArrayList<FieldDef<Schema63, *>>()
+        Schema63.forEach(Schema63.allFieldSet(), { list.add(it) })
+        assertEquals(63, list.size)
+    }
+
+    @Test fun allEach64() {
+        val list = ArrayList<FieldDef<Schema64, *>>()
+        Schema64.forEach(Schema64.allFieldSet(), { list.add(it) })
+        assertEquals(64, list.size)
+    }
+
     @Test fun allContain() {
         val set = SomeSchema.allFieldSet()
         assertTrue(SomeSchema.A in set)
@@ -62,11 +74,37 @@ class FieldSetTest {
         assertTrue(SomeSchema.C in set)
     }
 
+    @Test fun allContain63() {
+        val set = Schema63.allFieldSet()
+        Schema63.fields.forEach { field ->
+            assertTrue(field in set)
+        }
+    }
+
+    @Test fun allContain64() {
+        val set = Schema64.allFieldSet()
+        Schema64.fields.forEach { field ->
+            assertTrue(field in set)
+        }
+    }
+
 
     @Test fun all() {
         assertEquals(SomeSchema.allFieldSet(), SomeSchema.A + SomeSchema.B + SomeSchema.C)
         assertEquals(SomeSchema.immutableFieldSet(), SomeSchema.A + SomeSchema.B)
         assertEquals(SomeSchema.mutableFieldSet(), SomeSchema.C.asFieldSet())
+    }
+
+    @Test fun all63() {
+        assertEquals(0x7FFFFFFFFFFFFFFFL, Schema63.allFieldSet().bitmask)
+        assertEquals(0x7FFFFFFFFFFFFFFFL, Schema63.immutableFieldSet().bitmask)
+        assertEquals(0L, Schema63.mutableFieldSet().bitmask)
+    }
+
+    @Test fun all64() {
+        assertEquals(-1L, Schema64.allFieldSet().bitmask)
+        assertEquals(-1L, Schema64.immutableFieldSet().bitmask)
+        assertEquals(0L, Schema64.mutableFieldSet().bitmask)
     }
 
 }

@@ -28,7 +28,14 @@ inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *>) -> 
 
 
 fun <SCH : Schema<SCH>> SCH.allFieldSet(): FieldSet<SCH, FieldDef<SCH, *>> =
-        FieldSet((1L shl fields.size) - 1)
+        FieldSet(
+                fields.size.let { size ->
+                    // (1L shl size) - 1   :  1L shl 64  will overflow to 1
+                    // -1L ushr (64 - size): -1L ushr 64 will remain -1L
+                    // the last one is okay, assuming that zero-field structs are prohibited
+                    -1L ushr (64 - size)
+                }
+        )
 
 fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
         fieldsWhere { it is FieldDef.Mutable } as FieldSet<SCH, FieldDef.Mutable<SCH, *>>

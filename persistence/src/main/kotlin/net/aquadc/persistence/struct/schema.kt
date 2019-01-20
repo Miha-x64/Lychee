@@ -97,7 +97,9 @@ abstract class Schema<SELF : Schema<SELF>> {
         override fun invoke(): Any? = when (mode) {
             0 -> {
                 val fields = tmpFields()
-                check(fields.isNotEmpty()) { "Struct must have at least one field." } // fixme: is it necessary?
+                check(fields.isNotEmpty()) { "Struct must have at least one field." }
+                // Schema.allFieldSet() relies on field count ∈ [1; 64]
+                // and FieldDef constructor checks for ordinal ∈ [0; 63]
 
                 val nameSet = HashSet<String>()
                 for (i in fields.indices) {
@@ -136,7 +138,7 @@ abstract class Schema<SELF : Schema<SELF>> {
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
  * When treated as a function, returns value of this [FieldDef] on a given [Struct].
  * Note: constructors are internal to guarantee correct [ordinal] values.
- * @see StructDef
+ * @see Schema
  * @see Struct
  * @see Mutable
  * @see Immutable
