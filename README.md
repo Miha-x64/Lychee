@@ -53,17 +53,25 @@ or `LiveData` in Android Arch.
 
 * [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT) — similar to this,
   Observable-based, Android-only, depends on coroutines
+
 * [BennyWang/KBinding](https://github.com/BennyWang/KBinding) (no license) —
   Android-only, based on annotation processing, depends on RXJava 1.3,
+
 * [LewisRhine/AnkoDataBindingTest](https://github.com/LewisRhine/AnkoDataBindingTest)
    (no license) 
    — theoretical solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
    article, Android-only, depends on Anko and AppCompat
+
 * [lightningkite/kotlin-anko-observable](https://github.com/lightningkite/kotlin-anko-observable) (no license),
+  Android-only,
+  supports easy creation of RecyclerView adapters along with data-binding,
   based on [lightningkite/kotlin-anko](https://github.com/lightningkite/kotlin-anko) (depends on Anko and AppCompat)
-  and [lightningkite/kotlin-observable](https://github.com/lightningkite/kotlin-observable),
+  and [lightningkite/kotlin-observable](https://github.com/lightningkite/kotlin-observable)
+  (`ObservableProperty<T>` and `ObservableList<T>`);
   [UnknownJoe796/kotlin-components-starter](https://github.com/UnknownJoe796/kotlin-components-starter)
+
 * [MarcinMoskala/KotlinAndroidViewBindings](https://github.com/MarcinMoskala/KotlinAndroidViewBindings)
+  — property delegation to view by id
 
 ## Sample
 
@@ -278,7 +286,7 @@ val someGlobalProp = propertyOf(100)
 val mappedProp = someGlobalProp.map { it * 10 }
 // mappedProp has no listeners and thus not observes someGlobalProp
 
-println(mappedProp.value) // value calculated ondemand
+println(mappedProp.value) // value calculated on demand
 
 mappedProp.addChangeListener { ... }
 // mappedProp now listens for someGlobalProp changes
@@ -289,8 +297,8 @@ someGlobalProp.value = 1
 // mappedProp's listener was notified
 ```
 
-All Android bindings are based on [bindViewTo](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L14)
-which creates a [SafeBinding](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L29).
+All Android bindings are based on [bindViewTo](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L18)
+which creates a [SafeBinding](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L46).
 It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener` and `ChangeListener`.
 When view gets attached to window, `SafeBinding` is getting subscribed; when view gets detached,
 binding unsubscribes and becomes eligible for garbage collection with the whole view hierarchy.
@@ -302,5 +310,5 @@ It also was backported to ~~Java 6.5~~ _Android_ a long time ago.
 Note that it is distributed under 'GPL v. 2.0 with classpath exception'
 which is not as restrictive as GPL itself.
 
-You can mutate concurrent properties in the end of async computations,
-changing UI state as needed.
+You can mutate concurrent properties in the end of async computations (i. e. from CompletableFuture's Consumer),
+triggering UI state change as needed.
