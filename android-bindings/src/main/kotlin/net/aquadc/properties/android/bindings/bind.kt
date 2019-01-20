@@ -1,26 +1,48 @@
 package net.aquadc.properties.android.bindings
 
+import android.os.Build
+import android.support.annotation.RequiresApi
 import android.view.View
 import net.aquadc.properties.Property
 
 
 /**
- * Creates new [SafeBinding] and makes it observe [this] View's attached state.
+ * Binds view to [source] property via [bind] function.
+ *
+ * For properties which [Property.mayChange],
+ * calls [bind] for each [source] change while [View.isAttachedToWindow],
+ * and on [View.OnAttachStateChangeListener.onViewAttachedToWindow].
+ *
+ * For immutable properties, calls [bind] in-place.
  */
-fun <V : View, T> V.bindViewTo(property: Property<T>, bind: (view: V, new: T) -> Unit) {
-    val binding = SafeBinding(this, property, bind)
-    if (windowToken != null) {
-        // the view is already attached, catch up with this state
-        binding.onViewAttachedToWindow(this)
+fun <V : View, T> V.bindViewTo(source: Property<T>, bind: (view: V, new: T) -> Unit) {
+    if (source.mayChange) {
+        val binding = SafeBinding(this, source, bind)
+        if (windowToken != null) {
+            // the view is already attached, catch up with this state
+            binding.onViewAttachedToWindow(this)
+        }
+        addOnAttachStateChangeListener(binding)
+    } else {
+        bind(this, source.value)
     }
-    addOnAttachStateChangeListener(binding)
 }
 
+
 /**
- * Calls specified [bind] function when
- * * View gets attached to window
- * * [property]'s value gets changed while View is attached
+ * Binds view [destination] property to [source] property.
+ *
+ * For properties which [Property.mayChange],
+ * [android.util.Property.set]s new value for each [source] change while [View.isAttachedToWindow],
+ * and on [View.OnAttachStateChangeListener.onViewAttachedToWindow].
+ *
+ * For immutable properties, calls [android.util.Property.set] in-place.
  */
+@RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+fun <V : View, T> V.bindViewTo(source: Property<T>, destination: android.util.Property<V, T>) =
+        bindViewTo(source) { obj, value -> destination.set(obj, value) }
+
+
 private class SafeBinding<V : View, in T>(
         private val view: V,
         private val property: Property<T>,
@@ -45,3 +67,5 @@ private class SafeBinding<V : View, in T>(
     }
 
 }
+
+// Note: README.md contains links to this file with line numbers of bindViewTo(Property, function) and SafeBinding.
