@@ -1,4 +1,4 @@
-package net.aquadc.properties.testing
+package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.int

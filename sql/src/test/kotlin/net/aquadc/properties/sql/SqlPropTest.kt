@@ -3,7 +3,6 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.addUnconfinedChangeListener
-import net.aquadc.properties.testing.SomeSchema
 import net.aquadc.properties.testing.assertReturnsGarbage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame

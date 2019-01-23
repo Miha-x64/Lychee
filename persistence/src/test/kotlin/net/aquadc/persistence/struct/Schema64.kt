@@ -1,6 +1,5 @@
-package net.aquadc.properties.testing
+package net.aquadc.persistence.struct
 
-import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.string
 
 

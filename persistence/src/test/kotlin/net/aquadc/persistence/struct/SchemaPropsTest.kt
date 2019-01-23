@@ -1,6 +1,5 @@
 package net.aquadc.persistence.struct
 
-import net.aquadc.properties.testing.SomeSchema
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

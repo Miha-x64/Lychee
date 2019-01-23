@@ -3,7 +3,6 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.long
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
-import net.aquadc.properties.testing.SomeSchema
 import java.sql.DriverManager
 
 

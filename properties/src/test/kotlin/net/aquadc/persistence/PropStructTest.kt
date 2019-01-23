@@ -5,7 +5,6 @@ import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.persistence.ObservableStruct
 import net.aquadc.properties.persistence.snapshots
-import net.aquadc.properties.testing.SomeSchema
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
