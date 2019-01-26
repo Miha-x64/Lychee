@@ -8,14 +8,14 @@ import net.aquadc.persistence.type.DataType
 
 internal typealias UpdatesHashMap = HashMap<
         Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>,
-        HashMap<Long, Any?>
+        HashMap<IdBound, Any?>
         >
 
-internal fun <SCH : Schema<SCH>, T> UpdatesHashMap.getFor(table: Table<SCH, *, *>, col: FieldDef.Mutable<SCH, T>): HashMap<Long, T>? =
-        get(table to col) as HashMap<Long, T>?
+internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesHashMap.getFor(table: Table<SCH, ID, *>, col: FieldDef.Mutable<SCH, T>): HashMap<ID, T>? =
+        get(table to col) as HashMap<ID, T>?
 
-internal fun <SCH : Schema<SCH>, T> UpdatesHashMap.put(table: Table<SCH, *, *>, field: FieldDef<SCH, T>, value: T, localId: Long) {
-    (this as HashMap<Pair<Table<SCH, *, *>, FieldDef<SCH, T>>, HashMap<Long, Any?>>).getOrPut(table to field, ::HashMap)[localId] = value
+internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesHashMap.put(table: Table<SCH, ID, *>, field: FieldDef<SCH, T>, value: T, id: ID) {
+    (this as HashMap<Pair<Table<SCH, *, *>, FieldDef<SCH, T>>, HashMap<ID, Any?>>).getOrPut(table to field, ::HashMap)[id] = value
 }
 
 @Suppress("UPPER_BOUND_VIOLATED")

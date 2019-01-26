@@ -35,7 +35,7 @@ interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> {
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
     // Note: returned [Property] is not managed itself, [Record]s are. fixme may be in LowLevel
-    fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T>
+    fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T, ID>
     fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T
 }
 

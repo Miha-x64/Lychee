@@ -85,25 +85,15 @@ class SqliteSession(
             check(statement.executeUpdateDelete() == 1)
         }
 
-        override fun <ID : IdBound> localId(table: Table<*, ID, *>, id: ID): Long = when (id) {
-            is Int -> id.toLong()
-            is Long -> id
-            else -> throw AssertionError()
-        }
-
-        override fun <ID : IdBound> primaryKey(table: Table<*, ID, *>, localId: Long): ID =
-                localId as ID
-
         private fun deleteStatementWLocked(table: Table<*, *, *>): SQLiteStatement =
                 deleteStatements.getOrPut(table) {
                     connection.compileStatement(SqliteDialect.deleteRecordQuery(table))
                 }
 
-        override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long {
+        override fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID) {
             val statement = deleteStatementWLocked(table)
             table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdateDelete() == 1)
-            return localId(table, primaryKey)
         }
 
         override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()

@@ -11,7 +11,6 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.concurrentPropertyOf
 import net.aquadc.properties.distinct
 import net.aquadc.properties.function.Arrayz
-import net.aquadc.properties.internal.IdManagedProperty
 import net.aquadc.properties.internal.`Distinct-`
 import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.map
@@ -29,11 +28,11 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val lowSession: LowLevelSession,
         private val table: Table<SCH, ID, REC>,
         private val dialect: Dialect
-) : Dao<SCH, ID, REC>, Manager<SCH, Transaction>() {
+) : Dao<SCH, ID, REC>, Manager<SCH, Transaction, ID>() {
 
     // there's no ReferenceQueue, just evict when reference gets nulled out
 
-    private val recordRefs = ConcurrentHashMap<Long, WeakReference<REC>>()
+    private val recordRefs = ConcurrentHashMap<ID, WeakReference<REC>>()
 
     // SELECT COUNT(*) WHERE ...
     private val counts = ConcurrentHashMap<WhereCondition<out SCH>, WeakReference<`Mapped-`<WhereCondition<out SCH>, Long>>>()
@@ -44,19 +43,19 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     private val selectionsByOrder = ConcurrentHashMap<FieldDef<SCH, *>, CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>>()
 
     @Suppress("UNCHECKED_CAST")
-    internal fun <T> commitValue(localId: Long, column: FieldDef.Mutable<SCH, T>, value: T) {
-        recordRefs.getWeakOrRemove(localId)?.let { rec ->
-            (rec.values[column.ordinal.toInt()] as ManagedProperty<SCH, Transaction, T>).commit(value)
+    internal fun <T> commitValue(id: ID, column: FieldDef.Mutable<SCH, T>, value: T) {
+        recordRefs.getWeakOrRemove(id)?.let { rec ->
+            (rec.values[column.ordinal.toInt()] as ManagedProperty<SCH, Transaction, T, ID>).commit(value)
         }
     }
 
-    internal fun dropManagement(localId: Long) {
-        recordRefs.remove(localId)?.get()?.let { record ->
+    internal fun dropManagement(id: ID) {
+        recordRefs.remove(id)?.get()?.let { record ->
             val defs = record.table.schema.fields
             val fields = record.values
             for (i in defs.indices) {
                 when (defs[i]) {
-                    is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *>).dropManagement()
+                    is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *, *>).dropManagement()
                     is FieldDef.Immutable -> { /* no-op */ }
                 }.also {  }
             }
@@ -90,9 +89,9 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     fun dump(prefix: String, sb: StringBuilder) {
         sb.append(prefix).append("records\n")
-        recordRefs.forEach { (localId, recRef) ->
+        recordRefs.forEach { (id, recRef) ->
             recRef.get()?.let { rec ->
-                sb.append(prefix).append(" ").append(localId).append(" : ").append(rec).append("\n")
+                sb.append(prefix).append(" ").append(id).append(" : ").append(rec).append("\n")
             }
         }
 
@@ -146,8 +145,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     override fun find(id: ID): REC? {
         if (!lowSession.exists(table, id)) return null
-        val localId = lowSession.localId(table, id)
-        return recordRefs.getOrPutWeak(localId) { table.newRecord(session, id) }
+        return recordRefs.getOrPutWeak(id) { table.newRecord(session, id) }
     }
 
     override fun select(condition: WhereCondition<out SCH>, vararg order: Order<SCH>): Property<List<REC>> {
@@ -177,9 +175,8 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     // region low-level Dao implementation
 
-    override fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T> {
-        val localId = lowSession.localId(table, id)
-        return IdManagedProperty(this, col, localId, unset())
+    override fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T, ID> {
+        return ManagedProperty(this, col, id, unset())
     }
 
     override fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T =
@@ -189,29 +186,26 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     // region Manager implementation
 
-    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: Long): T {
+    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T {
         val transaction = lowSession.transaction ?: return unset()
 
         val thisCol = transaction.updated?.getFor(table, field) ?: return unset()
         // we've created this column, we can cast it to original type
 
-        val localId = id
-        return if (thisCol.containsKey(localId)) thisCol[localId] as T else unset()
+        return if (thisCol.containsKey(id)) thisCol[id] as T else unset()
         // 'as T' is safe since thisCol won't contain non-T value
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T {
-        val primaryKey = lowSession.primaryKey(table, id)
-        return getValueInternal(field, primaryKey)
-    }
+    override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: ID): T =
+            getValueInternal(field, id)
 
     private fun <T> getValueInternal(field: FieldDef<SCH, T>, primaryKey: ID): T {
         val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
         return lowSession.fetchSingle(field, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, id: Long, update: T) {
+    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, id: ID, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
             if (ourTransact === null)
@@ -227,7 +221,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
             return
         }
 
-        transaction.update(table, lowSession.primaryKey(table, id), field, update)
+        transaction.update(table, id, field, update)
     }
 
     // endregion Manager implementation

@@ -83,25 +83,15 @@ class JdbcSession(
             check(statement.executeUpdate() == 1)
         }
 
-        override fun <ID : IdBound> localId(table: Table<*, ID, *>, id: ID): Long = when (id) {
-            is Int -> id.toLong()
-            is Long -> id
-            else -> TODO("${id.javaClass} keys support")
-        }
-
-        override fun <ID : IdBound> primaryKey(table: Table<*, ID, *>, localId: Long): ID =
-                localId as ID // todo
-
         private fun deleteStatementWLocked(table: Table<*, *, *>): PreparedStatement =
                 deleteStatements.getOrPut(table) {
                     connection.prepareStatement(dialect.deleteRecordQuery(table))
                 }
 
-        override fun <ID : IdBound> deleteAndGetLocalId(table: Table<*, ID, *>, primaryKey: ID): Long {
+        override fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID) {
             val statement = deleteStatementWLocked(table)
             table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdate() == 1)
-            return localId(table, primaryKey)
         }
 
         override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()

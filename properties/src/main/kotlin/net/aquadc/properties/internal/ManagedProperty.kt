@@ -11,14 +11,12 @@ import net.aquadc.persistence.struct.Schema
  * Note: [manager] is not volatile and requires external synchronization if used (e. g. [dropManagement]) concurrently
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T> constructor(
-        private var manager: Manager<SCH, TRANSACTION>?,
+open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
+        private var manager: Manager<SCH, TRANSACTION, ID>?,
         private val field: FieldDef.Mutable<SCH, T>,
+        val id: ID,
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
-
-    protected open val id: Long
-        get() = -1
 
     override val value: T
         get() {
@@ -76,7 +74,7 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T> constructor(
     val isManaged: Boolean
         get() = manager != null
 
-    private fun requireManaged(): Manager<SCH, TRANSACTION> =
+    private fun requireManaged(): Manager<SCH, TRANSACTION, ID> =
             manager ?: throw IllegalStateException(
                     "${toString()} is not managed anymore, e. g. was removed from underlying storage" +
                             if (ref !== Unset) ". Last remembered value: '$ref'" else "")
@@ -87,35 +85,27 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T> constructor(
 }
 
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class IdManagedProperty<SCH : Schema<SCH>, TRANSACTION, T> constructor(
-        manager: Manager<SCH, TRANSACTION>?,
-        field: FieldDef.Mutable<SCH, T>,
-        override val id: Long,
-        initialValue: T
-) : ManagedProperty<SCH, TRANSACTION, T>(manager, field, initialValue)
-
 /**
  * A manager of a property, e. g. a database session.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-abstract class Manager<SCH : Schema<SCH>, TRANSACTION> {
+abstract class Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
 
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
     @Suppress("UNCHECKED_CAST")
-    open fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: Long): T =
+    open fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T =
             Unset as T
 
     /**
      * Returns clean value.
      */
-    abstract fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Long): T
+    abstract fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    abstract fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: Long, update: T)
+    abstract fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: ID, update: T)
 
 }

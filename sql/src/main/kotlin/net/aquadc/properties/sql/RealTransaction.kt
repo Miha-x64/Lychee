@@ -17,14 +17,14 @@ internal class RealTransaction(
     private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
     private var isSuccessful = false
 
-    // table : local IDs
-    private var inserted: HashMap<Table<*, *, *>, ArrayList<Long>>? = null
+    // table : IDs
+    private var inserted: HashMap<Table<*, *, *>, ArrayList<IdBound>>? = null
 
-    // column : localId : value
+    // column : ID : value
     internal var updated: UpdatesHashMap? = null
 
-    // table : local IDs
-    private var deleted: HashMap<Table<*, *, *>, ArrayList<Long>>? = null
+    // table : IDs
+    private var deleted: HashMap<Table<*, *, *>, ArrayList<IdBound>>? = null
 
     // TODO: use special collections for Longs
 
@@ -34,12 +34,11 @@ internal class RealTransaction(
         checkOpenAndThread()
 
         val id = lowSession.insert(table, data)
-        val localId = lowSession.localId(table, id)
 
         // remember we've added a record
-        (inserted ?: HashMap<Table<*, *, *>, ArrayList<Long>>().also { inserted = it })
+        (inserted ?: HashMap<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })
                 .getOrPut(table, ::ArrayList)
-                .add(localId)
+                .add(id)
 
         // write all insertion fields as updates
         val updated = updated ?: UpdatesHashMap().also { updated = it }
@@ -48,7 +47,7 @@ internal class RealTransaction(
         for (i in fields.indices) {
             val field = fields[i]
             when (field) {
-                is FieldDef.Mutable -> updated.put(table, field as FieldDef<SCH, Any?>, data[field], localId)
+                is FieldDef.Mutable -> updated.put(table, field as FieldDef<SCH, Any?>, data[field], id)
                 is FieldDef.Immutable -> { }
             }.also { }
         }
@@ -63,9 +62,9 @@ internal class RealTransaction(
 
         lowSession.update(table, id, column, value)
 
-        (updated ?: HashMap<Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>, HashMap<Long, Any?>>().also { updated = it })
+        (updated ?: HashMap<Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>, HashMap<IdBound, Any?>>().also { updated = it })
                 .getOrPut(table to column, ::HashMap)
-                .put(lowSession.localId(table, id), value)
+                .put(id, value)
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>) {
@@ -73,11 +72,12 @@ internal class RealTransaction(
         check(session === record._session)
 
         val table = record.table
-        val localId = lowSession.deleteAndGetLocalId(table, record.primaryKey)
+        val id = record.primaryKey
+        lowSession.delete(table, id)
 
-        (deleted ?: HashMap<Table<*, *, *>, ArrayList<Long>>().also { deleted = it })
+        (deleted ?: HashMap<Table<*, *, *>, ArrayList<IdBound>>().also { deleted = it })
                 .getOrPut(table, ::ArrayList)
-                .add(localId)
+                .add(id)
     }
 
     override fun setSuccessful() {
@@ -94,20 +94,19 @@ internal class RealTransaction(
 
     internal fun deliverChanges() {
         val del = deleted
-        del?.forEach { (table, localIDs) ->
+        del?.forEach { (table, ids) ->
             lowSession.daos[table.erased]?.let { man ->
-                localIDs.forEach(man::dropManagement)
+                ids.forEach((man as RealDao<*, IdBound, *>)::dropManagement)
             }
         }
         // Deletions first! Now we're not going to disturb souls of dead records & properties.
 
         // value changes
         val upd = updated
-        upd?.forEach { (tblToCol, localIdToVal) ->
+        upd?.forEach { (tblToCol, idToVal) ->
             val (table, col) = tblToCol
-            localIdToVal.forEach { (localId, value) ->
-                lowSession.daos[table]?.erased?.commitValue(localId, col.erased, value)
-                Unit
+            idToVal.forEach { (id, value) ->
+                lowSession.daos[table]?.erased?.commitValue(id, col.erased, value)
             }
         }
 
