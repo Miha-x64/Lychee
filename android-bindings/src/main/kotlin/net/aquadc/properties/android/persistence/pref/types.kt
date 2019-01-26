@@ -7,31 +7,41 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.match
 import net.aquadc.properties.android.persistence.assertFitsByte
 import net.aquadc.properties.android.persistence.assertFitsShort
+import net.aquadc.properties.internal.Unset
+import java.util.EnumSet
 
 
 internal fun <T> FieldDef<*, T>.get(prefs: SharedPreferences): T {
     val value = type.get(prefs, name)
-    return if (value === null/* && !type.isNullable*/) default else value
+    return if (value === Unset) default else value
 }
 
 internal fun <T> DataType<T>.get(prefs: SharedPreferences, name: String, default: T): T {
     val value = get(prefs, name)
-    return if (value === null/* && !isNullable*/) default else value
+    return if (value === Unset) default else value
 }
 
-// ^ commented out 'isNullable': we use default value even for nullable types
+/**
+ * SharedPrefs do not support storing null values. Null means 'absent' in this context.
+ * To preserve consistent behaviour of default field values amongst nullable and non-nullable fields,
+ * we store 'null' ourselves. If a field has String type, 'null' is stored as Boolean 'false'.
+ * Otherwise 'null' is stored as a String "null".
+ */
+private val storedAsString = EnumSet.of(DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob)
 
-// NOTE: `null` means 'absent' here
 @Suppress("UNCHECKED_CAST")
-private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T? {
-    if (!prefs.contains(key)) return null
+private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
+    if (!prefs.contains(key)) return Unset as T
 
     val map = prefs.all // sadly, copying prefs fully is the only way to achieve correctness concurrently
 
     val value = map[key]
-    if (value === null) return null
+    if (value === null) return Unset as T
 
-    return match { _, simple ->
+    return match { isNullable, simple ->
+        if (isNullable && if (simple.kind in storedAsString) value == false else value == "null")
+            return decode(null)
+
         decode(when (simple.kind) {
             DataType.Simple.Kind.Bool -> value as Boolean
             DataType.Simple.Kind.I8 -> (value as Int).assertFitsByte()
@@ -47,10 +57,13 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T? {
 }
 
 internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, value: T) {
-    if (value === null)
-        return editor.remove(key).ignored
+    match { isNullable, simple ->
+        if (isNullable && value === null) {
+            if (value in storedAsString) editor.putBoolean(key, false)
+            else editor.putString(key, "null")
+            return
+        }
 
-    match { _, simple ->
         val v = encode(value)
         when (simple.kind) {
             DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean).ignored
