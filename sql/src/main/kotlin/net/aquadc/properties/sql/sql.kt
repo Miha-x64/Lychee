@@ -60,7 +60,7 @@ inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
 }
 
 fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.require(id: ID): REC =
-        find(id) ?: throw IllegalStateException("No record found in `$this` for ID $id")
+        find(id) ?: throw NoSuchElementException("No record found in `$this` for ID $id")
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.select(
