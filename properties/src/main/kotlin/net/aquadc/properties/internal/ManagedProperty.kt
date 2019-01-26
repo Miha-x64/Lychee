@@ -99,7 +99,7 @@ interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
     /**
      * Returns clean value.
      */
-    fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: ID): T
+    fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].

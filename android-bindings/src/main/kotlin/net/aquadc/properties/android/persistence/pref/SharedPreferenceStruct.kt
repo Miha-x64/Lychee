@@ -94,7 +94,7 @@ class SharedPreferenceStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactional
         override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: Nothing?): T =
                 Unset as T
 
-        override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Nothing?): T =
+        override fun <T> getClean(field: FieldDef<SCH, T>, id: Nothing?): T =
                 field.get(prefs)
 
         override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, id: Nothing?, update: T) {

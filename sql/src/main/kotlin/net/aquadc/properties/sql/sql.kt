@@ -38,8 +38,6 @@ interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<
     // todo raw queries, joins
     fun count(condition: WhereCondition<out SCH>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
-
-    fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T
 }
 
 /**
@@ -230,7 +228,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
             val value = values[index]
 
             if (value === Unset) {
-                val freshValue = dao.getValueOf(field, primaryKey)
+                val freshValue = dao.getClean(field, primaryKey)
                 values[index] = freshValue
                 freshValue
             } else  value as T

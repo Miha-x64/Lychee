@@ -168,13 +168,6 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     // endregion Dao implementation
 
-    // region low-level Dao implementation
-
-    override fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T =
-            getValueInternal(col, id)
-
-    // endregion low-level Dao implementation
-
     // region Manager implementation
 
     override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T {
@@ -188,11 +181,8 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: ID): T =
-            getValueInternal(field, id)
-
-    private fun <T> getValueInternal(field: FieldDef<SCH, T>, primaryKey: ID): T {
-        val condition = lowSession.reusableCond(table, table.idColName, primaryKey)
+    override fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T {
+        val condition = lowSession.reusableCond(table, table.idColName, id)
         return lowSession.fetchSingle(field, table, condition)
     }
 
