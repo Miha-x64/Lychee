@@ -58,8 +58,8 @@ dependencies {
     implementation "com.android.support:recyclerview-v7:$support_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     
-    implementation 'org.jetbrains.anko:anko-sdk21:0.10.7'
-    implementation 'org.jetbrains.anko:anko-recyclerview-v7:0.10.7'
+    implementation 'org.jetbrains.anko:anko-sdk21:0.10.8'
+    implementation 'org.jetbrains.anko:anko-recyclerview-v7:0.10.8'
     
     implementation project(':properties')
     implementation project(':android-bindings')
