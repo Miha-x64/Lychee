@@ -40,12 +40,13 @@ interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> {
 }
 
 /**
- * Calls [block] within transaction to create, mutate, remove [Record]s.
+ * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove [Record]s.
+ * In future will retry conflicting transaction by calling [block] more than once.
  */
 @UseExperimental(ExperimentalContracts::class)
 inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
     contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+        callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
     }
 
     val transaction = beginTransaction()

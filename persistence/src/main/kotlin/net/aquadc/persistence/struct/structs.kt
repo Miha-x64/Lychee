@@ -24,11 +24,14 @@ private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(sour
 
 /**
  * Calls [block] inside a transaction to mutate [this].
+ * Passes [SCH] as a receiver, so you can shorten `Schema.Field` as `Field`.
+ * Passes [StructTransaction] as first parameter, so you can write `it[Field] = newValue`.
+ * In future will retry conflicting transaction by calling [block] more than once.
  */
 @UseExperimental(ExperimentalContracts::class)
 inline fun <SCH : Schema<SCH>, R> TransactionalStruct<SCH>.transaction(block: SCH.(StructTransaction<SCH>) -> R): R {
     contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+        callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
     }
 
     val transaction = beginTransaction()
