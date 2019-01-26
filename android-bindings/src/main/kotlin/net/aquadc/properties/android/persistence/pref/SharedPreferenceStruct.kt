@@ -83,13 +83,16 @@ class SharedPreferenceStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactional
 
     private val manager = PrefManager()
 
-    private inner class PrefManager : Manager<SCH, StructTransaction<SCH>, Nothing?>(), SharedPreferences.OnSharedPreferenceChangeListener {
+    private inner class PrefManager : Manager<SCH, StructTransaction<SCH>, Nothing?>, SharedPreferences.OnSharedPreferenceChangeListener {
 
         /* non-KDOC
          * getDirty implNote:
          *   'dirty' state is in memory; there can be several parallel transactions.
          *   Thus, 'dirty' state is nonsensical here.
          */
+
+        override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: Nothing?): T =
+                Unset as T
 
         override fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: Nothing?): T =
                 field.get(prefs)

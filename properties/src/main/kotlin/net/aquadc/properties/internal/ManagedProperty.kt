@@ -86,26 +86,24 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
 
 
 /**
- * A manager of a property, e. g. a database session.
+ * A manager of a property, e. g. a database DAO/session.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-abstract class Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
+interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
 
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    @Suppress("UNCHECKED_CAST")
-    open fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T =
-            Unset as T
+    fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T
 
     /**
      * Returns clean value.
      */
-    abstract fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: ID): T
+    fun <T> getClean(field: FieldDef.Mutable<SCH, T>, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    abstract fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: ID, update: T)
+    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: ID, update: T)
 
 }

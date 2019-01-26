@@ -6,6 +6,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
+import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.mapToArray
 import kotlin.contracts.ExperimentalContracts
@@ -27,15 +28,17 @@ interface Session {
 
 }
 
-interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> {
+/**
+ * Represents a database session specialized for a certain [Table].
+ * {@implNote [Manager] supertype is used by [ManagedProperty] instances}
+ */
+interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<SCH, Transaction, ID> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
     fun select(condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty
     // todo raw queries, joins
     fun count(condition: WhereCondition<out SCH>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 
-    // Note: returned [Property] is not managed itself, [Record]s are. fixme may be in LowLevel
-    fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T, ID>
     fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T
 }
 
@@ -209,7 +212,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
             session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>).let { dao ->
                 table.schema.fields.mapToArray { col ->
                     when (col) {
-                        is FieldDef.Mutable -> dao.createFieldOf(col as FieldDef.Mutable<SCH, Nothing>, primaryKey)
+                        is FieldDef.Mutable -> ManagedProperty<SCH, Transaction, Any?, ID>(dao, col as FieldDef.Mutable<SCH, Any?>, primaryKey, Unset)
                         is FieldDef.Immutable -> Unset
                     }
                 }

@@ -1,19 +1,14 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.properties.internal.Manager
-import net.aquadc.properties.internal.Unset
-import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.Property
-import net.aquadc.properties.concurrentPropertyOf
-import net.aquadc.properties.distinct
+import net.aquadc.properties.*
 import net.aquadc.properties.function.Arrayz
+import net.aquadc.properties.internal.ManagedProperty
+import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.`Distinct-`
 import net.aquadc.properties.internal.`Mapped-`
-import net.aquadc.properties.map
+import net.aquadc.properties.sql.dialect.Dialect
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -28,7 +23,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val lowSession: LowLevelSession,
         private val table: Table<SCH, ID, REC>,
         private val dialect: Dialect
-) : Dao<SCH, ID, REC>, Manager<SCH, Transaction, ID>() {
+) : Dao<SCH, ID, REC> {
 
     // there's no ReferenceQueue, just evict when reference gets nulled out
 
@@ -174,10 +169,6 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     // endregion Dao implementation
 
     // region low-level Dao implementation
-
-    override fun <T> createFieldOf(col: FieldDef.Mutable<SCH, T>, id: ID): ManagedProperty<SCH, Transaction, T, ID> {
-        return ManagedProperty(this, col, id, unset())
-    }
 
     override fun <T> getValueOf(col: FieldDef<SCH, T>, id: ID): T =
             getValueInternal(col, id)
