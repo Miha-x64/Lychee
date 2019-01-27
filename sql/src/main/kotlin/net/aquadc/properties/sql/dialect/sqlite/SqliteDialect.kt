@@ -148,4 +148,12 @@ object SqliteDialect : Dialect {
         this
     }
 
+    /**
+     * {@implNote SQLite does not have TRUNCATE statement}
+     */
+    override fun truncate(table: Table<*, *, *>): String =
+            buildString(13 + table.name.length) {
+                append("DELETE FROM").appendName(table.name)
+            }
+
 }

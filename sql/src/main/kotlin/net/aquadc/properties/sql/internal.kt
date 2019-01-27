@@ -10,6 +10,7 @@ internal interface LowLevelSession {
     fun <SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T)
     fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID)
+    fun truncate(table: Table<*, *, *>)
     val daos: Map<Table<*, *, *>, RealDao<*, *, *>>
     fun onTransactionEnd(successful: Boolean)
 

@@ -58,4 +58,9 @@ interface Dialect {
      */
     fun createTable(table: Table<*, *, *>): String
 
+    /**
+     * Returns `TRUNCATE` query to clear the whole table.
+     */
+    fun truncate(table: Table<*, *, *>): String
+
 }

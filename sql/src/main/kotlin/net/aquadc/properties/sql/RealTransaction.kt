@@ -24,7 +24,7 @@ internal class RealTransaction(
     internal var updated: UpdatesHashMap? = null
 
     // table : IDs
-    private var deleted: HashMap<Table<*, *, *>, ArrayList<IdBound>>? = null
+    private var deleted: HashMap<Table<*, *, *>, Any>? = null // Map<Table, ArrayList<IdBound> | Unit>
 
     // TODO: use special collections for Longs
 
@@ -75,10 +75,20 @@ internal class RealTransaction(
         val id = record.primaryKey
         lowSession.delete(table, id)
 
-        (deleted ?: HashMap<Table<*, *, *>, ArrayList<IdBound>>().also { deleted = it })
-                .getOrPut(table, ::ArrayList)
-                .add(id)
+        val del = deletedMap()
+        if (del[table] != Unit) {
+            (del as HashMap<Table<*, *, *>, ArrayList<IdBound>>).getOrPut(table, ::ArrayList).add(id)
+        }
     }
+
+    override fun truncate(table: Table<*, *, *>) {
+        checkOpenAndThread()
+        lowSession.truncate(table)
+        deletedMap()[table] = Unit
+    }
+
+    private fun deletedMap() =
+            deleted ?: HashMap<Table<*, *, *>, Any>().also { deleted = it }
 
     override fun setSuccessful() {
         checkOpenAndThread()
@@ -96,7 +106,13 @@ internal class RealTransaction(
         val del = deleted
         del?.forEach { (table, ids) ->
             lowSession.daos[table.erased]?.let { man ->
-                ids.forEach((man as RealDao<*, IdBound, *>)::dropManagement)
+                man as RealDao<*, IdBound, *>
+                if (ids is Unit) {
+                    man.truncate()
+                } else {
+                    ids as ArrayList<IdBound>
+                    ids.forEach(man::dropManagement)
+                }
             }
         }
         // Deletions first! Now we're not going to disturb souls of dead records & properties.

@@ -94,6 +94,15 @@ class JdbcSession(
             check(statement.executeUpdate() == 1)
         }
 
+        override fun truncate(table: Table<*, *, *>) {
+            val stmt = connection.createStatement()
+            try {
+                stmt.execute(dialect.truncate(table))
+            } finally {
+                stmt.close()
+            }
+        }
+
         override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()
 
         override fun onTransactionEnd(successful: Boolean) {

@@ -67,6 +67,14 @@ class SqlViewModel(
         }
     }
 
+    val truncateClicked = propertyOf(false).also {
+        it.clearEachAnd {
+            session.withTransaction {
+                truncate(Human.Tbl)
+            }
+        }
+    }
+
     private fun fillIfEmpty() {
         if (session[Human.Tbl].count().value == 0L) {
             session.withTransaction {

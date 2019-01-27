@@ -89,7 +89,11 @@ interface Transaction : AutoCloseable {
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
 
-
+    /**
+     * Clear the whole table.
+     * This may be implemented either as `DELETE FROM table` or `TRUNCATE table`.
+     */
+    fun truncate(table: Table<*, *, *>)
 
     fun setSuccessful()
 

@@ -96,6 +96,10 @@ class SqliteSession(
             check(statement.executeUpdateDelete() == 1)
         }
 
+        override fun truncate(table: Table<*, *, *>) {
+            connection.execSQL(SqliteDialect.truncate(table))
+        }
+
         override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()
 
         override fun onTransactionEnd(successful: Boolean) {

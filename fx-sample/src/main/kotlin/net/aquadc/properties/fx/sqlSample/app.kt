@@ -81,6 +81,12 @@ class SqliteApp : Application() {
                                     println(buildString(sess::dump))
                                 }
                             }
+
+                            children += JFXButton("Truncate").apply {
+                                setOnMouseClicked {
+                                    vm.truncateClicked.set()
+                                }
+                            }
                         }
                     }
 

@@ -45,17 +45,29 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     }
 
     internal fun dropManagement(id: ID) {
-        recordRefs.remove(id)?.get()?.let { record ->
-            val defs = record.table.schema.fields
-            val fields = record.values
-            for (i in defs.indices) {
-                when (defs[i]) {
-                    is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *, *>).dropManagement()
-                    is FieldDef.Immutable -> { /* no-op */ }
-                }.also {  }
-            }
-            record.isManaged = false
+        recordRefs.remove(id)?.get()?.let(::dropRecordManagement)
+    }
+
+    internal fun truncate() {
+        val iterator = recordRefs.values.iterator()
+        while (iterator.hasNext()) {
+            val rec = iterator.next()
+            rec.get()?.let(::dropRecordManagement)
+            iterator.remove()
         }
+    }
+
+    private fun dropRecordManagement(record: REC) {
+        val defs = record.table.schema.fields
+        val fields = record.values
+        for (i in defs.indices) {
+            when (defs[i]) {
+                is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *, *>).dropManagement()
+                is FieldDef.Immutable -> { /* no-op */
+                }
+            }.also { }
+        }
+        record.isManaged = false
     }
 
     internal fun onStructuralChange() {
