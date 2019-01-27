@@ -8,6 +8,7 @@ import net.aquadc.properties.executor.WorkerOnExecutor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -54,7 +55,7 @@ class DiffProp {
     }
 
     @Test fun `multi-arity`() {
-        val prop = concurrentMutableDiffPropertyOf<Int, Int>(0)
+        val prop = concurrentDiffPropertyOf<Int, Int>(0)
 
         var called2 = false
         var called3 = false

@@ -40,7 +40,7 @@ class Contended {
 
     private fun allDelivered(threads: Int) {
         val pool = Executors.newFixedThreadPool(threads)
-        val prop = concurrentMutableDiffPropertyOf<Int?, Int?>(0)
+        val prop = concurrentDiffPropertyOf<Int?, Int?>(0)
         val sum = AtomicInteger()
 
         prop.addUnconfinedChangeListener { _, _, diff ->

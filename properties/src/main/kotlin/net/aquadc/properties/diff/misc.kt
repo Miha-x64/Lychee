@@ -17,6 +17,13 @@ typealias DiffChangeListener<T, D> = (old: T, new: T, diff:D) -> Unit
 /**
  * Returns new multi-threaded [MutableDiffProperty] with initial value [value].
  */
+inline fun <T, D> concurrentDiffPropertyOf(value: T): MutableDiffProperty<T, D> =
+        `ConcMutableDiff-`(value)
+
+/**
+ * Returns new multi-threaded [MutableDiffProperty] with initial value [value].
+ */
+@Deprecated("renamed", ReplaceWith("concurrentDiffPropertyOf<T, D>(value)"))
 inline fun <T, D> concurrentMutableDiffPropertyOf(value: T): MutableDiffProperty<T, D> =
         `ConcMutableDiff-`(value)
 
