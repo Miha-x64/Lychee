@@ -75,11 +75,13 @@ val Unset: Any = Any()
         emptyArray<Any?>()
 
 @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@JvmSynthetic
 inline fun <T> emptyArrayOf(): Array<T> =
         EmptyArray as Array<T>
 
 @[JvmField JvmSynthetic] internal val NoListeners =
-        ConcListeners<Any, Any?>(EmptyArray, EmptyArray, false, false, false) as ConcListeners<Nothing, Nothing>
+        ConcListeners<Any, Any?>(EmptyArray, EmptyArray, 0) as ConcListeners<Nothing, Nothing>
 
 @[JvmField JvmSynthetic PublishedApi] internal val TRUE = `Immutable-`(true)
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)
