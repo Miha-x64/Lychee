@@ -13,8 +13,8 @@ import net.aquadc.properties.sql.dialect.appendPlaceholders
  */
 object SqliteDialect : Dialect {
 
-    override fun <SCH : Schema<SCH>> insertQuery(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String =
-            StringBuilder("INSERT INTO ").appendName(table.name)
+    override fun <SCH : Schema<SCH>> replace(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String =
+            StringBuilder("REPLACE INTO ").appendName(table.name)
                     .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                     .toString()
 

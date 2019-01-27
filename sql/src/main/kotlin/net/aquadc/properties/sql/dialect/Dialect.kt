@@ -10,9 +10,9 @@ import net.aquadc.properties.sql.*
 interface Dialect {
 
     /**
-     * Constructs an SQL query like `INSERT INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)`
+     * Constructs a `REPLACE` (`INSERT OR REPLACE`) ` INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
      */
-    fun <SCH : Schema<SCH>> insertQuery(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String
+    fun <SCH : Schema<SCH>> replace(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String
 
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`

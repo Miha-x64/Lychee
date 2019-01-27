@@ -82,7 +82,10 @@ interface Transaction : AutoCloseable {
 
     val session: Session
 
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
+    /**
+     * Insert or replace [data] in a [table].
+     */
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T)
 
@@ -109,6 +112,15 @@ interface Transaction : AutoCloseable {
     }
 
 }
+
+/**
+ * Insert or replace [data] in a [table].
+ * An alias for [Transaction.replace] function.
+ */
+inline fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> Transaction.insert(
+        table: Table<SCH, ID, REC>, data: Struct<SCH>
+): REC =
+        replace(table, data)
 
 class Order<SCH : Schema<SCH>>(
         @JvmField internal val col: FieldDef<SCH, *>,

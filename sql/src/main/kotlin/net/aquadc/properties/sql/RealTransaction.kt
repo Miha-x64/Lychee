@@ -28,12 +28,12 @@ internal class RealTransaction(
 
     // TODO: use special collections for Longs
 
-    override fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(
+    override fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(
             table: Table<SCH, ID, REC>, data: Struct<SCH>
     ): REC {
         checkOpenAndThread()
 
-        val id = lowSession.insert(table, data)
+        val id = lowSession.replace(table, data)
 
         // remember we've added a record
         (inserted ?: HashMap<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })

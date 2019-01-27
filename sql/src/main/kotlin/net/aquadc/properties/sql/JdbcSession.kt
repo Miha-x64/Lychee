@@ -39,7 +39,7 @@ class JdbcSession(
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val insertStatements = HashMap<Table<*, *, *>, PreparedStatement>()
+    private val replaceStatements = HashMap<Table<*, *, *>, PreparedStatement>()
     private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, PreparedStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
@@ -55,11 +55,11 @@ class JdbcSession(
         }
 
         private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): PreparedStatement =
-                insertStatements.getOrPut(table) {
-                    connection.prepareStatement(dialect.insertQuery(table, table.schema.fields), Statement.RETURN_GENERATED_KEYS)
+                replaceStatements.getOrPut(table) {
+                    connection.prepareStatement(dialect.replace(table, table.schema.fields), Statement.RETURN_GENERATED_KEYS)
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val statement = insertStatementWLocked(table)
             val fields = table.schema.fields
             for (i in fields.indices) {
@@ -216,7 +216,7 @@ class JdbcSession(
         }
 
         arrayOf(
-                "insert statements" to insertStatements,
+                "replace statements" to replaceStatements,
                 "update statements" to updateStatements,
                 "delete statements" to deleteStatements
         ).forEach { (text, stmts) ->
