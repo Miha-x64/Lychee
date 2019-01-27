@@ -1,5 +1,6 @@
 package net.aquadc.properties.diff
 
+import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.concurrentPropertyOf
 import net.aquadc.properties.getValue
@@ -71,14 +72,17 @@ class Contended {
 
         var state by concurrentPropertyOf(0)
         val monitor = java.lang.Object()
-        prop.addUnconfinedChangeListener { _, _ ->
-            state = 1
-            synchronized(monitor, monitor::notify)
-            while (state == 1) synchronized(monitor, monitor::wait)
-        }
+        prop.addUnconfinedChangeListener(object : ChangeListener<Int> {
+            override fun invoke(old: Int, new: Int) {
+                state = 1
+                synchronized(monitor, monitor::notify)
+                while (state == 1) synchronized(monitor, monitor::wait)
+                prop.removeChangeListener(this)
+            }
+        })
 
         val v0s = concurrentPropertyOf(false)
-        thread {
+        val thr = thread {
             val v0 = prop.value
             v0s.value = prop.casValue(v0, v0 + 10)
             // listener triggered, hang...
@@ -97,6 +101,7 @@ class Contended {
 
         state = 2
         synchronized(monitor, monitor::notify) // don't sleep anymore
+        thr.join() // this is important for v0s to get its value
 
         assertEquals(10 * (v0s.value.i + v1s.i + v2s.i + v3s.i), prop.value)
     }
