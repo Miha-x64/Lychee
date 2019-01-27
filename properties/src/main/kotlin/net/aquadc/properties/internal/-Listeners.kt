@@ -307,6 +307,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                 nonSyncListeners = onChange
                 changeObservedStateTo(true)
             }
+            // this typecheck will break if single-threaded DiffProperty will be added! [1/2]
             is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
             is Array<*> -> {
                 if (pending != null) {
@@ -405,6 +406,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             val listeners = nonSyncListeners
             when (listeners) {
                 null -> return
+                // this typecheck will break if single-threaded DiffProperty will be added! [2/2]
                 is Function2<*, *, *> -> {
                     @Suppress("UNCHECKED_CAST")
                     if (!predicate(listeners as LISTENER))

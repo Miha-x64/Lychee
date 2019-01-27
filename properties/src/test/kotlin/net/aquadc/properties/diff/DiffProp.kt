@@ -107,5 +107,15 @@ class DiffProp {
         assertTrue(called2)
         assertTrue(called3)
     }
+    
+    @Test fun unsubscription() {
+        val prop = concurrentDiffPropertyOf<Int, Int>(0)
+        val listener: DiffChangeListener<Any?, Any?> = { _, _, _ ->
+            fail()
+        }
+        prop.addUnconfinedChangeListener(listener)
+        prop.removeChangeListener(listener)
+        check(prop.casValue(0, 1, 1))
+    }
 
 }
