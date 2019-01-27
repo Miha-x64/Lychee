@@ -79,7 +79,7 @@ inline fun <T> emptyArrayOf(): Array<T> =
         EmptyArray as Array<T>
 
 @[JvmField JvmSynthetic] internal val NoListeners =
-        ConcListeners(EmptyArray, EmptyArray, false, false, false) as ConcListeners<Nothing, Nothing>
+        ConcListeners<Any, Any?>(EmptyArray, EmptyArray, false, false, false) as ConcListeners<Nothing, Nothing>
 
 @[JvmField JvmSynthetic PublishedApi] internal val TRUE = `Immutable-`(true)
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)

@@ -25,6 +25,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
      *   single-thread properties store listeners separately, in [nonSyncListeners].
      * }
      */
+    @Suppress("ConvertSecondaryConstructorToPrimary")
     internal constructor(thread: Thread?) : super(
             if (thread == null) NoListeners else null
     ) {
@@ -63,6 +64,9 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
      * Second, can't update value and trigger notification while already notifying:
      * this will lead to stack overflow and/or sequentially-inconsistent notifications;
      * must persist all pending values and deliver them later.
+     *
+     * Third, while current value is up-to-date, notifications can be late.
+     * Thus, listeners added during notification must be postponed until notification process reaches current value.
      */
     protected fun valueChanged(old: @UnsafeVariance T, new: @UnsafeVariance T, diff: D) {
         if (thread == null) concValueChanged(old, new, diff)
@@ -73,12 +77,12 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         val oldListeners = concEnqueueUpdate(old, new, diff)
                 ?: return // nothing to notify
 
-        if (oldListeners.pendingValues.isNotEmpty())
+        if (oldListeners.pending.isNotEmpty())
             return // other [valueChanged] is on the stack or in parallel,
         // [new] was added to pending values and will be delivered soon
 
         /*
-         * [pendingValues] is not empty now, it's a kind of lock
+         * [pending] is not empty now, it's a kind of lock
          * new values were added to pending list, let's deliver all the pending values,
          * including those which will appear during the notification
          */
@@ -87,10 +91,14 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         while (true) {
             val state = concState().get() as ConcListeners<LISTENER, UPDATE>
 
-            val current = state.pendingValues[0] // take a pending value from prev state
-            val currentValue = unpackValue(current)
-            concNotifyAll(prev, currentValue, unpackDiff(current))
-            prev = currentValue
+            val current = state.pending[0] // take a pending value from prev state
+
+            if (current !is ConcListeners.AddListener<*>) {
+                current as UPDATE
+                val currentValue = unpackValue(current)
+                concNotifyAll(prev, currentValue, unpackDiff(current))
+                prev = currentValue
+            } // otherwise ConcListeners will handle listener itself
 
             // `pending[0]` is delivered, now remove it from our 'queue'
 
@@ -101,7 +109,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             val next = concState()
                     .updateUndGet(ConcListeners<LISTENER, UPDATE>::next)
 
-            if (next.pendingValues.isEmpty()) {
+            if (next.pending.isEmpty()) {
                 // all pending notified, nulled out listeners are removed
                 return // success! go home.
             }
@@ -121,7 +129,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             if (prev.listeners.isEmpty())
                 return null // nothing to notify
 
-            if (prev.pendingValues.isNotEmpty()) {
+            if (prev.pending.isNotEmpty()) {
                 // other thread or stack performs notification at the moment
 
                 /*
@@ -129,7 +137,8 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                  * but have not made CAS on listeners yet, just wait
                  */
 
-                if (unpackValue(prev.pendingValues.last()) !== old) {
+                val lastPendingIdx = prev.pending.indexOfLast { it !is ConcListeners.AddListener<*> }
+                if (lastPendingIdx >= 0 && unpackValue(prev.pending[lastPendingIdx] as UPDATE) !== old) {
                     Thread.yield() // a bit of awful programming, yay!
                     // wait until other thread set its update, we can't help here
                     continue
@@ -138,9 +147,9 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
 
             /*
              * at this point, either
-             * prev.pendingValues.isNotEmpty() && prev.pendingValues.last().first == old
+             * prev.pending.isNotEmpty() && prev.pending.last().first == old
              * or
-             * prev.pendingValues.isEmpty()
+             * prev.pending.isEmpty()
              */
 
             next = prev.withNextValue(pack(new, diff))
@@ -187,7 +196,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
 
         @Suppress("UNCHECKED_CAST") // this means 'don't notify directly, add to the queue!'
         nonSyncPending().lazySet(EmptyArray as Array<UPDATE>)
-        // pendingValues is empty array now
+        // pending is empty array now
 
         // now we own notification process
 
@@ -317,7 +326,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     }
 
     internal inline fun removeChangeListenerWhere(predicate: (LISTENER) -> Boolean) {
-        if (thread == null) {
+        if (thread == null) { // concurrent
             var hasOthers = false
             concState().update { prev ->
                 hasOthers = false
@@ -346,17 +355,38 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                     }
                 }
 
-                if (victimIdx < 0) {
-                    return
-                }
+                if (victimIdx >= 0) {
+                    prev.withoutListenerAt(victimIdx)
+                } else {
+                    // we must also search in ConcListeners.pending since it may contain listeners, too
+                    val prevPending = prev.pending
+                    var pendingVictimIdx = -1
+                    for (i in prevPending.indices) {
+                        val listener = (prevPending[i] as? ConcListeners.AddListener<LISTENER>)?.listener
+                                ?: continue
 
-                prev.withoutListenerAt(victimIdx)
+                        if (predicate(listener)) {
+                            if (pendingVictimIdx == -1) {
+                                pendingVictimIdx = i
+                                if (hasOthers) break
+                            }
+                        } else {
+                            hasOthers = true
+                            if (pendingVictimIdx != -1) break
+                        }
+                    }
+
+                    if (pendingVictimIdx < 0)
+                        return // not found in both arrays, give up
+
+                    prev.withoutPendingAt(pendingVictimIdx)
+                }
             }
 
             if (!hasOthers) {
                 changeObservedStateTo(false)
             }
-        } else {
+        } else { // single-thread
             checkThread()
             val listeners = nonSyncListeners
             when (listeners) {
