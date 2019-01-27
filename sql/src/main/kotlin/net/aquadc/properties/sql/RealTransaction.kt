@@ -9,7 +9,7 @@ import net.aquadc.persistence.struct.Struct
         "ReplacePutWithAssignment" // shut up, I want to write my code in cute columns
 )
 internal class RealTransaction(
-        override val session: Session,
+        private val session: Session,
         private val lowSession: LowLevelSession
 ) : java.lang.Object(), Transaction {
 

@@ -80,8 +80,6 @@ fun Dao<*, *, *>.count(): Property<Long> =
 
 interface Transaction : AutoCloseable {
 
-    val session: Session
-
     /**
      * Insert or replace [data] in a [table].
      */
@@ -90,6 +88,8 @@ interface Transaction : AutoCloseable {
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T)
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
+
+
 
     fun setSuccessful()
 
