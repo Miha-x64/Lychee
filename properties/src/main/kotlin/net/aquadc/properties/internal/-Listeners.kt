@@ -188,14 +188,14 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             val newValues = pendingValues.with(pack(new, diff))
 
             @Suppress("UNCHECKED_CAST")
-            nonSyncPending().lazySet(newValues as Array<UPDATE>)
+            nonSyncPending().lazySet(newValues)
 
             // and let deeper version of this method pick it up.
             return
         }
 
         @Suppress("UNCHECKED_CAST") // this means 'don't notify directly, add to the queue!'
-        nonSyncPending().lazySet(EmptyArray as Array<UPDATE>)
+        nonSyncPending().lazySet(EmptyArray)
         // pending is empty array now
 
         // now we own notification process
@@ -210,9 +210,14 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                 break // real end of queue, nothing to do here
 
             val newer = pendingValues[i]
-            val newerValue = unpackValue(newer)
-            nonSyncNotifyAll(older, newerValue, unpackDiff(newer))
-            older = newerValue
+            if (newer is ConcListeners.AddListener<*>) {
+                nonSyncReallyAddChangeListener(newer.listener as LISTENER, pendingValues)
+            } else {
+                newer as UPDATE
+                val newerValue = unpackValue(newer)
+                nonSyncNotifyAll(older, newerValue, unpackDiff(newer))
+                older = newerValue
+            }
             i++
 
             if (i == pendingValues.size) // end of queue, read a fresh one
@@ -287,6 +292,15 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
 
     protected fun nonSyncAddChangeListenerInternal(onChange: LISTENER) {
         checkThread()
+        val pending = nonSyncPending().get()
+        if (pending === null) { // currently not notifying
+            nonSyncReallyAddChangeListener(onChange, pending)
+        } else { // currently notifying — postpone subscription
+            nonSyncPending().lazySet(pending.with(ConcListeners.AddListener(onChange)))
+        }
+    }
+
+    private fun nonSyncReallyAddChangeListener(onChange: LISTENER, pending: Array<Any?>?) {
         val listeners = nonSyncListeners
         when (listeners) {
             null -> {
@@ -295,7 +309,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             }
             is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
             is Array<*> -> {
-                if (nonSyncPending().get() != null) {
+                if (pending != null) {
                     // notifying now, expand array without structural changes
                     nonSyncListeners = listeners.with(onChange)
                     if (listeners.all { it == null }) {
@@ -504,6 +518,6 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
     internal inline fun nonSyncPending() =
-            this as AtomicReference<Array<UPDATE>?>
+            this as AtomicReference<Array<Any?>?> // = UPDATE | AddListener<LISTENER>
 
 }
