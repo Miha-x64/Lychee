@@ -40,7 +40,7 @@ fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
         textProperty().bind(vm.buttonEnabledProp.map {
             if (it) "Save changes" else "Nothing changed"
         }.fx())
-        setOnAction { vm.buttonClickedProp.set() }
+        setWhenClicked(vm.buttonClickedProp)
     })
 
     children.add(Label().apply {

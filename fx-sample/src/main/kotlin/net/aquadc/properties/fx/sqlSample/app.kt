@@ -15,6 +15,7 @@ import net.aquadc.properties.*
 import net.aquadc.properties.fx.bindTo
 import net.aquadc.properties.fx.fx
 import net.aquadc.properties.fx.fxList
+import net.aquadc.properties.fx.setWhenClicked
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
@@ -63,7 +64,7 @@ class SqliteApp : Application() {
 
                         children += JFXButton("Delete").apply {
                             disableProperty().bind((!vm.actionsEnabledProp).fx())
-                            setOnMouseClicked { _ -> vm.deleteClicked.set() }
+                            setWhenClicked(vm.deleteClicked)
                         }
 
                         children += Pane().apply {
@@ -73,7 +74,7 @@ class SqliteApp : Application() {
 
                         children += HBox().apply {
                             children += JFXButton("Create new").apply {
-                                setOnMouseClicked { _ -> vm.createClicked.set() }
+                                setWhenClicked(vm.createClicked)
                             }
 
                             children += JFXButton("Dump debug info").apply {
@@ -83,9 +84,7 @@ class SqliteApp : Application() {
                             }
 
                             children += JFXButton("Truncate").apply {
-                                setOnMouseClicked {
-                                    vm.truncateClicked.set()
-                                }
+                                setWhenClicked(vm.truncateClicked)
                             }
                         }
                     }
