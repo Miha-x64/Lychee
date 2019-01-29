@@ -20,9 +20,6 @@ class ContenededSubscription {
     @Test fun concProp() =
             contend(concurrentPropertyOf("")) { it }
 
-    @Test fun contendConcBound() =
-            contend(concurrentPropertyOf("")) { it }
-
     @Test fun contendConcMap() =
             contend(concurrentPropertyOf(""), Property<String>::readOnlyView)
 
@@ -61,6 +58,7 @@ class ContenededSubscription {
         val prop = transform(original)
         ForkJoinPool.commonPool().invokeAll(List(Runtime.getRuntime().availableProcessors()) {
             Callable {
+                // iterate this list in parallel on every core
                 listeners.forEach {
                     prop.addUnconfinedChangeListener(it)
                     Thread.yield()
@@ -78,6 +76,79 @@ class ContenededSubscription {
         assertEquals(false, randomCalled)
         Thread.sleep(10) // for debounced property
         assertEquals(true, desiredCalled)
+    }
+
+    @Test fun unsObservedState() = observedState(false)
+    @Test fun concObservedState() = observedState(true)
+    @Test fun unsBiObservedState() = biObservedState(false)
+    @Test fun concBiObservedState() = biObservedState(true)
+    @Test fun unsListObservedState() = listObservedState(false)
+    @Test fun concListObservedState() = listObservedState(true)
+
+    private fun observedState(conc: Boolean) =
+            observedState(propertyOf(0, conc)) { p, m -> p.map(m) }
+
+    private fun biObservedState(conc: Boolean) =
+            observedState(propertyOf(0, conc)) { p, m -> p.mapWith(propertyOf(-1)) { v, _ -> m(v) } }
+
+    private fun listObservedState(conc: Boolean) =
+            observedState(propertyOf(0, conc)) { p, m -> listOf(p).mapValueList { m(it[0]) } }
+
+    private fun observedState(original: MutableProperty<Int>, transform: (MutableProperty<Int>, mapper: (Int) -> Int) -> Property<Int>) {
+        var mapperCalled = 0
+        val prop = transform(original) { mapperCalled++ }
+
+        assertEquals(0, mapperCalled)
+
+        prop.value
+        assertEquals(1, mapperCalled)
+
+        val listener: ChangeListener<Int> = { _, _ -> }
+        prop.addUnconfinedChangeListener(listener)
+        assertEquals(2, mapperCalled)
+
+        prop.value
+        assertEquals(2, mapperCalled)
+
+        original.value = 0
+        assertEquals(3, mapperCalled)
+
+        prop.value
+        assertEquals(3, mapperCalled)
+
+        prop.removeChangeListener(listener)
+
+        prop.value
+        assertEquals(4, mapperCalled)
+
+        prop.addUnconfinedChangeListener(object : ChangeListener<Int> {
+            override fun invoke(old: Int, new: Int) {
+                prop.removeChangeListener(listener)
+                prop.removeChangeListener(this)
+            }
+        })
+        assertEquals(5, mapperCalled)
+
+        original.value = 0
+        assertEquals(6, mapperCalled)
+
+        prop.value
+        assertEquals(7, mapperCalled)
+
+        prop.addUnconfinedChangeListener(object : ChangeListener<Int> {
+            override fun invoke(old: Int, new: Int) {
+                prop.addUnconfinedChangeListener(listener)
+                prop.removeChangeListener(this)
+                prop.removeChangeListener(listener)
+            }
+        })
+        assertEquals(8, mapperCalled)
+
+        original.value = 0
+        assertEquals(9, mapperCalled)
+
+        prop.value
+        assertEquals(10, mapperCalled)
     }
 
 }

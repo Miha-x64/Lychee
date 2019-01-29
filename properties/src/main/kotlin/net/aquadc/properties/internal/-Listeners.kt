@@ -313,9 +313,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                 if (pending != null) {
                     // notifying now, expand array without structural changes
                     nonSyncListeners = listeners.with(onChange)
-                    if (listeners.all { it == null }) {
-                        changeObservedStateTo(true)
-                    }
+                    // don't check observed state, just assume it's 'true' during notification
                 } else {
                     // not notifying, we can do anything we want
                     val insIdx = listeners.compact() // remove nulls
@@ -437,10 +435,14 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         }
     }
 
+//    private var observed = false // test-only
     internal fun changeObservedStateTo(obsState: Boolean) {
         if (thread === null) {
             concChangeObservedStateTo(obsState)
         } else {
+//            if (observed == obsState) error("observed state is already $obsState")
+//            observed = obsState
+
             // a bit of recursion does not look like a real problem
             observedStateChanged(obsState)
         }
