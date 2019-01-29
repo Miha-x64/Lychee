@@ -69,6 +69,7 @@ internal class ConcListeners<out L : Any, out T>(
 
         // now it's time to add a listener which was added during notification
         (pending[0] as? AddListener<L>)?.let { pendingListener ->
+            // we don't mind 'observed' state, assuming it remains `true` for the whole notification process
             listeners = listeners.with(pendingListener.listener) as Array<out L?>
         }
 

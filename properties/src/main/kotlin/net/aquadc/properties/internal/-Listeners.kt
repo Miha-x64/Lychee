@@ -285,9 +285,9 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         val old = concState().getUndUpdate {
             it.withListener(onChange)
         }
-        if (old.listeners.all { it == null }) {
+        if (old.listeners.all { it == null } && old.pending.isEmpty()) {
             changeObservedStateTo(true)
-        }
+        } // else if pending.isNotEmpTy() => we're currently notifying and won't change observed state
     }
 
     protected fun nonSyncAddChangeListenerInternal(onChange: LISTENER) {
@@ -373,6 +373,11 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                 if (victimIdx >= 0) {
                     prev.withoutListenerAt(victimIdx)
                 } else {
+                    // at this point we don't mind this flag
+                    // since we're gonna remove a listener which has not been actually added,
+                    // leaving observed state unchanged
+                    hasOthers = true
+
                     // we must also search in ConcListeners.pending since it may contain listeners, too
                     val prevPending = prev.pending
                     var pendingVictimIdx = -1
@@ -383,16 +388,13 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                         if (predicate(listener)) {
                             if (pendingVictimIdx == -1) {
                                 pendingVictimIdx = i
-                                if (hasOthers) break
+                                break
                             }
-                        } else {
-                            hasOthers = true
-                            if (pendingVictimIdx != -1) break
                         }
                     }
 
                     if (pendingVictimIdx < 0)
-                        return // not found in both arrays, give up
+                        return // not found in both arrays, give up without changes
 
                     prev.withoutPendingAt(pendingVictimIdx)
                 }
