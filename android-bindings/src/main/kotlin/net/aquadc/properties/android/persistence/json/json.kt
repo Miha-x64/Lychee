@@ -1,4 +1,5 @@
-package net.aquadc.properties.android.persistence
+@file:JvmName("Json")
+package net.aquadc.properties.android.persistence.json
 
 import android.util.Base64
 import android.util.JsonReader
@@ -16,6 +17,8 @@ import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
+import net.aquadc.properties.android.persistence.assertFitsByte
+import net.aquadc.properties.android.persistence.assertFitsShort
 
 
 /**
