@@ -14,6 +14,7 @@ import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
 
 
@@ -32,6 +33,27 @@ fun <SCH : Schema<SCH>> JsonReader.readListOf(schema: SCH): List<StructSnapshot<
             list.add(first)
 
             do list.add(read(schema))
+            while (hasNext())
+
+            list
+        }
+    }
+    endArray()
+
+    return list
+}
+
+// duplicate will go away when Schema will become a DataType
+private fun JsonReader.readEncodedList(type: DataType<*>): List<Any?> {
+    beginArray()
+    val list = if (!hasNext()) emptyList() else {
+        val first = readEncodedValue(type)
+
+        if (!hasNext()) listOf(first) else {
+            val list = ArrayList<Any?>()
+            list.add(first)
+
+            do list.add(readEncodedValue(type))
             while (hasNext())
 
             list
@@ -61,14 +83,21 @@ fun <SCH : Schema<SCH>> JsonReader.read(schema: SCH): StructSnapshot<SCH> = sche
     endObject()
 }
 
-private fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilder<SCH>, field: FieldDef<SCH, T>) {
-    val type = field.type
+@Suppress("NOTHING_TO_INLINE") // exists just to capture type into T
+private inline fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilder<SCH>, field: FieldDef<SCH, T>) {
+    target[field] = field.type.decode(readEncodedValue(field.type))
+}
 
-    target[field] = type.match { isNullable, simple ->
-        if (isNullable && peek() === JsonToken.NULL) {
-            null as T
-        } else {
-            type.decode(when (simple.kind) {
+private val readerVis = JsonReaderVisitor<Any?>()
+private fun <T> JsonReader.readEncodedValue(type: DataType<T>): Any? =
+        (readerVis as JsonReaderVisitor<T>).match(type, this, null)
+private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, Any?> {
+
+    override fun JsonReader.simple(arg: Nothing?, raw: DataType<T>, kind: DataType.Simple.Kind): Any? =
+            if (raw is DataType.Nullable<*> && peek() === JsonToken.NULL) {
+                skipValue()
+                null
+            } else when (kind) {
                 DataType.Simple.Kind.Bool -> nextBoolean()
                 DataType.Simple.Kind.I8 -> nextInt().assertFitsByte()
                 DataType.Simple.Kind.I16 -> nextInt().assertFitsShort()
@@ -78,9 +107,13 @@ private fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilde
                 DataType.Simple.Kind.F64 -> nextDouble()
                 DataType.Simple.Kind.Str -> nextString()
                 DataType.Simple.Kind.Blob -> Base64.decode(nextString(), Base64.DEFAULT)
-            })
-        }
-    }
+            }
+
+    override fun <E> JsonReader.collection(arg: Nothing?, raw: DataType<T>, type: DataType.Collect<T, E>): Any? =
+            if (raw is DataType.Nullable<*> && peek() === JsonToken.NULL) {
+                skipValue()
+                null
+            } else readEncodedList(type)
 }
 
 /**
@@ -116,27 +149,36 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
     endObject()
 }
 
-@Suppress("IMPLICIT_CAST_TO_ANY")
-private fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: Struct<SCH>, field: FieldDef<SCH, T>) {
-    val type = field.type
-    val value = struct[field]
+@Suppress("NOTHING_TO_INLINE") // just capture T
+private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: Struct<SCH>, field: FieldDef<SCH, T>) =
+        writeEncoded(field.type, field.type.encode(struct[field]))
 
-    type.match { isNullable, simple ->
-        if (isNullable && value === null) {
-            nullValue()
-        } else {
-            val raw = type.encode(value)
-            when (simple.kind) {
-                DataType.Simple.Kind.Bool -> value(raw as Boolean)
-                DataType.Simple.Kind.I8 -> value((raw as Byte).toInt())
-                DataType.Simple.Kind.I16 -> value((raw as Short).toInt())
-                DataType.Simple.Kind.I32 -> value(raw as Int)
-                DataType.Simple.Kind.I64 -> value(raw as Double)
-                DataType.Simple.Kind.F32 -> value(raw as Float)
-                DataType.Simple.Kind.F64 -> value(raw as Double)
-                DataType.Simple.Kind.Str -> value(raw as String)
-                DataType.Simple.Kind.Blob -> Base64.encode(raw as ByteArray, Base64.DEFAULT)
+private val writerVis = JsonWriterVisitor<Any?>()
+private fun <T> JsonWriter.writeEncoded(type: DataType<T>, value: Any?) =
+        (writerVis as JsonWriterVisitor<T>).match(type, this, value)
+
+private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, Any?, T, Unit> {
+    override fun JsonWriter.simple(arg: Any?, raw: DataType<T>, kind: DataType.Simple.Kind) {
+        if (raw is DataType.Nullable<*> && arg === null) nullValue()
+        else {
+            @Suppress("IMPLICIT_CAST_TO_ANY") when (kind) {
+                DataType.Simple.Kind.Bool -> value(arg as Boolean)
+                DataType.Simple.Kind.I8 -> value((arg as Byte).toInt())
+                DataType.Simple.Kind.I16 -> value((arg as Short).toInt())
+                DataType.Simple.Kind.I32 -> value(arg as Int)
+                DataType.Simple.Kind.I64 -> value(arg as Double)
+                DataType.Simple.Kind.F32 -> value(arg as Float)
+                DataType.Simple.Kind.F64 -> value(arg as Double)
+                DataType.Simple.Kind.Str -> value(arg as String)
+                DataType.Simple.Kind.Blob -> Base64.encode(arg as ByteArray, Base64.DEFAULT)
             }.also { }
+        }
+    }
+
+    override fun <E> JsonWriter.collection(arg: Any?, raw: DataType<T>, type: DataType.Collect<T, E>) {
+        if (arg === null) nullValue() // Nullable.encode is null->null, skip it
+        else type.elementType.let { elType ->
+            (arg as Collection<Any?>).forEach { writeEncoded(elType, it) }
         }
     }
 }

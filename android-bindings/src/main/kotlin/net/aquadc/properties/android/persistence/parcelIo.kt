@@ -3,6 +3,9 @@ package net.aquadc.properties.android.persistence
 import android.os.Parcel
 import net.aquadc.persistence.stream.BetterDataInput
 import net.aquadc.persistence.stream.BetterDataOutput
+import net.aquadc.persistence.stream.StreamReaderVisitor
+import net.aquadc.persistence.stream.StreamWriterVisitor
+import net.aquadc.persistence.type.DataTypeVisitor
 
 /**
  * Adapts several [Parcel] methods to conform [BetterDataInput] and [BetterDataOutput].
@@ -29,6 +32,10 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
     override fun readString(input: Parcel): String? =
             input.readString()
 
+    private val readVis = StreamReaderVisitor<Parcel, Any?>(this)
+    override fun <TYPE> readVisitor(): DataTypeVisitor<Parcel, Nothing?, TYPE, Any?> =
+            readVis as DataTypeVisitor<Parcel, Nothing?, TYPE, Any?>
+
     // output
 
     override fun writeByte(output: Parcel, byte: Byte) =
@@ -48,5 +55,9 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
 
     override fun writeString(output: Parcel, string: String?) =
             output.writeString(string)
+
+    private val writer = StreamWriterVisitor<Parcel, Any?>(this)
+    override fun <TYPE> writerVisitor(): DataTypeVisitor<Parcel, Any?, TYPE, Unit> =
+            writer as DataTypeVisitor<Parcel, Any?, TYPE, Unit>
 
 }

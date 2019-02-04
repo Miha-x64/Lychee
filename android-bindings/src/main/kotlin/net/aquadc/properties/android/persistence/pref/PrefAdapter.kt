@@ -63,7 +63,10 @@ object StringPrefAdapter : SimplePrefAdapter<String>() {
 /**
  * Adapts [SharedPreferences.getStringSet] and [SharedPreferences.Editor.putStringSet].
  */
-@Deprecated("use converters from :persistence instead") // TODO: type for Set<String>?..
+@Deprecated(
+        "use converters from :persistence instead",
+        ReplaceWith("set(string)", "net.aquadc.persistence.type.set", "net.aquadc.persistence.type.string")
+)
 object StringSetPrefAdapter : SimplePrefAdapter<Set<String>>() {
 
     override fun read(prefs: SharedPreferences, key: String, default: Set<String>): Set<String> =

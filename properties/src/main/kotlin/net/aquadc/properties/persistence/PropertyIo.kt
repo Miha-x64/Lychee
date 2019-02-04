@@ -38,15 +38,15 @@ interface PropertyIo {
     fun doubles(prop: MutableProperty<DoubleArray>)
 
     /** Reads or writes a [List] of [String]s */
-    @Deprecated("should be implemented in a type")
+    @Deprecated("should create collection(string) instance")
     fun stringList(prop: MutableProperty<List<String>>)
 
     /** Reads or writes an [Enum] */
-    @Deprecated("should create custom type instance")
+    @Deprecated("should create custom DataType instance")
     fun <E : Enum<E>> enum(prop: MutableProperty<E>, type: Class<E>)
 
     /** Reads or writes a [Set] of [Enum] values */
-    @Deprecated("should be implemented on top of Converters")
+    @Deprecated("should create custom DataType instance")
     fun <E : Enum<E>> enumSet(prop: MutableProperty<Set<E>>, type: Class<E>)
 }
 
@@ -101,7 +101,7 @@ interface PropertyIo {
 @JvmName("string") inline infix fun PropertyIo.x(prop: MutableProperty<String>) =
         string.invoke(prop)
 
-/** Reads or writes a [List] of [String]s */ // todo: implement String[], List<String> in common converters
+/** Reads or writes a [List] of [String]s */
 @JvmName("stringList") inline infix fun PropertyIo.x(prop: MutableProperty<List<String>>) = stringList(prop)
 
 /** Reads or writes an [Enum] */
@@ -109,7 +109,7 @@ interface PropertyIo {
 @JvmName("enum") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<E>) =
         enum(prop, E::class.java)
 
-/** Reads or writes a [Set] of [Enum] values */ // todo: implement EnumSet type
+/** Reads or writes a [Set] of [Enum] values */
 @JvmName("enumSet") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<Set<E>>) =
         enumSet(prop, E::class.java)
 

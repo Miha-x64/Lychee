@@ -1,6 +1,10 @@
 package net.aquadc.persistence.stream
 
-import java.io.*
+import net.aquadc.persistence.type.DataTypeVisitor
+import java.io.DataInput
+import java.io.DataInputStream
+import java.io.DataOutput
+import java.io.DataOutputStream
 
 /**
  * Proxy making [DataOutput] more usable.
@@ -38,6 +42,11 @@ interface BetterDataOutput<T> {
      * Writes the given [string] into [output], including its nullability information.
      */
     fun writeString(output: T, string: String?)
+
+    /**
+     * Gives a visitor capable of writing already encoded values of type [TYPE] into [T].
+     */
+    fun <TYPE> writerVisitor(): DataTypeVisitor<T, Any?, TYPE, Unit>
 
 }
 
@@ -78,6 +87,11 @@ interface BetterDataInput<T> {
      */
     fun readString(input: T): String?
 
+    /**
+     * Gives a visitor capable of reading raw/encoded value of type [TYPE] from [T].
+     */
+    fun <TYPE> readVisitor(): DataTypeVisitor<T, Nothing?, TYPE, Any?>
+
 }
 
 /**
@@ -110,18 +124,22 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
         else -> throw AssertionError()
     }
 
+    private val reader = StreamReaderVisitor<DataInput, Any?>(this)
+    override fun <TYPE> readVisitor(): DataTypeVisitor<DataInput, Nothing?, TYPE, Any?> =
+            reader as DataTypeVisitor<DataInput, Nothing?, TYPE, Any?>
+
     // output
 
-    override fun writeByte(output: DataOutput, byte: Byte) =
+    override fun writeByte(output: DataOutput, byte: Byte): Unit =
             output.writeByte(byte.toInt())
 
-    override fun writeShort(output: DataOutput, short: Short) =
+    override fun writeShort(output: DataOutput, short: Short): Unit =
             output.writeShort(short.toInt())
 
-    override fun writeInt(output: DataOutput, int: Int) =
+    override fun writeInt(output: DataOutput, int: Int): Unit =
             output.writeInt(int)
 
-    override fun writeLong(output: DataOutput, long: Long) =
+    override fun writeLong(output: DataOutput, long: Long): Unit =
             output.writeLong(long)
 
     override fun writeBytes(output: DataOutput, bytes: ByteArray?) {
@@ -141,5 +159,9 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
             output.writeUTF(string)
         }
     }
+
+    private val writer = StreamWriterVisitor<DataOutput, Any?>(this)
+    override fun <TYPE> writerVisitor(): DataTypeVisitor<DataOutput, Any?, TYPE, Unit> =
+            writer as DataTypeVisitor<DataOutput, Any?, TYPE, Unit>
 
 }

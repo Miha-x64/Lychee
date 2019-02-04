@@ -13,7 +13,6 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.long
-import net.aquadc.persistence.type.match
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
@@ -31,7 +30,7 @@ class SqliteSession(
     @Suppress("UNCHECKED_CAST")
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(table: Table<SCH, ID, REC>): Dao<SCH, ID, REC> =
             lowLevel.daos.getOrPut(table) {
-                check(table.idColType === long)
+                check(table.idColType.let { it is DataType.Simple && it.kind == DataType.Simple.Kind.I64 })
                 RealDao(this, lowLevel, table, SqliteDialect)
             } as Dao<SCH, ID, REC>
 
@@ -261,7 +260,7 @@ class SqliteSession(
 
     private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
         val i = 1 + index
-        match { isNullable, simple ->
+        flattened { isNullable, simple ->
             if (value == null) {
                 check(isNullable)
                 statement.bindNull(i)
@@ -283,7 +282,7 @@ class SqliteSession(
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = match { isNullable, simple ->
+    private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = flattened { isNullable, simple ->
         if (cursor.isNull(index))
             check(isNullable).let { null as T }
         else when (simple.kind) {

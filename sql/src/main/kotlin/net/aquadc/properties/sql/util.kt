@@ -4,6 +4,7 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.serialized
 
 
 internal typealias UpdatesHashMap = HashMap<
@@ -28,3 +29,17 @@ internal inline val FieldDef.Mutable<*, *>.erased
 
 internal inline val DataType<*>.erased
     get() = this as DataType<Any?>
+
+internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.Simple<T>) -> R): R =
+        when (this) {
+            is DataType.Nullable<*> -> {
+                val actualType = actualType as DataType<T>
+                when (actualType) {
+                    is DataType.Nullable<*> -> throw AssertionError()
+                    is DataType.Simple -> func(true, actualType)
+                    is DataType.Collect<*, *> -> func(true, serialized(actualType))
+                }
+            }
+            is DataType.Simple -> func(false, this)
+            is DataType.Collect<*, *> -> func(false, serialized(this))
+        }

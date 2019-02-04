@@ -1,12 +1,17 @@
 package net.aquadc.properties.sql.dialect.sqlite
 
+import net.aquadc.persistence.stream.DataStreams
+import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
 import net.aquadc.properties.sql.*
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 
 /**
  * Implements SQLite [Dialect].
@@ -99,27 +104,30 @@ object SqliteDialect : Dialect {
     }
 
     private fun <T> StringBuilder.appendDefault(col: FieldDef<*, T>) {
-        val type = col.type
-        val value = col.default
-        append(" DEFAULT ")
-        type.match { _, simple ->
-            if (value === null) {
-                append("NULL")
-            } else {
-                val v = type.encode(value)
-                when (simple.kind) {
-                    DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
-                    DataType.Simple.Kind.I8,
-                    DataType.Simple.Kind.I16,
-                    DataType.Simple.Kind.I32,
-                    DataType.Simple.Kind.I64,
-                    DataType.Simple.Kind.F32,
-                    DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
-                    DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
-                    DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
-                }.also { }
+        object : DataTypeVisitor<StringBuilder, T, T, Unit> {
+            override fun StringBuilder.simple(arg: T, raw: DataType<T>, kind: DataType.Simple.Kind) {
+                if (raw is DataType.Nullable<*> && arg === null) append("NULL")
+                else {
+                    val v = raw.encode(arg)
+                    when (kind) {
+                        DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
+                        DataType.Simple.Kind.I8,
+                        DataType.Simple.Kind.I16,
+                        DataType.Simple.Kind.I32,
+                        DataType.Simple.Kind.I64,
+                        DataType.Simple.Kind.F32,
+                        DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
+                        DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
+                        DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
+                    }.also { }
+                }
             }
-        }
+
+            override fun <E> StringBuilder.collection(arg: T, raw: DataType<T>, type: DataType.Collect<T, E>) {
+                if (raw is DataType.Nullable<*> && arg === null) append("NULL")
+                else append("x'").appendHex(ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()).append('\'')
+            }
+        }.match(col.type, this, col.default)
     }
 
     private val hexChars = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
@@ -132,20 +140,28 @@ object SqliteDialect : Dialect {
         return this
     }
 
-    private fun StringBuilder.appendNameOf(dataType: DataType<*>) = dataType.match { isNullable, simple ->
-        append(when (simple.kind) {
-            DataType.Simple.Kind.Bool,
-            DataType.Simple.Kind.I8,
-            DataType.Simple.Kind.I16,
-            DataType.Simple.Kind.I32,
-            DataType.Simple.Kind.I64 -> "INTEGER"
-            DataType.Simple.Kind.F32,
-            DataType.Simple.Kind.F64 -> "REAL"
-            DataType.Simple.Kind.Str -> "TEXT"
-            DataType.Simple.Kind.Blob -> "BLOB"
-        })
-        if (!isNullable) append(" NOT NULL")
-        this
+    private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {
+        object : DataTypeVisitor<StringBuilder, Nothing?, T, Unit> {
+            override fun StringBuilder.simple(arg: Nothing?, raw: DataType<T>, kind: DataType.Simple.Kind) {
+                append(when (kind) {
+                    DataType.Simple.Kind.Bool,
+                    DataType.Simple.Kind.I8,
+                    DataType.Simple.Kind.I16,
+                    DataType.Simple.Kind.I32,
+                    DataType.Simple.Kind.I64 -> "INTEGER"
+                    DataType.Simple.Kind.F32,
+                    DataType.Simple.Kind.F64 -> "REAL"
+                    DataType.Simple.Kind.Str -> "TEXT"
+                    DataType.Simple.Kind.Blob -> "BLOB"
+                })
+                if (raw is DataType.Nullable<*>) append(" NOT NULL")
+            }
+
+            override fun <E> StringBuilder.collection(arg: Nothing?, raw: DataType<T>, type: DataType.Collect<T, E>) {
+                append("BLOB")
+                if (raw is DataType.Nullable<*>) append(" NOT NULL")
+            }
+        }.match(dataType, this, null)
     }
 
     /**

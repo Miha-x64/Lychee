@@ -6,7 +6,6 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.type.long
-import net.aquadc.persistence.type.match
 import java.sql.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -247,7 +246,7 @@ class JdbcSession(
 
     private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
         val i = 1 + index
-        match { isNullable, simple ->
+        flattened { isNullable, simple ->
             if (value == null) {
                 check(isNullable)
                 statement.setNull(i, Types.NULL)
@@ -273,7 +272,7 @@ class JdbcSession(
     private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
         val i = 1 + index
 
-        return match { isNullable, simple ->
+        return flattened { isNullable, simple ->
             val v = when (simple.kind) {
                 DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
                 DataType.Simple.Kind.I8 -> resultSet.getByte(i)

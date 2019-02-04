@@ -219,8 +219,10 @@ class MainVm(
     private void findFxFactory(java.util.ArrayList); # bindings to JavaFX
     private void findFjFactory(java.util.ArrayList); # If you're not going to addChangeListener() on ForkJoin threads
 }
--assumenosideeffects class net.aquadc.persistence.type.NoOp {
-    private void sanityCheck(java.lang.Object); # debug-only type-safety
+
+# debug-only assertions for enforcing type-safety
+-assumenosideeffects class net.aquadc.persistence.type.SimpleNoOp {
+    private void sanityCheck(java.lang.Object);
 }
 
 # keep volatile field names for AtomicFieldUpdater

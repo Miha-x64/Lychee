@@ -69,9 +69,9 @@ inline fun <reified E : Enum<E>, U : Any> enum(
 
 
 /**
- * Creates a [Set]<[Enum]> implementation.d
+ * Creates a [Set]<[Enum]> type implementation for storing enum set as a bitmask.
  * @param values all allowed values
- * @param encodeAs underline data type
+ * @param encodeAs underlying data type
  * @param ordinal a getter for `values.indexOf(value)`
  */
 inline fun <reified E> enumSet(
@@ -82,7 +82,7 @@ inline fun <reified E> enumSet(
         enumSetInternal(E::class.java, values, encodeAs, ordinal)
 
 /**
- * Special overload for the case when [E] is a real Java [Enum] type.
+ * Creates a [Set]<[Enum]> type implementation for storing enum set as a bitmask.
  * Finds an array of values automatically.
  */
 inline fun <reified E : Enum<E>> enumSet(
@@ -108,7 +108,7 @@ inline fun <reified E : Enum<E>> enumSet(
             override fun decode(value: Any?): Any? {
                 var bitmask = encodeAs.decode(value)
                 @Suppress("UPPER_BOUND_VIOLATED")
-                val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet()
+                val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet() // TODO: use ArraySet if appropriate
                 var ord = 0
                 while (bitmask != 0L) {
                     if ((bitmask and 1L) == 1L) {
@@ -126,8 +126,41 @@ inline fun <reified E : Enum<E>> enumSet(
 
         } as DataType.Simple<Set<E>>
 
+/**
+ * Creates a [Set]<[Enum]> type implementation for storing enum set as a collection of values.
+ * @param values all allowed values
+ * @param encodeAs underlying element data type
+ */
+inline fun <reified E> enumSet(
+        values: Array<E>,
+        encodeAs: DataType<E>
+): DataType.Collect<Set<E>, E> =
+        enumSetInternal(E::class.java, values, encodeAs)
 
-// TODO: add Set<Enum> as List<String> support
+/**
+ * Creates a [Set]<[Enum]> type implementation for storing enum set as a collection of values.
+ * Finds an array of values automatically.
+ */
+inline fun <reified E : Enum<E>> enumSet(
+        encodeAs: DataType<E>
+): DataType.Collect<Set<E>, E> =
+        enumSetInternal(E::class.java, enumValues(), encodeAs)
+
+@PublishedApi internal fun <E> enumSetInternal(
+        type: Class<E>,
+        values: Array<E>,
+        elementType: DataType<E>
+): DataType.Collect<Set<E>, E> =
+        object : DataType.Collect<Set<E>, E>(elementType) {
+
+            override fun encode(value: Set<E>): Collection<Any?> =
+                    value.map(elementType::encode)
+
+            override fun decode(value: Collection<Any?>): Set<E> =
+                    @Suppress("UPPER_BOUND_VIOLATED")
+                    value.mapTo<Any?, E, Set<E>>(if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet<E>(), elementType::decode)
+
+        }
 
 
 // Util
