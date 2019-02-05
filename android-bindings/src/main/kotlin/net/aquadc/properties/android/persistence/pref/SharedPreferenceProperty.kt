@@ -86,7 +86,7 @@ class SharedPreferenceProperty<T>
     @Volatile @Suppress("UNUSED")
     private var sample: Property<T>? = null
 
-    @Synchronized
+    @Synchronized @Deprecated("This property may soon become Transactional")
     override fun bindTo(sample: Property<T>) {
         val newSample = if (sample.mayChange) sample else null
         val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
@@ -99,6 +99,7 @@ class SharedPreferenceProperty<T>
     }
 
     // may be inaccurate
+    @Deprecated("This property may soon become Transactional")
     override fun casValue(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueRef === expect) {
