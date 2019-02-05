@@ -1,8 +1,8 @@
 package net.aquadc.persistence.struct
 
 /**
- * Represents an instance of a struct —
- * a map with keys of type [FieldDef] (can be treated as [String] or [Byte])
+ * Represents an instance of a struct /strʌkt/ —
+ * a map with [FieldDef] keys (can be treated as [String] or [Byte])
  * and heterogeneous statically typed values.
  * @see Schema
  * @see FieldDef

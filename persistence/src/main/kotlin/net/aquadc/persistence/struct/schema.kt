@@ -5,13 +5,13 @@ import java.util.Collections.unmodifiableList
 import java.util.Collections.unmodifiableMap
 
 /**
- * Declares a struct (or DTO).
+ * Declares a struct (or DTO) schema /ˈskiː.mə/.
  * `struct`s in C, Rust, Swift, etc, or `Object`s in JS, are similar
  * to final classes with only public fields, no methods and no supertypes.
  * @see Struct
  * @see FieldDef
  *
- * Note: will become a subclass of [DataType].
+ * Note: may be moved to [DataType] and become its subtype soon.
  */
 abstract class Schema<SELF : Schema<SELF>> {
 
@@ -66,7 +66,7 @@ abstract class Schema<SELF : Schema<SELF>> {
             this.mut(type, Unset as T)
 
     /**
-     * Creates, remembers and returns a new mutable field definition with default value.
+     * Creates, remembers and returns a new mutable field definition with a default value.
      */
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
@@ -81,8 +81,7 @@ abstract class Schema<SELF : Schema<SELF>> {
      */
     protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
-        val converter = dataType
-        val col = FieldDef.Immutable(this@Schema, this, converter, fields.size.toByte(), (fields.size - tmpMutableCount).toByte())
+        val col = FieldDef.Immutable(this@Schema, this, dataType, fields.size.toByte(), (fields.size - tmpMutableCount).toByte())
         fields.add(col)
         return col
     }
