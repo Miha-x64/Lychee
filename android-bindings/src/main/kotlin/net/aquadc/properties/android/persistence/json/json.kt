@@ -116,7 +116,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, An
             if (raw is DataType.Nullable<*> && peek() === JsonToken.NULL) {
                 skipValue()
                 null
-            } else readEncodedList(type)
+            } else readEncodedList(type.elementType)
 }
 
 /**
@@ -169,11 +169,11 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, Any?, T, Unit> 
                 DataType.Simple.Kind.I8 -> value((arg as Byte).toInt())
                 DataType.Simple.Kind.I16 -> value((arg as Short).toInt())
                 DataType.Simple.Kind.I32 -> value(arg as Int)
-                DataType.Simple.Kind.I64 -> value(arg as Double)
+                DataType.Simple.Kind.I64 -> value(arg as Long)
                 DataType.Simple.Kind.F32 -> value(arg as Float)
                 DataType.Simple.Kind.F64 -> value(arg as Double)
                 DataType.Simple.Kind.Str -> value(arg as String)
-                DataType.Simple.Kind.Blob -> Base64.encode(arg as ByteArray, Base64.DEFAULT)
+                DataType.Simple.Kind.Blob -> value(Base64.encodeToString(arg as ByteArray, Base64.DEFAULT))
             }.also { }
         }
     }
@@ -181,7 +181,9 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, Any?, T, Unit> 
     override fun <E> JsonWriter.collection(arg: Any?, raw: DataType<T>, type: DataType.Collect<T, E>) {
         if (arg === null) nullValue() // Nullable.encode is null->null, skip it
         else type.elementType.let { elType ->
+            beginArray()
             (arg as Collection<Any?>).forEach { writeEncoded(elType, it) }
+            endArray()
         }
     }
 }

@@ -23,6 +23,7 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        test.java.srcDirs += 'src/test/kotlin'
     }
 }
 
@@ -42,6 +43,9 @@ dependencies {
     implementation project(':persistence') // ByteArrayPropertiesMemento depends on it
 
     testImplementation 'junit:junit:4.12'
+    testImplementation 'com.squareup.okio:okio:1.15.0'
+    testImplementation project(':testing')
+    testImplementation 'org.robolectric:robolectric:4.1'
 }
 
 apply from: rootProject.file('release-bintray.gradle')
