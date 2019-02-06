@@ -14,8 +14,8 @@ class FxWithOurPropsSample : Application() {
     private val user = ObservableStruct(User.build {  }, false)
 
     override fun start(stage: Stage) {
-        val presenter = MainVm(user.transactional())
-        stage.scene = Scene(viewWithOurProps(presenter), 400.0, 300.0)
+        val vm = MainVm(user.transactional())
+        stage.scene = Scene(viewWithOurProps(vm), 400.0, 300.0)
         stage.show()
     }
 
