@@ -1,7 +1,16 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.persistence
 
-import net.aquadc.persistence.type.*
+import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.bool
+import net.aquadc.persistence.type.byte
+import net.aquadc.persistence.type.byteArray
+import net.aquadc.persistence.type.double
+import net.aquadc.persistence.type.float
+import net.aquadc.persistence.type.int
+import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.short
+import net.aquadc.persistence.type.string
 import net.aquadc.properties.MutableProperty
 import java.util.*
 
@@ -51,35 +60,35 @@ interface PropertyIo {
 }
 
 /** Reads or writes a [Boolean] value */
-@JvmName("bool") inline infix fun PropertyIo.x(prop: MutableProperty<Boolean>) =
+@JvmName("bool") inline infix fun PropertyIo.x(prop: MutableProperty<Boolean>): Unit =
         bool.invoke(prop)
 
 /** Reads or writes a [Byte] value */
-@JvmName("byte") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>) =
+@JvmName("byte") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>): Unit =
         byte.invoke(prop)
 
 /** Reads or writes a [Short] value */
-@JvmName("short") inline infix fun PropertyIo.x(prop: MutableProperty<Short>) =
+@JvmName("short") inline infix fun PropertyIo.x(prop: MutableProperty<Short>): Unit =
         short.invoke(prop)
 
 /** Reads or writes an [Int] value */
-@JvmName("int") inline infix fun PropertyIo.x(prop: MutableProperty<Int>) =
+@JvmName("int") inline infix fun PropertyIo.x(prop: MutableProperty<Int>): Unit =
         int.invoke(prop)
 
 /** Reads or writes a [Long] value */
-@JvmName("long") inline infix fun PropertyIo.x(prop: MutableProperty<Long>) =
+@JvmName("long") inline infix fun PropertyIo.x(prop: MutableProperty<Long>): Unit =
         long.invoke(prop)
 
 /** Reads or writes a [Float] value */
-@JvmName("float") inline infix fun PropertyIo.x(prop: MutableProperty<Float>) =
+@JvmName("float") inline infix fun PropertyIo.x(prop: MutableProperty<Float>): Unit =
         float.invoke(prop)
 
 /** Reads or writes a [Double] value */
-@JvmName("double") inline infix fun PropertyIo.x(prop: MutableProperty<Double>) =
+@JvmName("double") inline infix fun PropertyIo.x(prop: MutableProperty<Double>): Unit =
         double.invoke(prop)
 
 /** Reads or writes a [ByteArray] */
-@JvmName("bytes") inline infix fun PropertyIo.x(prop: MutableProperty<ByteArray>) =
+@JvmName("bytes") inline infix fun PropertyIo.x(prop: MutableProperty<ByteArray>): Unit =
         byteArray.invoke(prop)
 
 /** Reads or writes a [CharArray] */ @Deprecated("not sure whether it is useful")
@@ -98,22 +107,24 @@ interface PropertyIo {
 @JvmName("doubles") inline infix fun PropertyIo.x(prop: MutableProperty<DoubleArray>) = doubles(prop)
 
 /** Reads or writes a [String] */
-@JvmName("string") inline infix fun PropertyIo.x(prop: MutableProperty<String>) =
+@JvmName("string") inline infix fun PropertyIo.x(prop: MutableProperty<String>): Unit =
         string.invoke(prop)
 
 /** Reads or writes a [List] of [String]s */
-@JvmName("stringList") inline infix fun PropertyIo.x(prop: MutableProperty<List<String>>) = stringList(prop)
+@JvmName("stringList") inline infix fun PropertyIo.x(prop: MutableProperty<List<String>>): Unit = stringList(prop)
 
 /** Reads or writes an [Enum] */
-@Deprecated("internally this uses reflection. Should use own type instead")
+@Deprecated("internally this uses reflection. Should use own DataType instead")
 @JvmName("enum") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<E>) =
         enum(prop, E::class.java)
 
 /** Reads or writes a [Set] of [Enum] values */
+@Deprecated("Should use own DataType instead")
 @JvmName("enumSet") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<Set<E>>) =
         enumSet(prop, E::class.java)
 
-@Suppress("UNCHECKED_CAST") // we'll read it as Set and write as EnumSet
 /** Reads or writes a [Set] of [Enum] values */
+@Suppress("UNCHECKED_CAST") // we'll read it as Set and write as EnumSet
+@Deprecated("Should use own DataType instead")
 @JvmName("realEnumSet") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<EnumSet<E>>) =
         enumSet(prop as MutableProperty<Set<E>>, E::class.java)
