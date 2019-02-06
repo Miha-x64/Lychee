@@ -4,7 +4,9 @@ import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.diff.DiffChangeListener
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.unset
+import java.lang.UnsupportedOperationException
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicInteger
 
 internal class MapWhenChanged<in T, U>(
         private val mapOn: Worker,
@@ -43,47 +45,48 @@ internal class ConsumeOn<in T>(
 /**
  * When invoked, calls [actual] on [executor].
  */
-internal class ConfinedChangeListener<in T>(
+internal class ConfinedChangeListener<in T, in D>(
         private val executor: Executor,
-        @JvmField internal val actual: ChangeListener<T>
-) : ChangeListener<T> {
+        @JvmField internal val actual: ChangeListener<T>?,
+        @JvmField internal val actualDiff: DiffChangeListener<T, D>?
+) : AtomicInteger(0), ChangeListener<T>, DiffChangeListener<T, D> {
 
     @Volatile @JvmField
     internal var canceled = false
 
+    @Suppress("UNCHECKED_CAST") // it's safe because `actualDiff` listener is null in this case
     override fun invoke(old: T, new: T) {
-        if (PlatformExecutors.executors.get() === executor) {
-            // call listener in-place, copying non-synhronized properties' behaviour and creating less overhead
-            actual(old, new)
+        invoke(old, new, null as D)
+    }
+
+    override fun invoke(old: T, new: T, diff: D) {
+        if (PlatformExecutors.executors.get() === executor && get() == 0) {
+            // call listener in-place, copying single-threaded properties' behaviour and creating less overhead
+            // AtomicInteger keeps track of pending notifications. Can notify in-place only if there are 0 of them
+            // TODO: write a test on this behaviour
+
+            if (actual !== null) actual.invoke(old, new)
+            else actualDiff!!.invoke(old, new, diff)
         } else {
+            incrementAndGet()
             executor.execute {
+                decrementAndGet()
                 if (!canceled) {
-                    actual(old, new)
+                    if (actual !== null) actual.invoke(old, new)
+                    else actualDiff!!.invoke(old, new, diff)
                 }
             }
         }
     }
 
-}
+    override fun toByte(): Byte =
+            throw UnsupportedOperationException()
 
-/**
- * When invoked, calls [actual] on [executor].
- */
-internal class ConfinedDiffChangeListener<in T, in D>(
-        private val executor: Executor,
-        @JvmField internal val actual: DiffChangeListener<T, D>
-) : DiffChangeListener<T, D> {
+    override fun toChar(): Char =
+            throw UnsupportedOperationException()
 
-    @Volatile @JvmField
-    internal var canceled = false
-
-    override fun invoke(old: T, new: T, diff: D) {
-        executor.execute {
-            if (!canceled) {
-                actual(old, new, diff)
-            }
-        }
-    }
+    override fun toShort(): Short =
+            throw UnsupportedOperationException()
 
 }
 
