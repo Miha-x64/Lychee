@@ -22,7 +22,7 @@ repositories {
 ```
 dependencies {
     // JVM
-    compile 'net.aquadc.properties:properties:0.0.5'
+    implementation 'net.aquadc.properties:properties:0.0.5'
 
     // Android + Gradle 4
     implementation 'net.aquadc.properties:android-bindings:0.0.5'
@@ -201,6 +201,62 @@ class MainVm(
 
 }
 ```
+
+## Persistence
+
+The simplest intersection of persistence and databinding is `SharedPreferenceProperty` (Android):
+it implements `Property` interface, and stores data inside `SharedPreferences`.
+
+Another thing is `PersistableProperties`: this interface allows you
+to save or restore the state of a ViewModel using `ByteArray` via a single method
+without declaring symmetrical, bolierplate and error-prone `writeToParcel` and `createFromParcel` methods.
+
+But the most interesting and reusable things are around `Struct`, `Schema`, and `DataType`.
+
+`Schema` is a definition of a data bag with named, ordered, typed fields.
+```kt
+object Player : Schema<Player>() {
+    val Name = "name" let string
+    val Surname = "surname" let string
+    val Score = "score".mut(int, default = 0)
+}
+```
+`let` function creates an immutable field definition, `mut` declares a mutable one.
+
+`Struct` is an instance carrying some data according to a certain `Schema`.
+```kt
+val player: StructSnapshot = Player.build { p ->
+    p[Name] = "John"
+    p[Surname] = "Galt"
+}
+```
+field values can be accessed with indexing operator:
+```kt
+assertEquals(0, player[Player.Score]) // Score is equal to the default value which was set in Schema
+```
+Okay, the `player` is fully immutable, but we want a mutable observable instance:
+```kt
+val observablePlayer = ObservableStruct(player)
+val scoreProp: Property<Int> = observablePlayer prop Player.Score
+someTextView.bindTextTo(scoreProp.map(CharSequencez.ValueOf))
+
+// both mutate the same text in-memory int value and a text field:
+scoreProp.value = 10
+observablePlayer[Player.Score] = 20
+```
+
+`SharedPreferencesStruct` (Android) has very similar interface, but can be mutated only inside a transaction:
+```kt
+// this will copy data from player into the given SharedPreferences instance
+val storedPlayer = SharedPreferencesStruct(player, getSharedPreferences(...))
+val scoreProp = storedPlayer prop Player.Score
+val score = storedPlayer[Player.Score]
+// ans this is different:
+storedPlayer.transaction { p ->
+    p[Score] = 100500
+}
+```
+
 
 ## ProGuard rules for Android
 (assume you depend on `:properties` and `:android-bindings`)
