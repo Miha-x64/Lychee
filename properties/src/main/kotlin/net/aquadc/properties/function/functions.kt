@@ -170,17 +170,15 @@ class Arrayz private constructor(
  */
 class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
 
-    override fun invoke(p1: Any): Any {
-        p1 as CharSequence
-        return when (mode) {
-            0 -> p1.isEmpty()
-            1 -> p1.isNotEmpty()
-            2 -> p1.isBlank()
-            3 -> p1.isNotBlank()
-            4 -> p1.length
-            5 -> p1.trim()
-            else -> throw AssertionError()
-        }
+    override fun invoke(p1: Any): Any = when (mode) {
+        0 -> (p1 as CharSequence).isEmpty()
+        1 -> (p1 as CharSequence).isNotEmpty()
+        2 -> (p1 as CharSequence).isBlank()
+        3 -> (p1 as CharSequence).isNotBlank()
+        4 -> (p1 as CharSequence).length
+        5 -> (p1 as CharSequence).trim()
+        6 -> p1.toString()
+        else -> throw AssertionError()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -221,6 +219,13 @@ class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
          */
         @JvmField val Trim: (CharSequence) -> CharSequence =
                 CharSequencez(5) as (CharSequence) -> CharSequence
+
+        /**
+         * A function which returns the result of invocation [toString] on its argument.
+         */
+        @JvmField val ValueOf: (Any?) -> String =
+                CharSequencez(6) as (Any?) -> String
+
     }
 }
 
