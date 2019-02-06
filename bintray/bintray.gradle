@@ -58,8 +58,8 @@ try {
 }
 
 bintray {
-  user = properties.getProperty("bintray.user")
-  key = properties.getProperty("bintray.apikey")
+  user = properties.getProperty('bintray.user')
+  key = properties.getProperty('bintray.apikey')
 
   configurations = ['archives']
   pkg {

@@ -15,3 +15,5 @@ dependencies {
     testImplementation project(':testing')
     testImplementation 'com.squareup.okio:okio:1.15.0'
 }
+
+apply from: rootProject.file('release-bintray.gradle')

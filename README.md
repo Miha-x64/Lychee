@@ -22,11 +22,11 @@ repositories {
 ```
 dependencies {
     // JVM
-    implementation 'net.aquadc.properties:properties:0.0.5'
+    implementation 'net.aquadc.properties:properties:0.0.6'
 
     // Android + Gradle 4
-    implementation 'net.aquadc.properties:android-bindings:0.0.5'
-    // 'net.aquadc.properties:properties:0.0.5' will be added automatically
+    implementation 'net.aquadc.properties:android-bindings:0.0.6'
+    // depends on :properties and :persistence
 }
 ```
 
