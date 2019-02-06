@@ -39,8 +39,8 @@ dependencies {
     compileOnly "com.android.support:recyclerview-v7:$support_version"
     
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation project(':properties')
-    implementation project(':persistence') // ByteArrayPropertiesMemento depends on it
+    implementation project(':properties') // subscriptions & reactivity
+    implementation project(':persistence') // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
 
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.squareup.okio:okio:1.15.0'

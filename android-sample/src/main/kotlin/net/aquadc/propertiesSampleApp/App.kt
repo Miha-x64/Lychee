@@ -4,13 +4,13 @@ import android.app.Activity
 import android.app.Application
 import android.preference.PreferenceManager
 import com.squareup.leakcanary.LeakCanary
-import net.aquadc.properties.android.persistence.pref.SharedPreferenceStruct
+import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
 import net.aquadc.propertiesSampleLogic.User
 
 
 class App : Application() {
 
-    lateinit var user: SharedPreferenceStruct<User>
+    lateinit var user: SharedPreferencesStruct<User>
 
     override fun onCreate() {
         super.onCreate()
@@ -20,7 +20,7 @@ class App : Application() {
 
         LeakCanary.install(this)
 
-        user = SharedPreferenceStruct(User, PreferenceManager.getDefaultSharedPreferences(this))
+        user = SharedPreferencesStruct(User, PreferenceManager.getDefaultSharedPreferences(this))
     }
 
 }

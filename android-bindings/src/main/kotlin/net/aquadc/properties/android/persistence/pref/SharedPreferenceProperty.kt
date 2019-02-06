@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * * CAS is not a straight CAS, may be inaccurate a bit
  */
 class SharedPreferenceProperty<T>
-@Deprecated("Use another constructor; for persisting several values, see SharedPreferenceStruct") constructor(
+@Deprecated("Use another constructor; for persisting several values, see SharedPreferencesStruct") constructor(
         private val prefs: SharedPreferences,
         private val key: String,
         private val defaultValue: T,

@@ -11,17 +11,12 @@ import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.persistence.TransactionalPropertyStruct
 
 /**
- * Represents a [Struct] stored in [SharedPreferences].
+ * Represents a [Struct] stored inside [SharedPreferences].
  * Has weak transactional semantics,
  * commits using asynchronous [SharedPreferences.Editor.apply] method,
  * ignores 'dirty' state.
- *
- * Note: [SharedPreferences] has no support for `null` values.
- * when you put `null` value into Prefs, [SharedPreferences.Editor.remove] is being called,
- * and you will see [FieldDef.default] value.
- * To avoid inconsistencies, either use non-nullable types, or use `null` [FieldDef.default] value.
  */
-class SharedPreferenceStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, TransactionalPropertyStruct<SCH> {
+class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, TransactionalPropertyStruct<SCH> {
 
     @JvmField @JvmSynthetic internal val values: Array<Any?> // = ManagedProperty<SCH, StructTransaction<SCH>, T> | T
     @JvmField @JvmSynthetic internal val prefs: SharedPreferences

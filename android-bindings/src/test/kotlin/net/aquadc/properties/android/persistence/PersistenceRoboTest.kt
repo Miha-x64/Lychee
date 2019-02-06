@@ -5,7 +5,7 @@ import android.os.Parcel
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
 import net.aquadc.properties.android.persistence.parcel.ParcelIo
-import net.aquadc.properties.android.persistence.pref.SharedPreferenceStruct
+import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -29,8 +29,8 @@ class PersistenceRoboTest {
 
     @Test fun prefs() {
         val prefs = RuntimeEnvironment.application.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-        SharedPreferenceStruct(t.instance, prefs)
-        t.assertEqualToOriginal(SharedPreferenceStruct(PersistenceTest.Sch, prefs), false)
+        SharedPreferencesStruct(t.instance, prefs)
+        t.assertEqualToOriginal(SharedPreferencesStruct(PersistenceTest.Sch, prefs), false)
     }
 
 }
