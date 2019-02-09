@@ -10,9 +10,12 @@
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Reactive Properties
 
+[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Apersistence/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Apersistence/_latestVersion) Persistence
+
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) Android Bindings
 
 ```
+// top-level build.gradle
 repositories {
     ...
     maven { url 'https://dl.bintray.com/miha-x64/maven' }
@@ -20,6 +23,7 @@ repositories {
 ```
 
 ```
+// module-level build.gradle
 dependencies {
     // JVM
     implementation 'net.aquadc.properties:properties:0.0.6'
@@ -225,7 +229,7 @@ object Player : Schema<Player>() {
 
 `Struct` is an instance carrying some data according to a certain `Schema`.
 ```kt
-val player: StructSnapshot = Player.build { p ->
+val player: StructSnapshot<Player> = Player.build { p ->
     p[Name] = "John"
     p[Surname] = "Galt"
 }
