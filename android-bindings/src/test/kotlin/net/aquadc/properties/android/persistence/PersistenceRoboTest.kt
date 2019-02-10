@@ -29,8 +29,14 @@ class PersistenceRoboTest {
 
     @Test fun prefs() {
         val prefs = RuntimeEnvironment.application.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-        SharedPreferencesStruct(t.instance, prefs)
-        t.assertEqualToOriginal(SharedPreferencesStruct(PersistenceTest.Sch, prefs), false)
+        t.assertEqualToOriginal(
+                SharedPreferencesStruct(t.instance, prefs), // this will copy from t.instance into prefs
+                false
+        )
+        t.assertEqualToOriginal(
+                SharedPreferencesStruct(PersistenceTest.Sch, prefs), // this will read from prefs
+                false
+        )
     }
 
 }

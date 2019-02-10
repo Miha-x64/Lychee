@@ -31,11 +31,12 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         this.values = Array(fields.size) { i ->
             val field = fields[i]
             val value = source[field]
+            (field.type as DataType<Any?>).put(ed, field.name, value)
+
             when (field) {
                 is FieldDef.Mutable<SCH, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, null, value)
                 is FieldDef.Immutable<SCH, *> -> value
             }
-            (field.type as DataType<Any?>).put(ed, field.name, value)
         }
         ed.apply()
         this.prefs = prefs
