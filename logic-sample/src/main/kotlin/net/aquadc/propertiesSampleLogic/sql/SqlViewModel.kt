@@ -9,19 +9,22 @@ class SqlViewModel(
         private val session: Session
 ) {
 
+    private val humanDao = session[Human.Tbl]
+
     init {
         fillIfEmpty()
     }
 
-    val titleProp = session[Human.Tbl].count().map { "Sample SQLite application ($it records)" }
-    val humanListProp = session[Human.Tbl].selectAll(Human.Name.asc, Human.Surname.asc)
+    val titleProp = humanDao.count().map { "Sample SQLite application ($it records)" }
+    val humanListProp = humanDao.selectAll(Human.Name.asc, Human.Surname.asc)
     val selectedProp = propertyOf<Human?>(null)
-    private val namePatch = propertyOf(mapOf<Human, String>()).also {
+    private val namePatch = propertyOf(mapOf<@ParameterName("humanId") Long, String>()).also {
         it.debounced(1000L).onEach { new ->
             if (new.isNotEmpty() && it.casValue(new, emptyMap())) {
                 session.withTransaction {
-                    new.forEach { (human, newName) ->
-                        if (human.isManaged && human.nameProp.value != newName) { // if it was just deleted, ignore
+                    new.forEach { (humanId, newName) ->
+                        val human = humanDao.find(humanId)
+                        if (human !== null && human.nameProp.value != newName) { // if it was just deleted, ignore
                             human[Human.Name] = newName
                         }
                     }
@@ -45,8 +48,9 @@ class SqlViewModel(
     val nameProp = selectedProp.flatMapNotNullOrDefault("", propertyGetterOf(Human.Name))
     val editableNameProp = propertyOf("").also {
         it.onEach { newText ->
-            selectedProp.value?.let {
-                namePatch += it to newText
+            val selected = selectedProp.value
+            if (selected != null && selected.isManaged) {
+                namePatch += selected.primaryKey to newText
             }
         }
     }
@@ -76,7 +80,7 @@ class SqlViewModel(
     }
 
     private fun fillIfEmpty() {
-        if (session[Human.Tbl].count().value == 0L) {
+        if (humanDao.count().value == 0L) {
             session.withTransaction {
                 insertHuman("Stephen", "Hawking")
                 val relativist = insertHuman("Albert", "Einstein")
