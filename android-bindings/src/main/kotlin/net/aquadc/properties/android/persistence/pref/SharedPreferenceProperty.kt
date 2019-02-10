@@ -15,31 +15,12 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
  * * when bound, there will be some lag between source value change and change notification
  * * CAS is not a straight CAS, may be inaccurate a bit
  */
-class SharedPreferenceProperty<T>
-@Deprecated("Use another constructor; for persisting several values, see SharedPreferencesStruct") constructor(
+class SharedPreferenceProperty<T>(
         private val prefs: SharedPreferences,
         private val key: String,
         private val defaultValue: T,
-        private val adapter: PrefAdapter<T>
+        private val type: DataType<T>
 ) : `-Notifier`<T>(true), MutableProperty<T> {
-
-    constructor(
-            prefs: SharedPreferences,
-            key: String,
-            defaultValue: T,
-            type: DataType<T>
-    ) : this(
-            prefs, key, defaultValue,
-            object : SimplePrefAdapter<T>() {
-
-                override fun read(prefs: SharedPreferences, key: String, default: T): T =
-                        type.get(prefs, key, default)
-
-                override fun save(editor: SharedPreferences.Editor, key: String, value: T) =
-                        type.put(editor, key, value)
-
-            }
-    )
 
     // we need a strong reference because shared prefs holding a weak one
     private val changeListener = object :
@@ -62,15 +43,15 @@ class SharedPreferenceProperty<T>
 
     @Suppress("MemberVisibilityCanBePrivate") // internal — to avoid synthetic accessors
     internal fun changed(key: String) {
-        if (adapter.isKeyFor(this.key, key)) {
-            val new = adapter.read(prefs, this.key, defaultValue)
+        if (this.key == key) {
+            val new = type.get(prefs, this.key, defaultValue)
             val old = valueUpdater<T>().getAndSet(this, new)
             valueChanged(old, new, null)
         }
     }
 
     @Volatile @Suppress("UNUSED")
-    private var valueRef: T = adapter.read(prefs, key, defaultValue)
+    private var valueRef: T = type.get(prefs, key, defaultValue)
 
     override var value: T
         get() = valueUpdater<T>().get(this)
@@ -79,14 +60,14 @@ class SharedPreferenceProperty<T>
 
             // update then
             val ed = prefs.edit()
-            adapter.save(ed, key, newValue)
+            type.put(ed, key, newValue)
             ed.apply()
         }
 
     @Volatile @Suppress("UNUSED")
     private var sample: Property<T>? = null
 
-    @Synchronized @Deprecated("This property may soon become Transactional")
+    @Synchronized @Deprecated("This property may soon become Transactional", level = DeprecationLevel.ERROR)
     override fun bindTo(sample: Property<T>) {
         val newSample = if (sample.mayChange) sample else null
         val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
@@ -94,12 +75,12 @@ class SharedPreferenceProperty<T>
         newSample?.addChangeListener(changeListener)
 
         val ed = prefs.edit()
-        adapter.save(ed, key, sample.value)
+        type.put(ed, key, sample.value)
         ed.apply()
     }
 
     // may be inaccurate
-    @Deprecated("This property may soon become Transactional")
+    @Deprecated("This property may soon become Transactional", level = DeprecationLevel.ERROR)
     override fun casValue(expect: T, update: T): Boolean {
         dropBinding()
         return if (valueRef === expect) {
@@ -118,7 +99,7 @@ class SharedPreferenceProperty<T>
     @Suppress("MemberVisibilityCanBePrivate") // using internal to avoid synthetic accessors
     internal fun sampleChanged(new: T) {
         val ed = prefs.edit()
-        adapter.save(ed, key, new)
+        type.put(ed, key, new)
         ed.apply()
     }
 

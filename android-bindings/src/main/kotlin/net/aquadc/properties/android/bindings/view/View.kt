@@ -57,23 +57,9 @@ fun View.bindBackgroundTo(backgroundProperty: Property<Int>) =
 fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>) =
         bindViewTo(backgroundColorProperty, SetBackground.Color)
 
-/**
- * Observes [View.isAttachedToWindow] value.
- * [android.view.View.addOnAttachStateChangeListener] requires minSdk 12,
- * but [android.view.View.isAttachedToWindow] requires minSdk 19.
- */
-@TargetApi(19) @Deprecated("does not look very useful and will be removed")
-fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean>) {
-    attachedToWindowProperty.value = isAttachedToWindow
-    addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-        override fun onViewAttachedToWindow(v: View) {
-            attachedToWindowProperty.set()
-        }
-        override fun onViewDetachedFromWindow(v: View?) {
-            attachedToWindowProperty.clear()
-        }
-    })
-}
+@TargetApi(19) @Deprecated("does not look very useful and will be removed", level = DeprecationLevel.ERROR)
+fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean>): Unit =
+        throw UnsupportedOperationException()
 
 private val SetVisibilitySoftly = SetVisibility(View.INVISIBLE)
 private val SetVisibilityHardly = SetVisibility(View.GONE)

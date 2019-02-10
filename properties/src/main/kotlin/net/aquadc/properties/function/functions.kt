@@ -397,22 +397,6 @@ internal object ToPair : (Any?, Any?) -> Any? {
             Pair(p1, p2)
 }
 
-/**
- * Compares objects by their identity.
- */
-@Deprecated("moved", ReplaceWith("Objectz.Same"), DeprecationLevel.ERROR)
-object Identity : (Any?, Any?) -> Boolean {
-    override fun invoke(p1: Any?, p2: Any?): Boolean = p1 === p2
-}
-
-/**
- * Compares objects with [Any.equals] operator function.
- */
-@Deprecated("moved", ReplaceWith("Objectz.Equal"), DeprecationLevel.ERROR)
-object Equals : (Any?, Any?) -> Boolean {
-    override fun invoke(p1: Any?, p2: Any?): Boolean = p1 == p2
-}
-
 @PublishedApi
 internal abstract class OnEach<T> : AtomicBoolean(), ChangeListener<T>, (T) -> Unit {
 

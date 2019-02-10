@@ -1,7 +1,9 @@
 package net.aquadc.properties
 
-import net.aquadc.properties.function.*
-import org.junit.Assert.*
+import net.aquadc.properties.function.CharSequencez
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 
@@ -9,7 +11,7 @@ class CharSeqExts {
 
     @Test fun length() {
         val prop = propertyOf("")
-        val len by prop.length
+        val len by prop.map(CharSequencez.Length)
         assertEquals(0, len)
 
         prop.value = " "
@@ -49,7 +51,7 @@ class CharSeqExts {
 
     @Test fun trimmed() {
         val prop = propertyOf("")
-        val trimmed by prop.trimmed
+        val trimmed by prop.map(CharSequencez.Trim)
 
         assertEquals("", trimmed)
 

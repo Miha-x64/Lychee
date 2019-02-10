@@ -77,9 +77,9 @@ private abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: Dat
 
 }
 
-fun <E> collection(elementType: DataType<E>): DataType.Collect<Collection<E>, E> =
-        object : CollectBase<Collection<E>, E>(elementType) {
-            override fun decode(value: Collection<Any?>): Collection<E> =
+fun <E> collection(elementType: DataType<E>): DataType.Collect<List<E>, E> =
+        object : CollectBase<List<E>, E>(elementType) {
+            override fun decode(value: Collection<Any?>): List<E> =
                     value.map(this.elementType::decode)
         }
 

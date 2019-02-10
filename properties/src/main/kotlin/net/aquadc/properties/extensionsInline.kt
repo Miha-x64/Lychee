@@ -1,4 +1,4 @@
-@file:Suppress("NOTHING_TO_INLINE", "DeprecatedCallableAddReplaceWith")
+@file:Suppress("NOTHING_TO_INLINE")
 @file:JvmName("PropertiesInline")
 package net.aquadc.properties
 
@@ -19,13 +19,10 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
 // T(s) -> Boolean
 //
 
-/**
- * Returns a view on [this] == [that].
- */
-@Deprecated("Was generalized.", ReplaceWith("mapWith(that, areEqual())",
-        "net.aquadc.properties.mapWith", "net.aquadc.properties.function.areEqual"))
+@Deprecated("Was generalized.", ReplaceWith("mapWith(that, Objectz.Equal)",
+        "net.aquadc.properties.mapWith", "net.aquadc.properties.function.Objectz.Equal"), DeprecationLevel.ERROR)
 inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
-        mapWith(that, Objectz.Equal)
+        throw UnsupportedOperationException()
 
 //
 // Boolean actions
@@ -69,47 +66,29 @@ inline fun <T : Any> MutableProperty<T?>.clearEachAnd(crossinline action: (T) ->
 // CharSequence
 //
 
-/**
- * Returns a property representing [CharSequence.length].
- */
 @Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Length)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
-inline val Property<CharSequence>.length: Property<Int> get() = map(CharSequencez.Length)
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
+inline val Property<CharSequence>.length: Property<Int> get() = throw UnsupportedOperationException()
 
-/**
- * Returns a property representing emptiness ([CharSequence.isEmpty]).
- */
 @Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Empty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
-inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = map(CharSequencez.Empty)
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
+inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = throw UnsupportedOperationException()
 
-/**
- * Returns a property representing non-emptiness ([CharSequence.isNotEmpty]).
- */
 @Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.NotEmpty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
-inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = map(CharSequencez.NotEmpty)
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
+inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = throw UnsupportedOperationException()
 
-/**
- * Returns a property representing blankness ([CharSequence.isBlank]).
- */
 @Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Blank)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
-inline val Property<CharSequence>.isBlank: Property<Boolean> get() = map(CharSequencez.Blank)
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
+inline val Property<CharSequence>.isBlank: Property<Boolean> get() = throw UnsupportedOperationException()
 
-/**
- * Returns a property representing non-blankness ([CharSequence.isNotBlank]).
- */
 @Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.NotBlank)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
-inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = map(CharSequencez.NotBlank)
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
+inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = throw UnsupportedOperationException()
 
-/**
- * Returns a property representing a trimmed CharSequence ([CharSequence.trim]).
- */
 @Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Trim)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"))
-inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = map(CharSequencez.Trim)
+        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
+inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = throw UnsupportedOperationException()
 
 
 //
@@ -240,15 +219,6 @@ inline fun <T> Property<T>.addUnconfinedChangeListener(noinline onChange: Change
 
 /**
  * Returns new [MutableProperty] with value [value].
- * If [concurrent] is true, the property can be used from many threads.
- */
-@Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value, concurrent)"), DeprecationLevel.ERROR)
-inline fun <T> mutablePropertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
-        if (concurrent) `ConcMutable-`(value)
-        else `UnsMutable-`(value)
-
-/**
- * Returns new [MutableProperty] with value [value].
  * Returned property is strictly bounded to current thread.
  */
 inline fun <T> propertyOf(value: T): MutableProperty<T> =
@@ -265,22 +235,8 @@ inline fun <T> propertyOf(value: T, concurrent: Boolean): MutableProperty<T> =
 /**
  * Returns new multi-threaded [MutableProperty] with initial value [value].
  */
-@Deprecated("Use concurrentPropertyOf instead.", ReplaceWith("concurrentPropertyOf(value)"), DeprecationLevel.ERROR)
-inline fun <T> concurrentMutablePropertyOf(value: T): MutableProperty<T> =
-        `ConcMutable-`(value)
-
-/**
- * Returns new multi-threaded [MutableProperty] with initial value [value].
- */
 inline fun <T> concurrentPropertyOf(value: T): MutableProperty<T> =
         `ConcMutable-`(value)
-
-/**
- * Returns new single-threaded [MutableProperty] with initial value [value].
- */
-@Deprecated("Use propertyOf instead.", ReplaceWith("propertyOf(value)"))
-inline fun <T> unsynchronizedMutablePropertyOf(value: T): MutableProperty<T> =
-        `UnsMutable-`(value)
 
 /**
  * Returns an immutable [Property] representing either `true` or `false`.

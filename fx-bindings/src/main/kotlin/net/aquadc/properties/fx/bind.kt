@@ -8,42 +8,12 @@ import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import javafx.beans.property.Property as FxProperty
 
-/**
- * Binds [this] and [that] property values.
- * [this] takes [that] value first.
- */
-@Deprecated("use prop.fx()", replaceWith = ReplaceWith("this.bindBidirectional(that.fx())"))
-fun <T> FxProperty<T>.bindBidirectionally(that: MutableProperty<T>) {
-    this.value = that.value
-    var mutatingThis = false
-    var mutatingThat = false
-
-    this.addListener { _, _, new ->
-        if (!mutatingThis) {
-            mutatingThat = true
-            that.value = new
-            mutatingThat = false
-        }
-    }
-
-    that.addChangeListener { _, new ->
-        if (!mutatingThat) {
-            mutatingThis = true
-            this.value = new
-            mutatingThis = false
-        }
-    }
+@Deprecated("use prop.fx()", ReplaceWith("this.bindBidirectional(that.fx())"), DeprecationLevel.ERROR)
+fun <T> FxProperty<T>.bindBidirectionally(that: MutableProperty<T>)  {
 }
 
-/**
- * Binds [this] property value to [that].
- */
-@Deprecated("use prop.fx()", replaceWith = ReplaceWith("this.bind(that.fx())"))
+@Deprecated("use prop.fx()", ReplaceWith("this.bind(that.fx())"), DeprecationLevel.ERROR)
 fun <T> FxProperty<in T>.bindTo(that: Property<T>) {
-    this.value = that.value
-    that.addChangeListener { _, new ->
-        this.value = new
-    }
 }
 
 /**
@@ -51,7 +21,23 @@ fun <T> FxProperty<in T>.bindTo(that: Property<T>) {
  */
 fun <T> MutableProperty<T>.fx(): FxProperty<T> {
     val prop = SimpleObjectProperty<T>()
-    prop.bindBidirectionally(this)
+    prop.value = this.value
+    var mutatingThis = false
+    var mutatingThat = false
+    prop.addListener { _, _, new ->
+        if (!mutatingThis) {
+            mutatingThat = true
+            this.value = new
+            mutatingThat = false
+        }
+    }
+    this.addChangeListener { _, new ->
+        if (!mutatingThat) {
+            mutatingThis = true
+            prop.value = new
+            mutatingThis = false
+        }
+    }
     return prop
 }
 
@@ -60,7 +46,10 @@ fun <T> MutableProperty<T>.fx(): FxProperty<T> {
  */
 fun <T> Property<T>.fx(): ObservableValue<T> {
     val prop = SimpleObjectProperty<T>()
-    prop.bindTo(this)
+    prop.value = this.value
+    this.addChangeListener { _, new ->
+        prop.value = new
+    }
     return prop
 }
 

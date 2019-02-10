@@ -97,18 +97,12 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
             ret
         } as (List<T>) -> Boolean)
 
-/**
- * Returns a [Property] which is `true` when [this.value].[Collection.isEmpty].
- */
 @Deprecated("Was generalized.", ReplaceWith("map(Collectionz.Empty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.Collectionz"))
+        "net.aquadc.properties.map", "net.aquadc.properties.function.Collectionz"), DeprecationLevel.ERROR)
 inline fun Property<Collection<*>?>.isEmpty(): Property<Boolean> =
-        map(Collectionz.Empty)
+        throw UnsupportedOperationException()
 
-/**
- * Returns a [Property] which is `true` when [this.value].[Collection.isNotEmpty].
- */
 @Deprecated("Was generalized.", ReplaceWith("map(Collectionz.NotEmpty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.Collectionz"))
+        "net.aquadc.properties.map", "net.aquadc.properties.function.Collectionz"), DeprecationLevel.ERROR)
 inline fun Property<Collection<*>?>.isNotEmpty(): Property<Boolean> =
-        map(Collectionz.NotEmpty)
+        throw UnsupportedOperationException()
