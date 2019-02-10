@@ -129,39 +129,12 @@ inline fun <reified E : Enum<E>> enumSet(
 
 /**
  * Creates a [Set]<[Enum]> type implementation for storing enum set as a collection of values.
- * @param values all allowed values
  * @param encodeAs underlying element data type
  */
 inline fun <reified E> enumSet(
-        values: Array<E>,
         encodeAs: DataType<E>
 ): DataType.Collect<Set<E>, E> =
-        enumSetInternal(E::class.java, values, encodeAs)
-
-/**
- * Creates a [Set]<[Enum]> type implementation for storing enum set as a collection of values.
- * Finds an array of values automatically.
- */
-inline fun <reified E : Enum<E>> enumSet(
-        encodeAs: DataType<E>
-): DataType.Collect<Set<E>, E> =
-        enumSetInternal(E::class.java, enumValues(), encodeAs)
-
-@PublishedApi internal fun <E> enumSetInternal(
-        type: Class<E>,
-        values: Array<E>,
-        elementType: DataType<E>
-): DataType.Collect<Set<E>, E> =
-        object : DataType.Collect<Set<E>, E>(elementType) {
-
-            override fun encode(value: Set<E>): Collection<Any?> =
-                    value.map(elementType::encode)
-
-            override fun decode(value: Collection<Any?>): Set<E> =
-                    @Suppress("UPPER_BOUND_VIOLATED")
-                    value.mapTo<Any?, E, Set<E>>(if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet<E>(), elementType::decode)
-
-        }
+        setInternal(encodeAs, E::class.java)
 
 
 // Util

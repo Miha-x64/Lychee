@@ -1,6 +1,8 @@
 @file:JvmName("BasicTypes")
 package net.aquadc.persistence.type
 
+import java.util.EnumSet
+
 
 private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 
@@ -98,7 +100,7 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 inline fun <T : Any> nullable(type: DataType<T>): DataType.Nullable<T> =
         DataType.Nullable(type)
 
-private abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: DataType<E>) : DataType.Collect<C, E>(elementType) {
+internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: DataType<E>) : DataType.Collect<C, E>(elementType) {
 
     /**
      * {@implNote does nothing but sanity checks}
@@ -122,10 +124,18 @@ fun <E> collection(elementType: DataType<E>): DataType.Collect<List<E>, E> =
  * Represents a [Set] of [E].
  */
 fun <E> set(elementType: DataType<E>): DataType.Collect<Set<E>, E> =
-        object : CollectBase<Set<E>, E>(elementType) {
-            override fun decode(value: Collection<Any?>): Set<E> =
-                    value.mapTo(HashSet(), this.elementType::decode) // todo ArraySet
-        }
+        setInternal(elementType, null)
+
+@PublishedApi internal fun <E> setInternal(elementType: DataType<E>, enumType: Class<E>?): CollectBase<Set<E>, E> {
+    return object : CollectBase<Set<E>, E>(elementType) {
+        override fun decode(value: Collection<Any?>): Set<E> =
+                value.mapTo(
+                        if (enumType === null) HashSet()
+                        else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>), // todo ArraySet
+                        this.elementType::decode
+                )
+    }
+}
 
 /**
  * A hint which makes [collection] easier to find.
