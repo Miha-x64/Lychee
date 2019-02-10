@@ -9,6 +9,7 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.mapToArray
+import net.aquadc.properties.persistence.PropertyStruct
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -196,16 +197,16 @@ class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
  * Subclass it to provide your own getters and/or computed/foreign properties.
  * TODO: should I provide subclassing-less API, too?
  */
-open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
+open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertyStruct<SCH> {
 
     internal val table: Table<SCH, ID, *>
     protected val session: Session
     internal val _session get() = session
     val primaryKey: ID
 
-    @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
+    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
     private val dao
-        get() = session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>)
+        get() = session[table as Table<SCH, ID, Record<SCH, ID>>]
 
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
@@ -221,24 +222,22 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
         this.values = createValues(session, table, primaryKey)
     }
 
-    @Suppress("UPPER_BOUND_VIOLATED") // RLY, I don't want third generic for Record, this adds no type-safety here
+    @Suppress(
+            "UNCHECKED_CAST",
+            "UPPER_BOUND_VIOLATED" // RLY, I don't want third generic for Record, this adds no type-safety here
+    )
     private fun createValues(session: Session, table: Table<SCH, ID, *>, primaryKey: ID): Array<Any?> =
-            session.get<SCH, ID, Record<SCH, ID>>(table as Table<SCH, ID, Record<SCH, ID>>).let { dao ->
+            session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
                 table.schema.fields.mapToArray { col ->
                     when (col) {
-                        is FieldDef.Mutable -> ManagedProperty<SCH, Transaction, Any?, ID>(dao, col as FieldDef.Mutable<SCH, Any?>, primaryKey, Unset)
+                        is FieldDef.Mutable -> ManagedProperty(dao, col as FieldDef.Mutable<SCH, Any?>, primaryKey, Unset)
                         is FieldDef.Immutable -> Unset
                     }
                 }
             }
 
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T> propOf(field: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
-            values[field.ordinal.toInt()] as SqlProperty<T>
-
     override fun <T> get(field: FieldDef<SCH, T>): T = when (field) {
-        is FieldDef.Mutable -> propOf(field).value
+        is FieldDef.Mutable -> prop(field).value
         is FieldDef.Immutable -> {
             val index = field.ordinal.toInt()
             val value = values[index]
@@ -251,8 +250,9 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH> {
         }
     }
 
-    infix fun <T> prop(col: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
-            propOf(col)
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
+            values[field.ordinal.toInt()] as SqlProperty<T>
 
     var isManaged: Boolean = true
         @JvmSynthetic internal set

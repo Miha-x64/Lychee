@@ -44,20 +44,24 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
     }
 
-    internal fun dropManagement(id: ID) {
-        recordRefs.remove(id)?.get()?.let(::dropRecordManagement)
+    internal fun forget(id: ID): WeakReference<REC>? {
+        val ref = recordRefs.remove(id) ?: return null
+        return forgetInternal(ref)
     }
 
-    internal fun truncate() {
-        val iterator = recordRefs.values.iterator()
-        while (iterator.hasNext()) {
-            val rec = iterator.next()
-            rec.get()?.let(::dropRecordManagement)
-            iterator.remove()
-        }
+    internal fun truncate(): List<WeakReference<REC>> {
+        val clone = recordRefs.values.mapNotNull(::forgetInternal)
+        recordRefs.clear()
+        return clone
     }
 
-    private fun dropRecordManagement(record: REC) {
+    private fun forgetInternal(ref: WeakReference<REC>): WeakReference<REC>? {
+        val rec = ref.get() ?: return null
+        rec.isManaged = false
+        return ref
+    }
+
+    internal fun dropRecordManagement(record: REC) {
         val defs = record.table.schema.fields
         val fields = record.values
         for (i in defs.indices) {
@@ -67,7 +71,6 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
                 }
             }.also { }
         }
-        record.isManaged = false
     }
 
     internal fun onStructuralChange() {
@@ -138,7 +141,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
     }
 
-    private fun <E : Any> MutableIterable<WeakReference<E>>.iterateWeakOrRemove(func: (E) -> Unit) {
+    private inline fun <E : Any> MutableIterable<WeakReference<E>>.iterateWeakOrRemove(func: (E) -> Unit) {
         val itr = iterator()
         while (itr.hasNext()) {
             val ref = itr.next()

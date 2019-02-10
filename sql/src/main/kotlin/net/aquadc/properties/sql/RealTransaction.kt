@@ -3,6 +3,7 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import java.lang.ref.WeakReference
 
 @Suppress(
         "PLATFORM_CLASS_MAPPED_TO_KOTLIN", // using finalization guard
@@ -101,21 +102,29 @@ internal class RealTransaction(
         thread = null
     }
 
-
+    @Suppress("UNCHECKED_CAST")
     internal fun deliverChanges() {
         val del = deleted
-        del?.forEach { (table, ids) ->
-            lowSession.daos[table.erased]?.let { man ->
-                man as RealDao<*, IdBound, *>
-                if (ids is Unit) {
-                    man.truncate()
-                } else {
-                    ids as ArrayList<IdBound>
-                    ids.forEach(man::dropManagement)
+
+        // Deletions first! Now we're not going to disturb souls of dead records & properties during this notification.
+        var unmanage: HashMap<Table<*, *, *>, List<WeakReference<out Record<*, *>>>>? = null
+        if (del != null) {
+            for ((table, ids) in del) { // forEach here will be unable to smart-case `unmanage` var
+                val man = lowSession.daos[table.erased] as RealDao<*, IdBound, *>?
+                if (man != null) {
+                    val removed: List<WeakReference<out Record<*, *>>> = if (ids is Unit) {
+                        man.truncate()
+                    } else {
+                        ids as ArrayList<IdBound>
+                        ids.mapNotNull(man::forget)
+                    }
+                    if (removed.isNotEmpty()) {
+                        if (unmanage === null) unmanage = HashMap()
+                        unmanage[table] = removed
+                    }
                 }
             }
         }
-        // Deletions first! Now we're not going to disturb souls of dead records & properties.
 
         // value changes
         val upd = updated
@@ -137,11 +146,21 @@ internal class RealTransaction(
                 } else if (upd != null) {
                     val updatedInTable = upd.keys.filter { it.first == table }
                     if (updatedInTable.isNotEmpty()) {
-                        @Suppress("UPPER_BOUND_VIOLATED", "UNCHECKED_CAST")
+                        @Suppress("UPPER_BOUND_VIOLATED")
                         dao.erased.onOrderChange(updatedInTable as List<Pair<Table<Any, *, *>, FieldDef<Any, *>>>)
                     }
                 }
 
+            }
+        }
+
+        // commit 'unmanaged' status for all the properties which lost their management.
+        unmanage?.forEach { (table, refs) ->
+            val man = (lowSession.daos[table.erased] as RealDao<*, IdBound, Record<*, IdBound>>)
+            refs.forEach { ref ->
+                ref.get()?.let { rec ->
+                    man.dropRecordManagement(rec as Record<*, IdBound>)
+                }
             }
         }
     }
