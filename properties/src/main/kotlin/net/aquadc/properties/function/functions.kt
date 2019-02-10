@@ -2,7 +2,7 @@ package net.aquadc.properties.function
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
-import java.util.*
+import java.util.Arrays
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -168,16 +168,18 @@ class Arrayz private constructor(
  * The name 'CharSequencez' was chosen to be consistent with [Objectz] and [Arrayz]
  * and avoid potential conflict with an arbitrary utility-class.
  */
-class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
+class CharSequencez private constructor(private val mode: Int) : (Any?) -> Any? {
 
-    override fun invoke(p1: Any): Any = when (mode) {
+    override fun invoke(p1: Any?): Any? = when (mode) {
         0 -> (p1 as CharSequence).isEmpty()
         1 -> (p1 as CharSequence).isNotEmpty()
         2 -> (p1 as CharSequence).isBlank()
         3 -> (p1 as CharSequence).isNotBlank()
         4 -> (p1 as CharSequence).length
         5 -> (p1 as CharSequence).trim()
-        6 -> p1.toString()
+        6 -> p1!!.toString()
+        7 -> p1?.toString()
+        8 -> if (p1 === null) "" else p1.toString()
         else -> throw AssertionError()
     }
 
@@ -223,8 +225,22 @@ class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
         /**
          * A function which returns the result of invocation [toString] on its argument.
          */
-        @JvmField val ValueOf: (Any?) -> String =
-                CharSequencez(6) as (Any?) -> String
+        @JvmField val ValueOf: (Any) -> String =
+                CharSequencez(6) as (Any) -> String
+
+        /**
+         * A function which returns the result of invocation [toString] on its argument,
+         * or `null`, if argument is `null`.
+         */
+        @JvmField val ValueOfOrNull: (Any?) -> String? =
+                CharSequencez(7) as (Any?) -> String?
+
+        /**
+         * A function which returns the result of invocation [toString] on its argument,
+         * or an empty string, if argument is `null`.
+         */
+        @JvmField val ValueOfOrBlank: (Any?) -> String =
+                CharSequencez(8) as (Any?) -> String
 
     }
 }
@@ -239,7 +255,7 @@ class CharSequencez private constructor(private val mode: Int) : (Any) -> Any {
 class Enumz private constructor(private val mode: Int) : (Any?) -> Any? {
 
     override fun invoke(p1: Any?): Any? {
-        val enum = p1 as Enum<*>
+        p1 as Enum<*>
         return when (mode) {
             0 -> p1.name
             1 -> p1.ordinal
