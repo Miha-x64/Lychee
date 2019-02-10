@@ -25,12 +25,9 @@ repositories {
 ```
 // module-level build.gradle
 dependencies {
-    // JVM
-    implementation 'net.aquadc.properties:properties:0.0.6'
-
-    // Android + Gradle 4
-    implementation 'net.aquadc.properties:android-bindings:0.0.6'
-    // depends on :properties and :persistence
+    implementation 'net.aquadc.properties:properties:0.0.7' // core, both for JVM and Android
+    implementation 'net.aquadc.properties:persistence:0.0.7' // persistence for JVM and Android
+    implementation 'net.aquadc.properties:android-bindings:0.0.7' // Android-only AAR package
 }
 ```
 
