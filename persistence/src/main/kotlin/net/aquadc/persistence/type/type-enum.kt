@@ -37,7 +37,8 @@ inline fun <reified E : Enum<E>, U : Any> enum(
 /**
  * Represents values of [E] type like [U] values.
  * [values] sample: `E.values()`
- * [nameProp] sample: `E::name`
+ * [encodeAs] sample: [string]
+ * [encode] sample: `E::name`
  * [fallback] sample: `{ E.UNSUPPORTED }`
  */
 @Suppress("UNCHECKED_CAST")

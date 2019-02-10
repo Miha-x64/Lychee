@@ -8,8 +8,6 @@ import okio.ByteString
         private val blob: DataType.Simple<ByteArray>
 ) : DataType.Simple<Any?>(DataType.Simple.Kind.Blob) {
 
-    init { check(blob.kind === Kind.Blob) }
-
     override fun decode(value: Any?): Any? =
             blob.decode(value).let { ByteString.of(it, 0, it.size) }
 
@@ -18,9 +16,15 @@ import okio.ByteString
 
 }
 
+/**
+ * Describes [ByteString] instances.
+ */
 @Suppress("UNCHECKED_CAST")
 @JvmField val byteString: DataType<ByteString> = byteString(byteArray)
 
+/**
+ * Wraps a [ByteArray] [DataType] to achieve mutation-safety.
+ */
 @Suppress(
         "NOTHING_TO_INLINE", // single constructor call is a great candidate for inlining
         "UNCHECKED_CAST" // ByteStr is erased to avoid bridge methods

@@ -39,22 +39,22 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
 
     // output
 
-    override fun writeByte(output: Parcel, byte: Byte) =
+    override fun writeByte(output: Parcel, byte: Byte): Unit =
             output.writeByte(byte)
 
-    override fun writeShort(output: Parcel, short: Short) =
+    override fun writeShort(output: Parcel, short: Short): Unit =
             output.writeInt(short.toInt())
 
-    override fun writeInt(output: Parcel, int: Int) =
+    override fun writeInt(output: Parcel, int: Int): Unit =
             output.writeInt(int)
 
-    override fun writeLong(output: Parcel, long: Long) =
+    override fun writeLong(output: Parcel, long: Long): Unit =
             output.writeLong(long)
 
-    override fun writeBytes(output: Parcel, bytes: ByteArray?) =
+    override fun writeBytes(output: Parcel, bytes: ByteArray?): Unit =
             output.writeByteArray(bytes)
 
-    override fun writeString(output: Parcel, string: String?) =
+    override fun writeString(output: Parcel, string: String?): Unit =
             output.writeString(string)
 
     private val writer = StreamWriterVisitor<Parcel, Any?>(this)

@@ -6,7 +6,7 @@ import android.support.design.widget.TabLayout
  * Simple adapter class for [TabLayout.OnTabSelectedListener].
  */
 open class SimpleOnTabSelectedListener : TabLayout.OnTabSelectedListener {
-    override fun onTabReselected(tab: TabLayout.Tab) = Unit
-    override fun onTabUnselected(tab: TabLayout.Tab) = Unit
-    override fun onTabSelected(tab: TabLayout.Tab) = Unit
+    /** No-op. */ override fun onTabReselected(tab: TabLayout.Tab) {}
+    /** No-op. */ override fun onTabUnselected(tab: TabLayout.Tab) {}
+    /** No-op. */ override fun onTabSelected(tab: TabLayout.Tab) {}
 }

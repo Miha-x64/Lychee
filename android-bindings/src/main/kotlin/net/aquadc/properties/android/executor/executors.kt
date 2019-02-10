@@ -28,7 +28,7 @@ object AndroidCurrentLooperExecutorFactory : () -> Executor? {
  */
 class Handlecutor(looper: Looper) : Handler(looper), Executor {
 
-    override fun execute(command: Runnable) =
+    override fun execute(command: Runnable): Unit =
             check(post(command))
 
 }
@@ -44,7 +44,7 @@ class HandlerExecutor(
     /**
      * Posts the given [command] into the [handler].
      */
-    override fun execute(command: Runnable) =
+    override fun execute(command: Runnable): Unit =
             check(handler.post(command))
 
 }

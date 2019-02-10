@@ -9,10 +9,13 @@ inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit
     return builder.finish(this)
 }
 
-@PublishedApi internal fun <SCH : Schema<SCH>> newBuilder(schema: Schema<*>) =
+@PublishedApi internal fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
         StructBuilder<SCH>(Array(schema.fields.size) { Unset })
 
 
+/**
+ * A temporary wrapper around [Array] for instantiaring [StructSnapshot]s.
+ */
 inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
         private val values: Array<Any?>
 ) {
@@ -21,6 +24,9 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
         values[key.ordinal.toInt()] = value
     }
 
+    /**
+     * Create a [StructSnapshot] unsafely capturing [values] array.
+     */
     fun finish(schema: SCH): StructSnapshot<SCH> {
         values.forEachIndexed { i, value ->
             if (value === Unset)

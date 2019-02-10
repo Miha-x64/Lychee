@@ -12,6 +12,9 @@ import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
 
 
+/**
+ * Writes [struct] into [output] with help of [this].
+ */
 fun <D, SCH : Schema<SCH>> BetterDataOutput<D>.write(output: D, struct: Struct<SCH>) {
     struct.schema.fields.forEach { field ->
         writeValueFrom(struct, field, to = output)
@@ -23,9 +26,12 @@ private inline fun <D, SCH : Schema<SCH>, T> BetterDataOutput<D>.writeValueFrom(
     field.type.write(this, to, struct[field])
 }
 
-fun <D, T> DataType<T>.write(out: BetterDataOutput<D>, put: D, value: T) {
+/**
+ * Writes a [value] of [this] type into [output] with help of [writer].
+ */
+fun <D, T> DataType<T>.write(writer: BetterDataOutput<D>, output: D, value: T) {
     val encoded = encode(value)
-    writeEncoded(out, put, encoded)
+    writeEncoded(writer, output, encoded)
 }
 
 private fun <D, T> DataType<T>.writeEncoded(out: BetterDataOutput<D>, put: D, encoded: Any?) {
@@ -88,6 +94,9 @@ class StreamWriterVisitor<D, T>(
 }
 
 
+/**
+ * Reads a [Struct] of the given [schema] from [input] with help of [this].
+ */
 fun <D, SCH : Schema<SCH>> BetterDataInput<D>.read(input: D, schema: SCH): StructSnapshot<SCH> = schema.build {
     schema.fields.forEach { field ->
         writeValueFrom(input, field, to = it)
@@ -98,8 +107,11 @@ private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.writeValueFrom(i
     to[field] = field.type.read(this, input)
 }
 
-fun <D, T> DataType<T>.read(inp: BetterDataInput<D>, ut: D): T =
-        decode(readEncoded(inp, ut))
+/**
+ * Reads a value of [this] type from [input] with help of [reader].
+ */
+fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
+        decode(readEncoded(reader, input))
 
 private fun <D, T> DataType<T>.readEncoded(inp: BetterDataInput<D>, ut: D) =
         inp.readVisitor<T>().match(this, ut, null)

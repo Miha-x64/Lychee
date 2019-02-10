@@ -28,6 +28,9 @@ sealed class DataType<T> {
      * this means [decode] may return and [encode] may accept `null`s, but not vice versa.)
      */
     class Nullable<T : Any>(
+            /**
+             * Wrapped non-nullable type.
+             */
             val actualType: DataType<T>
     ) : DataType<T?>() {
 
@@ -44,6 +47,9 @@ sealed class DataType<T> {
      * [decode] must accept and [encode] must return objects of type which strictly depends on [kind].
      */
     abstract class Simple<T>(
+            /**
+             * Specifies exact type of stored values.
+             */
             val kind: Kind
     ) : DataType<T>() {
 
@@ -67,6 +73,9 @@ sealed class DataType<T> {
      * of both this data type and the underlying storage.
      */
     abstract class Collect<C, E>(
+            /**
+             * [DataType] of all the elements in such collections.
+             */
             val elementType: DataType<E>
     ) : DataType<C>() {
 

@@ -9,6 +9,9 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 
+/**
+ * Represents [T] as a [ByteArray] (blob).
+ */
 fun <T> serialized(type: DataType<T>): DataType.Simple<T> = object : DataType.Simple<T>(Kind.Blob) {
 
     override fun encode(value: T): Any? =

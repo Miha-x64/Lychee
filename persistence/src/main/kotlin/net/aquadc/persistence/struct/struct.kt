@@ -29,6 +29,10 @@ interface Struct<SCH : Schema<SCH>> {
  * A struct which can be mutated inside a transaction.
  */
 interface TransactionalStruct<SCH : Schema<SCH>> : Struct<SCH> {
+
+    /**
+     * Creates and begins new transaction — an act of atomic, consistent, isolated mutation.
+     */
     fun beginTransaction(): StructTransaction<SCH>
 }
 
@@ -36,7 +40,17 @@ interface TransactionalStruct<SCH : Schema<SCH>> : Struct<SCH> {
  * A transaction on a single [Struct] instance.
  */
 interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
+
+    /**
+     * Sets [field] value to [update].
+     */
     operator fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T)
+
+    /**
+     * Marks the whole transaction as successful.
+     * Leads to actual data changes.
+     * This instance becomes unusable then.
+     */
     fun setSuccessful()
 }
 
