@@ -31,6 +31,7 @@ abstract class `-Notifier`<out T>(
                 }
             }
 
+    @Suppress("USELESS_IS_CHECK") // I know you're lying for multi-arity functions
     final override fun addChangeListener(onChange: ChangeListener<T>) {
         if (thread == null) {
             concAddChangeListenerInternal(
@@ -38,11 +39,13 @@ abstract class `-Notifier`<out T>(
             )
         } else {
             nonSyncAddChangeListenerInternal(
-                    onChange // no explicit Executor, will be notified on current thread
+                    if (onChange is Function2) onChange // no explicit Executor, will be notified on current thread
+                    else ConfinedChangeListener<T, Nothing>(UnconfinedExecutor, onChange, null)
             )
         }
     }
 
+    @Suppress("USELESS_IS_CHECK") // I know you're lying for multi-arity functions
     final override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) {
         if (thread == null) {
             concAddChangeListenerInternal(
@@ -51,7 +54,7 @@ abstract class `-Notifier`<out T>(
             )
         } else {
             nonSyncAddChangeListenerInternal(
-                    if (executor === UnconfinedExecutor || executor === PlatformExecutors.executors.get()) onChange
+                    if ((executor === UnconfinedExecutor || executor === PlatformExecutors.executors.get()) && onChange is Function2<*, *, *>) onChange
                     else ConfinedChangeListener<T, Nothing?>(executor, onChange, null)
             )
         }

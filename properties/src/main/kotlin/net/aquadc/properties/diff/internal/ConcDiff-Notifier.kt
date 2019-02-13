@@ -17,9 +17,10 @@ internal abstract class `ConcDiff-Notifier`<T, D> : `-Listeners`<T, D, Function<
                     ConfinedChangeListener<T, Nothing?>(PlatformExecutors.executorForCurrentThread(), onChange, null)
             )
 
+    @Suppress("USELESS_IS_CHECK") // I know you're lying for multi-arity listeners
     override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) =
             concAddChangeListenerInternal(
-                    if (executor === UnconfinedExecutor) onChange
+                    if (executor === UnconfinedExecutor && onChange is Function2<*, *, *>) onChange
                     else ConfinedChangeListener<T, Nothing?>(executor, onChange, null)
             )
 
@@ -32,10 +33,10 @@ internal abstract class `ConcDiff-Notifier`<T, D> : `-Listeners`<T, D, Function<
                     ConfinedChangeListener(PlatformExecutors.executorForCurrentThread(), null, onChangeWithDiff)
             )
 
+    @Suppress("USELESS_IS_CHECK") // I know you're lying for multi-arity listeners
     override fun addChangeListenerOn(executor: Executor, onChangeWithDiff: DiffChangeListener<T, D>) =
             concAddChangeListenerInternal(
-                    // if it is not only Function3 but also Function2,
-                    if (executor === UnconfinedExecutor && onChangeWithDiff !is Function2<*, *, *>) onChangeWithDiff
+                    if (executor === UnconfinedExecutor && onChangeWithDiff is Function3<*, *, *, *>) onChangeWithDiff
                     else ConfinedChangeListener(executor, null, onChangeWithDiff)
             )
 
