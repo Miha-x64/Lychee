@@ -4,6 +4,7 @@ import android.os.Build
 import android.support.annotation.RequiresApi
 import android.view.View
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.observeStartedIf
 
 
 /**
@@ -17,11 +18,10 @@ import net.aquadc.properties.Property
  */
 fun <V : View, T> V.bindViewTo(source: Property<T>, bind: (view: V, new: T) -> Unit) {
     if (source.mayChange) {
-        val binding = SafeBinding(this, source, bind)
-        if (windowToken != null) {
-            // the view is already attached, catch up with this state
-            binding.onViewAttachedToWindow(this)
-        }
+        val binding = Binding(this, source, bind)
+
+        // if the view is already attached, catch up with this state
+        if (windowToken != null) binding.onViewAttachedToWindow(this)
         addOnAttachStateChangeListener(binding)
     } else {
         bind(this, source.value)
@@ -39,33 +39,40 @@ fun <V : View, T> V.bindViewTo(source: Property<T>, bind: (view: V, new: T) -> U
  * For immutable properties, calls [android.util.Property.set] in-place.
  */
 @RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-fun <V : View, T> V.bindViewTo(source: Property<T>, destination: android.util.Property<V, T>) =
+fun <V : View, T> V.bindViewTo(source: Property<T>, destination: android.util.Property<V, T>): Unit =
         bindViewTo(source) { obj, value -> destination.set(obj, value) }
 
 
-private class SafeBinding<V : View, in T>(
-        private val view: V,
+private open class Binding<V : View, in T>(
+        @JvmField protected val view: V,
         private val property: Property<T>,
         private val bind: (V, T) -> Unit
-) : View.OnAttachStateChangeListener, (T, T) -> Unit {
+) : View.OnAttachStateChangeListener, (Boolean) -> Unit, (T, T) -> Unit {
+
+    override fun onViewAttachedToWindow(v: View) {
+        view.context.observeStartedIf(true, this)
+    }
+    override fun onViewDetachedFromWindow(v: View) {
+        view.context.observeStartedIf(false, this)
+    }
+
+    override fun invoke(p1: Boolean) {
+        if (p1) {
+            // We're probably the first listener,
+            // subscription may trigger value computation.
+            property.addChangeListener(this)
+
+            // Bind when value computed.
+            bind(view, property.value)
+        } else {
+            property.removeChangeListener(this)
+        }
+    }
 
     override fun invoke(p1: T, p2: T) {
         bind(view, p2)
     }
 
-    override fun onViewAttachedToWindow(v: View) {
-        // We're probably the first listener,
-        // subscription may trigger value computation.
-        property.addChangeListener(this)
-
-        // Bind when value computed.
-        bind(view, property.value)
-    }
-
-    override fun onViewDetachedFromWindow(v: View) {
-        property.removeChangeListener(this)
-    }
-
 }
 
-// Note: README.md contains links to this file with line numbers of bindViewTo(Property, function) and SafeBinding.
+// Note: README.md contains links to this file with line numbers of bindViewTo(Property, function) and Binding.

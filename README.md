@@ -356,11 +356,14 @@ someGlobalProp.value = 1
 // mappedProp's listener was notified
 ```
 
-All Android bindings are based on [bindViewTo](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L18)
-which creates a [SafeBinding](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L46).
-It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener` and `ChangeListener`.
-When view gets attached to window, `SafeBinding` is getting subscribed; when view gets detached,
-binding unsubscribes and becomes eligible for garbage collection with the whole view hierarchy.
+All Android bindings are based on [bindViewTo](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L19)
+which creates a [Binding](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L46).
+It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener`, `ChangeListener` and `(Boolean) -> Unit`.
+When view gets attached to window, `Binding` is getting subscribed to Activity lifecycle via [Lifecycle-Watcher](https://github.com/Miha-x64/reactive-properties/blob/master/android-bindings/src/main/kotlin/net/aquadc/properties/android/Lifecycle-Watcher.kt:17);
+when Activity is started, `Binding` listens for data source.
+When Activity gets stopped or View gets detached,
+binding unsubscribes and becomes eligible for garbage collection
+along with the whole view hierarchy.
 
 #### Is there anything similar to RxJava's Single?
 
