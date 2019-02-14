@@ -59,7 +59,7 @@ internal abstract class `ConcDiff-Notifier`<T, D> : `-Listeners`<T, D, Function<
                 listener === onChange ->
                     true
 
-                listener is ConfinedChangeListener<*, *> && listener.actual === onChange ->
+                listener is ConfinedChangeListener<*, *> && (listener.actual === onChange || listener.actualDiff === onChange) ->
                     true.also { listener.canceled = true }
 
                 else ->

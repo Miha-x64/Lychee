@@ -228,12 +228,12 @@ class SubscriptionTest {
         diff.addChangeListenerOn(if (confined) pool else UnconfinedExecutor, listener)
 
         val state = concurrentPropertyOf(0)
-        val monitor = state as java.lang.Object
+        state as java.lang.Object
 
         pool.execute {
             // make the pool busy
-            while (state.value == 0) { synchronized(state, monitor::wait) }
-            state.value = 2
+            while (state.value == 0) synchronized(state, state::wait)
+            check(state.casValue(1, 2))
             synchronized(state, state::notify)
         }
 
@@ -241,12 +241,11 @@ class SubscriptionTest {
 
         diff.removeChangeListener(listener) // confined won't notify
 
-        state.value = 1 // let pool go
+        check(state.casValue(0, 1)) // let pool go
         synchronized(state, state::notify)
+
         if (confined) { // and wait for it
-            while (state.value == 1) {
-                synchronized(state, monitor::wait)
-            }
+            while (state.value == 1) synchronized(state, state::wait)
         }
 
         val shouldBeCalled = !confined
