@@ -16,9 +16,6 @@ internal class `MultiMapped-`<in A, out T>(
 
     private val properties: Array<Property<A>>
 
-    @Volatile @Suppress("UNUSED")
-    private var valueRef: T = unset()
-
     init {
         @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
         this.properties = (properties as java.util.Collection<*>).toArray(arrayOfNulls(properties.size))
