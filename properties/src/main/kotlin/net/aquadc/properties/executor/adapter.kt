@@ -54,6 +54,11 @@ internal class ConfinedChangeListener<in T, in D>(
     @Volatile @JvmField
     internal var canceled = false
 
+    init {
+        check(actual !is ConfinedChangeListener<*, *>)
+        check(actualDiff !is ConfinedChangeListener<*, *>)
+    }
+
     @Suppress("UNCHECKED_CAST") // it's safe because `actualDiff` listener is null in this case
     override fun invoke(old: T, new: T) {
         invoke(old, new, null as D)
@@ -78,6 +83,8 @@ internal class ConfinedChangeListener<in T, in D>(
             }
         }
     }
+
+    // https://youtrack.jetbrains.com/issue/KT-16087
 
     override fun toByte(): Byte =
             throw UnsupportedOperationException()
