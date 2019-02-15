@@ -246,6 +246,7 @@ class SubscriptionTest {
 
         if (confined) { // and wait for it
             while (state.value == 1) synchronized(state, state::wait)
+            Thread.sleep(10)
         }
 
         val shouldBeCalled = !confined
