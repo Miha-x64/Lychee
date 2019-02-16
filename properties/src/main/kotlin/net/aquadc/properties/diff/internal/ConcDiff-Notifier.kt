@@ -14,7 +14,7 @@ internal abstract class `ConcDiff-Notifier`<T, D> : `-Listeners`<T, D, Function<
 
     final override fun addChangeListener(onChange: ChangeListener<T>) =
             concAddChangeListenerInternal(
-                    ConfinedChangeListener<T, Nothing?>(PlatformExecutors.executorForCurrentThread(), onChange, null)
+                    ConfinedChangeListener<T, Nothing?>(PlatformExecutors.requireCurrent(), onChange, null)
             )
 
     @Suppress("USELESS_IS_CHECK") // I know you're lying for multi-arity listeners
@@ -30,7 +30,7 @@ internal abstract class `ConcDiff-Notifier`<T, D> : `-Listeners`<T, D, Function<
 
     final override fun addChangeListener(onChangeWithDiff: DiffChangeListener<T, D>) =
             concAddChangeListenerInternal(
-                    ConfinedChangeListener(PlatformExecutors.executorForCurrentThread(), null, onChangeWithDiff)
+                    ConfinedChangeListener(PlatformExecutors.requireCurrent(), null, onChangeWithDiff)
             )
 
     @Suppress("USELESS_IS_CHECK") // I know you're lying for multi-arity listeners

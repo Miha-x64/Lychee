@@ -65,7 +65,7 @@ internal class ConfinedChangeListener<in T, in D>(
     }
 
     override fun invoke(old: T, new: T, diff: D) {
-        if (PlatformExecutors.executors.get() === executor && get() == 0) {
+        if (PlatformExecutors.getCurrent() === executor && get() == 0) {
             // call listener in-place, copying single-threaded properties' behaviour and creating less overhead
             // AtomicInteger keeps track of pending notifications. Can notify in-place only if there are 0 of them
             // TODO: write a test on this behaviour

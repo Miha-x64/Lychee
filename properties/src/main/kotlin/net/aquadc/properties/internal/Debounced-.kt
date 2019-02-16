@@ -28,7 +28,7 @@ internal class `Debounced-`<out T>(
     }
 
     @JvmField internal val executor =
-            if (thread == null) null else PlatformExecutors.executorForCurrentThread()
+            if (thread == null) null else PlatformExecutors.requireCurrent()
 
     @Volatile
     override var value: @UnsafeVariance T = original.value

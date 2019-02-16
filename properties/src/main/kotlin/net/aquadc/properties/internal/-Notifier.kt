@@ -35,7 +35,7 @@ abstract class `-Notifier`<out T>(
     final override fun addChangeListener(onChange: ChangeListener<T>) {
         if (thread == null) {
             concAddChangeListenerInternal(
-                    ConfinedChangeListener<T, Nothing?>(PlatformExecutors.executorForCurrentThread(), onChange, null)
+                    ConfinedChangeListener<T, Nothing?>(PlatformExecutors.requireCurrent(), onChange, null)
             )
         } else {
             nonSyncAddChangeListenerInternal(
@@ -54,7 +54,7 @@ abstract class `-Notifier`<out T>(
             )
         } else {
             nonSyncAddChangeListenerInternal(
-                    if ((executor === UnconfinedExecutor || executor === PlatformExecutors.executors.get()) && onChange is Function2<*, *, *>) onChange
+                    if ((executor === UnconfinedExecutor || executor === PlatformExecutors.getCurrent()) && onChange is Function2<*, *, *>) onChange
                     else ConfinedChangeListener<T, Nothing?>(executor, onChange, null)
             )
         }

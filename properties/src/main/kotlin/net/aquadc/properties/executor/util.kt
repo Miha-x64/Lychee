@@ -22,7 +22,7 @@ internal object ScheduledDaemonHolder : ThreadFactory {
 }
 
 internal object PlatformExecutors {
-    @JvmField internal val executors = ThreadLocal<Executor>()
+    private val executors = ThreadLocal<Executor>()
     private val executorFactories: Array<() -> Executor?>
 
     init {
@@ -71,14 +71,18 @@ internal object PlatformExecutors {
         }
     }
 
-    internal fun executorForCurrentThread(): Executor =
-            executors.getOrSet(::createForCurrentThread)
+    internal fun requireCurrent(): Executor =
+            getCurrent() ?: throw UnsupportedOperationException(
+                    "Can't execute task on ${Thread.currentThread()}. " +
+                            "Executor factories available: ${Arrays.toString(executorFactories)}")
 
-    private fun createForCurrentThread(): Executor {
-        executorFactories.forEach { it()?.let { return it } }
-        throw UnsupportedOperationException(
-                "Can't execute task on ${Thread.currentThread()}. " +
-                        "Executor factories available: ${Arrays.toString(executorFactories)}")
-    }
+    internal fun getCurrent(): Executor? =
+            executors.getOrSet {
+                val facs = executorFactories
+                for (i in facs.indices) {
+                    facs[i]()?.let { return@getOrSet it }
+                }
+                return null
+            }
 
 }

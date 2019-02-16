@@ -412,7 +412,7 @@ internal abstract class OnEach<T> : AtomicBoolean(), ChangeListener<T>, (T) -> U
         private val unit: TimeUnit
 ) : (ScheduledExecutorService, Any?, Runnable) -> ScheduledFuture<*> {
     override fun invoke(p1: ScheduledExecutorService, p2: Any?, p3: Runnable): ScheduledFuture<*> {
-        val exec = PlatformExecutors.executorForCurrentThread()
+        val exec = PlatformExecutors.requireCurrent()
         return p1.scheduleAtFixedRate({ exec.execute(p3) }, 0, period, unit)
     }
 }

@@ -36,7 +36,7 @@ open class `Mapped-`<in O, out T>(
         // not concurrent, but must be computed on a worker;
         // must also bring result to this thread
         else -> MapWhenChanged(mapOn, map,
-                ConsumeOn(PlatformExecutors.executorForCurrentThread()) { new ->
+                ConsumeOn(PlatformExecutors.requireCurrent()) { new ->
                     val old = ref
                     refUpdater().lazySet(this, new)
                     valueChanged(old, new, null)
