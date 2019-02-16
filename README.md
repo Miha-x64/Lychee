@@ -360,7 +360,7 @@ All Android bindings are based on [bindViewTo](/android-bindings/src/main/kotlin
 which creates a [Binding](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L46).
 It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener`, `ChangeListener` and `(Boolean) -> Unit`.
 When view gets attached to window, `Binding` is getting subscribed
-to Activity lifecycle via [Lifecycle-Watcher](/android-bindings/src/main/kotlin/net/aquadc/properties/android/Lifecycle-Watcher.kt:17);
+to Activity lifecycle via [Lifecycle-Watcher](/android-bindings/src/main/kotlin/net/aquadc/properties/android/Lifecycle-Watcher.kt#L17);
 when Activity is started, `Binding` listens for data source.
 When Activity gets stopped or View gets detached,
 binding unsubscribes and becomes eligible for garbage collection
