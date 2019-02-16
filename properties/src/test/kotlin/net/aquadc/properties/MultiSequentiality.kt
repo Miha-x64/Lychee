@@ -1,7 +1,6 @@
 package net.aquadc.properties
 
 import org.junit.Assert.assertEquals
-import org.junit.Ignore
 import org.junit.Test
 
 
@@ -17,12 +16,12 @@ class MultiSequentiality {
         val w = concurrentPropertyOf(0)
         singleThreaded(q, w, q.mapWith(w) { a, s -> a + s })
     }
-    @Ignore @Test fun `multi-mapped on single thread`() {
+    @Test fun `multi-mapped on single thread`() {
         val q = propertyOf(0)
         val w = propertyOf(0)
         singleThreaded(q, w, listOf(q, w).mapValueList { (a, s) -> a + s })
     }
-    @Ignore @Test fun `concurrent multi-mapped on single thread`() {
+    @Test fun `concurrent multi-mapped on single thread`() {
         val q = concurrentPropertyOf(0)
         val w = concurrentPropertyOf(0)
         singleThreaded(q, w, listOf(q, w).mapValueList { (a, s) -> a + s })
