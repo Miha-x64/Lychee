@@ -47,7 +47,7 @@ fun <SCH : Schema<SCH>> JsonReader.readListOf(schema: SCH): List<StructSnapshot<
 }
 
 // duplicate will go away when Schema will become a DataType
-private fun JsonReader.readEncodedList(type: DataType<*>): List<Any?> {
+@JvmSynthetic internal fun JsonReader.readEncodedList(type: DataType<*>): List<Any?> {
     beginArray()
     val list = if (!hasNext()) emptyList() else {
         val first = readEncodedValue(type)
@@ -92,7 +92,7 @@ private inline fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: Struc
 }
 
 private val readerVis = JsonReaderVisitor<Any?>()
-private fun <T> JsonReader.readEncodedValue(type: DataType<T>): Any? =
+@JvmSynthetic internal fun <T> JsonReader.readEncodedValue(type: DataType<T>): Any? =
         (readerVis as JsonReaderVisitor<T>).match(type, this, null)
 private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, Any?> {
 
@@ -157,7 +157,7 @@ private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: Stru
         writeEncoded(field.type, field.type.encode(struct[field]))
 
 private val writerVis = JsonWriterVisitor<Any?>()
-private fun <T> JsonWriter.writeEncoded(type: DataType<T>, value: Any?) =
+@JvmSynthetic internal fun <T> JsonWriter.writeEncoded(type: DataType<T>, value: Any?) =
         (writerVis as JsonWriterVisitor<T>).match(type, this, value)
 
 private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, Any?, T, Unit> {

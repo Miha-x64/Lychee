@@ -30,7 +30,8 @@ internal fun <T> DataType<T>.get(prefs: SharedPreferences, name: String, default
  * we store 'null' ourselves. If a field has String type, 'null' is stored as Boolean 'false'.
  * Otherwise 'null' is stored as a String "null".
  */
-private val storedAsString = EnumSet.of(DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob)
+@JvmSynthetic internal val storedAsString =
+        EnumSet.of(DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob)
 
 @Suppress("UNCHECKED_CAST")
 private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
@@ -99,7 +100,7 @@ private class PrefWriterVisitor<T>(
                     DataType.Simple.Kind.Str -> putString(key, v as String)
                     DataType.Simple.Kind.Blob -> putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
                 }
-            }.ignored
+            }.let { }
 
     override fun <E> SharedPreferences.Editor.collection(arg: T, raw: DataType<T>, type: DataType.Collect<T, E>) =
             if (raw is DataType.Nullable<*> && arg === null) {
@@ -111,9 +112,6 @@ private class PrefWriterVisitor<T>(
                     else
                         putString(key, Base64.encodeToString(serialized(type).encode(arg) as ByteArray, Base64.DEFAULT))
                 }
-            }.ignored
+            }.let { }
 
 }
-
-@Suppress("unused" /* receiver */)
-private inline val Any?.ignored get() = Unit

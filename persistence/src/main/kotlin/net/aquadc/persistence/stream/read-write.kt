@@ -34,7 +34,7 @@ fun <D, T> DataType<T>.write(writer: BetterDataOutput<D>, output: D, value: T) {
     writeEncoded(writer, output, encoded)
 }
 
-private fun <D, T> DataType<T>.writeEncoded(out: BetterDataOutput<D>, put: D, encoded: Any?) {
+@JvmSynthetic internal fun <D, T> DataType<T>.writeEncoded(out: BetterDataOutput<D>, put: D, encoded: Any?) {
     out.writerVisitor<T>().match(this, put, encoded)
 }
 
@@ -113,7 +113,7 @@ private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.writeValueFrom(i
 fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
         decode(readEncoded(reader, input))
 
-private fun <D, T> DataType<T>.readEncoded(inp: BetterDataInput<D>, ut: D) =
+@JvmSynthetic internal fun <D, T> DataType<T>.readEncoded(inp: BetterDataInput<D>, ut: D) =
         inp.readVisitor<T>().match(this, ut, null)
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
