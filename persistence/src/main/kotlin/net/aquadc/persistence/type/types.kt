@@ -102,8 +102,8 @@ sealed class DataType<T> {
 //    abstract class Dictionary<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
 //    abstract class Union<T> internal constructor(isNullable: Boolean, types: List<DataType<out T>>) : DataType<T>(isNullable) TODO
 //    abstract class Struct<T> internal constructor(isNullable: Boolean, def: StructDef<T>) : DataType<T>(isNullable) TODO
-//    Date is not supported because it's mutable and the most parts of it are deprecated 20+ years ago. TODO consider
 
+//    TODO: date, time, UUID, etc types in a separate module
 
 }
 
