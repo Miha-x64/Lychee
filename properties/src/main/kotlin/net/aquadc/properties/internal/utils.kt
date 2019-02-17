@@ -62,6 +62,10 @@ internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazySet(thisRef: T,
     else lazySet(thisRef, value)
 }
 
+internal fun <T, V> AtomicReferenceFieldUpdater<T, V>.eagerOrLazyCas(thisRef: T, confinedTo: Thread?, expect: V, update: V): Boolean =
+        if (confinedTo == null) compareAndSet(thisRef, expect, update)
+        else lazySet(thisRef, update).let { true }
+
 /**
  * Despite this class is public, it is a private API. Don't ever touch this. Never.
  * Seriously. You're were warned.

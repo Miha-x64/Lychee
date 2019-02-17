@@ -32,13 +32,13 @@ internal class `MultiMapped-`<in A, out T>(
                    else (value as Array<Any?>).last() as T
         }
 
-    private fun patch(index: Int, new: A) {
+    @JvmSynthetic internal fun patch(index: Int, new: A) {
         var oldVals: Array<Any?>
         var newVals: Array<Any?>
 
         do {
             oldVals = ref as Array<Any?>
-            newVals = oldVals.clone()
+            newVals = oldVals.clone() // todo: don't even clone for single-thread properties
             newVals[index] = new
             newVals[newVals.size - 1] = transform(SmallerList(newVals) as List<A>)
         } while (!cas(oldVals, newVals))
