@@ -19,33 +19,6 @@ class PropertyWriter<T>(
         write(kind, output, prop.value)
     }
 
-    override fun chars(prop: MutableProperty<CharArray>) {
-        kind.writeCharArray(output, prop.value)
-    }
-    override fun ints(prop: MutableProperty<IntArray>) {
-        kind.writeIntArray(output, prop.value)
-    }
-    override fun longs(prop: MutableProperty<LongArray>) {
-        kind.writeLongArray(output, prop.value)
-    }
-    override fun floats(prop: MutableProperty<FloatArray>) {
-        kind.writeFloatArray(output, prop.value)
-    }
-    override fun doubles(prop: MutableProperty<DoubleArray>) {
-        kind.writeDoubleArray(output, prop.value)
-    }
-
-    override fun stringList(prop: MutableProperty<List<String>>) {
-        kind.writeStringList(output, prop.value)
-    }
-
-    override fun <E : Enum<E>> enum(prop: MutableProperty<E>, type: Class<E>) {
-        kind.writeString(output, prop.value.name)
-    }
-    override fun <E : Enum<E>> enumSet(prop: MutableProperty<Set<E>>, type: Class<E>) {
-        kind.writeEnumSet(output, prop.value)
-    }
-
 }
 
 internal fun <T> BetterDataOutput<T>.writeCharArray(output: T, value: CharArray) {
