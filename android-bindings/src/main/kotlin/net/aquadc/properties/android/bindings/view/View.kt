@@ -57,10 +57,6 @@ fun View.bindBackgroundTo(backgroundProperty: Property<Int>) =
 fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>) =
         bindViewTo(backgroundColorProperty, SetBackground.Color)
 
-@TargetApi(19) @Deprecated("does not look very useful and will be removed", level = DeprecationLevel.ERROR)
-fun View.bindToAttachedToWidow(attachedToWindowProperty: MutableProperty<Boolean>): Unit =
-        throw UnsupportedOperationException()
-
 private val SetVisibilitySoftly = SetVisibility(View.INVISIBLE)
 private val SetVisibilityHardly = SetVisibility(View.GONE)
 

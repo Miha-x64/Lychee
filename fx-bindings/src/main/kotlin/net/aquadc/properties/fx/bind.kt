@@ -8,14 +8,6 @@ import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import javafx.beans.property.Property as FxProperty
 
-@Deprecated("use prop.fx()", ReplaceWith("this.bindBidirectional(that.fx())"), DeprecationLevel.ERROR)
-fun <T> FxProperty<T>.bindBidirectionally(that: MutableProperty<T>)  {
-}
-
-@Deprecated("use prop.fx()", ReplaceWith("this.bind(that.fx())"), DeprecationLevel.ERROR)
-fun <T> FxProperty<in T>.bindTo(that: Property<T>) {
-}
-
 /**
  * Returns [FxProperty] view on this [MutableProperty].
  */

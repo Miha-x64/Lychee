@@ -16,15 +16,6 @@ typealias ChangeListener<T> = (old: T, new: T) -> Unit
 
 
 //
-// T(s) -> Boolean
-//
-
-@Deprecated("Was generalized.", ReplaceWith("mapWith(that, Objectz.Equal)",
-        "net.aquadc.properties.mapWith", "net.aquadc.properties.function.Objectz.Equal"), DeprecationLevel.ERROR)
-inline fun <T> Property<T>.equalTo(that: Property<T>): Property<Boolean> =
-        throw UnsupportedOperationException()
-
-//
 // Boolean actions
 //
 
@@ -60,35 +51,6 @@ inline fun <T : Any> MutableProperty<T?>.clearEachAnd(crossinline action: (T) ->
         action(it)
     }
 }
-
-
-//
-// CharSequence
-//
-
-@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Length)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
-inline val Property<CharSequence>.length: Property<Int> get() = throw UnsupportedOperationException()
-
-@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Empty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
-inline val Property<CharSequence>.isEmpty: Property<Boolean> get() = throw UnsupportedOperationException()
-
-@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.NotEmpty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
-inline val Property<CharSequence>.isNotEmpty: Property<Boolean> get() = throw UnsupportedOperationException()
-
-@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Blank)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
-inline val Property<CharSequence>.isBlank: Property<Boolean> get() = throw UnsupportedOperationException()
-
-@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.NotBlank)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
-inline val Property<CharSequence>.isNotBlank: Property<Boolean> get() = throw UnsupportedOperationException()
-
-@Deprecated("Was generalized.", ReplaceWith("map(CharSequencez.Trim)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.CharSequencez"), DeprecationLevel.ERROR)
-inline val Property<CharSequence>.trimmed: Property<CharSequence> get() = throw UnsupportedOperationException()
 
 
 //

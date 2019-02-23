@@ -96,13 +96,3 @@ inline fun <T> Collection<Property<T>>.anyValue(crossinline predicate: (T) -> Bo
             val ret: Any? = it.any(predicate)
             ret
         } as (List<T>) -> Boolean)
-
-@Deprecated("Was generalized.", ReplaceWith("map(Collectionz.Empty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.Collectionz"), DeprecationLevel.ERROR)
-inline fun Property<Collection<*>?>.isEmpty(): Property<Boolean> =
-        throw UnsupportedOperationException()
-
-@Deprecated("Was generalized.", ReplaceWith("map(Collectionz.NotEmpty)",
-        "net.aquadc.properties.map", "net.aquadc.properties.function.Collectionz"), DeprecationLevel.ERROR)
-inline fun Property<Collection<*>?>.isNotEmpty(): Property<Boolean> =
-        throw UnsupportedOperationException()

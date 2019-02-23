@@ -27,29 +27,6 @@ interface PropertyIo {
      */
     operator fun <T> DataType<T>.invoke(prop: MutableProperty<T>)
 
-    @Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-    fun chars(prop: MutableProperty<CharArray>)
-
-    @Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-    fun ints(prop: MutableProperty<IntArray>)
-
-    @Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-    fun longs(prop: MutableProperty<LongArray>)
-
-    @Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-    fun floats(prop: MutableProperty<FloatArray>)
-
-    @Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-    fun doubles(prop: MutableProperty<DoubleArray>)
-
-    @Deprecated("should create collection(string) instance", level = DeprecationLevel.ERROR)
-    fun stringList(prop: MutableProperty<List<String>>)
-
-    @Deprecated("should create custom DataType instance", level = DeprecationLevel.ERROR)
-    fun <E : Enum<E>> enum(prop: MutableProperty<E>, type: Class<E>)
-
-    @Deprecated("should create custom DataType instance", level = DeprecationLevel.ERROR)
-    fun <E : Enum<E>> enumSet(prop: MutableProperty<Set<E>>, type: Class<E>)
 }
 
 /** Reads or writes a [Boolean] value */
@@ -84,21 +61,6 @@ interface PropertyIo {
 @JvmName("bytes") inline infix fun PropertyIo.x(prop: MutableProperty<ByteArray>): Unit =
         byteArray.invoke(prop)
 
-@Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-@JvmName("chars") inline infix fun PropertyIo.x(prop: MutableProperty<CharArray>): Unit = throw UnsupportedOperationException()
-
-@Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-@JvmName("ints") inline infix fun PropertyIo.x(prop: MutableProperty<IntArray>): Unit = throw UnsupportedOperationException()
-
-@Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-@JvmName("longs") inline infix fun PropertyIo.x(prop: MutableProperty<LongArray>): Unit = throw UnsupportedOperationException()
-
-@Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-@JvmName("floats") inline infix fun PropertyIo.x(prop: MutableProperty<FloatArray>): Unit = throw UnsupportedOperationException()
-
-@Deprecated("not sure whether it is useful", level = DeprecationLevel.ERROR)
-@JvmName("doubles") inline infix fun PropertyIo.x(prop: MutableProperty<DoubleArray>): Unit = throw UnsupportedOperationException()
-
 /** Reads or writes a [String] */
 @JvmName("string") inline infix fun PropertyIo.x(prop: MutableProperty<String>): Unit =
         string.invoke(prop)
@@ -106,12 +68,3 @@ interface PropertyIo {
 private val StringList = collection(string)
 /** Reads or writes a [List] of [String]s */
 @JvmName("stringList") infix fun PropertyIo.x(prop: MutableProperty<List<String>>): Unit = StringList(prop)
-
-@Deprecated("internally this uses reflection. Should use own DataType instead", level = DeprecationLevel.ERROR)
-@JvmName("enum") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<E>): Unit = throw UnsupportedOperationException()
-
-@Deprecated("Should use own DataType instead", level = DeprecationLevel.ERROR)
-@JvmName("enumSet") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<Set<E>>): Unit = throw UnsupportedOperationException()
-
-@Deprecated("Should use own DataType instead", level = DeprecationLevel.ERROR)
-@JvmName("realEnumSet") inline infix fun <reified E : Enum<E>> PropertyIo.x(prop: MutableProperty<EnumSet<E>>): Unit = throw UnsupportedOperationException()
