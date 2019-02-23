@@ -15,14 +15,12 @@
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) Android Bindings
 
 ```
-// top-level build.gradle
+// 'allprojects' section of top-level build.gradle || root of module-level build.gradle
 repositories {
     ...
     maven { url 'https://dl.bintray.com/miha-x64/maven' }
 }
-```
 
-```
 // module-level build.gradle
 dependencies {
     implementation 'net.aquadc.properties:properties:0.0.8' // core, both for JVM and Android
