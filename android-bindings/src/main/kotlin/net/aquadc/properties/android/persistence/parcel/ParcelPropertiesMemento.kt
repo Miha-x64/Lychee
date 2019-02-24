@@ -52,13 +52,28 @@ class ParcelPropertiesMemento : PropertiesMemento, Parcelable {
         return bytes
     }
 
-    companion object CREATOR : Parcelable.Creator<ParcelPropertiesMemento> {
+    /* non-KDoc
+     * Note: 'Add Parcelable implementation' intention by Android plug-in
+     * creates a `companion object CREATOR : Parcelable.Creator`
+     * which has 'com.package.Outer$CREATOR` declaration type.
+     * For compatibility with the following popular ProGuard rule:
+       -keepclassmembers class * implements android.os.Parcelable {
+           public static final android.os.Parcelable$Creator CREATOR;
+       }
+     * `CREATOR` field must be declared as `android.os.Parcelable$Creator` instead of a particular subclass.
+     * Thus, we use a separate field to specify this type explicitly.
+     */
+    private companion object {
 
-        override fun createFromParcel(source: Parcel): ParcelPropertiesMemento =
-                ParcelPropertiesMemento(source.createByteArray())
+        @Suppress("unused") @JvmField val CREATOR: Parcelable.Creator<ParcelPropertiesMemento> =
+                object : Parcelable.Creator<ParcelPropertiesMemento> {
 
-        override fun newArray(size: Int): Array<ParcelPropertiesMemento?> =
-                arrayOfNulls(size)
+                    override fun createFromParcel(source: Parcel): ParcelPropertiesMemento =
+                            ParcelPropertiesMemento(source.createByteArray())
+
+                    override fun newArray(size: Int): Array<ParcelPropertiesMemento?> =
+                            arrayOfNulls(size)
+                }
 
     }
 
