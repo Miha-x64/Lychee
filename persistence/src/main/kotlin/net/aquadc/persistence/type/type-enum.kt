@@ -1,6 +1,7 @@
 @file:JvmName("EnumTypes")
 package net.aquadc.persistence.type
 
+import android.support.annotation.RestrictTo
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -15,6 +16,7 @@ import kotlin.collections.HashSet
  * @param encode transform enum value [E] to underlying type [U]
  * @param fallback return a default value for unsupported [U] (or throw an exception, like default impl does)
  */
+@Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Any, U : Any> enum(
         values: Array<E>,
         encodeAs: DataType.Simple<U>,
@@ -27,6 +29,8 @@ inline fun <reified E : Any, U : Any> enum(
  * Special overload for the case when [E] is a real Java [Enum] type.
  * Finds an array of values automatically.
  */
+@Deprecated("Use another overload.", ReplaceWith("enum<E, U>(enumValues<E>(), encodeAs, encode, fallback)"))
+@Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Enum<E>, U : Any> enum(
         encodeAs: DataType.Simple<U>,
         noinline encode: (E) -> U,
@@ -140,7 +144,7 @@ inline fun <reified E> enumSet(
 // Util
 
 
-@PublishedApi internal class NoConstant(private val t: Class<*>) : (Any?) -> Any? {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) class NoConstant(private val t: Class<*>) : (Any?) -> Any? {
     override fun invoke(p1: Any?): Any? {
         throw NoSuchElementException("No enum constant with name $p1 in type $t")
     }
