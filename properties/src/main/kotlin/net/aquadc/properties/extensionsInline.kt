@@ -34,7 +34,7 @@ inline fun MutableProperty<Boolean>.clear() { value = false }
  * Every time property becomes set (`true`),
  * it will be unset (`false`) and [action] will be performed.
  */
-inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit): Unit = onEach {
+inline fun <P : MutableProperty<Boolean>> P.clearEachAnd(crossinline action: () -> Unit): P = onEach {
     if (it) {
         value = false
         action()
@@ -45,7 +45,7 @@ inline fun MutableProperty<Boolean>.clearEachAnd(crossinline action: () -> Unit)
  * Every time property becomes non-null,
  * it will be nulled and [action] will be performed.
  */
-inline fun <T : Any> MutableProperty<T?>.clearEachAnd(crossinline action: (T) -> Unit): Unit = onEach {
+inline fun <P : MutableProperty<T?>, T : Any> P.clearEachAnd(crossinline action: (T) -> Unit): P = onEach { // todo same
     if (it != null) {
         value = null
         action(it)
