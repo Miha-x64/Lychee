@@ -100,7 +100,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<S
 /**
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
-inline class FieldSet<SCH : Schema<SCH>, FLD : FieldDef<SCH, *>>
+inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *>>
 /*internal*/ @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) @Deprecated("Don't. Touch. This. Directly.") constructor(
         @PublishedApi internal val bitmask: Long
 )

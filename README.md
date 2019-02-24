@@ -177,7 +177,7 @@ class MainVm(
         // reset flag and perform action — patch 'user' with values from memory
         it.clearEachAnd {
             user.transaction { t ->
-                t.setFrom<User>(editableUser, User.Email + User.Name + User.Surname)
+                t.setFrom(editableUser, User.Email + User.Name + User.Surname)
             }
         }
     }
