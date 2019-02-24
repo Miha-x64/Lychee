@@ -16,23 +16,26 @@ import net.aquadc.properties.android.simple.SimpleTextWatcher
 /**
  * Binds text to [textProperty] via [TextView.setText].
  */
-fun TextView.bindTextTo(textProperty: Property<CharSequence>) =
-        bindViewTo(textProperty, SetText)
+@Suppress("UNCHECKED_CAST")
+fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
+        bindViewTo(textProperty, SetText as (TextView, CharSequence) -> Unit)
 
 /**
  * Binds text to [textResProperty] via [TextView.setText].
  */
-@JvmName("bindTextResTo")
-fun TextView.bindTextTo(textResProperty: Property<Int>) =
-        bindViewTo(textResProperty, SetText)
+@JvmName("bindTextResTo") @Suppress("UNCHECKED_CAST")
+fun TextView.bindTextTo(textResProperty: Property<Int>): Unit =
+        bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
 
-private object SetText : (TextView, Any) -> Unit {
-    override fun invoke(p1: TextView, p2: Any) {
+private object SetText : (Any?, Any?) -> Any? {
+    override fun invoke(p1: Any?, p2: Any?): Any? {
+        p1 as TextView
         when (p2) {
             is CharSequence -> if (p1.text?.toString() != p2) p1.text = p2
             is Int -> p1.setText(p2)
             else -> throw AssertionError()
         }
+        return Unit
     }
 }
 
@@ -108,14 +111,14 @@ fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
 /**
  * Binds hint to [hintProperty] via [TextView.setHint].
  */
-fun TextView.bindHintTo(hintProperty: Property<CharSequence>) =
+fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
         bindViewTo(hintProperty, SetHint)
 
 /**
  * Binds hint to [hintResProperty] via [TextView.setHint].
  */
 @JvmName("bindHintResTo")
-fun TextView.bindHintTo(hintResProperty: Property<Int>) =
+fun TextView.bindHintTo(hintResProperty: Property<Int>): Unit =
         bindViewTo(hintResProperty, SetHint)
 
 private object SetHint : (TextView, Any) -> Unit {
@@ -129,14 +132,14 @@ private object SetHint : (TextView, Any) -> Unit {
 /**
  * Binds error message to [errorProperty] via [TextView.setError].
  */
-fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>) =
+fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>): Unit =
         bindViewTo(errorProperty, SetError)
 
 /**
  * Binds error message to [errorResProperty] via [TextView.setError].
  */
 @JvmName("bindErrorMessageResTo")
-fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>) =
+fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
         bindViewTo(errorResProperty, SetError)
 
 private object SetError : (TextView, Any?) -> Unit {
@@ -151,7 +154,7 @@ private object SetError : (TextView, Any?) -> Unit {
  * Binds error message and icon to [errorProperty]
  * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
  */
-fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>) =
+fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>): Unit =
         bindViewTo(errorProperty, BindErrorMessageAndIconTo)
 
 /**
@@ -159,7 +162,7 @@ fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence
  * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
  */
 @JvmName("bindErrorMessageResAndIconTo")
-fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>) =
+fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>): Unit =
         bindViewTo(errorResProperty, BindErrorMessageAndIconTo)
 
 private object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
@@ -184,7 +187,7 @@ internal fun Resources.getDrawableCompat(@DrawableRes id: Int): Drawable? =
         when {
             id == 0 -> null
             Build.VERSION.SDK_INT >= 21 -> getDrawable(id, null)
-            else -> getDrawable(id)
+            else -> getDrawable(id) // TODO: shouldn't I use ContextCompat, if available?
         }
 
 /**
