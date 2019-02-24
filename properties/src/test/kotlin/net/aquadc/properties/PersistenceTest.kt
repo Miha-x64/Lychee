@@ -109,10 +109,10 @@ class PersistenceTest : PersistableProperties {
         assertArrayEquals(memento.copyValue(), (restored as ByteArrayPropertiesMemento).copyValue())
     }
 
-    override fun saveOrRestore(d: PropertyIo) {
-        d x bo; d x by; d x it; d x lo; d x fl; d x dl
-        d x bya
-        d x str; d x stl
+    override fun saveOrRestore(io: PropertyIo) {
+        io x bo; io x by; io x it; io x lo; io x fl; io x dl
+        io x bya
+        io x str; io x stl
     }
 
 }

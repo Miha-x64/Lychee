@@ -34,10 +34,10 @@ class MainVm(
         }
     }
 
-    override fun saveOrRestore(d: PropertyIo) {
-        d x emailProp
-        d x nameProp
-        d x surnameProp
+    override fun saveOrRestore(io: PropertyIo) {
+        io x emailProp
+        io x nameProp
+        io x surnameProp
     }
 
     // a feedback for user actions

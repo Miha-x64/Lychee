@@ -13,8 +13,8 @@ interface PersistableProperties {
     /**
      * Gives properties to input or output.
      * Should consist of [x] method calls.
-     * State will be either read or written depending on type of [d].
+     * State will be either read or written depending on type of [io].
      */
-    fun saveOrRestore(d: PropertyIo)
+    fun saveOrRestore(io: PropertyIo)
 
 }
