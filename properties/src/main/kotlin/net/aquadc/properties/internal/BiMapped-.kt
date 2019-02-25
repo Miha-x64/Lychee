@@ -51,8 +51,14 @@ internal class `BiMapped-`<in A, in B, out T>(
             val bVal = b.value
             val mapped = transform(aVal, bVal)
             refUpdater().eagerOrLazySet(this, thread, arrayOf(aVal, bVal, mapped))
-            a.addUnconfinedChangeListener(aListener)
-            b.addUnconfinedChangeListener(bListener)
+
+            val thisIsConc = isConcurrent // see explanations in MultiMapped-
+
+            if (thisIsConc) a.addUnconfinedChangeListener(aListener)
+            else a.addChangeListener(aListener)
+
+            if (thisIsConc) b.addUnconfinedChangeListener(bListener)
+            else b.addChangeListener(bListener)
         } else {
             a.removeChangeListener(aListener)
             b.removeChangeListener(bListener)

@@ -9,9 +9,9 @@ internal class `MultiMapped-`<in A, out T>(
         properties: Collection<Property<A>>,
         private val transform: (List<A>) -> T
 ) : `Notifier-1AtomicRef`<T, Any?>(
-        properties.any { it.isConcurrent && it.mayChange }, unset()
-        // if at least one property is concurrent, we must be ready that
-        // it will notify us from a random thread
+        properties.all(Property<A>::isConcurrent), unset()
+        // if at least one property is single-threaded, we can't give any concurrent guarantees,
+        // e. g. because adding first subscriber from wrong thread will lead to subscription on original and to crash
 ) {
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
@@ -62,8 +62,13 @@ internal class `MultiMapped-`<in A, out T>(
             values[properties.size] = transform(SmallerList(values) as List<A>)
             refUpdater().eagerOrLazySet(this, thread, values)
             // it's important to set the value *before* subscription
+
+            val thisIsConc = isConcurrent
             for (i in properties.indices) {
-                properties[i].addUnconfinedChangeListener(listeners[i])
+                val prop = properties[i]
+                val listener = listeners[i]
+                if (thisIsConc) prop.addUnconfinedChangeListener(listener) // we expect updates from any thread
+                else prop.addChangeListener(listener) // either listener or property here well be confined to a single thread
             }
         } else {
             for (i in properties.indices) {
