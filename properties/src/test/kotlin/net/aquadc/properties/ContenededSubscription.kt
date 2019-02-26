@@ -89,7 +89,7 @@ class ContenededSubscription {
             observedState(propertyOf(0, conc)) { p, m -> p.map(m) }
 
     private fun biObservedState(conc: Boolean) =
-            observedState(propertyOf(0, conc)) { p, m -> p.mapWith(propertyOf(-1)) { v, _ -> m(v) } }
+            observedState(propertyOf(0, conc)) { p, m -> p.mapWith(propertyOf(-1, conc)) { v, _ -> m(v) } }
 
     private fun listObservedState(conc: Boolean) =
             observedState(propertyOf(0, conc)) { p, m -> listOf(p).mapValueList { m(it[0]) } }

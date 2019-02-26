@@ -21,8 +21,8 @@ class CommonTest {
     private val controlledCProps = listOf(
             cmp,
             cmp.map { "text: $it" },
-            cmp.mapWith(propertyOf("")) { a, b -> a + b },
-            listOf(cmp, propertyOf(""), propertyOf(""))
+            cmp.mapWith(concurrentPropertyOf("")) { a, b -> a + b },
+            listOf(cmp, concurrentPropertyOf(""), concurrentPropertyOf(""))
                     .mapValueList { vals -> vals.joinToString() }
     )
 
