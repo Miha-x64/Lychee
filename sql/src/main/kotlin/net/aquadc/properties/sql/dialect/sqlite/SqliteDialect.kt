@@ -154,12 +154,12 @@ object SqliteDialect : Dialect {
                     DataType.Simple.Kind.Str -> "TEXT"
                     DataType.Simple.Kind.Blob -> "BLOB"
                 })
-                if (raw is DataType.Nullable<*>) append(" NOT NULL")
+                if (raw !is DataType.Nullable<*>) append(" NOT NULL")
             }
 
             override fun <E> StringBuilder.collection(arg: Nothing?, raw: DataType<T>, type: DataType.Collect<T, E>) {
                 append("BLOB")
-                if (raw is DataType.Nullable<*>) append(" NOT NULL")
+                if (raw !is DataType.Nullable<*>) append(" NOT NULL")
             }
         }.match(dataType, this, null)
     }
