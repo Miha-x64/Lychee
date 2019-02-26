@@ -60,6 +60,8 @@ abstract class Schema<SELF : Schema<SELF>> {
 
     /**
      * Creates, remembers and returns a new mutable field definition without default value.
+     * Don't call this conditionally,
+     * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     @Suppress("UNCHECKED_CAST")
     protected infix fun <T> String.mut(type: DataType<T>): FieldDef.Mutable<SELF, T> =
@@ -67,6 +69,8 @@ abstract class Schema<SELF : Schema<SELF>> {
 
     /**
      * Creates, remembers and returns a new mutable field definition with a default value.
+     * Don't call this conditionally,
+     * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
@@ -78,6 +82,8 @@ abstract class Schema<SELF : Schema<SELF>> {
 
     /**
      * Creates, remembers and returns a new immutable field definition.
+     * Don't call this conditionally,
+     * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
@@ -165,7 +171,10 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     override fun invoke(p1: Struct<SCH>): T =
             p1[this]
 
-    override fun toString(): String = schema.javaClass.simpleName + '.' + name
+    override fun toString(): String = schema.javaClass.simpleName + '.' + name + '@' + ordinal + " (" + when (this) {
+        is Mutable -> "mutable#$mutableOrdinal"
+        is Immutable -> "immutable#$immutableOrdinal"
+    } + ')'
 
     /**
      * Represents a mutable field of a [Struct]: its value can be changed.

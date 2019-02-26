@@ -183,10 +183,10 @@ class MainVm(
     }
 
     // preserve/restore state of this ViewModel (for Android)
-    override fun saveOrRestore(d: PropertyIo) {
-        d x emailProp
-        d x nameProp
-        d x surnameProp
+    override fun saveOrRestore(io: PropertyIo) {
+        io x emailProp
+        io x nameProp
+        io x surnameProp
     }
 
     // a feedback for user actions
@@ -258,7 +258,7 @@ storedPlayer.transaction { p ->
 
 
 ## ProGuard rules for Android
-(assume you depend on `:properties` and `:android-bindings`)
+(for `:persistence`, `:properties` and `:android-bindings`)
 
 ```
 # libs with compileOnly scope
@@ -267,9 +267,13 @@ storedPlayer.transaction { p ->
 -dontwarn android.support.design.widget.**
 -dontwarn okio.**
 
+# required by EnumSet
+-keepclassmembers enum * {
+  public static **[] values();
+}
+
 # bindings to JavaFX
 -dontwarn net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
-
 -assumenosideeffects class net.aquadc.properties.executor.PlatformExecutors {
     private void findFxFactory(java.util.ArrayList); # bindings to JavaFX
     private void findFjFactory(java.util.ArrayList); # If you're not going to addChangeListener() on ForkJoin threads
@@ -280,7 +284,7 @@ storedPlayer.transaction { p ->
     private void sanityCheck(java.lang.Object);
 }
 
-# keep volatile field names for AtomicFieldUpdater
+# https://sourceforge.net/p/proguard/bugs/660/
 -keepclassmembernames class net.aquadc.properties.internal.** {
   volatile <fields>;
 }

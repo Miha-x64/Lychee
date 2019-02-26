@@ -40,6 +40,8 @@ class SqliteActivity : Activity() {
                     .beginTransaction()
                     .add(android.R.id.content, ListFragment(), null)
                     .commit()
+
+            // our ViewModel has no state except persistent and transient
         }
 
         vm.lastInserted.addChangeListener(lastInsertedChanged)
@@ -53,6 +55,9 @@ class SqliteActivity : Activity() {
     private val selectedChanged: ChangeListener<Human?> = { _, _ ->
         EditDialogFragment().show(fragmentManager, null)
     }
+
+    override fun onRetainNonConfigurationInstance(): Any =
+            vm
 
     override fun onDestroy() {
         vm.lastInserted.removeChangeListener(lastInsertedChanged)

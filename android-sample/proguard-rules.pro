@@ -25,9 +25,9 @@
   public static final android.os.Parcelable$Creator CREATOR;
 }
 
+# required by EnumSet
 -keepclassmembers enum * {
   public static **[] values();
-#  public static ** valueOf(java.lang.String);
 }
 
 # libs with compileOnly scope
@@ -49,7 +49,7 @@
     private void sanityCheck(java.lang.Object);
 }
 
-# keep volatile field names for AtomicFieldUpdater
+# https://sourceforge.net/p/proguard/bugs/660/
 -keepclassmembernames class net.aquadc.properties.internal.** {
   volatile <fields>;
 }

@@ -59,6 +59,10 @@ class BasicPersistence {
         it[BLOB] = ByteString.decodeHex("ADD1C7ED")
     }
 
+    @Test(expected = NoSuchElementException::class) fun noDefault() {
+        Sch.build { }
+    }
+
     @Test fun streams() {
         val serialized = ByteArrayOutputStream().also { DataStreams.write(DataOutputStream(it), instance) }.toByteArray()
         val deserialized = DataStreams.read(DataInputStream(ByteArrayInputStream(serialized)), Sch)

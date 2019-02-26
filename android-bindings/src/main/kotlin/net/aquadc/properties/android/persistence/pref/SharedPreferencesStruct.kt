@@ -62,13 +62,14 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
 
 
     override fun <T> get(field: FieldDef<SCH, T>): T {
-        val value = values[field.ordinal.toInt()]
+        val ordinal = field.ordinal.toInt()
+        val value = values[ordinal]
         return when (field) {
             is FieldDef.Mutable -> (value as Property<T>).value
             is FieldDef.Immutable -> {
                 if (value === Unset) {
                     val actual = field.get(prefs)
-                    values[field.ordinal.toInt()] = actual
+                    values[ordinal] = actual
                     actual
                 } else {
                     value

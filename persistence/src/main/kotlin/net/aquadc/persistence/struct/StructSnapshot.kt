@@ -3,7 +3,7 @@ package net.aquadc.persistence.struct
 import android.support.annotation.RestrictTo
 
 /**
- * Represents a fully-immutable snapshot of a struct.
+ * Represents a fully immutable snapshot of a struct.
  */
 class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
