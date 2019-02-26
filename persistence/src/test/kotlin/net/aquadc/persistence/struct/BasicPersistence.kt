@@ -24,7 +24,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 
-class Serialized {
+class BasicPersistence {
 
     enum class SomeEnum {
         A, B, C, D;
@@ -73,6 +73,23 @@ class Serialized {
         assertNotSame(instance, deserialized)
         assertEquals(instance.hashCode(), deserialized.hashCode())
         assertEquals(instance.toString(), deserialized.toString()) // hmm... this relies on objects order inside a set
+    }
+
+    @Test fun copy() {
+        assertEquals(Sch.build {
+            it[INT] = 42
+            it[DOUBLE] = 100500.0
+            it[ENUM] = SomeEnum.C
+            it[ENUM_SET] = setOf(SomeEnum.C, SomeEnum.D)
+            it[ENUM_SET_BITMASK] = setOf(SomeEnum.A, SomeEnum.D)
+            it[ENUM_SET_COLLECTION] = listOf(null, emptySet(), setOf(SomeEnum.A, SomeEnum.B), null, setOf())
+            it[STRING] = "forty-two"
+            it[BYTES] = setOf(1, 2, 4)
+            it[BLOB] = ByteString.EMPTY
+        }, instance.copy {
+            it[DOUBLE] = 100500.0
+            it[BLOB] = ByteString.EMPTY
+        })
     }
 
 }
