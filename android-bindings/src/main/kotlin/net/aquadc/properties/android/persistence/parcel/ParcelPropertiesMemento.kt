@@ -65,14 +65,14 @@ class ParcelPropertiesMemento : PropertiesMemento, Parcelable {
      */
     private companion object {
 
-        @Suppress("unused") @JvmField val CREATOR: Parcelable.Creator<ParcelPropertiesMemento> =
-                object : Parcelable.Creator<ParcelPropertiesMemento> {
+        @Suppress("unused") @JvmField val CREATOR: Parcelable.Creator<Any?> =
+                object : Parcelable.Creator<Any?> {
 
-                    override fun createFromParcel(source: Parcel): ParcelPropertiesMemento =
+                    override fun createFromParcel(source: Parcel): Any? =
                             ParcelPropertiesMemento(source.createByteArray())
 
-                    override fun newArray(size: Int): Array<ParcelPropertiesMemento?> =
-                            arrayOfNulls(size)
+                    override fun newArray(size: Int): Array<out Any?> =
+                            arrayOfNulls<ParcelPropertiesMemento>(size)
                 }
 
     }
