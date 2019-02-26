@@ -33,16 +33,18 @@ internal class `BiMapped-`<in A, in B, out T>(
     }
 
     @JvmSynthetic internal fun update(idx: Int, value: Any?) {
+        var prevValue: T
         var prev: Array<Any?>
         var next: Array<Any?>
         do {
             prev = ref as Array<Any?>
-            next = prev.clone() // todo: don't even clone for single-thread properties
+            prevValue = prev[2] as T
+            next = if (isConcurrent) prev.clone() else prev
             next[idx] = value
             next[2] = transform(next[0] as A, next[1] as B)
         } while (!refUpdater().eagerOrLazyCas(this, thread, prev, next))
 
-        valueChanged(prev[2] as T, next[2] as T, null)
+        valueChanged(prevValue, next[2] as T, null)
     }
 
     override fun observedStateChanged(observed: Boolean) {

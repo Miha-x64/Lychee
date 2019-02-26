@@ -33,17 +33,18 @@ internal class `MultiMapped-`<in A, out T>(
         }
 
     @JvmSynthetic internal fun patch(index: Int, new: A) {
+        var prevValue: T
         var oldVals: Array<Any?>
         var newVals: Array<Any?>
-
         do {
             oldVals = ref as Array<Any?>
-            newVals = oldVals.clone() // todo: don't even clone for single-thread properties
+            prevValue = oldVals.last() as T
+            newVals = if (isConcurrent) oldVals.clone() else oldVals
             newVals[index] = new
             newVals[newVals.size - 1] = transform(SmallerList(newVals) as List<A>)
         } while (!cas(oldVals, newVals))
 
-        valueChanged(oldVals.last() as T, newVals.last() as T, null)
+        valueChanged(prevValue, newVals.last() as T, null)
     }
 
     private fun cas(old: Any?, new: Any?): Boolean = if (thread === null) {
