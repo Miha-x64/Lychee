@@ -36,6 +36,8 @@ interface Session {
 interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<SCH, Transaction, ID> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
     fun select(condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty | group by | having
+    // TODO: selectWhole(...): Property<List<Property<StructSnapshot<SCH>>>>
+    // TODO: fetch(...): List<StructSnapshot<SCH>>
     // todo raw queries, joins
     fun count(condition: WhereCondition<out SCH>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
@@ -160,6 +162,9 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         val name: String,
         val idColType: DataType<ID>,
         val idColName: String
+// TODO: [unique] indices
+// TODO: a way to declare embedded structs, foreign & join columns
+// TODO: maybe a way to declare an immutable field as a primary key
 ) {
 
     /**

@@ -25,7 +25,7 @@ internal class RealTransaction(
     internal var updated: UpdatesHashMap? = null
 
     // table : IDs
-    private var deleted: HashMap<Table<*, *, *>, Any>? = null // Map<Table, ArrayList<IdBound> | Unit>
+    private var deleted: HashMap<Table<*, *, *>, Any>? = null // Map<Table, ArrayList<IdBound> | Unit>; fixme: without RWLock this will be wrong
 
     // TODO: use special collections for Longs
 

@@ -54,3 +54,5 @@ interface Property<out T> {
     fun removeChangeListener(onChange: ChangeListener<T>)
 
 }
+
+// TODO: return current value from addChangeListener[On]
