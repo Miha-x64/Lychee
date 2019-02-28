@@ -139,6 +139,7 @@ fun <E> set(elementType: DataType<E>): DataType.Collect<Set<E>, E> =
 
 /**
  * A hint which makes [collection] easier to find.
+ * Despite this declaration is deprecated, it is not going to be removed.
  */
 @Deprecated(
         "List semantics cannot be guaranteed: duplicates handling depends on the underlying storage",
