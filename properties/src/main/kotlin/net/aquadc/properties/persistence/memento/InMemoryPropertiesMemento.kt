@@ -23,18 +23,17 @@ class InMemoryPropertiesMemento : PropertiesMemento {
         })
     }
 
-    override fun restoreTo(target: PersistableProperties) {
-        target.saveOrRestore(object : PropertyIo {
+    override fun reader(): PropertyIo =
+            object : PropertyIo {
 
-            private var idx = 0
+                private var idx = 0
 
-            override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
-                @Suppress("UNCHECKED_CAST")
-                (prop as MutableProperty<Any?>).value = vals[idx++]
+                override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
+                    @Suppress("UNCHECKED_CAST")
+                    (prop as MutableProperty<Any?>).value = vals[idx++]
+                }
+
             }
-
-        })
-    }
 
     @Suppress("UNCHECKED_CAST")
     fun <K> writeTo(kind: BetterDataOutput<K>, output: K) {

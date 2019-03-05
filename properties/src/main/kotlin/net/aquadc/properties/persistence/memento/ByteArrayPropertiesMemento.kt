@@ -1,6 +1,7 @@
 package net.aquadc.properties.persistence.memento
 
 import net.aquadc.persistence.stream.DataStreams
+import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.PropertyReader
 import net.aquadc.properties.persistence.PropertyWriter
 import java.io.ByteArrayInputStream
@@ -30,9 +31,8 @@ class ByteArrayPropertiesMemento(
         os.toByteArray()
     })
 
-    override fun restoreTo(target: PersistableProperties) {
-        target.saveOrRestore(PropertyReader(DataStreams, DataInputStream(ByteArrayInputStream(bytes))))
-    }
+    override fun reader(): PropertyIo =
+            PropertyReader(DataStreams, DataInputStream(ByteArrayInputStream(bytes)))
 
     override fun writeExternal(out: ObjectOutput) {
         out.writeObject(bytes)

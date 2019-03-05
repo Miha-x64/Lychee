@@ -3,6 +3,7 @@ package net.aquadc.properties
 import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.memento.ByteArrayPropertiesMemento
 import net.aquadc.properties.persistence.memento.PersistableProperties
+import net.aquadc.properties.persistence.memento.restoreTo
 import net.aquadc.properties.persistence.x
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals

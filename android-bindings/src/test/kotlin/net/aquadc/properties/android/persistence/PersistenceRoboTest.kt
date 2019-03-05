@@ -10,6 +10,7 @@ import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
 import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.enum
 import net.aquadc.properties.persistence.memento.PersistableProperties
+import net.aquadc.properties.persistence.memento.restoreTo
 import net.aquadc.properties.persistence.x
 import net.aquadc.properties.propertyOf
 import org.junit.Assert.assertEquals
