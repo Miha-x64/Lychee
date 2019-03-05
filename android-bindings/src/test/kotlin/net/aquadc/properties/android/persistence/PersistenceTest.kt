@@ -8,7 +8,6 @@ import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.byteString
 import net.aquadc.persistence.type.collection
 import net.aquadc.persistence.type.double
-import net.aquadc.persistence.type.enum
 import net.aquadc.persistence.type.enumSet
 import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.long
@@ -18,6 +17,7 @@ import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.persistence.json.read
 import net.aquadc.properties.android.persistence.json.write
+import net.aquadc.properties.persistence.enum
 import okio.ByteString
 import org.junit.Assert
 import org.junit.Test
@@ -33,7 +33,7 @@ class PersistenceTest {
     enum class SomeEnum {
         A, B, C, D;
         companion object {
-            val Type = enum(string, SomeEnum::name)
+            val Type = enum<SomeEnum>()
             val SetType = enumSet(Type)
             val BitmaskType = enumSet(long, SomeEnum::ordinal)
         }

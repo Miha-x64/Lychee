@@ -4,13 +4,11 @@ import android.content.Context
 import android.os.Parcel
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
-import net.aquadc.persistence.type.enum
-import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.persistence.parcel.ParcelIo
 import net.aquadc.properties.android.persistence.parcel.ParcelPropertiesMemento
 import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
-import net.aquadc.properties.function.Enumz
 import net.aquadc.properties.persistence.PropertyIo
+import net.aquadc.properties.persistence.enum
 import net.aquadc.properties.persistence.memento.PersistableProperties
 import net.aquadc.properties.persistence.x
 import net.aquadc.properties.propertyOf
@@ -86,7 +84,7 @@ class PersistenceRoboTest {
             io x prop1
             io x prop2
             io x prop3
-            with (io) { enum<Thread.State, String>(string, Enumz.Name)(prop4) }
+            with (io) { enum<Thread.State>()(prop4) }
         }
     }
 

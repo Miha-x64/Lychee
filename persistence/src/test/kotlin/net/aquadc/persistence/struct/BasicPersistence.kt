@@ -29,7 +29,7 @@ class BasicPersistence {
     enum class SomeEnum {
         A, B, C, D;
         companion object {
-            val Type = enum(string, SomeEnum::name)
+            val Type = enum(enumValues(), string, SomeEnum::name)
             val SetType = enumSet(Type)
             val BitmaskType = enumSet(long, SomeEnum::ordinal)
         }
