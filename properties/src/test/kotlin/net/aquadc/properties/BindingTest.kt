@@ -23,6 +23,11 @@ class BindingTest {
         sample.value = "unbound"
         assertEquals("hey", mutable.value)
 
+        mutable.bindTo(sample)
+        sample.value = "ignored"
+        sample.value = "2"
+        assertTrue(mutable.casValue("2", "ignored"))
+
         var new: String? = null
         sample.value = "just bound"
         mutable.addChangeListenerOn(UnconfinedExecutor) { _, n -> new = n }

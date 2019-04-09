@@ -22,13 +22,11 @@ internal class `ConcMutable-`<T>(
             return if (value is Binding<*>) {
                 value as Binding<T>
                 val retValue: T
-                if (!isBeingObserved()) {
-                    // we're not observed, so stale value may be remembered — update it
-                    retValue = value.original.value
-                    value.ourValue = retValue
-                    retValue
-                } else {
+                if (isBeingObserved()) {
                     value.ourValue
+                } else {
+                    retValue = value.original.value // we're not observed, so stale value may be remembered — peek a fresh one
+                    retValue
                 }
             } else {
                 value as T
@@ -76,7 +74,9 @@ internal class `ConcMutable-`<T>(
             if (!tryLockTransition()) return false
 
             // under mutex
-            prevValue = prevValOrBind.ourValue
+            prevValue = if (isBeingObserved()) prevValOrBind.ourValue else prevValOrBind.original.value
+            // if not, just peek a fresh value, may be inexact, but it's OK, because no one have received these updates
+
             if (prevValue !== expect) {
                 // under mutex (no update from Sample allowed) we understand that sample's value !== expected
                 unlockTransition()
