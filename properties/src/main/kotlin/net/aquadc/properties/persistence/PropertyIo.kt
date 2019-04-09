@@ -13,7 +13,6 @@ import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.short
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.MutableProperty
-import java.util.EnumSet
 
 /**
  * Describes an object which can either save or restore some data.

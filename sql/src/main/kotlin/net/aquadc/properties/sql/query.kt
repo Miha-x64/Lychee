@@ -34,7 +34,7 @@ interface WhereCondition<SCH : Schema<SCH>> {
      */
     object Empty : WhereCondition<Nothing> {
         override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-        override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) = Unit
+        override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {}
     }
 
 }

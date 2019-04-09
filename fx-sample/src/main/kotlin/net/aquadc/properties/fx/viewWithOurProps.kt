@@ -8,7 +8,6 @@ import javafx.scene.layout.VBox
 import net.aquadc.properties.map
 import net.aquadc.properties.not
 import net.aquadc.propertiesSampleLogic.MainVm
-import net.aquadc.properties.set
 
 
 fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {

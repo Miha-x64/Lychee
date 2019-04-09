@@ -59,13 +59,13 @@ class DrawableBindingStub internal constructor(
     /**
      * Binds drawable at [position] to the given [property]'s [Drawable] value.
      */
-    inline fun to(property: Property<Drawable?>) = bind(property)
+    inline fun to(property: Property<Drawable?>): Unit = bind(property)
 
     /**
      * Binds drawable at [position] to the given [property]'s [DrawableRes] value.
      */
     @JvmName("toRes")
-    inline fun to(property: Property<Int>) = bind(property)
+    inline fun to(property: Property<Int>): Unit = bind(property)
 
     @PublishedApi
     internal fun bind(prop: Property<*>) {

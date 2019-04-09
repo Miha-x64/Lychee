@@ -25,7 +25,7 @@ private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(sour
 /**
  * Calls [block] inside a transaction to mutate [this].
  * Passes [SCH] as a receiver, so you can shorten `Schema.Field` as `Field`.
- * Passes [StructTransaction] as first parameter, so you can write `it[Field] = newValue`.
+ * Passes [StructTransaction] as first parameter, so you can write `it[[FieldDef]] = newValue`.
  * In future will retry conflicting transaction by calling [block] more than once.
  */
 @UseExperimental(ExperimentalContracts::class)

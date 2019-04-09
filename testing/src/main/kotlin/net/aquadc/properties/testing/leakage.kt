@@ -1,6 +1,5 @@
 package net.aquadc.properties.testing
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import java.lang.ref.WeakReference
 

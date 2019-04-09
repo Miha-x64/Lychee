@@ -290,7 +290,7 @@ fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T>): (R
         { it prop field }
 
 
-internal inline fun <T, U> forEachOfBoth(left: List<T>, right: List<U>, block: (Int, T, U) -> Unit): Unit {
+internal inline fun <T, U> forEachOfBoth(left: List<T>, right: List<U>, block: (Int, T, U) -> Unit) {
     val size = left.size
     check(right.size == size)
     for (i in 0 until size) {

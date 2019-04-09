@@ -25,10 +25,10 @@ internal class `ConcMutable-`<T>(
                 if (!isBeingObserved()) {
                     // we're not observed, so stale value may be remembered — update it
                     retValue = value.original.value
-                    (value as Binding<T>).ourValue = retValue
+                    value.ourValue = retValue
                     retValue
                 } else {
-                    value.ourValue as T
+                    value.ourValue
                 }
             } else {
                 value as T
@@ -76,7 +76,7 @@ internal class `ConcMutable-`<T>(
             if (!tryLockTransition()) return false
 
             // under mutex
-            prevValue = prevValOrBind.ourValue as T // hmm, where's my smart-cast?
+            prevValue = prevValOrBind.ourValue
             if (prevValue !== expect) {
                 // under mutex (no update from Sample allowed) we understand that sample's value !== expected
                 unlockTransition()

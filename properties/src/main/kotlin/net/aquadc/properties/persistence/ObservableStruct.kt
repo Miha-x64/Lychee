@@ -9,6 +9,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructTransaction
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.identity
@@ -82,7 +83,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>) =
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): MutableProperty<T> =
             (values[field.ordinal.toInt()] as MutableProperty<T>)
 
     /**

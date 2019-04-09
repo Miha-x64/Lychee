@@ -1,60 +1,57 @@
 package net.aquadc.properties.android.bindings.view
 
-import android.annotation.TargetApi
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.view.View
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import net.aquadc.properties.android.bindings.bindViewTo
-import net.aquadc.properties.clear
 import net.aquadc.properties.set
-import java.lang.AssertionError
 
 
 /**
  * Passes [visibleProperty] value to [View.setVisibility]:
  * `true` means [View.VISIBLE], `false` means [View.INVISIBLE].
  */
-fun View.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>) =
+fun View.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>): Unit =
         bindViewTo(visibleProperty, SetVisibilitySoftly)
 
 /**
  * Passes [visibleProperty] value to [View.setVisibility]:
  * `true` means [View.VISIBLE], `false` means [View.GONE].
  */
-fun View.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>) =
+fun View.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>): Unit =
         bindViewTo(visibleProperty, SetVisibilityHardly)
 
 /**
  * Passes [enabledProperty] value to [View.setEnabled].
  */
-fun View.bindEnabledTo(enabledProperty: Property<Boolean>) =
+fun View.bindEnabledTo(enabledProperty: Property<Boolean>): Unit =
         bindViewTo(enabledProperty) { v, ena -> v.isEnabled = ena }
 
 /**
  * Sets [clickedProperty] to `true` when [this] view gets clicked.
  */
-fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>) =
+fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>): Unit =
         setOnClickListener { clickedProperty.set() }
 
 /**
  * Binds background using [View.setBackground].
  */
-fun View.bindBackgroundTo(backgroundProperty: Property<Drawable?>) =
+fun View.bindBackgroundTo(backgroundProperty: Property<Drawable?>): Unit =
         bindViewTo(backgroundProperty, SetBackground.Drawable)
 
 /**
  * Binds background using [View.setBackgroundResource].
  */
 @JvmName("bindBackgroundResourceTo")
-fun View.bindBackgroundTo(backgroundProperty: Property<Int>) =
+fun View.bindBackgroundTo(backgroundProperty: Property<Int>): Unit =
         bindViewTo(backgroundProperty, SetBackground.Drawable)
 
 /**
  * Binds background color using [View.setBackgroundColor].
  */
-fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>) =
+fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
         bindViewTo(backgroundColorProperty, SetBackground.Color)
 
 private val SetVisibilitySoftly = SetVisibility(View.INVISIBLE)

@@ -60,6 +60,8 @@ sealed class DataType<T> {
             Str, Blob
         }
 
+        // TODO: to & from String, e. g. to encode UUID as blob, but use string pepresentation in JSON
+
     }
 
     // TODO: move Schema here

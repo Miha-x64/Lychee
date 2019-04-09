@@ -39,7 +39,7 @@ or `LiveData` in Android Arch.
 
 * Simple and easy-to-use
 * Lightweight: core + android-bindings are <1000 methods, also highly optimized for runtime
-* Extensive: not confined to Android, JavaFX or whatever
+* Extensible: not confined to Android, JavaFX or whatever
 * Contains both single-threaded and concurrent (lock-free) implementations
 * Provides MVVM / data-binding for Android and JavaFX
 * Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
@@ -51,10 +51,10 @@ or `LiveData` in Android Arch.
 ## Alternatives
 
 * [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT) — similar to this,
-  Observable-based, Android-only, depends on coroutines
+  Observable-based, Android-only, depends on kotlinx.coroutines
 
 * [BennyWang/KBinding](https://github.com/BennyWang/KBinding) (no license) —
-  Android-only, based on annotation processing, depends on RXJava 1.3,
+  Android-only, based on annotation processing, depends on RXJava 1.3
 
 * [LewisRhine/AnkoDataBindingTest](https://github.com/LewisRhine/AnkoDataBindingTest)
    (no license) 

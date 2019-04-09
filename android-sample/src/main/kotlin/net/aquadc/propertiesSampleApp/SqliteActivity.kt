@@ -1,16 +1,23 @@
 package net.aquadc.propertiesSampleApp
 
-import android.app.*
+import android.app.Activity
+import android.app.AlertDialog
+import android.app.Dialog
+import android.app.DialogFragment
+import android.app.Fragment
 import android.content.Context
 import android.content.DialogInterface
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import android.graphics.Color
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.util.TypedValue
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.widget.bindTextTo
@@ -22,7 +29,15 @@ import net.aquadc.properties.sql.createTable
 import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import net.aquadc.propertiesSampleLogic.sql.Tables
-import org.jetbrains.anko.*
+import org.jetbrains.anko.UI
+import org.jetbrains.anko.attr
+import org.jetbrains.anko.backgroundResource
+import org.jetbrains.anko.dip
+import org.jetbrains.anko.editText
+import org.jetbrains.anko.frameLayout
+import org.jetbrains.anko.matchParent
+import org.jetbrains.anko.textAppearance
+import org.jetbrains.anko.wrapContent
 
 
 class SqliteActivity : Activity() {

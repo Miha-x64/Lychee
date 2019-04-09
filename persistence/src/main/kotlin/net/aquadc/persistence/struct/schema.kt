@@ -74,8 +74,7 @@ abstract class Schema<SELF : Schema<SELF>> {
      */
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
-        val converter = dataType
-        val col = FieldDef.Mutable(this@Schema, this, converter, fields.size.toByte(), default, tmpMutableCount++)
+        val col = FieldDef.Mutable(this@Schema, this, dataType, fields.size.toByte(), default, tmpMutableCount++)
         fields.add(col)
         return col
     }
@@ -182,11 +181,11 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     class Mutable<SCH : Schema<SCH>, T> internal constructor(
             schema: Schema<SCH>,
             name: String,
-            converter: DataType<T>,
+            type: DataType<T>,
             ordinal: Byte,
             default: T,
             @JvmField val mutableOrdinal: Byte
-    ) : FieldDef<SCH, T>(schema, name, converter, ordinal, default)
+    ) : FieldDef<SCH, T>(schema, name, type, ordinal, default)
 
     /**
      * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
@@ -195,10 +194,10 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     class Immutable<SCH : Schema<SCH>, T> internal constructor(
             schema: Schema<SCH>,
             name: String,
-            converter: DataType<T>,
+            type: DataType<T>,
             ordinal: Byte,
             @JvmField val immutableOrdinal: Byte
-    ) : FieldDef<SCH, T>(schema, name, converter, ordinal, Unset as T)
+    ) : FieldDef<SCH, T>(schema, name, type, ordinal, Unset as T)
 
 }
 

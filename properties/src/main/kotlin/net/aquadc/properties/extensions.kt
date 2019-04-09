@@ -42,7 +42,7 @@ fun <T, U, R> Property<T>.mapWith(that: Property<U>, transform: (T, U) -> R): Pr
 /**
  * Calls [func] for each [Property.value] including initial.
  */
-fun <P : Property<T>, T> P.onEach(func: (T) -> Unit): P = apply {
+fun <P : Property<T>, T> P.onEach(func: (T) -> Unit): P = apply { // TODO: concurrent correctness
     if (isConcurrent) {
         val proxy = object : OnEach<T>() {
 

@@ -2,7 +2,6 @@
 @file:JvmName("CollectionPropertiesInline")
 package net.aquadc.properties
 
-import net.aquadc.properties.function.Collectionz
 import net.aquadc.properties.function.`AppliedFunc1-`
 import net.aquadc.properties.function.identity
 import net.aquadc.properties.internal.`MultiMapped-`

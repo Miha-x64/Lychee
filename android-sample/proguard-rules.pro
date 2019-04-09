@@ -5,8 +5,8 @@
 -overloadaggressively
 -allowaccessmodification
 
--repackageclasses "_"
--renamesourcefileattribute "_"
+-repackageclasses ""
+-renamesourcefileattribute ""
 
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
   public static void checkExpressionValueIsNotNull(java.lang.Object, java.lang.String);

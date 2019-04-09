@@ -171,7 +171,7 @@ class SqliteSession(
                         .fetchAll(table.idColType) // type here is obviously 'long', may seriously optimize this place
                         .toTypedArray<Any>() as Array<ID>
 
-        private fun <T> Cursor.fetchAll(converter: DataType<T>): List<T> {
+        private fun <T> Cursor.fetchAll(type: DataType<T>): List<T> {
             if (!moveToFirst()) {
                 close()
                 return emptyList()
@@ -179,7 +179,7 @@ class SqliteSession(
 
             val values = ArrayList<Any?>()
             do {
-                values.add(converter.get(this, 0))
+                values.add(type.get(this, 0))
             } while (moveToNext())
             close()
             return values as List<T>
@@ -249,10 +249,10 @@ class SqliteSession(
         }
     }
 
-    private fun <T> Cursor.fetchSingle(converter: DataType<T>): T {
+    private fun <T> Cursor.fetchSingle(type: DataType<T>): T {
         try {
             check(moveToFirst())
-            return converter.get(this, 0)
+            return type.get(this, 0)
         } finally {
             close()
         }

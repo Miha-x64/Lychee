@@ -4,9 +4,6 @@ import net.aquadc.persistence.stream.BetterDataInput
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.MutableProperty
-import java.lang.Double.longBitsToDouble
-import java.lang.Float.intBitsToFloat
-import java.util.EnumSet
 
 /**
  * Reads data from [input] into properties.

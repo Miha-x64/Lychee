@@ -45,7 +45,7 @@ inline fun <P : MutableProperty<Boolean>> P.clearEachAnd(crossinline action: () 
  * Every time property becomes non-null,
  * it will be nulled and [action] will be performed.
  */
-inline fun <P : MutableProperty<T?>, T : Any> P.clearEachAnd(crossinline action: (T) -> Unit): P = onEach { // todo same
+inline fun <P : MutableProperty<T?>, T : Any> P.clearEachAnd(crossinline action: (T) -> Unit): P = onEach {
     if (it != null) {
         value = null
         action(it)
