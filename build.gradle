@@ -3,19 +3,8 @@ buildscript {
     ext.kotlin_version = '1.3.21'
     ext.support_version = '26.0.0'
     ext.build_tools_version = '28.0.3'
+    ext.android_artifact_version = '4.4.2_r2'
     ext.target_android_version = 25
-
-    def propsFile = rootProject.file('local.properties')
-    if (propsFile.exists()) {
-        def local = new Properties()
-        local.load(propsFile.newReader())
-        ext.android_sdk_dir = local.getProperty('sdk.dir')
-    } else {
-        ext.android_sdk_dir = System.getenv('ANDROID_HOME')
-    }
-    if (!(android_sdk_dir instanceof String)) throw new AssertionError()
-
-    ext.android_jar = "$android_sdk_dir/platforms/android-$target_android_version/android.jar"
 
     repositories {
         jcenter()
@@ -41,6 +30,7 @@ allprojects {
     repositories {
         jcenter()
         google()
+        maven { url 'https://philanthropist.touk.pl/nexus/content/repositories/releases/' }
     }
 
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {

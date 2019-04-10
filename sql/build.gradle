@@ -7,7 +7,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly files(android_jar)
+    compileOnly "com.google.android:android:$android_artifact_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation project(':properties')
     implementation project(':persistence')
