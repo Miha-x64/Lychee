@@ -1,6 +1,9 @@
 @file:JvmName("BasicTypes")
 package net.aquadc.persistence.type
 
+import net.aquadc.persistence.fatAsList
+import net.aquadc.persistence.fatMap
+import net.aquadc.persistence.fatMapTo
 import java.util.EnumSet
 
 
@@ -105,8 +108,9 @@ internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: Da
     /**
      * {@implNote does nothing but sanity checks}
      */
-    override fun encode(value: C): Collection<Any?> =
-            value.map(elementType::encode)
+    override fun encode(value: C): AnyCollection =
+            if (elementType is SimpleNoOp<*>) value // zero-copy for no-op
+            else value.map(elementType::encode)
 
 }
 
@@ -116,8 +120,9 @@ internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: Da
  */
 fun <E> collection(elementType: DataType<E>): DataType.Collect<List<E>, E> =
         object : CollectBase<List<E>, E>(elementType) {
-            override fun decode(value: Collection<Any?>): List<E> =
-                    value.map(this.elementType::decode)
+            override fun decodeCollection(value: AnyCollection): List<E> =
+                    if (elementType is SimpleNoOp<*>) value.fatAsList() // cheap wrapper, zero copy
+                    else value.fatMap(this.elementType::decode)
         }
 
 /**
@@ -128,10 +133,10 @@ fun <E> set(elementType: DataType<E>): DataType.Collect<Set<E>, E> =
 
 @PublishedApi internal fun <E> setInternal(elementType: DataType<E>, enumType: Class<E>?): CollectBase<Set<E>, E> {
     return object : CollectBase<Set<E>, E>(elementType) {
-        override fun decode(value: Collection<Any?>): Set<E> =
-                value.mapTo(
-                        if (enumType === null) HashSet()
-                        else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>),
+        override fun decodeCollection(value: AnyCollection): Set<E> =
+                if (this.elementType is SimpleNoOp<*> && value is Set<*>) value as Set<E> // zero copy
+                else value.fatMapTo(
+                        if (enumType === null) HashSet() else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>),
                         this.elementType::decode
                 )
     }

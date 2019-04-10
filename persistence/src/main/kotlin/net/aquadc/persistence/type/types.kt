@@ -1,6 +1,10 @@
 package net.aquadc.persistence.type
 
 
+typealias AnyCollection = Any // = Collection<E> | Array<E> | EArray
+                                                        // if E is Byte, Short, Int, Long, Float, or Double
+// @see fatMap, fatMapTo, fatAsList, don't forget to update then
+
 /**
  * Represents a way of storing a value.
  * 'Encoded' type is Any to avoid creating many different types inside a sealed class —
@@ -81,22 +85,22 @@ sealed class DataType<T> {
             val elementType: DataType<E>
     ) : DataType<C>() {
 
-        final override fun decode(value: Any?): C =
-                decode(value as Collection<Any?>)
-
         /**
          * Converts persistable collection value into its in-memory representation.
-         * Elements are encoded by [elementType], so typical [decode] may look like
-         * `SomeCollection(value.map(elementType::decode))`
+         * Elements are encoded by [elementType], so typicaly
+         * [decodeCollection] `= SomeCollection(value.map(elementType::decode))`
          */
-        abstract fun decode(value: Collection<Any?>): C
+        final override fun decode(value: Any?): C =
+                decodeCollection(value as Collection<Any?>)
 
-        // inheritDoc
+        abstract fun decodeCollection(value: AnyCollection): C
+
+        // inheritDoc; re-abstracted to set more narrow return type
         /**
          * Elements must be encoed by [elementType], so typical [encode] may look like
          * `value.map(elementType::encode)`
          */
-        abstract override fun encode(value: C): Collection<Any?>
+        abstract override fun encode(value: C): AnyCollection
 
     }
 

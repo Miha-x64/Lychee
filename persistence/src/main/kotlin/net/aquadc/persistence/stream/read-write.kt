@@ -1,6 +1,7 @@
 package net.aquadc.persistence.stream
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -84,7 +85,8 @@ class StreamWriterVisitor<D, T>(
             check(raw is DataType.Nullable<*>)
             output.writeInt(this, -1)
         } else {
-            arg as Collection<*>
+            val arg = arg.fatAsList<Any?>() // maybe small allocation
+            // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             output.writeInt(this, arg.size)
             val elementType = type.elementType
             arg.forEach { /*recur*/ elementType.writeEncoded(output, this, it) }
@@ -152,10 +154,9 @@ class StreamReaderVisitor<D, T>(
         val count = input.readInt(this)
         return when (count) {
             -1 -> null
-            0 -> emptyList<Any?>()
-            else -> {
-                val elementType = type.elementType
-                List<Any?>(count) { /*recur*/ elementType.readEncoded(input, this) }
+            0 -> emptyList()
+            else -> type.elementType.let { elementType ->
+                List(count) { /*recur*/ elementType.readEncoded(input, this) } // TODO: when [type] is primitive, use specialized collections
             }
         }
     }

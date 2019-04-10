@@ -1,6 +1,7 @@
 package net.aquadc.persistence
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.type.AnyCollection
 import java.util.Arrays
 
 
@@ -79,4 +80,45 @@ object New {
             if (kitKat) android.util.ArrayMap<K, V>(copyFrom.size).also { it.putAll(copyFrom) }
             else HashMap(copyFrom)
 
+}
+
+internal inline fun <T, R> AnyCollection.fatMap(transform: (T) -> R): List<R> = when (this) {
+    is List<*> -> Array<Any?>(size) { transform(this[it] as T) }
+    is Collection<*> -> arrayOfNulls<Any>(size).also { dest ->
+        forEachIndexed<Any?> { i, el -> dest[i] = transform(el as T) }
+    }
+    is Array<*> -> Array<Any?>(size) { transform(this[it] as T) }
+    is ByteArray -> Array<Any?>(size) { transform(this[it] as T) }
+    is ShortArray -> Array<Any?>(size) { transform(this[it] as T) }
+    is IntArray -> Array<Any?>(size) { transform(this[it] as T) }
+    is LongArray -> Array<Any?>(size) { transform(this[it] as T) }
+    is FloatArray -> Array<Any?>(size) { transform(this[it] as T) }
+    is DoubleArray -> Array<Any?>(size) { transform(this[it] as T) }
+    else -> throw AssertionError()
+}.asList() as List<R>
+
+internal inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest: C, transform: (T) -> R): C = when (this) {
+    is Collection<*> -> (this as Collection<T>).mapTo(dest, transform)
+    is Array<*> -> (this as Array<T>).mapTo(dest, transform)
+    is ByteArray -> this.mapTo(dest) { transform(it as T) }
+    is ShortArray -> this.mapTo(dest) { transform(it as T) }
+    is IntArray -> this.mapTo(dest) { transform(it as T) }
+    is LongArray -> this.mapTo(dest) { transform(it as T) }
+    is FloatArray -> this.mapTo(dest) { transform(it as T) }
+    is DoubleArray -> this.mapTo(dest) { transform(it as T) }
+    else -> throw AssertionError()
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <E> AnyCollection.fatAsList(): List<E> = when (this) {
+    is List<*> -> this as List<E>
+    is Collection<*> -> (this as Collection<E>).toList()
+    is Array<*> -> (this as Array<E>).asList()
+    is ByteArray -> this.asList() as List<E>
+    is ShortArray -> this.asList() as List<E>
+    is IntArray -> this.asList() as List<E>
+    is LongArray -> this.asList() as List<E>
+    is FloatArray -> this.asList() as List<E>
+    is DoubleArray -> this.asList() as List<E>
+    else -> throw AssertionError()
 }

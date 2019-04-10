@@ -5,6 +5,7 @@ import android.util.Base64
 import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
+import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
@@ -49,6 +50,7 @@ fun <SCH : Schema<SCH>> JsonReader.readListOf(schema: SCH): List<StructSnapshot<
 // duplicate will go away when Schema will become a DataType
 @JvmSynthetic internal fun JsonReader.readEncodedList(type: DataType<*>): List<Any?> {
     beginArray()
+    // TODO: when [type] is primitive, use specialized collections
     val list = if (!hasNext()) emptyList() else {
         val first = readEncodedValue(type)
 
@@ -182,7 +184,8 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, Any?, T, Unit> 
         if (arg === null) nullValue() // Nullable.encode is null->null, skip it
         else type.elementType.let { elType ->
             beginArray()
-            (arg as Collection<Any?>).forEach { writeEncoded(elType, it) }
+            arg.fatAsList<Any?>().forEach { writeEncoded(elType, it) }
+            // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             endArray()
         }
     }
