@@ -31,7 +31,6 @@ class SqliteSession(
     @Suppress("UNCHECKED_CAST")
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(table: Table<SCH, ID, REC>): Dao<SCH, ID, REC> =
             lowLevel.daos.getOrPut(table) {
-                check(table.idColType.let { it is DataType.Simple && it.kind == DataType.Simple.Kind.I64 })
                 RealDao(this, lowLevel, table, SqliteDialect)
             } as Dao<SCH, ID, REC>
 
@@ -169,7 +168,7 @@ class SqliteSession(
                 table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
-                        .fetchAll(table.idColType) // type here is obviously 'long', may seriously optimize this place
+                        .fetchAll(table.idColType)
                         .toTypedArray<Any>() as Array<ID>
 
         private fun <T> Cursor.fetchAll(type: DataType<T>): List<T> {
@@ -310,6 +309,6 @@ class SqliteSession(
 /**
  * Calls [SQLiteDatabase.execSQL] for the given [table] in [this] database.
  */
-fun SQLiteDatabase.createTable(table: Table<*, Long, *>) {
+fun SQLiteDatabase.createTable(table: Table<*, *, *>) {
     execSQL(SqliteDialect.createTable(table))
 }
