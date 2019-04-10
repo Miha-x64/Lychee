@@ -1,5 +1,6 @@
 package net.aquadc.persistence.struct
 
+import net.aquadc.persistence.New
 import net.aquadc.persistence.type.DataType
 import java.util.Collections.unmodifiableList
 import java.util.Collections.unmodifiableMap
@@ -121,7 +122,7 @@ abstract class Schema<SELF : Schema<SELF>> {
 
             1 ->
                 unmodifiableMap<String, FieldDef<SELF, *>>(
-                        fields.associateByTo(HashMap(), FieldDef<SELF, *>::name)
+                        fields.associateByTo(New.map(fields.size), FieldDef<SELF, *>::name)
                 )
 
             2 ->

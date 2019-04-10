@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteProgram
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
+import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -38,10 +39,10 @@ class SqliteSession(
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
-//    private val selectStatements = ThreadLocal<HashMap<String, SQLiteStatement>>()
-    private val replaceStatements = HashMap<Table<*, *, *>, SQLiteStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, SQLiteStatement>()
-    private val deleteStatements = HashMap<Table<*, *, *>, SQLiteStatement>()
+//    private val selectStatements = ThreadLocal<MutableMap<String, SQLiteStatement>>()
+    private val replaceStatements = New.map<Table<*, *, *>, SQLiteStatement>()
+    private val updateStatements = New.map<Pair<Table<*, *, *>, FieldDef<*, *>>, SQLiteStatement>()
+    private val deleteStatements = New.map<Table<*, *, *>, SQLiteStatement>()
 
     private val lowLevel = object : LowLevelSession {
 

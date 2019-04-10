@@ -1,22 +1,29 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.serialized
 
 
-internal typealias UpdatesHashMap = HashMap<
+internal typealias UpdatesMap = MutableMap<
         Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>,
-        HashMap<IdBound, Any?>
+        MutableMap<IdBound, Any?>
         >
 
-internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesHashMap.getFor(table: Table<SCH, ID, *>, col: FieldDef.Mutable<SCH, T>): HashMap<ID, T>? =
-        get(table to col) as HashMap<ID, T>?
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun UpdatesMap() = New.map<
+        Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>,
+        MutableMap<IdBound, Any?>
+        >()
 
-internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesHashMap.put(table: Table<SCH, ID, *>, field: FieldDef<SCH, T>, value: T, id: ID) {
-    (this as HashMap<Pair<Table<SCH, *, *>, FieldDef<SCH, T>>, HashMap<ID, Any?>>).getOrPut(table to field, ::HashMap)[id] = value
+internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesMap.getFor(table: Table<SCH, ID, *>, col: FieldDef.Mutable<SCH, T>): MutableMap<ID, T>? =
+        get(table to col) as MutableMap<ID, T>?
+
+internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesMap.put(table: Table<SCH, ID, *>, field: FieldDef<SCH, T>, value: T, id: ID) {
+    (this as MutableMap<Pair<Table<SCH, *, *>, FieldDef<SCH, T>>, MutableMap<ID, Any?>>).getOrPut(table to field, New::map)[id] = value
 }
 
 @Suppress("UPPER_BOUND_VIOLATED")

@@ -58,3 +58,25 @@ fun Any?.realToString(): String = when (this) {
 
     else -> toString()
 }
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+object New {
+
+    private val kitKat: Boolean = try {
+        android.os.Build.VERSION.SDK_INT >= 19
+    } catch (ignored: NoClassDefFoundError) {
+        false
+    }
+
+    fun <K, V> map(): MutableMap<K, V> =
+            map(0)
+
+    fun <K, V> map(initialCapacity: Int): MutableMap<K, V> =
+            if (kitKat) android.util.ArrayMap(initialCapacity)
+            else HashMap(initialCapacity)
+
+    fun <K, V> map(copyFrom: Map<K, V>): MutableMap<K, V> =
+            if (kitKat) android.util.ArrayMap<K, V>(copyFrom.size).also { it.putAll(copyFrom) }
+            else HashMap(copyFrom)
+
+}

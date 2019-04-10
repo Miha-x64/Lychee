@@ -131,7 +131,7 @@ fun <E> set(elementType: DataType<E>): DataType.Collect<Set<E>, E> =
         override fun decode(value: Collection<Any?>): Set<E> =
                 value.mapTo(
                         if (enumType === null) HashSet()
-                        else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>), // todo ArraySet
+                        else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>),
                         this.elementType::decode
                 )
     }

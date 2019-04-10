@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -19,13 +20,13 @@ internal class RealTransaction(
     private var isSuccessful = false
 
     // table : IDs
-    private var inserted: HashMap<Table<*, *, *>, ArrayList<IdBound>>? = null
+    private var inserted: MutableMap<Table<*, *, *>, ArrayList<IdBound>>? = null
 
     // column : ID : value
-    internal var updated: UpdatesHashMap? = null
+    internal var updated: UpdatesMap? = null
 
     // table : IDs
-    private var deleted: HashMap<Table<*, *, *>, Any>? = null // Map<Table, ArrayList<IdBound> | Unit>; fixme: without RWLock this will be wrong
+    private var deleted: MutableMap<Table<*, *, *>, Any>? = null // MutableMap<Table, ArrayList<IdBound> | Unit>; fixme: without RWLock this will be wrong
 
     // TODO: use special collections for Longs
 
@@ -37,12 +38,12 @@ internal class RealTransaction(
         val id = lowSession.replace(table, data)
 
         // remember we've added a record
-        (inserted ?: HashMap<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })
+        (inserted ?: New.map<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })
                 .getOrPut(table, ::ArrayList)
                 .add(id)
 
         // write all insertion fields as updates
-        val updated = updated ?: UpdatesHashMap().also { updated = it }
+        val updated = updated ?: UpdatesMap().also { updated = it }
 
         val fields = table.schema.fields
         for (i in fields.indices) {
@@ -63,8 +64,8 @@ internal class RealTransaction(
 
         lowSession.update(table, id, column, value)
 
-        (updated ?: HashMap<Pair<Table<*, *, *>, FieldDef.Mutable<*, *>>, HashMap<IdBound, Any?>>().also { updated = it })
-                .getOrPut(table to column, ::HashMap)
+        (updated ?: UpdatesMap().also { updated = it })
+                .getOrPut(table to column, New::map)
                 .put(id, value)
     }
 
@@ -78,7 +79,7 @@ internal class RealTransaction(
 
         val del = deletedMap()
         if (del[table] != Unit) {
-            (del as HashMap<Table<*, *, *>, ArrayList<IdBound>>).getOrPut(table, ::ArrayList).add(id)
+            (del as MutableMap<Table<*, *, *>, ArrayList<IdBound>>).getOrPut(table, ::ArrayList).add(id)
         }
     }
 
@@ -89,7 +90,7 @@ internal class RealTransaction(
     }
 
     private fun deletedMap() =
-            deleted ?: HashMap<Table<*, *, *>, Any>().also { deleted = it }
+            deleted ?: New.map<Table<*, *, *>, Any>().also { deleted = it }
 
     override fun setSuccessful() {
         checkOpenAndThread()
@@ -107,7 +108,7 @@ internal class RealTransaction(
         val del = deleted
 
         // Deletions first! Now we're not going to disturb souls of dead records & properties during this notification.
-        var unmanage: HashMap<Table<*, *, *>, List<WeakReference<out Record<*, *>>>>? = null
+        var unmanage: MutableMap<Table<*, *, *>, List<WeakReference<out Record<*, *>>>>? = null
         if (del != null) {
             for ((table, ids) in del) { // forEach here will be unable to smart-case `unmanage` var
                 val man = lowSession.daos[table.erased] as RealDao<*, IdBound, *>?
@@ -119,7 +120,7 @@ internal class RealTransaction(
                         ids.mapNotNull(man::forget)
                     }
                     if (removed.isNotEmpty()) {
-                        if (unmanage === null) unmanage = HashMap()
+                        if (unmanage === null) unmanage = New.map()
                         unmanage[table] = removed
                     }
                 }

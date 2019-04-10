@@ -2,7 +2,8 @@
 package net.aquadc.persistence.type
 
 import android.support.annotation.RestrictTo
-import java.util.*
+import net.aquadc.persistence.New
+import java.util.EnumSet
 import kotlin.collections.HashSet
 
 
@@ -54,7 +55,7 @@ inline fun <reified E : Enum<E>, U : Any> enum(
         object : DataType.Simple<Any?>(encodeAs.kind) {
 
             private val lookup =
-                    values.associateByTo(HashMap(values.size), encode).also { check(it.size == values.size) {
+                    values.associateByTo(New.map(values.size), encode).also { check(it.size == values.size) {
                         "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
@@ -112,7 +113,7 @@ inline fun <reified E : Enum<E>> enumSet(
             override fun decode(value: Any?): Any? {
                 var bitmask = encodeAs.decode(value)
                 @Suppress("UPPER_BOUND_VIOLATED")
-                val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet() // TODO: use ArraySet if appropriate
+                val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet()
                 var ord = 0
                 while (bitmask != 0L) {
                     if ((bitmask and 1L) == 1L) {
