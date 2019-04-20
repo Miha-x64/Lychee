@@ -26,7 +26,7 @@ import java.io.StringWriter
 
 
 /**
- * Copy of [net.aquadc.persistence.struct.BasicPersistence] test.
+ * Copy of [net.aquadc.persistence.struct.Structs] test.
  */
 class PersistenceTest {
 

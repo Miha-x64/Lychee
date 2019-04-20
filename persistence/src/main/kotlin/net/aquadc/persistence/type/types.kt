@@ -1,9 +1,20 @@
 package net.aquadc.persistence.type
 
 
-typealias AnyCollection = Any // = Collection<E> | Array<E> | EArray
-                                                        // if E is Byte, Short, Int, Long, Float, or Double
-// @see fatMap, fatMapTo, fatAsList, don't forget to update then
+/**
+ * Used by [DataType.Simple] and represents the following type, according to [DataType.Simple.Kind]:
+ * [Boolean] | [Byte] | [Short] | [Int] | [Long] | [Float] | [Double] | [String] | [ByteArray]
+ */
+typealias SimpleValue = Any
+
+/**
+ * Used by [DataType.Collect] and represents the following type:
+ * [Collection]<E> | [Array]<E> | EArray
+ * when E represents Byte, Short, Int, Long, Float, Double,
+ * EArray means [ByteArray], [ShortArray], [IntArray], [LongArray], [FloatArray], [DoubleArray] accordingly
+ */
+typealias AnyCollection = Any
+// @see fatMap, fatMapTo, fatAsList, don't forget to update them
 
 /**
  * Represents a way of storing a value.
@@ -13,42 +24,20 @@ typealias AnyCollection = Any // = Collection<E> | Array<E> | EArray
 sealed class DataType<T> {
 
     /**
-     * Converts persistable value into its in-memory representation.
-     * @return in-memory view on [value]
-     */
-    abstract fun decode(value: Any?): T
-
-    /**
-     * Converts in-memory value into its persistable representation.
-     * @return persistable view on [value]
-     */
-    abstract fun encode(value: T): Any?
-
-
-    /**
      * Adds nullability to runtime representation of [actualType].
-     * Wraps only non-nullable type.
-     * (However, some non-standard [Simple] or [Collect] type instances can easily be nullable themselves —
-     * this means [decode] may return and [encode] may accept `null`s, but not vice versa.)
+     * Wraps only non-nullable type, represented as `null` in memory.
+     * (However, some non-standard [Simple], [Collect], or [Partial] implementations
+     * may have nullable in-memory representation, and thus cannot be wrapped into [Nullable])
      */
     class Nullable<T : Any>(
             /**
              * Wrapped non-nullable type.
              */
             val actualType: DataType<T>
-    ) : DataType<T?>() {
-
-        override fun decode(value: Any?): T? =
-                if (value === null) null else actualType.decode(value)
-
-        override fun encode(value: T?): Any? =
-                if (value === null) null else actualType.encode(value)
-
-    }
+    ) : DataType<T?>()
 
     /**
      * A simple, non-composite (and thus easily composable) type.
-     * [decode] must accept and [encode] must return objects of type which strictly depends on [kind].
      */
     abstract class Simple<T>(
             /**
@@ -64,19 +53,30 @@ sealed class DataType<T> {
             Str, Blob
         }
 
-        // TODO: to & from String, e. g. to encode UUID as blob, but use string pepresentation in JSON
+        /**
+         * Converts a simple persistable value into its in-memory representation.
+         * @return in-memory representation of [value]
+         */
+        abstract fun load(value: SimpleValue): T
+
+        /**
+         * Converts in-memory value into its simple persistable representation.
+         * @return persistable representation of [value]
+         */
+        abstract fun store(value: T): SimpleValue
+
+        // TODO: to & from String, e. g. to encode UUID as blob, but use string representation in JSON
 
     }
 
-    // TODO: move Schema here
-
-    // TODO: Patch/Diff/Delta/Partial
-
     /**
      * A collection of elements of [elementType].
-     * [C] is typically a collection, but it is not required.
+     * In-memory type [C] is typically a collection, but it is not required.
      * May have [List] or [Set] semantics, depending on implementations
      * of both this data type and the underlying storage.
+     *
+     * Collection DataType handles only converting from/to a specified collection type,
+     * leaving values untouched.
      */
     abstract class Collect<C, E>(
             /**
@@ -86,23 +86,47 @@ sealed class DataType<T> {
     ) : DataType<C>() {
 
         /**
-         * Converts persistable collection value into its in-memory representation.
-         * Elements are encoded by [elementType], so typicaly
-         * [decodeCollection] `= SomeCollection(value.map(elementType::decode))`
+         * Converts a persistable collection value into its in-memory representation.
+         * Elements of input collection are already in their in-memory representation
+         * @return in-memory representation of [value]
          */
-        final override fun decode(value: Any?): C =
-                decodeCollection(value as Collection<Any?>)
+        abstract fun load(value: AnyCollection): C
 
-        abstract fun decodeCollection(value: AnyCollection): C
-
-        // inheritDoc; re-abstracted to set more narrow return type
         /**
-         * Elements must be encoed by [elementType], so typical [encode] may look like
-         * `value.map(elementType::encode)`
+         * Converts in-memory value into a persistable collection.
+         * Values of output collection must be in their in-memory representation,
+         * it's caller's responsibility to convert them to persistable representation.
+         * @return persistable representation of [value]
          */
-        abstract override fun encode(value: C): AnyCollection
+        abstract fun store(value: C): AnyCollection
 
     }
+
+    /*/**
+     * Represents a set of optional key-value mappings, according to [schema].
+     * [Schema] itself represents a special case of [Partial], where all mappings are required.
+     */
+    abstract class Partial<T, SCH : Schema<SCH>> : DataType<T>() {
+
+        abstract val schema: SCH
+
+        /**
+         * Converts a persistable value into its in-memory representation.
+         * @param fields a set of fields provided within [values] array
+         * @param values all values for [fields] listed, with gaps for absent values,
+         *     so `values[field.ordinal]` is a valid value for a field
+         * @return in-memory representation of data in [values]
+         * @see net.aquadc.persistence.struct.forEachIndexed function to iterate over a [FieldSet] in natural order
+         */
+        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>): T
+
+        /**
+         * Converts in-memory value into its persistable representation.
+         * @return persistable representation of [value]
+         */
+        abstract fun store(value: T): PartialStruct<SCH>
+
+    }*/
 
 
 //    abstract class Dictionary<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
@@ -125,15 +149,17 @@ inline fun <PL, ARG, T, R> DataTypeVisitor<PL, ARG, T, R>.match(dataType: DataTy
 
             when (actualType) {
                 is DataType.Nullable<*> -> throw AssertionError()
-                is DataType.Simple -> payload.simple(arg, dataType, actualType.kind)
-                is DataType.Collect<*, *> -> payload.collection(arg, dataType, actualType as DataType.Collect<T, *>)
+                is DataType.Simple -> payload.simple(arg, true, actualType)
+                is DataType.Collect<*, *> -> payload.collection(arg, true, actualType as DataType.Collect<T, *>)
+//                is DataType.Partial<T, *> -> TODO()
             }
         }
-        is DataType.Simple -> payload.simple(arg, dataType, dataType.kind)
-        is DataType.Collect<T, *> -> payload.collection(arg, dataType, dataType)
+        is DataType.Simple -> payload.simple(arg, false, dataType)
+        is DataType.Collect<T, *> -> payload.collection(arg, false, dataType)
+//        is DataType.Partial<T, *> -> TODO()
     }
 
 interface DataTypeVisitor<PL, ARG, T, R> {
-    fun PL.simple(arg: ARG, raw: DataType<T>, kind: DataType.Simple.Kind): R
-    fun <E> PL.collection(arg: ARG, raw: DataType<T>, type: DataType.Collect<T, E>): R
+    fun PL.simple(arg: ARG, nullable: Boolean, type: DataType.Simple<T>): R
+    fun <E> PL.collection(arg: ARG, nullable: Boolean, type: DataType.Collect<T, E>): R
 }

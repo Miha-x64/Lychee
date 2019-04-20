@@ -2,41 +2,34 @@
 package net.aquadc.persistence.type
 
 import net.aquadc.persistence.fatAsList
-import net.aquadc.persistence.fatMap
-import net.aquadc.persistence.fatMapTo
+import net.aquadc.persistence.fatTo
 import java.util.EnumSet
 
 
 private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 
-    /**
-     * {@implNote does nothing but sanity checks}
-     */
-    override fun encode(value: T): Any? {
-        sanityCheck(value)
-        return value
-    }
-
-    /**
-     * {@implNote does nothing but sanity checks}
-     */
     @Suppress("UNCHECKED_CAST")
-    override fun decode(value: Any?): T {
+    override fun load(value: SimpleValue): T {
         sanityCheck(value)
         return value as T
     }
 
+    override fun store(value: T): SimpleValue {
+        sanityCheck(value)
+        return value!!
+    }
+
     private fun sanityCheck(value: Any?) {
         when (kind) {
-            DataType.Simple.Kind.Bool -> value as Boolean
-            DataType.Simple.Kind.I8 -> value as Byte
-            DataType.Simple.Kind.I16 -> value as Short
-            DataType.Simple.Kind.I32 -> value as Int
-            DataType.Simple.Kind.I64 -> value as Long
-            DataType.Simple.Kind.F32 -> value as Float
-            DataType.Simple.Kind.F64 -> value as Double
-            DataType.Simple.Kind.Str -> value as String
-            DataType.Simple.Kind.Blob -> value as ByteArray
+            Kind.Bool -> value as Boolean
+            Kind.I8 -> value as Byte
+            Kind.I16 -> value as Short
+            Kind.I32 -> value as Int
+            Kind.I64 -> value as Long
+            Kind.F32 -> value as Float
+            Kind.F64 -> value as Double
+            Kind.Str -> value as String
+            Kind.Blob -> value as ByteArray
         }
     }
 
@@ -105,12 +98,8 @@ inline fun <T : Any> nullable(type: DataType<T>): DataType.Nullable<T> =
 
 internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: DataType<E>) : DataType.Collect<C, E>(elementType) {
 
-    /**
-     * {@implNote does nothing but sanity checks}
-     */
-    override fun encode(value: C): AnyCollection =
-            if (elementType is SimpleNoOp<*>) value // zero-copy for no-op
-            else value.map(elementType::encode)
+    override fun store(value: C): AnyCollection =
+            value
 
 }
 
@@ -120,9 +109,8 @@ internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: Da
  */
 fun <E> collection(elementType: DataType<E>): DataType.Collect<List<E>, E> =
         object : CollectBase<List<E>, E>(elementType) {
-            override fun decodeCollection(value: AnyCollection): List<E> =
-                    if (elementType is SimpleNoOp<*>) value.fatAsList() // cheap wrapper, zero copy
-                    else value.fatMap(this.elementType::decode)
+            override fun load(value: AnyCollection): List<E> =
+                    value.fatAsList() // almost always zero copy
         }
 
 /**
@@ -133,11 +121,11 @@ fun <E> set(elementType: DataType<E>): DataType.Collect<Set<E>, E> =
 
 @PublishedApi internal fun <E> setInternal(elementType: DataType<E>, enumType: Class<E>?): CollectBase<Set<E>, E> {
     return object : CollectBase<Set<E>, E>(elementType) {
-        override fun decodeCollection(value: AnyCollection): Set<E> =
-                if (this.elementType is SimpleNoOp<*> && value is Set<*>) value as Set<E> // zero copy
-                else value.fatMapTo(
-                        if (enumType === null) HashSet() else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>),
-                        this.elementType::decode
+        override fun load(value: AnyCollection): Set<E> =
+                if (value is Set<*>) value as Set<E>
+                else value.fatTo(
+                        if (enumType === null) HashSet()
+                        else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>)
                 )
     }
 }

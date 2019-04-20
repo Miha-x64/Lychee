@@ -99,17 +99,17 @@ object SqliteDialect : Dialect {
 
             sb.append(", ")
         }
-        sb.setLength(sb.length - 2) // trim last comma
+        sb.setLength(sb.length - 2) // trim last comma; schema.fields must not be empty
         return sb.append(");").toString()
     }
 
     private fun <T> StringBuilder.appendDefault(col: FieldDef<*, T>) {
         object : DataTypeVisitor<StringBuilder, T, T, Unit> {
-            override fun StringBuilder.simple(arg: T, raw: DataType<T>, kind: DataType.Simple.Kind) {
-                if (raw is DataType.Nullable<*> && arg === null) append("NULL")
+            override fun StringBuilder.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
+                if (nullable && arg === null) append("NULL")
                 else {
-                    val v = raw.encode(arg)
-                    when (kind) {
+                    val v = type.store(arg)
+                    when (type.kind) {
                         DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
                         DataType.Simple.Kind.I8,
                         DataType.Simple.Kind.I16,
@@ -123,8 +123,8 @@ object SqliteDialect : Dialect {
                 }
             }
 
-            override fun <E> StringBuilder.collection(arg: T, raw: DataType<T>, type: DataType.Collect<T, E>) {
-                if (raw is DataType.Nullable<*> && arg === null) append("NULL")
+            override fun <E> StringBuilder.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) {
+                if (nullable && arg === null) append("NULL")
                 else append("x'").appendHex(ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()).append('\'')
             }
         }.match(col.type, this, col.default)
@@ -142,8 +142,8 @@ object SqliteDialect : Dialect {
 
     private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {
         object : DataTypeVisitor<StringBuilder, Nothing?, T, Unit> {
-            override fun StringBuilder.simple(arg: Nothing?, raw: DataType<T>, kind: DataType.Simple.Kind) {
-                append(when (kind) {
+            override fun StringBuilder.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>) {
+                append(when (type.kind) {
                     DataType.Simple.Kind.Bool,
                     DataType.Simple.Kind.I8,
                     DataType.Simple.Kind.I16,
@@ -154,12 +154,12 @@ object SqliteDialect : Dialect {
                     DataType.Simple.Kind.Str -> "TEXT"
                     DataType.Simple.Kind.Blob -> "BLOB"
                 })
-                if (raw !is DataType.Nullable<*>) append(" NOT NULL")
+                if (!nullable) append(" NOT NULL")
             }
 
-            override fun <E> StringBuilder.collection(arg: Nothing?, raw: DataType<T>, type: DataType.Collect<T, E>) {
+            override fun <E> StringBuilder.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>) {
                 append("BLOB")
-                if (raw !is DataType.Nullable<*>) append(" NOT NULL")
+                if (!nullable) append(" NOT NULL")
             }
         }.match(dataType, this, null)
     }

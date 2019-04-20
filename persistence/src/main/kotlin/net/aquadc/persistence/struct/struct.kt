@@ -1,27 +1,31 @@
 package net.aquadc.persistence.struct
 
+import net.aquadc.persistence.type.DataType
+
 /**
  * Represents an instance of a struct /strʌkt/ —
  * a map with [FieldDef] keys (can be treated as [String] or [Byte])
- * and heterogeneous statically typed values.
+ * and heterogeneous statically typed values, which has a value for each key.
  * @see Schema
+ * @see build
  * @see FieldDef
  * @see TransactionalStruct
  * @see StructSnapshot — fully immutable implementation
  * @see net.aquadc.properties.persistence.ObservableStruct from `:properties` — observable implementation
  */
-interface Struct<SCH : Schema<SCH>> {
+interface Struct<SCH : Schema<SCH>> : PartialStruct<SCH> {
 
     /**
-     * Represents the type of this struct.
+     * Always returns a full set of fields declared in schema.
      */
-    val schema: SCH
+    override val fields: FieldSet<SCH, *>
+        get() = schema.allFieldSet()
 
+    // re-abstracted to clarify contract
     /**
      * Returns the value of the requested field.
      */
-    operator fun <T> get(field: FieldDef<SCH, T>): T
-
+    override fun <T> get(field: FieldDef<SCH, T>): T
 }
 
 

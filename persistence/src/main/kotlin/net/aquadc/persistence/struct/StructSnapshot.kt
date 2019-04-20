@@ -5,7 +5,7 @@ import android.support.annotation.RestrictTo
 /**
  * Represents a fully immutable snapshot of a struct.
  */
-class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
+class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH>, Struct<SCH> {
 
     // may become an inline-class when hashCode/equals will be allowed
 

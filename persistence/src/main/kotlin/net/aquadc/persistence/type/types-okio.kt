@@ -5,14 +5,14 @@ import okio.ByteString
 
 
 @PublishedApi internal class ByteStr(
-        private val blob: DataType.Simple<ByteArray>
-) : DataType.Simple<Any?>(DataType.Simple.Kind.Blob) {
+        private val blob: Simple<ByteArray>
+) : DataType.Simple<Any?>(Kind.Blob) {
 
-    override fun decode(value: Any?): Any? =
-            blob.decode(value).let { ByteString.of(it, 0, it.size) }
+    override fun load(value: SimpleValue): Any? =
+            blob.load(value).let { ByteString.of(it, 0, it.size) }
 
-    override fun encode(value: Any?): Any? =
-            blob.encode((value as ByteString).toByteArray())
+    override fun store(value: Any?): SimpleValue =
+            blob.store((value as ByteString).toByteArray())
 
 }
 

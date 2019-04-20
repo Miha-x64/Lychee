@@ -8,8 +8,10 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
+import net.aquadc.persistence.type.SimpleValue
 import net.aquadc.persistence.type.match
 
 
@@ -31,24 +33,18 @@ private inline fun <D, SCH : Schema<SCH>, T> BetterDataOutput<D>.writeValueFrom(
  * Writes a [value] of [this] type into [output] with help of [writer].
  */
 fun <D, T> DataType<T>.write(writer: BetterDataOutput<D>, output: D, value: T) {
-    val encoded = encode(value)
-    writeEncoded(writer, output, encoded)
-}
-
-@JvmSynthetic internal fun <D, T> DataType<T>.writeEncoded(out: BetterDataOutput<D>, put: D, encoded: Any?) {
-    out.writerVisitor<T>().match(this, put, encoded)
+    writer.writerVisitor<T>().match(this, output, value)
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 class StreamWriterVisitor<D, T>(
         private val output: BetterDataOutput<D>
-) : DataTypeVisitor<D, Any?, T, Unit> {
+) : DataTypeVisitor<D, T, T, Unit> {
 
-    override fun D.simple(arg: Any?, raw: DataType<T>, kind: DataType.Simple.Kind) {
+    override fun D.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
+        val arg: SimpleValue? = if (nullable && arg === null) null else type.store(arg)
         // these values can be put into stream along with nullability info
-        val isNullable = raw is DataType.Nullable<*>
-        if (arg === null) check(isNullable)
-        when (kind) {
+        when (type.kind) {
             DataType.Simple.Kind.Bool ->
                 return output.writeByte(this,
                         when (arg as Boolean?) {
@@ -63,13 +59,13 @@ class StreamWriterVisitor<D, T>(
         }
 
         // these values cannot preserve nullability info, write it ourselves
-        if (isNullable) {
+        if (nullable) {
             val isNull = arg == null
             output.writeByte(this, if (isNull) -1 else 0)
             if (isNull) return
         }
 
-        when (kind) {
+        when (type.kind) {
             DataType.Simple.Kind.I8 -> output.writeByte(this, arg as Byte)
             DataType.Simple.Kind.I16 -> output.writeShort(this, arg as Short)
             DataType.Simple.Kind.I32 -> output.writeInt(this, arg as Int)
@@ -80,16 +76,16 @@ class StreamWriterVisitor<D, T>(
         }
     }
 
-    override fun <E> D.collection(arg: Any?, raw: DataType<T>, type: DataType.Collect<T, E>) {
+    override fun <E> D.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) {
+        val arg: AnyCollection? = if (nullable && arg === null) null else type.store(arg)
         if (arg === null) {
-            check(raw is DataType.Nullable<*>)
             output.writeInt(this, -1)
         } else {
             val arg = arg.fatAsList<Any?>() // maybe small allocation
             // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             output.writeInt(this, arg.size)
             val elementType = type.elementType
-            arg.forEach { /*recur*/ elementType.writeEncoded(output, this, it) }
+            arg.forEach { /*recur*/ elementType.write(output, this, it as E) }
         }
     }
 
@@ -113,33 +109,33 @@ private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.writeValueFrom(i
  * Reads a value of [this] type from [input] with help of [reader].
  */
 fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
-        decode(readEncoded(reader, input))
-
-@JvmSynthetic internal fun <D, T> DataType<T>.readEncoded(inp: BetterDataInput<D>, ut: D) =
-        inp.readVisitor<T>().match(this, ut, null)
+        reader.readVisitor<T>().match(this, input, null)
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 class StreamReaderVisitor<D, T>(
         private val input: BetterDataInput<D>
-) : DataTypeVisitor<D, Nothing?, T, Any?> {
+) : DataTypeVisitor<D, Nothing?, T, T> {
 
     private val boolDictionary = arrayOf(null, false, true)
 
-    override fun D.simple(arg: Nothing?, raw: DataType<T>, kind: DataType.Simple.Kind): Any? {
-        when (kind) {
-            DataType.Simple.Kind.Bool -> return boolDictionary[input.readByte(this).toInt() + 1]
-            DataType.Simple.Kind.Str -> return input.readString(this)
-            DataType.Simple.Kind.Blob -> return input.readBytes(this)
-            else -> { /* continue */ }
+    override fun D.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>): T {
+        val value = when (type.kind) {
+            DataType.Simple.Kind.Bool -> boolDictionary[input.readByte(this).toInt() + 1]
+            DataType.Simple.Kind.Str -> input.readString(this)
+            DataType.Simple.Kind.Blob -> input.readBytes(this)
+            else -> Unit // continue
+        }
+        if (value != Unit) {
+            return if (value === null) check(nullable).let { null as T } else type.load(value)
         }
 
         // read separate nullability info
 
-        if (raw is DataType.Nullable<*> && input.readByte(this) == (-1).toByte()) {
+        if (nullable && input.readByte(this) == (-1).toByte()) {
             return null as T
         }
 
-        return when (kind) {
+        return type.load(when (type.kind) {
             DataType.Simple.Kind.I8 -> input.readByte(this)
             DataType.Simple.Kind.I16 -> input.readShort(this)
             DataType.Simple.Kind.I32 -> input.readInt(this)
@@ -147,17 +143,17 @@ class StreamReaderVisitor<D, T>(
             DataType.Simple.Kind.F32 -> java.lang.Float.intBitsToFloat(input.readInt(this))
             DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(input.readLong(this))
             DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
-        }
+        })
     }
 
-    override fun <E> D.collection(arg: Nothing?, raw: DataType<T>, type: DataType.Collect<T, E>): Any? {
+    override fun <E> D.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>): T {
         val count = input.readInt(this)
         return when (count) {
-            -1 -> null
-            0 -> emptyList()
-            else -> type.elementType.let { elementType ->
-                List(count) { /*recur*/ elementType.readEncoded(input, this) } // TODO: when [type] is primitive, use specialized collections
-            }
+            -1 -> check(nullable).let { null as T }
+            0 -> type.load(emptyList<Nothing>())
+            else -> type.load(type.elementType.let { elementType ->
+                List(count) { /*recur*/ elementType.read(input, this) } // TODO: when [type] is primitive, use specialized collections
+            })
         }
     }
 

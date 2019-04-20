@@ -251,7 +251,7 @@ class JdbcSession(
                 check(isNullable)
                 statement.setNull(i, Types.NULL)
             } else {
-                val v = encode(value)
+                val v = simple.store(value)
                 when (simple.kind) {
                     DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
                     DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
@@ -287,7 +287,7 @@ class JdbcSession(
 
             // must check, will get zeroes otherwise
             if (resultSet.wasNull()) check(isNullable).let { null as T }
-            else decode(v)
+            else simple.load(v)
         }
     }
 

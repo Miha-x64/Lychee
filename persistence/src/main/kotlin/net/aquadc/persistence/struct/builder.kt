@@ -1,5 +1,7 @@
 package net.aquadc.persistence.struct
 
+import android.support.annotation.RestrictTo
+
 /**
  * Builds a [StructSnapshot] or throws if field value neither specified explicitly nor has a default.
  */
@@ -18,12 +20,17 @@ inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>)
     return builder.finish(schema, searchForDefaults = false)
 }
 
-@PublishedApi internal fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
         StructBuilder<SCH>(Array(schema.fields.size) { Unset })
 
-@PublishedApi internal fun <SCH : Schema<SCH>> buildUpon(source: Struct<SCH>): StructBuilder<SCH> {
+@PublishedApi internal fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>): StructBuilder<SCH> {
     val fs = source.schema.fields
-    return StructBuilder(Array(fs.size) { i -> source[fs[i]] })
+    val values = Array<Any?>(fs.size) { Unset }
+    source.schema.forEach<SCH, FieldDef<SCH, *>>(source.fields) { field ->
+        values[field.ordinal.toInt()] = source[field]
+    }
+    return StructBuilder(values)
 }
 
 /**
@@ -39,6 +46,7 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
 
     /**
      * Create a [StructSnapshot] unsafely capturing [values] array.
+     * [searchForDefaults]=false unsafely assumes that all fields have according values!
      */
     @PublishedApi internal fun finish(schema: SCH, searchForDefaults: Boolean): StructSnapshot<SCH> {
         if (searchForDefaults) {
@@ -50,5 +58,21 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
 
         return StructSnapshot(schema, values)
     }
+
+    fun fieldsPresent(): FieldSet<SCH, FieldDef<SCH, *>> {
+        var set = 0L
+        var field = 1L
+        values.forEach { value ->
+            if (value !== Unset) {
+                set = set or field
+            }
+            field = field shl 1
+        }
+        return FieldSet(set)
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun expose(): Array<Any?> =
+            values
 
 }

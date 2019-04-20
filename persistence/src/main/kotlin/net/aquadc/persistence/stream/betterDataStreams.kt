@@ -11,42 +11,42 @@ import java.io.DataOutputStream
  * Required to abstract away both [DataOutputStream] and Android's Parcel.
  * @see DataStreams
  */
-interface BetterDataOutput<T> {
+interface BetterDataOutput<D> {
 
     /**
      * Writes a single [byte] into [output].
      */
-    fun writeByte(output: T, byte: Byte)
+    fun writeByte(output: D, byte: Byte)
 
     /**
      * Writes a single [short] into [output].
      */
-    fun writeShort(output: T, short: Short)
+    fun writeShort(output: D, short: Short)
 
     /**
      * Writes a single [int] into [output].
      */
-    fun writeInt(output: T, int: Int)
+    fun writeInt(output: D, int: Int)
 
     /**
      * Writes a single [long] into [output].
      */
-    fun writeLong(output: T, long: Long)
+    fun writeLong(output: D, long: Long)
 
     /**
      * Writes the given [bytes] into [output], including its nullability info, and length, if applicable.
      */
-    fun writeBytes(output: T, bytes: ByteArray?)
+    fun writeBytes(output: D, bytes: ByteArray?)
 
     /**
      * Writes the given [string] into [output], including its nullability information.
      */
-    fun writeString(output: T, string: String?)
+    fun writeString(output: D, string: String?)
 
     /**
-     * Gives a visitor capable of writing already encoded values of type [TYPE] into [T].
+     * Gives a visitor capable of writing already encoded values of type [T] into [D].
      */
-    fun <TYPE> writerVisitor(): DataTypeVisitor<T, Any?, TYPE, Unit>
+    fun <T> writerVisitor(): DataTypeVisitor<D, T, T, Unit>
 
 }
 
@@ -55,42 +55,42 @@ interface BetterDataOutput<T> {
  * Required to abstract away both [DataInputStream] and Android's Parcel.
  * @see DataStreams
  */
-interface BetterDataInput<T> {
+interface BetterDataInput<D> {
 
     /**
      * Reads a single byte from the [input].
      */
-    fun readByte(input: T): Byte
+    fun readByte(input: D): Byte
 
     /**
      * Reads a single short from the [input].
      */
-    fun readShort(input: T): Short
+    fun readShort(input: D): Short
 
     /**
      * Reads a single int from the [input].
      */
-    fun readInt(input: T): Int
+    fun readInt(input: D): Int
 
     /**
      * Reads a single long from the [input].
      */
-    fun readLong(input: T): Long
+    fun readLong(input: D): Long
 
     /**
      * Reads a [ByteArray] from the [input].
      */
-    fun readBytes(input: T): ByteArray?
+    fun readBytes(input: D): ByteArray?
 
     /**
      * Reads a [String] from [input] including its nullability information.
      */
-    fun readString(input: T): String?
+    fun readString(input: D): String?
 
     /**
-     * Gives a visitor capable of reading raw/encoded value of type [TYPE] from [T].
+     * Gives a visitor capable of reading raw/encoded value of type [T] from [D].
      */
-    fun <TYPE> readVisitor(): DataTypeVisitor<T, Nothing?, TYPE, Any?>
+    fun <T> readVisitor(): DataTypeVisitor<D, Nothing?, T, T>
 
 }
 
@@ -124,9 +124,11 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
         else -> throw AssertionError()
     }
 
-    private val reader = StreamReaderVisitor<DataInput, Any?>(this)
-    override fun <TYPE> readVisitor(): DataTypeVisitor<DataInput, Nothing?, TYPE, Any?> =
-            reader as DataTypeVisitor<DataInput, Nothing?, TYPE, Any?>
+    private var reader: StreamReaderVisitor<DataInput, Any?>? = null
+    override fun <T> readVisitor(): DataTypeVisitor<DataInput, Nothing?, T, T> {
+        val reader = reader ?: StreamReaderVisitor<DataInput, Any?>(this).also { reader = it }
+        return reader as StreamReaderVisitor<DataInput, T>
+    }
 
     // output
 
@@ -160,8 +162,10 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
         }
     }
 
-    private val writer = StreamWriterVisitor<DataOutput, Any?>(this)
-    override fun <TYPE> writerVisitor(): DataTypeVisitor<DataOutput, Any?, TYPE, Unit> =
-            writer as DataTypeVisitor<DataOutput, Any?, TYPE, Unit>
+    private var writer: StreamWriterVisitor<DataOutput, Any?>? = null
+    override fun <T> writerVisitor(): DataTypeVisitor<DataOutput, T, T, Unit> {
+        val writer = writer ?: StreamWriterVisitor<DataOutput, Any?>(this).also { writer = it }
+        return writer as StreamWriterVisitor<DataOutput, T>
+    }
 
 }

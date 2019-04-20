@@ -97,7 +97,8 @@ internal inline fun <T, R> AnyCollection.fatMap(transform: (T) -> R): List<R> = 
     else -> throw AssertionError()
 }.asList() as List<R>
 
-internal inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest: C, transform: (T) -> R): C = when (this) {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest: C, transform: (T) -> R): C = when (this) {
     is Collection<*> -> (this as Collection<T>).mapTo(dest, transform)
     is Array<*> -> (this as Array<T>).mapTo(dest, transform)
     is ByteArray -> this.mapTo(dest) { transform(it as T) }
@@ -107,6 +108,21 @@ internal inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest
     is FloatArray -> this.mapTo(dest) { transform(it as T) }
     is DoubleArray -> this.mapTo(dest) { transform(it as T) }
     else -> throw AssertionError()
+}
+
+internal fun <C : MutableCollection<T>, T> AnyCollection.fatTo(dest: C): C {
+    when (this) {
+        is Collection<*> -> (this as Collection<T>).toCollection(dest)
+        is Array<*> -> (this as Array<T>).toCollection(dest)
+        is ByteArray -> this.toCollection(dest as MutableCollection<in Byte>)
+        is ShortArray -> this.toCollection(dest as MutableCollection<in Short>)
+        is IntArray -> this.toCollection(dest as MutableCollection<in Int>)
+        is LongArray -> this.toCollection(dest as MutableCollection<in Long>)
+        is FloatArray -> this.toCollection(dest as MutableCollection<in Float>)
+        is DoubleArray -> this.toCollection(dest as MutableCollection<in Double>)
+        else -> throw AssertionError()
+    }
+    return dest
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)

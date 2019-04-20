@@ -10,15 +10,17 @@ import net.aquadc.persistence.reallyEqual
  */
 abstract class BaseStruct<SCH : Schema<SCH>>(
         final override val schema: SCH
-) : Struct<SCH> {
+) : PartialStruct<SCH> {
 
     override fun equals(other: Any?): Boolean {
-        if (other !is Struct<*> || other.schema !== schema) return false
+        if (other !is PartialStruct<*> || other.schema !== schema || other.fields.bitmask != fields.bitmask) {
+            return false
+        }
+
         @Suppress("UNCHECKED_CAST")
-        other as Struct<SCH> // other.type is our type, so it's safe
-        val fields = schema.fields
-        for (i in fields.indices) {
-            val field = fields[i]
+        other as PartialStruct<SCH> // other.type is our type, so it's safe
+
+        schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
             val our = this[field]
             val their = other[field]
             if (!reallyEqual(our, their)) return false
@@ -28,21 +30,21 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
 
     override fun hashCode(): Int {
         var result = 0
-        val fields = schema.fields
-        for (i in fields.indices) {
-            result = 31 * result + this[fields[i]].realHashCode()
+
+        schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
+            result = 31 * result + this[field].realHashCode()
         }
         return result
     }
 
     override fun toString(): String = buildString {
         append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.javaClass.simpleName).append('(')
-        val fields = schema.fields
-        for (i in fields.indices) {
-            val field = fields[i]
+        schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
             append(field.name).append('=').append(this@BaseStruct[field].realToString()).append(", ")
         }
-        setLength(length - 2)
+        if (!fields.isEmpty) {
+            setLength(length - 2)
+        }
         append(')')
     }
 

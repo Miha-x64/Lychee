@@ -24,7 +24,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 
-class BasicPersistence {
+class Structs {
 
     enum class SomeEnum {
         A, B, C, D;

@@ -14,12 +14,12 @@ import java.io.DataOutputStream
  */
 fun <T> serialized(type: DataType<T>): DataType.Simple<T> = object : DataType.Simple<T>(Kind.Blob) {
 
-    override fun encode(value: T): Any? =
+    override fun load(value: SimpleValue): T =
+            type.read(DataStreams, DataInputStream(ByteArrayInputStream(value as ByteArray)))
+
+    override fun store(value: T): SimpleValue =
             ByteArrayOutputStream().also {
                 type.write(DataStreams, DataOutputStream(it), value)
             }.toByteArray()
-
-    override fun decode(value: Any?): T =
-            type.read(DataStreams, DataInputStream(ByteArrayInputStream(value as ByteArray)))
 
 }

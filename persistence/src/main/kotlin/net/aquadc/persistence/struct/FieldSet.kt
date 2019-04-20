@@ -75,10 +75,58 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, G : F, H : F> Fiel
         FieldSet(bitmask or (1L shl other.ordinal.toInt()))
 
 /**
+ * Returns a set equal to [this] without [other] field.
+ */
+inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, G : F, H : F> FieldSet<SCH, G>.minus(other: H): FieldSet<SCH, F> =
+        FieldSet(bitmask and (1L shl other.ordinal.toInt()).inv())
+
+/**
+ * Returns a set equal to [this] without fields from [other] set.
+ */
+inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> FieldSet<SCH, F>.minus(other: FieldSet<SCH, F>): FieldSet<SCH, F> =
+        FieldSet(bitmask and other.bitmask.inv())
+        // this:          0000000000000000011111111111111111
+        // other:         0000000000000010101010101010101010
+        // ~other:        1111111111111101010101010101010101
+        // this & ~other: 0000000000000000010101010101010101
+
+/**
  * Checks whether [this] set contains that [field].
  */
 inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDef<SCH, *>): Boolean =
         (bitmask and (1L shl field.ordinal.toInt())) != 0L
+
+/**
+ * Number of fields in this set.
+ */
+val FieldSet<*, *>.size: Int
+    get() = java.lang.Long.bitCount(bitmask)
+
+/**
+ * Whether this set is empty.
+ */
+val FieldSet<*, *>.isEmpty: Boolean
+    get() = bitmask == 0L
+
+/**
+ * Returns index of [field] in this set. Useful for memory layouts of partial structs.
+ */
+fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: FieldDef<SCH, *>): Byte {
+    val ord = field.ordinal
+    val one = 1L shl ord.toInt()
+    return if ((bitmask and one) == 0L) -1 else java.lang.Long.bitCount(bitmask and lowerOnes(ord)).toByte()
+}
+
+fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
+        if (fields.isEmpty) "[]"
+        else buildString {
+            append('[')
+            forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
+                append(field.name).append(", ")
+            }
+            setLength(length - 2)
+            append(']')
+        }
 
 /**
  * Invokes [func] on each element of the [set].
@@ -98,9 +146,30 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<S
 }
 
 /**
+ * Invokes [func] on each element of the [set].
+ */
+inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEachIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> Unit) {
+    val fields = fields
+    var idx = 0
+    var ord = 0
+    var mask = set.bitmask
+    while (mask != 0L) {
+        if ((mask and 1L) == 1L) {
+            func(idx++, fields[ord] as F)
+        }
+
+        mask = mask ushr 1
+        ord++
+    }
+}
+
+/**
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
 inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *>>
 /*internal*/ @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) @Deprecated("Don't. Touch. This. Directly.") constructor(
         @PublishedApi internal val bitmask: Long
 )
+
+private fun lowerOnes(r: Byte): Long =
+        ((1L shl r.toInt()) - 1L)

@@ -265,7 +265,7 @@ class SqliteSession(
                 check(isNullable)
                 statement.bindNull(i)
             } else {
-                val v = encode(value)
+                val v = simple.store(value)
                 when (simple.kind) {
                     DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
                     DataType.Simple.Kind.I8,
@@ -285,7 +285,7 @@ class SqliteSession(
     private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = flattened { isNullable, simple ->
         if (cursor.isNull(index))
             check(isNullable).let { null as T }
-        else when (simple.kind) {
+        else simple.load(when (simple.kind) {
             DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
             DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
             DataType.Simple.Kind.I16 -> cursor.getShort(index)
@@ -295,7 +295,7 @@ class SqliteSession(
             DataType.Simple.Kind.F64 -> cursor.getDouble(index)
             DataType.Simple.Kind.Str -> cursor.getString(index)
             DataType.Simple.Kind.Blob -> cursor.getBlob(index)
-        } as T
+        })
     }
 
     private fun Short.assertFitsByte(): Byte {

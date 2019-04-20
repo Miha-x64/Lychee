@@ -33,9 +33,11 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
     override fun readString(input: Parcel): String? =
             input.readString()
 
-    private val readVis = StreamReaderVisitor<Parcel, Any?>(this)
-    override fun <TYPE> readVisitor(): DataTypeVisitor<Parcel, Nothing?, TYPE, Any?> =
-            readVis as DataTypeVisitor<Parcel, Nothing?, TYPE, Any?>
+    private var reader: StreamReaderVisitor<Parcel, Any?>? = null
+    override fun <T> readVisitor(): DataTypeVisitor<Parcel, Nothing?, T, T> {
+        val reader = reader ?: StreamReaderVisitor<Parcel, Any?>(this).also { reader = it }
+        return reader as StreamReaderVisitor<Parcel, T>
+    }
 
     // output
 
@@ -57,8 +59,10 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
     override fun writeString(output: Parcel, string: String?): Unit =
             output.writeString(string)
 
-    private val writer = StreamWriterVisitor<Parcel, Any?>(this)
-    override fun <TYPE> writerVisitor(): DataTypeVisitor<Parcel, Any?, TYPE, Unit> =
-            writer as DataTypeVisitor<Parcel, Any?, TYPE, Unit>
+    private var writer: StreamWriterVisitor<Parcel, Any?>? = null
+    override fun <T> writerVisitor(): DataTypeVisitor<Parcel, T, T, Unit> {
+        val writer = writer ?: StreamWriterVisitor<Parcel, Any?>(this).also { writer = it }
+        return writer as StreamWriterVisitor<Parcel, T>
+    }
 
 }

@@ -2,6 +2,7 @@ package net.aquadc.properties.android.persistence.pref
 
 import android.content.SharedPreferences
 import android.util.Base64
+import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
@@ -47,11 +48,11 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
 private val readerVis = PrefReaderVisitor<Any?>()
 private class PrefReaderVisitor<T> : DataTypeVisitor<Nothing?, Any, T, T> {
 
-    override fun Nothing?.simple(arg: Any, raw: DataType<T>, kind: DataType.Simple.Kind): T =
-            if (raw is DataType.Nullable<*> && if (kind in storedAsString) arg == false else arg == "null")
+    override fun Nothing?.simple(arg: Any, nullable: Boolean, type: DataType.Simple<T>): T =
+            if (nullable && if (type.kind in storedAsString) arg == false else arg == "null")
                 null as T
             else
-                raw.decode(when (kind) {
+                type.load(when (type.kind) {
                     DataType.Simple.Kind.Bool -> arg as Boolean
                     DataType.Simple.Kind.I8 -> (arg as Int).assertFitsByte()
                     DataType.Simple.Kind.I16 -> (arg as Int).assertFitsShort()
@@ -63,15 +64,15 @@ private class PrefReaderVisitor<T> : DataTypeVisitor<Nothing?, Any, T, T> {
                     DataType.Simple.Kind.Blob -> Base64.decode(arg as String, Base64.DEFAULT)
                 })
 
-    override fun <E> Nothing?.collection(arg: Any, raw: DataType<T>, type: DataType.Collect<T, E>): T =
-            if (raw is DataType.Nullable<*> && arg == false)
+    override fun <E> Nothing?.collection(arg: Any, nullable: Boolean, type: DataType.Collect<T, E>): T =
+            if (nullable && arg == false)
                 null as T
             else
                 type.elementType.let { elementType ->
-                    if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str)
-                        raw.decode(arg as Set<String>)
+                    if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str) // TODO should store everything in strings
+                        type.load((arg as Set<String>).map(elementType::load)) // todo zero-copy
                     else /* here we have a Collection<Whatever>, including potentially a collection of collections, etc */
-                        serialized/*allocation here*/(type).decode(Base64.decode(arg as String, Base64.DEFAULT))
+                        serialized/*allocation here*/(type).load(Base64.decode(arg as String, Base64.DEFAULT))
                 }
 
 }
@@ -83,13 +84,13 @@ private class PrefWriterVisitor<T>(
         private val key: String
 ) : DataTypeVisitor<SharedPreferences.Editor, T, T, Unit> {
 
-    override fun SharedPreferences.Editor.simple(arg: T, raw: DataType<T>, kind: DataType.Simple.Kind) =
-            if (raw is DataType.Nullable<*> && arg === null) {
-                if (kind in storedAsString) putBoolean(key, false)
+    override fun SharedPreferences.Editor.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) =
+            if (nullable && arg === null) {
+                if (type.kind in storedAsString) putBoolean(key, false)
                 else putString(key, "null")
             } else {
-                val v = raw.encode(arg)
-                when (kind) {
+                val v = type.store(arg)
+                when (type.kind) {
                     DataType.Simple.Kind.Bool -> putBoolean(key, v as Boolean)
                     DataType.Simple.Kind.I8 -> putInt(key, (v as Byte).toInt())
                     DataType.Simple.Kind.I16 -> putInt(key, (v as Short).toInt())
@@ -102,15 +103,15 @@ private class PrefWriterVisitor<T>(
                 }
             }.let { }
 
-    override fun <E> SharedPreferences.Editor.collection(arg: T, raw: DataType<T>, type: DataType.Collect<T, E>) =
-            if (raw is DataType.Nullable<*> && arg === null) {
+    override fun <E> SharedPreferences.Editor.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) =
+            if (nullable && arg === null) {
                 putBoolean(key, false)
             } else {
                 type.elementType.let { elementType ->
-                    if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str)
-                        putStringSet(key, (type.encode(arg) as Collection<String>).toSet())
+                    if (elementType is DataType.Simple<E> && elementType.kind == DataType.Simple.Kind.Str)
+                        putStringSet(key, type.store(arg).fatMapTo<HashSet<String>, E, String>(HashSet()) { elementType.store(it) as String })
                     else
-                        putString(key, Base64.encodeToString(serialized(type).encode(arg) as ByteArray, Base64.DEFAULT))
+                        putString(key, Base64.encodeToString(serialized(type).store(arg) as ByteArray, Base64.DEFAULT))
                 }
             }.let { }
 

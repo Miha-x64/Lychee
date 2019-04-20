@@ -59,13 +59,13 @@ inline fun <reified E : Enum<E>, U : Any> enum(
                         "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
-            override fun decode(value: Any?): Any? {
-                val u = encodeAs.decode(value)
+            override fun load(value: SimpleValue): Any? {
+                val u = encodeAs.load(value)
                 return lookup[u] ?: fallback(u)
             }
 
-            override fun encode(value: Any?): Any =
-                    encode.invoke(value as E)
+            override fun store(value: Any?): SimpleValue =
+                    encodeAs.store(encode.invoke(value as E))
 
         } as DataType.Simple<E>
 
@@ -110,8 +110,8 @@ inline fun <reified E : Enum<E>> enumSet(
                 if (values.size > 64) throw UnsupportedOperationException("Enums with >64 values (JumboEnumSets) are not supported.")
             }
 
-            override fun decode(value: Any?): Any? {
-                var bitmask = encodeAs.decode(value)
+            override fun load(value: SimpleValue): Any? {
+                var bitmask = encodeAs.load(value)
                 @Suppress("UPPER_BOUND_VIOLATED")
                 val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet()
                 var ord = 0
@@ -126,8 +126,8 @@ inline fun <reified E : Enum<E>> enumSet(
                 return set
             }
 
-            override fun encode(value: Any?): Any? =
-                    encodeAs.encode((value as Set<E>).fold(0L) { acc, e -> acc or (1L shl ordinal(e)) })
+            override fun store(value: Any?): SimpleValue =
+                    encodeAs.store((value as Set<E>).fold(0L) { acc, e -> acc or (1L shl ordinal(e)) })
 
         } as DataType.Simple<Set<E>>
 
