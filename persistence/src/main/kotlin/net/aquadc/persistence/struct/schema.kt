@@ -14,7 +14,10 @@ import java.util.Collections.unmodifiableMap
  *
  * Note: may be moved to [DataType] and become its subtype soon.
  */
-abstract class Schema<SELF : Schema<SELF>> {
+abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF>() {
+
+    override val schema: SELF
+        get() = this as SELF
 
     /**
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
@@ -136,6 +139,16 @@ abstract class Schema<SELF : Schema<SELF>> {
         }
 
     }
+
+    override fun load(fields: FieldSet<SELF, FieldDef<SELF, *>>, values: Array<Any?>?): Struct<SELF> =
+            schema.build { b ->
+                schema.forEach(fields) { field -> // todo: may be zero-copy
+                    b[field as FieldDef<SELF, Any?>] = values!![field.ordinal.toInt()]
+                }
+            }
+
+    override fun store(value: Struct<SELF>): PartialStruct<SELF> =
+            value
 
 }
 

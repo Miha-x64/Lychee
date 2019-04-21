@@ -3,11 +3,16 @@ package net.aquadc.persistence.stream
 import android.support.annotation.RestrictTo
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.emptyFieldSet
+import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.plus
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
@@ -24,8 +29,8 @@ fun <D, SCH : Schema<SCH>> BetterDataOutput<D>.write(output: D, struct: Struct<S
     }
 }
 
-@Suppress("NOTHING_TO_INLINE") // single use-site, just capture T
-private inline fun <D, SCH : Schema<SCH>, T> BetterDataOutput<D>.writeValueFrom(struct: Struct<SCH>, field: FieldDef<SCH, T>, to: D) {
+@Suppress("NOTHING_TO_INLINE") // just capture T
+private inline fun <D, SCH : Schema<SCH>, T> BetterDataOutput<D>.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>, to: D) {
     field.type.write(this, to, struct[field])
 }
 
@@ -89,6 +94,20 @@ class StreamWriterVisitor<D, T>(
         }
     }
 
+    override fun <SCH : Schema<SCH>> D.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
+        if (nullable && arg === null) {
+            output.writeByte(this, (-1).toByte())
+        } else {
+            val partial = type.store(arg)
+            val fields = partial.fields
+            output.writeByte(this, fields.size)
+            type.schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
+                output.writeByte(this, field.ordinal)
+                output.writeValueFrom(partial, field, this)
+            }
+        }
+    }
+
 }
 
 
@@ -97,11 +116,11 @@ class StreamWriterVisitor<D, T>(
  */
 fun <D, SCH : Schema<SCH>> BetterDataInput<D>.read(input: D, schema: SCH): StructSnapshot<SCH> = schema.build {
     schema.fields.forEach { field ->
-        writeValueFrom(input, field, to = it)
+        readValueFrom(input, field, to = it)
     }
 }
 @Suppress("NOTHING_TO_INLINE") // single call-site, just capture T
-private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.writeValueFrom(input: D, field: FieldDef<SCH, T>, to: StructBuilder<SCH>) {
+private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.readValueFrom(input: D, field: FieldDef<SCH, T>, to: StructBuilder<SCH>) {
     to[field] = field.type.read(this, input)
 }
 
@@ -156,5 +175,25 @@ class StreamReaderVisitor<D, T>(
             })
         }
     }
+
+    override fun <SCH : Schema<SCH>> D.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
+            input.readByte(this).let { size ->
+                if (size == (-1).toByte()) {
+                    check(nullable)
+                    null as T
+                } else {
+                    var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
+                    val schema = type.schema
+                    val allFields = schema.fields
+                    val values = arrayOfNulls<Any>(allFields.size)
+                    repeat(size.toInt()) { _ ->
+                        val ordinal = input.readByte(this).toInt()
+                        val field = allFields[ordinal]
+                        fields += field
+                        values[ordinal] = field.type.read(input, this)
+                    }
+                    type.load(fields, values)
+                }
+            }
 
 }

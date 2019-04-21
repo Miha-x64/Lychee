@@ -127,6 +127,10 @@ object SqliteDialect : Dialect {
                 if (nullable && arg === null) append("NULL")
                 else append("x'").appendHex(ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()).append('\'')
             }
+
+            override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
+                error("unsupported²")
+            }
         }.match(col.type, this, col.default)
     }
 
@@ -160,6 +164,10 @@ object SqliteDialect : Dialect {
             override fun <E> StringBuilder.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>) {
                 append("BLOB")
                 if (!nullable) append(" NOT NULL")
+            }
+
+            override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>) {
+                TODO("embedded + relations")
             }
         }.match(dataType, this, null)
     }

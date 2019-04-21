@@ -8,13 +8,16 @@ import android.util.JsonWriter
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.plus
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
@@ -119,6 +122,46 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                 skipValue()
                 null as T
             } else type.load(readList(type.elementType))
+
+    override fun <SCH : Schema<SCH>> JsonReader.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
+            when (val actual = peek()) {
+                JsonToken.NULL -> {
+                    check(nullable)
+                    skipValue()
+                    null as T
+                }
+                JsonToken.BEGIN_ARRAY -> { // treat [] as {}, if you were unlucky to deal with PHP server-side
+                    check(isLenient) { "expected object, was array. Set lenient if you want to treat empty arrays as empty Partials." }
+                    beginArray()
+                    endArray() // crash on nonempty arrays
+                    type.load(emptyFieldSet(), null)
+                }
+                JsonToken.BEGIN_OBJECT -> {
+                    beginObject()
+                    var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
+                    var values: Array<Any?>? = null
+                    if (hasNext()) {
+                        val byName = type.schema.fieldsByName
+                        values = arrayOfNulls(byName.size)
+                        do {
+                            val field = byName[nextName()]
+                            if (field == null) skipValue() // unsupported value
+                            else {
+                                fields += field
+                                values[field.ordinal.toInt()] = readValue(field.type)
+                            }
+                        } while (hasNext())
+                    }
+                    endObject()
+                    type.load(fields, values)
+                }
+                else -> {
+                    val expect = arrayListOf("object")
+                    if (isLenient) expect.add("empty array")
+                    if (nullable) expect.add("null")
+                    error(expect.joinToString(prefix = "expected ", postfix = ", was $actual"))
+                }
+            }
 }
 
 /**
@@ -155,7 +198,7 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
 }
 
 @Suppress("NOTHING_TO_INLINE") // just capture T
-private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: Struct<SCH>, field: FieldDef<SCH, T>) =
+private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>) =
         write(field.type, struct[field])
 
 private val writerVis = JsonWriterVisitor<Any?>()
@@ -188,6 +231,19 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
             type.store(arg).fatAsList<Any?>().forEach { write(elType, it as E) }
             // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             endArray()
+        }
+    }
+
+    override fun <SCH : Schema<SCH>> JsonWriter.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
+        if (nullable && arg === null) nullValue()
+        else {
+            val partial = type.store(arg)
+            beginObject()
+            partial.schema.forEach<SCH, FieldDef<SCH, *>>(partial.fields) { field ->
+                name(field.name)
+                writeValueFrom(partial, field)
+            }
+            endObject()
         }
     }
 }

@@ -16,7 +16,7 @@ class FieldSetTest {
         assertFalse(SomeSchema.C in emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>())
     }
     @Test fun emptySize() {
-        assertEquals(0, emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().size)
+        assertEquals(0.toByte(), emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().size)
     }
     @Test fun emptyIdxOf() {
         assertEquals(-1, emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().indexOf(SomeSchema.A).toInt())
@@ -46,7 +46,7 @@ class FieldSetTest {
         assertFalse(SomeSchema.C in set)
     }
     @Test fun singleSize() {
-        assertEquals(1, SomeSchema.B.asFieldSet().size)
+        assertEquals(1.toByte(), SomeSchema.B.asFieldSet().size)
     }
     @Test fun singleIdxOf() {
         val set = SomeSchema.B.asFieldSet<SomeSchema, FieldDef<SomeSchema, *>>()
@@ -75,7 +75,7 @@ class FieldSetTest {
         assertTrue(SomeSchema.C in set)
     }
     @Test fun twoSize() {
-        assertEquals(2, (SomeSchema.A + SomeSchema.B).size)
+        assertEquals(2.toByte(), (SomeSchema.A + SomeSchema.B).size)
     }
     @Test fun twoIdxOf() {
         val set = SomeSchema.A.plus<SomeSchema, FieldDef<SomeSchema, *>>(SomeSchema.B)
@@ -101,7 +101,7 @@ class FieldSetTest {
         assertEquals(63, list.size)
     }
     @Test fun all63Size() {
-        assertEquals(63, Schema63.allFieldSet().size)
+        assertEquals(63.toByte(), Schema63.allFieldSet().size)
     }
     @Test fun allMinus() {
         assertEquals(SomeSchema.A + SomeSchema.B, SomeSchema.allFieldSet() - SomeSchema.C)
@@ -113,7 +113,7 @@ class FieldSetTest {
         assertEquals(64, list.size)
     }
     @Test fun all64Size() {
-        assertEquals(64, Schema64.allFieldSet().size)
+        assertEquals(64.toByte(), Schema64.allFieldSet().size)
     }
 
     @Test fun allContain() {
@@ -140,13 +140,13 @@ class FieldSetTest {
 
     @Test fun all() {
         assertEquals(SomeSchema.allFieldSet(), SomeSchema.A + SomeSchema.B + SomeSchema.C)
-        assertEquals(3, SomeSchema.allFieldSet().size)
+        assertEquals(3.toByte(), SomeSchema.allFieldSet().size)
 
         assertEquals(SomeSchema.immutableFieldSet(), SomeSchema.A + SomeSchema.B)
-        assertEquals(2, SomeSchema.immutableFieldSet().size)
+        assertEquals(2.toByte(), SomeSchema.immutableFieldSet().size)
 
         assertEquals(SomeSchema.mutableFieldSet(), SomeSchema.C.asFieldSet())
-        assertEquals(1, SomeSchema.mutableFieldSet().size)
+        assertEquals(1.toByte(), SomeSchema.mutableFieldSet().size)
     }
 
     @Test fun all63() {

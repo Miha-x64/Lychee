@@ -1,5 +1,10 @@
 package net.aquadc.persistence.type
 
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.PartialStruct
+import net.aquadc.persistence.struct.Schema
+
 
 /**
  * Used by [DataType.Simple] and represents the following type, according to [DataType.Simple.Kind]:
@@ -10,7 +15,7 @@ typealias SimpleValue = Any
 /**
  * Used by [DataType.Collect] and represents the following type:
  * [Collection]<E> | [Array]<E> | EArray
- * when E represents Byte, Short, Int, Long, Float, Double,
+ * where E represents [Byte], [Short], [Int], [Long], [Float], [Double],
  * EArray means [ByteArray], [ShortArray], [IntArray], [LongArray], [FloatArray], [DoubleArray] accordingly
  */
 typealias AnyCollection = Any
@@ -102,7 +107,7 @@ sealed class DataType<T> {
 
     }
 
-    /*/**
+    /**
      * Represents a set of optional key-value mappings, according to [schema].
      * [Schema] itself represents a special case of [Partial], where all mappings are required.
      */
@@ -114,11 +119,11 @@ sealed class DataType<T> {
          * Converts a persistable value into its in-memory representation.
          * @param fields a set of fields provided within [values] array
          * @param values all values for [fields] listed, with gaps for absent values,
-         *     so `values[field.ordinal]` is a valid value for a field
+         *     so `values[field.ordinal]` is a valid value for a field; `null` is allowed only if [fields] are empty
          * @return in-memory representation of data in [values]
          * @see net.aquadc.persistence.struct.forEachIndexed function to iterate over a [FieldSet] in natural order
          */
-        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>): T
+        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>?): T
 
         /**
          * Converts in-memory value into its persistable representation.
@@ -126,7 +131,7 @@ sealed class DataType<T> {
          */
         abstract fun store(value: T): PartialStruct<SCH>
 
-    }*/
+    }
 
 
 //    abstract class Dictionary<M, K, V> internal constructor(isNullable: Boolean, keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
@@ -151,15 +156,18 @@ inline fun <PL, ARG, T, R> DataTypeVisitor<PL, ARG, T, R>.match(dataType: DataTy
                 is DataType.Nullable<*> -> throw AssertionError()
                 is DataType.Simple -> payload.simple(arg, true, actualType)
                 is DataType.Collect<*, *> -> payload.collection(arg, true, actualType as DataType.Collect<T, *>)
-//                is DataType.Partial<T, *> -> TODO()
+                is DataType.Partial<T, *> -> @Suppress("UPPER_BOUND_VIOLATED")
+                        payload.partial<Schema<*>>(arg, true, actualType as DataType.Partial<T, Schema<*>>)
             }
         }
         is DataType.Simple -> payload.simple(arg, false, dataType)
         is DataType.Collect<T, *> -> payload.collection(arg, false, dataType)
-//        is DataType.Partial<T, *> -> TODO()
+        is DataType.Partial<T, *> -> @Suppress("UPPER_BOUND_VIOLATED")
+                payload.partial<Schema<*>>(arg, false, dataType as DataType.Partial<T, Schema<*>>)
     }
 
 interface DataTypeVisitor<PL, ARG, T, R> {
     fun PL.simple(arg: ARG, nullable: Boolean, type: DataType.Simple<T>): R
     fun <E> PL.collection(arg: ARG, nullable: Boolean, type: DataType.Collect<T, E>): R
+    fun <SCH : Schema<SCH>> PL.partial(arg: ARG, nullable: Boolean, type: DataType.Partial<T, SCH>): R
 }

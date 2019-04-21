@@ -44,9 +44,11 @@ internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, sim
                 when (actualType) {
                     is DataType.Nullable<*> -> throw AssertionError()
                     is DataType.Simple -> func(true, actualType)
-                    is DataType.Collect<*, *> -> func(true, serialized(actualType))
+                    is DataType.Collect<*, *>,
+                    is DataType.Partial<*, *> -> func(true, serialized(actualType))
                 }
             }
             is DataType.Simple -> func(false, this)
-            is DataType.Collect<*, *> -> func(false, serialized(this))
+            is DataType.Collect<*, *>,
+            is DataType.Partial<*, *> -> func(false, serialized(this))
         }

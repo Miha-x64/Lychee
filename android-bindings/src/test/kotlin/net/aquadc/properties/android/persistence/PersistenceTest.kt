@@ -2,6 +2,8 @@ package net.aquadc.properties.android.persistence
 
 import android.util.JsonReader
 import android.util.JsonWriter
+import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
@@ -23,10 +25,11 @@ import org.junit.Assert
 import org.junit.Test
 import java.io.StringReader
 import java.io.StringWriter
+import java.util.EnumSet
 
 
 /**
- * Copy of [net.aquadc.persistence.struct.Structs] test.
+ * Copy of [net.aquadc.persistence.struct.StructTests] test.
  */
 class PersistenceTest {
 
@@ -49,6 +52,8 @@ class PersistenceTest {
         val STRING = "string" let string
         val BYTES = "bytes" let serialized(set(int))
         val BLOB = "blob" let byteString
+        val STRUCT = "struct" let nullable(Sch)
+        val PART = "part" let partial(Sch)
     }
 
     val instance = Sch.build {
@@ -61,6 +66,22 @@ class PersistenceTest {
         it[STRING] = "forty-two"
         it[BYTES] = setOf(1, 2, 4)
         it[BLOB] = ByteString.decodeHex("ADD1C7ED")
+        it[STRUCT] = Sch.build {
+            it[INT] = 34
+            it[DOUBLE] = 98.6
+            it[ENUM] = SomeEnum.A
+            it[ENUM_SET] = setOf()
+            it[ENUM_SET_BITMASK] = EnumSet.of(SomeEnum.D)
+            it[ENUM_SET_COLLECTION] = emptyList()
+            it[STRING] = "I'm a string, info 146%"
+            it[BYTES] = setOf()
+            it[BLOB] = ByteString.decodeHex("B10B")
+            it[STRUCT] = null
+            it[PART] = Sch.buildPartial { }
+        }
+        it[PART] = Sch.buildPartial {
+            it[STRING] = "I'm partial!"
+        }
     }
 
     @Test fun json() {
@@ -70,7 +91,7 @@ class PersistenceTest {
     }
 
     fun assertEqualToOriginal(deserialized: Struct<Sch>, assertNotSame: Boolean) {
-        with(Sch) { arrayOf(INT, DOUBLE, ENUM, ENUM_SET, ENUM_SET_COLLECTION, STRING) }.forEach { field ->
+        with(Sch) { arrayOf(INT, DOUBLE, ENUM, ENUM_SET, ENUM_SET_BITMASK, ENUM_SET_COLLECTION, STRING, BYTES, BLOB) }.forEach { field ->
             val orig = instance[field]
             val copy = deserialized[field]
             Assert.assertEquals(orig, copy)

@@ -22,9 +22,10 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.util.EnumSet
 
 
-class Structs {
+class StructTests {
 
     enum class SomeEnum {
         A, B, C, D;
@@ -45,6 +46,7 @@ class Structs {
         val STRING = "string" let string
         val BYTES = "bytes" let serialized(set(int))
         val BLOB = "blob" let byteString
+        val STRUCT = "struct" let nullable(Sch)
     }
 
     val instance = Sch.build {
@@ -57,6 +59,18 @@ class Structs {
         it[STRING] = "forty-two"
         it[BYTES] = setOf(1, 2, 4)
         it[BLOB] = ByteString.decodeHex("ADD1C7ED")
+        it[STRUCT] = Sch.build {
+            it[INT] = 34
+            it[DOUBLE] = 98.6
+            it[ENUM] = SomeEnum.A
+            it[ENUM_SET] = setOf()
+            it[ENUM_SET_BITMASK] = EnumSet.of(SomeEnum.D)
+            it[ENUM_SET_COLLECTION] = emptyList()
+            it[STRING] = "I'm a string, info 146%"
+            it[BYTES] = setOf()
+            it[BLOB] = ByteString.decodeHex("B10B")
+            it[STRUCT] = null
+        }
     }
 
     @Test(expected = NoSuchElementException::class) fun noDefault() {
@@ -66,7 +80,7 @@ class Structs {
     @Test fun streams() {
         val serialized = ByteArrayOutputStream().also { DataStreams.write(DataOutputStream(it), instance) }.toByteArray()
         val deserialized = DataStreams.read(DataInputStream(ByteArrayInputStream(serialized)), Sch)
-        with(Sch) { arrayOf(INT, DOUBLE, ENUM, ENUM_SET, ENUM_SET_COLLECTION, STRING) }.forEach { field ->
+        with(Sch) { arrayOf(INT, DOUBLE, ENUM, ENUM_SET, ENUM_SET_BITMASK, ENUM_SET_COLLECTION, STRING, BYTES, BLOB) }.forEach { field ->
             val orig = instance[field]
             val copy = deserialized[field]
             assertEquals(orig, copy)
@@ -90,6 +104,7 @@ class Structs {
             it[STRING] = "forty-two"
             it[BYTES] = setOf(1, 2, 4)
             it[BLOB] = ByteString.EMPTY
+            it[STRUCT] = instance[STRUCT]
         }, instance.copy {
             it[DOUBLE] = 100500.0
             it[BLOB] = ByteString.EMPTY

@@ -45,6 +45,7 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.squareup.okio:okio:1.15.0'
     testImplementation project(':testing')
+    testImplementation project(':extended-persistence') // partial(Struct) is here
     testImplementation 'org.robolectric:robolectric:4.1'
 }
 

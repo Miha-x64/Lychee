@@ -99,8 +99,8 @@ inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDe
 /**
  * Number of fields in this set.
  */
-val FieldSet<*, *>.size: Int
-    get() = java.lang.Long.bitCount(bitmask)
+val FieldSet<*, *>.size: Byte
+    get() = java.lang.Long.bitCount(bitmask).toByte()
 
 /**
  * Whether this set is empty.

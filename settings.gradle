@@ -14,3 +14,5 @@ include ':fx-bindings'
 // comment out the following to disable Android modules and work normally with Java modules
 include ':android-bindings'
 include ':android-sample'
+include 'extended-persistence'
+

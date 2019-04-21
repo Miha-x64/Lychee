@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import android.util.Base64
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
@@ -71,9 +72,13 @@ private class PrefReaderVisitor<T> : DataTypeVisitor<Nothing?, Any, T, T> {
                 type.elementType.let { elementType ->
                     if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str) // TODO should store everything in strings
                         type.load((arg as Set<String>).map(elementType::load)) // todo zero-copy
-                    else /* here we have a Collection<Whatever>, including potentially a collection of collections, etc */
-                        serialized/*allocation here*/(type).load(Base64.decode(arg as String, Base64.DEFAULT))
+                    else /* here we have a Collection<Whatever>, including potentially a collection of collections, structs, etc */
+                        serialized(type).load(Base64.decode(arg as String, Base64.DEFAULT))
                 }
+
+    override fun <SCH : Schema<SCH>> Nothing?.partial(arg: Any, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
+            if (nullable && arg == false) null as T
+            else serialized(type).load(Base64.decode(arg as String, Base64.DEFAULT))
 
 }
 
@@ -114,5 +119,10 @@ private class PrefWriterVisitor<T>(
                         putString(key, Base64.encodeToString(serialized(type).store(arg) as ByteArray, Base64.DEFAULT))
                 }
             }.let { }
+
+    override fun <SCH : Schema<SCH>> SharedPreferences.Editor.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
+        if (nullable && arg === null) putBoolean(key, false)
+        else putString(key, Base64.encodeToString(serialized(type).store(arg) as ByteArray, Base64.DEFAULT))
+    }
 
 }
