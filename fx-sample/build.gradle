@@ -17,3 +17,15 @@ dependencies {
     implementation project(':sql')
     implementation 'com.squareup.okio:okio:1.15.0'
 }
+
+// https://stackoverflow.com/a/21360609/3050249
+
+task executeSample(type: JavaExec) {
+    main = 'net.aquadc.properties.fx.FxWithOurPropsSample'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task executeSqliteSample(type: JavaExec) {
+    main = 'net.aquadc.properties.fx.sqlSample.SqliteApp'
+    classpath = sourceSets.main.runtimeClasspath
+}
