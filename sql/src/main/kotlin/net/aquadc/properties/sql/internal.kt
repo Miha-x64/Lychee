@@ -8,14 +8,14 @@ import net.aquadc.persistence.struct.Struct
 internal interface LowLevelSession {
     fun <SCH : Schema<SCH>, ID : IdBound> exists(table: Table<SCH, ID, *>, primaryKey: ID): Boolean
     fun <SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
-    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, columnName: String, value: T)
     fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID)
     fun truncate(table: Table<*, *, *>)
     val daos: Map<Table<*, *, *>, RealDao<*, *, *>>
     fun onTransactionEnd(successful: Boolean)
 
     fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
-            column: FieldDef<SCH, T>, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+            column: FieldDef<SCH, T>, columnName: String, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
     ): T
 
     fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(

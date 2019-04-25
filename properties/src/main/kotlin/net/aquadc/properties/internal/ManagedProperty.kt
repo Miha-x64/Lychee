@@ -14,6 +14,7 @@ import net.aquadc.persistence.struct.Schema
 open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
         private var manager: Manager<SCH, TRANSACTION, ID>?,
         private val field: FieldDef.Mutable<SCH, T>,
+        private val fieldName: String,
         val id: ID,
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
@@ -23,14 +24,14 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
             val manager = requireManaged()
 
             // check for uncommitted changes
-            val dirty = manager.getDirty(this.field, id)
+            val dirty = manager.getDirty(this.field, fieldName, id)
             if (dirty !== Unset) return dirty
 
             // check cached
             val cached = ref
             if (cached !== Unset) return cached
 
-            val clean = manager.getClean(this.field, id)
+            val clean = manager.getClean(this.field, fieldName, id)
             refUpdater().lazySet(this, clean)
             return clean
         }
@@ -38,11 +39,11 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
     override fun setValue(transaction: TRANSACTION, value: T) {
         val manager = requireManaged()
 
-        val clean = if (ref === Unset) manager.getClean(field, id) else Unset
+        val clean = if (ref === Unset) manager.getClean(field, fieldName, id) else Unset
         // after mutating dirty state we won't be able to see the clean one,
         // so we'll preserve it later in this method
 
-        manager.set(transaction, field, id, value)
+        manager.set(transaction, field, fieldName, id, value)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
@@ -87,6 +88,7 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
 
 /**
  * A manager of a property, e. g. a database DAO/session.
+ * [FieldDef]s of embedded structs may belong to other [Schema], or belong to the same one and interfere with main ones.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
@@ -94,16 +96,17 @@ interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T
+    fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID): T
+    //     actually, ^^^^^ is typically unused. But adds some compile-time type-safety.
 
     /**
-     * Returns clean value.
+     * Returns clean, persisted, stable, committed value visible for all threads.
      */
-    fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T
+    fun <T> getClean(field: FieldDef<SCH, T>, fieldName: String, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: ID, update: T)
+    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID, update: T)
 
 }

@@ -39,9 +39,9 @@ interface Dialect {
     fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(order: Array<out Order<out SCH>>): StringBuilder
 
     /**
-     *  Construcs an SQL query like `UPDATE <table> SET <col> = ?`
+     *  Constructs an SQL query like `UPDATE <table> SET <col> = ?`
      */
-    fun <SCH : Schema<SCH>> updateFieldQuery(table: Table<SCH, *, *>, col: FieldDef<SCH, *>): String
+    fun <SCH : Schema<SCH>> updateFieldQuery(table: Table<SCH, *, *>, colName: String): String
 
     /**
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`

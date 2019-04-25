@@ -39,7 +39,7 @@ class JdbcSession(
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
     private val replaceStatements = HashMap<Table<*, *, *>, PreparedStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *, *>, FieldDef<*, *>>, PreparedStatement>()
+    private val updateStatements = HashMap<Pair<Table<*, *, *>, @ParameterName("columnName") String>, PreparedStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
     private val lowLevel = object : LowLevelSession {
@@ -70,13 +70,13 @@ class JdbcSession(
             return keys.fetchSingle(table.idColType)
         }
 
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, col: FieldDef<SCH, *>): PreparedStatement =
-                updateStatements.getOrPut(Pair(table, col)) {
-                    connection.prepareStatement(dialect.updateFieldQuery(table, col))
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, colName: String): PreparedStatement =
+                updateStatements.getOrPut(Pair(table, colName)) {
+                    connection.prepareStatement(dialect.updateFieldQuery(table, colName))
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T) {
-            val statement = updateStatementWLocked(table, column)
+        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, columnName: String, value: T) {
+            val statement = updateStatementWLocked(table, columnName)
             column.type.bind(statement, 0, value)
             table.idColType.bind(statement, 1, id)
             check(statement.executeUpdate() == 1)
@@ -150,9 +150,9 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
-                column: FieldDef<SCH, T>, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+                column: FieldDef<SCH, T>, columnName: String, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
         ): T =
-                select(column.name, table, condition, NoOrder).fetchSingle(column.type)
+                select(columnName, table, condition, NoOrder).fetchSingle(column.type)
 
         override fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>

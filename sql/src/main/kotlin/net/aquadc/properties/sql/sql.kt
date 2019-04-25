@@ -1,6 +1,11 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.struct.*
+import net.aquadc.persistence.struct.BaseStruct
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
@@ -88,7 +93,7 @@ interface Transaction : AutoCloseable {
      */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
 
-    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, columnName: String, value: T)
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
 
@@ -235,7 +240,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
                 table.schema.fields.mapToArray { col ->
                     when (col) {
-                        is FieldDef.Mutable -> ManagedProperty(dao, col as FieldDef.Mutable<SCH, Any?>, primaryKey, Unset)
+                        is FieldDef.Mutable -> ManagedProperty(dao, col as FieldDef.Mutable<SCH, Any?>, /* todo: */ col.name, primaryKey, Unset)
                         is FieldDef.Immutable -> Unset
                     }
                 }
@@ -248,7 +253,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             val value = values[index]
 
             if (value === Unset) {
-                val freshValue = dao.getClean(field, primaryKey)
+                val freshValue = dao.getClean(field, /*TODO*/ field.name, primaryKey)
                 values[index] = freshValue
                 freshValue
             } else  value as T

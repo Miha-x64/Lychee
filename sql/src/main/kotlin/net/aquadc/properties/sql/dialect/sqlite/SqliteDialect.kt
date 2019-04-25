@@ -65,9 +65,9 @@ object SqliteDialect : Dialect {
         setLength(length - 2)
     }
 
-    override fun <SCH : Schema<SCH>> updateFieldQuery(table: Table<SCH, *, *>, col: FieldDef<SCH, *>): String =
+    override fun <SCH : Schema<SCH>> updateFieldQuery(table: Table<SCH, *, *>, colName: String): String =
             StringBuilder("UPDATE ").appendName(table.name)
-                    .append(" SET ").appendName(col.name).append(" = ? WHERE ").appendName(table.idColName).append(" = ?;")
+                    .append(" SET ").appendName(colName).append(" = ? WHERE ").appendName(table.idColName).append(" = ?;")
                     .toString()
 
     override fun deleteRecordQuery(table: Table<*, *, *>): String =

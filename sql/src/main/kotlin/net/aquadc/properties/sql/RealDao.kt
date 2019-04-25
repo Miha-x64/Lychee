@@ -35,12 +35,13 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     // SELECT _id WHERE ...
     private val selections = ConcurrentHashMap<ConditionAndOrder<SCH>, WeakReference<Property<List<REC>>>>()
     // same items here, but in different format
-    private val selectionsByOrder = ConcurrentHashMap<FieldDef<SCH, *>, CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>>()
+    private val selectionsByOrder = ConcurrentHashMap<@ParameterName("columnName") String, CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>>()
 
     @Suppress("UNCHECKED_CAST")
-    internal fun <T> commitValue(id: ID, column: FieldDef.Mutable<SCH, T>, value: T) {
+    internal fun <T> commitValue(id: ID, colName: String, value: T) {
         recordRefs.getWeakOrRemove(id)?.let { rec ->
-            (rec.values[column.ordinal.toInt()] as ManagedProperty<SCH, Transaction, T, ID>).commit(value)
+            val ord = table.schema.fieldsByName[colName]!!.ordinal.toInt() // TODO
+            (rec.values[ord] as ManagedProperty<SCH, Transaction, T, ID>).commit(value)
         }
     }
 
@@ -67,8 +68,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         for (i in defs.indices) {
             when (defs[i]) {
                 is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *, *>).dropManagement()
-                is FieldDef.Immutable -> { /* no-op */
-                }
+                is FieldDef.Immutable -> { /* no-op */ }
             }.also { }
         }
     }
@@ -83,7 +83,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
     }
 
-    internal fun onOrderChange(affectedCols: List<Pair<Table<SCH, *, *>, FieldDef<SCH, *>>>) {
+    internal fun onOrderChange(affectedCols: List<Pair<Table<SCH, *, *>, String>>) {
         affectedCols.forEach { (_, col) ->
             selectionsByOrder[col]?.iterateWeakOrRemove(::updateSelection)
         }
@@ -172,7 +172,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
             ref = r
             prop = p
         }
-        order.forEach { selectionsByOrder.getOrPut(it.col, ::CopyOnWriteArraySet).add(ref) }
+        order.forEach { selectionsByOrder.getOrPut(/* TODO: */ it.col.name, ::CopyOnWriteArraySet).add(ref) }
         return prop
     }
 
@@ -185,10 +185,10 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     // region Manager implementation
 
-    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T {
+    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID): T {
         val transaction = lowSession.transaction ?: return unset()
 
-        val thisCol = transaction.updated?.getFor(table, field) ?: return unset()
+        val thisCol = transaction.updated?.getFor(table, fieldName) ?: return unset()
         // we've created this column, we can cast it to original type
 
         return if (thisCol.containsKey(id)) thisCol[id] as T else unset()
@@ -196,12 +196,12 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T {
+    override fun <T> getClean(field: FieldDef<SCH, T>, fieldName: String, id: ID): T {
         val condition = lowSession.reusableCond(table, table.idColName, id)
-        return lowSession.fetchSingle(field, table, condition)
+        return lowSession.fetchSingle(field, fieldName, table, condition)
     }
 
-    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, id: ID, update: T) {
+    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact) {
             if (ourTransact === null)
@@ -211,13 +211,13 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
         ourTransact.checkOpenAndThread()
 
-        val dirty = getDirty(field, id)
-        val cleanEquals = dirty === Unset && getClean(field, id) === update
+        val dirty = getDirty(field, fieldName, id)
+        val cleanEquals = dirty === Unset && getClean(field, fieldName, id) === update
         if (dirty === update || cleanEquals) {
             return
         }
 
-        transaction.update(table, id, field, update)
+        transaction.update(table, id, field, fieldName, update)
     }
 
     // endregion Manager implementation

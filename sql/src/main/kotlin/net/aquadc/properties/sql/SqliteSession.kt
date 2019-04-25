@@ -40,7 +40,7 @@ class SqliteSession(
     private var transaction: RealTransaction? = null
 //    private val selectStatements = ThreadLocal<MutableMap<String, SQLiteStatement>>()
     private val replaceStatements = New.map<Table<*, *, *>, SQLiteStatement>()
-    private val updateStatements = New.map<Pair<Table<*, *, *>, FieldDef<*, *>>, SQLiteStatement>()
+    private val updateStatements = New.map<Pair<Table<*, *, *>, @ParameterName("colName") String>, SQLiteStatement>()
     private val deleteStatements = New.map<Table<*, *, *>, SQLiteStatement>()
 
     private val lowLevel = object : LowLevelSession {
@@ -72,13 +72,13 @@ class SqliteSession(
             return id as ID
         }
 
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, col: FieldDef<SCH, *>): SQLiteStatement =
-                updateStatements.getOrPut(Pair(table, col)) {
-                    connection.compileStatement(SqliteDialect.updateFieldQuery(table, col))
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, colName: String): SQLiteStatement =
+                updateStatements.getOrPut(Pair(table, colName)) {
+                    connection.compileStatement(SqliteDialect.updateFieldQuery(table, colName))
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, value: T) {
-            val statement = updateStatementWLocked(table, column)
+        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, columnName: String, value: T) {
+            val statement = updateStatementWLocked(table, columnName)
             column.type.bind(statement, 0, value)
             table.idColType.bind(statement, 1, id)
             check(statement.executeUpdateDelete() == 1)
@@ -160,9 +160,9 @@ class SqliteSession(
         }
 
         override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
-                column: FieldDef<SCH, T>, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+                column: FieldDef<SCH, T>, columnName: String, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
         ): T =
-                select(column.name, table, condition, NoOrder).fetchSingle(column.type)
+                select(columnName, table, condition, NoOrder).fetchSingle(column.type)
 
         override fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>

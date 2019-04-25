@@ -49,7 +49,7 @@ internal class RealTransaction(
         for (i in fields.indices) {
             val field = fields[i]
             when (field) {
-                is FieldDef.Mutable -> updated.put(table, field as FieldDef<SCH, Any?>, data[field], id)
+                is FieldDef.Mutable -> updated.put(table, /* todo */ field.name, data[field], id)
                 is FieldDef.Immutable -> { }
             }.also { }
         }
@@ -58,14 +58,14 @@ internal class RealTransaction(
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, value: T
+            table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, columnName: String, value: T
     ) {
         checkOpenAndThread()
 
-        lowSession.update(table, id, column, value)
+        lowSession.update(table, id, column, columnName, value)
 
         (updated ?: UpdatesMap().also { updated = it })
-                .getOrPut(table to column, New::map)
+                .getOrPut(table to columnName, New::map)
                 .put(id, value)
     }
 
@@ -130,9 +130,9 @@ internal class RealTransaction(
         // value changes
         val upd = updated
         upd?.forEach { (tblToCol, idToVal) ->
-            val (table, col) = tblToCol
+            val (table, colName) = tblToCol
             idToVal.forEach { (id, value) ->
-                lowSession.daos[table]?.erased?.commitValue(id, col.erased, value)
+                lowSession.daos[table]?.erased?.commitValue(id, colName, value)
             }
         }
 
@@ -148,7 +148,7 @@ internal class RealTransaction(
                     val updatedInTable = upd.keys.filter { it.first == table }
                     if (updatedInTable.isNotEmpty()) {
                         @Suppress("UPPER_BOUND_VIOLATED")
-                        dao.erased.onOrderChange(updatedInTable as List<Pair<Table<Any, *, *>, FieldDef<Any, *>>>)
+                        dao.erased.onOrderChange(updatedInTable as List<Pair<Table<Any, *, *>, String>>)
                     }
                 }
 
