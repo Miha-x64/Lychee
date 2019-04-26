@@ -165,7 +165,7 @@ val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
 abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         val schema: SCH,
         val name: String,
-        val idColType: DataType<ID>,
+        val idColType: DataType.Simple<ID>,
         val idColName: String
 // TODO: [unique] indices
 // TODO: a way to declare embedded structs, foreign & join columns
@@ -192,7 +192,7 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
         schema: SCH,
         name: String,
-        idColType: DataType<ID>,
+        idColType: DataType.Simple<ID>,
         idColName: String
 ) : Table<SCH, ID, Record<SCH, ID>>(schema, name, idColType, idColName) {
 

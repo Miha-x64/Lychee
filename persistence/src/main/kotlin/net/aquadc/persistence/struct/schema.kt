@@ -153,6 +153,14 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 }
 
 /**
+ * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
+ */
+abstract class Lens<SCH : Schema<SCH>, T>(
+        @JvmField val name: String,
+        @JvmField val type: DataType<T>
+) : (PartialStruct<SCH>) -> T
+
+/**
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
  * When treated as a function, returns value of this [FieldDef] on a given [Struct].
  * Note: constructors are internal to guarantee correct [ordinal] values.
@@ -163,11 +171,11 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
  */
 sealed class FieldDef<SCH : Schema<SCH>, T>(
         @JvmField val schema: Schema<SCH>,
-        @JvmField val name: String,
-        @JvmField val type: DataType<T>,
+        name: String,
+        type: DataType<T>,
         @JvmField val ordinal: Byte,
         default: T
-) : (Struct<SCH>) -> T {
+) : Lens<SCH, T>(name, type) {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
@@ -181,7 +189,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset
 
-    override fun invoke(p1: Struct<SCH>): T =
+    override fun invoke(p1: PartialStruct<SCH>): T =
             p1[this]
 
     override fun toString(): String = schema.javaClass.simpleName + '.' + name + '@' + ordinal + " (" + when (this) {
