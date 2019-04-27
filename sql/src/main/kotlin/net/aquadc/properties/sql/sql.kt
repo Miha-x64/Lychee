@@ -169,15 +169,25 @@ internal typealias Column = Any // Lens<SCH, *> | Pair<String, DataType>
  * @param ID  primary key type
  * @param REC type of record, which can be simply `Record<SCH>` or a custom class extending [Record]
  */
-abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
+abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
+private constructor(
         val schema: SCH,
         val name: String,
         val idColType: DataType.Simple<ID>,
-        val idColName: String
+        val idColName: String,
+        val pkField: FieldDef<SCH, ID>?
 // TODO: [unique] indices
 // TODO: a way to declare embedded structs, foreign & join columns
 // TODO: maybe a way to declare an immutable field as a primary key
 ) {
+
+    @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
+            ReplaceWith("Table(schema, name, idColName, idColType)"))
+    constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) :
+            this(schema, name, idColType, idColName, null)
+
+    constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) :
+            this(schema, name, idColType, idColName, null)
 
     /**
      * Instantiates a record. Typically consists of a single constructor call.
@@ -272,12 +282,13 @@ internal val nullableLong = nullable(long)
 /**
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
  */
-open class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
-        schema: SCH,
-        name: String,
-        idColType: DataType.Simple<ID>,
-        idColName: String
-) : Table<SCH, ID, Record<SCH, ID>>(schema, name, idColType, idColName) {
+open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<SCH, ID>> {
+
+    @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
+            ReplaceWith("SimpleTable(schema, name, idColName, idColType)"))
+    constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) : super(schema, name, idColName, idColType)
+
+    constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) : super(schema, name, idColName, idColType)
 
     override fun newRecord(session: Session, primaryKey: ID): Record<SCH, ID> =
             Record(this, session, primaryKey)

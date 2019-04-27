@@ -32,7 +32,7 @@ class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, ses
         val Name = "name" mut string
         val Surname = "surname" let string
     }
-    object Tbl : Table<Sch, Long, Human>(Sch, "people", long, "_id") {
+    object Tbl : Table<Sch, Long, Human>(Sch, "people", "_id", long) {
         override fun newRecord(session: Session, primaryKey: Long): Human = Human(session, primaryKey)
     }
 }
@@ -52,7 +52,7 @@ class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) 
         val OwnerId = "owner_id" mut long
         val ConditionerModel = "conditioner_model".mut(nullable(string), default = null)
     }
-    object Tbl : Table<Sch, Long, Car>(Sch, "cars", long, "_id") {
+    object Tbl : Table<Sch, Long, Car>(Sch, "cars", "_id", long) {
         override fun newRecord(session: Session, primaryKey: Long): Car = Car(session, primaryKey)
     }
 }
@@ -74,7 +74,7 @@ class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Tbl,
         val LeftId = "left" mut long
         val RightId = "right" mut long
     }
-    object Tbl : Table<Sch, Long, Friendship>(Sch, "friends", long, "_id") {
+    object Tbl : Table<Sch, Long, Friendship>(Sch, "friends", "_id", long) {
         override fun newRecord(session: Session, primaryKey: Long): Friendship = Friendship(session, primaryKey)
     }
 }

@@ -6,7 +6,7 @@ import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import java.sql.DriverManager
 
 
-val SomeTable = SimpleTable<SomeSchema, Long>(SomeSchema, "some_table", long, "_id")
+val SomeTable = SimpleTable(SomeSchema, "some_table", "_id", long)
 
 val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
     val stmt = conn.createStatement()

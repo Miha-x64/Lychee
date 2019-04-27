@@ -23,7 +23,7 @@ class Relations {
                         ShallowSchema.A to null,
                         ShallowSchema.B to null
                 ),
-                SimpleTable(ShallowSchema, "zzz", long, "_id").columns
+                SimpleTable(ShallowSchema, "zzz", "_id", long).columns
         )
     }
 
@@ -33,10 +33,10 @@ class Relations {
     }
     @Test(expected = NoSuchElementException::class)
     fun `rels required`() {
-        SimpleTable(EmbedSchema, "zzz", long, "_id").columns
+        SimpleTable(EmbedSchema, "zzz", "_id", long).columns
     }
     @Test fun `embed struct`() {
-        val cols = object : SimpleTable<EmbedSchema, Long>(EmbedSchema, "zzz", long, "_id") {
+        val cols = object : SimpleTable<EmbedSchema, Long>(EmbedSchema, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedSchema, Lens<EmbedSchema, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedSchema.B)
             )
@@ -62,14 +62,14 @@ class Relations {
     }
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for partial`() {
-        object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", long, "_id") {
+        object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedPartial, Lens<EmbedPartial, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedPartial.B)
             )
         }.columns
     }
     @Test fun `embed partial`() {
-        val cols = object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", long, "_id") {
+        val cols = object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedPartial, Lens<EmbedPartial, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedPartial.B, "fieldsSet")
             )
@@ -96,14 +96,14 @@ class Relations {
     }
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for nullable`() {
-        object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", long, "_id") {
+        object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedNullable, Lens<EmbedNullable, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedNullable.B)
             )
         }.columns
     }
     @Test fun `embed nullable`() {
-        val cols = object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", long, "_id") {
+        val cols = object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedNullable, Lens<EmbedNullable, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedNullable.B, "nullability")
             )
@@ -130,14 +130,14 @@ class Relations {
     }
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for partial nullable`() {
-        object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", long, "_id") {
+        object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedNullablePartial, Lens<EmbedNullablePartial, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedNullablePartial.B)
             )
         }.columns
     }
     @Test fun `embed nullable partial`() {
-        val cols = object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", long, "_id") {
+        val cols = object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", "_id", long) {
             override fun relations(): List<Relation<EmbedNullablePartial, Lens<EmbedNullablePartial, *>>> = listOf(
                     Relation.Embedded(SnakeLensFactory, EmbedNullablePartial.B, "fieldSetAndNullability")
             )
