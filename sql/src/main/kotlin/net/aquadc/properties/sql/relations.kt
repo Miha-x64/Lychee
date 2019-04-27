@@ -1,25 +1,10 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.type.DataType
 
-
-interface LensFactory {
-
-    fun concatNames(outer: String, nested: String): String
-
-    operator fun <TS : Schema<TS>, US : Schema<US>, T : PartialStruct<US>, U> Lens<TS, T>.div(
-            nested: Lens<US, U>
-    ): Lens<TS, U> =
-            object : Lens<TS, U>(concatNames(this.name, nested.name), nested.type) {
-                override fun invoke(p1: PartialStruct<TS>): U =
-                        nested(this@div(p1))
-            }
-
-}
 
 /**
  * Describes which way a value of [DataType.Partial] of [Struct]/[Schema] type should be persisted in a relational database.

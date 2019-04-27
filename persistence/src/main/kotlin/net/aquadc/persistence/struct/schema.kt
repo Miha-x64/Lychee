@@ -154,11 +154,45 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
+ * Implements [hashCode], [equals] and [toString] as a normal list
  */
 abstract class Lens<SCH : Schema<SCH>, T>(
         @JvmField val name: String,
         @JvmField val type: DataType<T>
-) : (PartialStruct<SCH>) -> T
+) : (PartialStruct<SCH>) -> T {
+
+    abstract val size: Int
+    abstract operator fun get(index: Int): FieldDef<*, *>
+
+    // copy-paste of orderedHashCode + orderedEquals from AbstractList
+    // note: this intentionally ignores [name] value
+
+    override fun hashCode(): Int {
+        var hashCode = 1
+        for (i in 0 until size) {
+            hashCode = 31 * hashCode + (this[i].hashCode())
+        }
+        return hashCode
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is Lens<*, *> || other.size != size) return false
+
+        for (i in 0 until size) {
+            if (this[i] != other[i]) return false
+        }
+        return true
+    }
+
+    override fun toString(): String = buildString {
+        append('[')
+        for (i in 0 until size)
+            append(this[i]).append(", ")
+        setLength(length - 2) // it's safe since there's no empty lenses
+        append(']')
+    }
+
+}
 
 /**
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
@@ -191,6 +225,17 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
 
     override fun invoke(p1: PartialStruct<SCH>): T =
             p1[this]
+
+    override val size: Int get() = 1
+
+    override fun get(index: Int): FieldDef<*, *> =
+            if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
+
+    override fun hashCode(): Int =
+            ordinal.toInt()
+
+    override fun equals(other: Any?): Boolean =
+            this === other
 
     override fun toString(): String = schema.javaClass.simpleName + '.' + name + '@' + ordinal + " (" + when (this) {
         is Mutable -> "mutable#$mutableOrdinal"
