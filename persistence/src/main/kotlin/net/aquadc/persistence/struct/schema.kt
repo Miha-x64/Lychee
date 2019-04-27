@@ -117,22 +117,19 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
                     }
                 }
 
-                val frozen = unmodifiableList(fields)
-                beforeFreeze(nameSet, frozen)
+                beforeFreeze(nameSet, fields)
                 tmpFields = null
-                frozen
+                fields
             }
 
             1 ->
-                unmodifiableMap<String, FieldDef<SELF, *>>(
-                        fields.associateByTo(New.map(fields.size), FieldDef<SELF, *>::name)
-                )
+                fields.associateByTo(New.map<String, FieldDef<SELF, *>>(fields.size), FieldDef<SELF, *>::name)
 
             2 ->
-                unmodifiableList(fields.filterIsInstance<FieldDef.Mutable<SELF, *>>())
+                fields.filterIsInstance<FieldDef.Mutable<SELF, *>>()
 
             3 ->
-                unmodifiableList(fields.filterIsInstance<FieldDef.Immutable<SELF, *>>())
+                fields.filterIsInstance<FieldDef.Immutable<SELF, *>>()
 
             else ->
                 throw AssertionError()
