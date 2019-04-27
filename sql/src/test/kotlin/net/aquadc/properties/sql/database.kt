@@ -33,7 +33,7 @@ val SomeDao = session[SomeTable]
 
 fun createTestRecord() =
         session.withTransaction {
-            insert(SomeTable, SomeSchema.build {
+            replace(SomeTable, SomeSchema.build {
                 it[A] = "first"
                 it[B] = 2
                 it[C] = 3

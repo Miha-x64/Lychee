@@ -132,7 +132,7 @@ class SqlPropTest {
 
     @Test fun pkAsField() {
         val rec = session.withTransaction {
-            insert(TableWithId, SchWithId.build {
+            replace(TableWithId, SchWithId.build {
                 it[Id] = 19
                 it[Value] = "zzz"
             })

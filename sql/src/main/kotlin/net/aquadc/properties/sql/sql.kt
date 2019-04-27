@@ -134,6 +134,7 @@ interface Transaction : AutoCloseable {
  * Insert or replace [data] in a [table].
  * An alias for [Transaction.replace] function.
  */
+@Deprecated("'insert' is implicit about its intentions, 'replace' is explicit", ReplaceWith("replace(table, data)"))
 inline fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> Transaction.insert(
         table: Table<SCH, ID, REC>, data: Struct<SCH>
 ): REC =
