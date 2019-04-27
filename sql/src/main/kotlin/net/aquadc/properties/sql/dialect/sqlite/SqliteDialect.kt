@@ -3,6 +3,7 @@ package net.aquadc.properties.sql.dialect.sqlite
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
@@ -89,10 +90,28 @@ object SqliteDialect : Dialect {
 
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-                .append(table.idColName).append(' ').appendNameOf(table.idColType).append(" PRIMARY KEY, ")
-        table.schema.fields.forEach { col ->
-            val type = col.type
-            sb.append(col.name).append(' ').appendNameOf(type)
+        table.columns.forEach { (col, rel) ->
+            val name: String
+            val type: DataType<*>
+            if (col is Lens<*, *>) {
+                name = col.name
+                type = col.type
+            } else if (col is Pair<*, *>) {
+                name = col.first as String
+                type = col.second as DataType<*>
+            } else {
+                throw AssertionError()
+            }
+
+            sb.appendName(name).append(' ').appendNameOf(type)
+            when (rel) {
+                Relation.PrimaryKey -> sb.append(" PRIMARY KEY")
+                is Relation.Embedded -> throw AssertionError("unexpected")
+                is Relation.ToOne<*, *, *> -> TODO()
+                is Relation.ToMany<*, *, *, *> -> TODO()
+                is Relation.ManyToMany<*, *, *> -> TODO()
+                null -> { /* ok */ }
+            }.also { }
 
             /* this is useless since we can store only a full struct with all fields filled:
             if (col.hasDefault) sb.appendDefault(col) */

@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.addUnconfinedChangeListener
@@ -126,6 +127,18 @@ class SqlPropTest {
         session.withTransaction {
             delete(originalRec)
         }
+    }
+
+
+    @Test fun pkAsField() {
+        val rec = session.withTransaction {
+            insert(TableWithId, SchWithId.build {
+                it[Id] = 19
+                it[Value] = "zzz"
+            })
+        }
+        assertEquals(19L, rec.primaryKey)
+        assertEquals(19L, rec[SchWithId.Id])
     }
 
 }

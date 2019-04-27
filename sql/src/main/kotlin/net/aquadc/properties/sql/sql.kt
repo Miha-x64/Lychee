@@ -173,9 +173,9 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
 private constructor(
         val schema: SCH,
         val name: String,
-        val idColType: DataType.Simple<ID>,
         val idColName: String,
-        val pkField: FieldDef<SCH, ID>?
+        val idColType: DataType.Simple<ID>,
+        val pkField: FieldDef.Immutable<SCH, ID>?
 // TODO: [unique] indices
 // TODO: a way to declare embedded structs, foreign & join columns
 // TODO: maybe a way to declare an immutable field as a primary key
@@ -184,10 +184,15 @@ private constructor(
     @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
             ReplaceWith("Table(schema, name, idColName, idColType)"))
     constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) :
-            this(schema, name, idColType, idColName, null)
+            this(schema, name, idColName, idColType, null)
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) :
-            this(schema, name, idColType, idColName, null)
+            this(schema, name, idColName, idColType, null)
+
+    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID>) :
+            this(schema, name, idCol.name, idCol.type as? DataType.Simple<ID>
+                    ?: throw IllegalArgumentException("PK column must have simple type"),
+                    idCol)
 
     /**
      * Instantiates a record. Typically consists of a single constructor call.
@@ -195,7 +200,9 @@ private constructor(
     abstract fun newRecord(session: Session, primaryKey: ID): REC
 
     init {
-        check(schema.fields.all { idColName != it.name }) { "duplicate column: `$name`.`$idColName`" }
+        check(pkField != null || schema.fields.all { idColName != it.name }) {
+            "duplicate column: `$name`.`$idColName`"
+        }
     }
 
     /**
@@ -209,7 +216,7 @@ private constructor(
             rels.associateByTo(New.map<Lens<*, *>, Relation<SCH, *>>(rels.size), Relation<SCH, Lens<SCH, *>>::path)
         }
         val columns = ArrayList<Pair<Column, Relation<SCH, *>?>>(/* at least */ rels.size + 1)
-        columns.add(Pair(Pair(idColName, idColType), Relation.PrimaryKey as Relation<SCH, *>))
+        if (pkField == null) columns.add(Pair(Pair(idColName, idColType), Relation.PrimaryKey as Relation<SCH, *>))
         embed(rels, schema, null, null, columns)
 
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
@@ -289,6 +296,8 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
     constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) : super(schema, name, idColName, idColType)
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) : super(schema, name, idColName, idColType)
+
+    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID>) : super(schema, name, idCol)
 
     override fun newRecord(session: Session, primaryKey: ID): Record<SCH, ID> =
             Record(this, session, primaryKey)

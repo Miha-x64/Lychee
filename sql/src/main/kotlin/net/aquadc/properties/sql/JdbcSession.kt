@@ -6,7 +6,11 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.type.long
-import java.sql.*
+import java.sql.Connection
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.Statement
+import java.sql.Types
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.collections.ArrayList
@@ -66,8 +70,11 @@ class JdbcSession(
                 field.type.erased.bind(statement, i, data[field])
             }
             check(statement.executeUpdate() == 1)
-            val keys = statement.generatedKeys
-            return keys.fetchSingle(table.idColType)
+            return table.pkField?.let {
+                // this ugly workaround helps getting primary key
+                // while using crappy SQLite driver with no support for returning them
+                data[it]
+            } ?: statement.generatedKeys.fetchSingle(table.idColType)
         }
 
         private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, colName: String): PreparedStatement =
