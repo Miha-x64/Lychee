@@ -154,12 +154,12 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
- * Implements [hashCode], [equals] and [toString] as a normal list
+ * Implements [hashCode] and [equals]
  */
 abstract class Lens<SCH : Schema<SCH>, T>(
         @JvmField val name: String,
         @JvmField val type: DataType<T>
-) : (PartialStruct<SCH>) -> T {
+) /*: (PartialStruct<SCH>) -> T*/ {
 
     abstract val size: Int
     abstract operator fun get(index: Int): FieldDef<*, *>
@@ -185,11 +185,9 @@ abstract class Lens<SCH : Schema<SCH>, T>(
     }
 
     override fun toString(): String = buildString {
-        append('[')
         for (i in 0 until size)
-            append(this[i]).append(", ")
-        setLength(length - 2) // it's safe since there's no empty lenses
-        append(']')
+            append(this@Lens[i]).append('.')
+        setLength(length - 1) // it's safe since there's no empty lenses
     }
 
 }
@@ -209,7 +207,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
         type: DataType<T>,
         @JvmField val ordinal: Byte,
         default: T
-) : Lens<SCH, T>(name, type) {
+) : Lens<SCH, T>(name, type), (PartialStruct<SCH>) -> T {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }

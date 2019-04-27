@@ -9,7 +9,7 @@ import net.aquadc.persistence.struct.Schema
 /**
  * A lens to field of a nested struct.
  */
-class Telescope<TS : Schema<TS>, US : Schema<US>, T : PartialStruct<US>, U>(
+class Telescope<TS : Schema<TS>, US : Schema<US>, T : PartialStruct<US>?, U>(
         name: String,
         private val outer: Lens<TS, T>,
         private val nested: Lens<US, U>
@@ -22,8 +22,8 @@ class Telescope<TS : Schema<TS>, US : Schema<US>, T : PartialStruct<US>, U>(
         return if (index < outerSize) outer[index] else nested[index - outerSize]
     }
 
-    override fun invoke(p1: PartialStruct<TS>): U =
-            nested(outer(p1))
+    /*override fun invoke(p1: PartialStruct<TS>): U =
+            nested(outer(p1))*/
 
 }
 

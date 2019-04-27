@@ -1,12 +1,17 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.nullable
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
@@ -156,6 +161,8 @@ val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
     get() = Order(this, true)
 
 
+internal typealias Column = Any // Lens<SCH, *> | Pair<String, DataType>
+
 /**
  * Represents a table, i. e. defines structs which can be persisted in a database.
  * @param SCH self, i. e. this table
@@ -181,15 +188,91 @@ abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         check(schema.fields.all { idColName != it.name }) { "duplicate column: `$name`.`$idColName`" }
     }
 
+    /**
+     * Returns a list of all relations for this table.
+     * This must describe how to store all [Struct] columns relationally.
+     */
+    protected open fun relations(): List<Relation<SCH, Lens<SCH, *>>> = emptyList()
+
+    private val _columns = lazy {
+        val rels = relations().let { rels ->
+            rels.associateByTo(New.map<Lens<*, *>, Relation<SCH, *>>(rels.size), Relation<SCH, Lens<SCH, *>>::path)
+        }
+        val columns = ArrayList<Pair<Column, Relation<SCH, *>?>>(/* at least */ rels.size + 1)
+        columns.add(Pair(Pair(idColName, idColType), Relation.PrimaryKey as Relation<SCH, *>))
+        embed(rels, schema, null, null, columns)
+
+        if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
+
+        columns
+    }
+
+    @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
+    private fun embed(
+            rels: MutableMap<Lens<*, *>, Relation<SCH, *>>, schema: Schema<*>,
+            factory: LensFactory?, prefix: Lens<SCH, PartialStruct<Schema<*>>>?,
+            outColumns: ArrayList<Pair<Column, Relation<SCH, *>?>>
+    ) {
+        schema.fields.forEach { field ->
+            val keyLens =
+                    if (prefix == null/* implies factory == null*/) field as FieldDef<SCH, *>
+                    else /* implies factory != null */ with(factory!!) {
+                        prefix.div<SCH, Schema<*>, PartialStruct<Schema<*>>, Any?>((field as FieldDef<Schema<*>, Any?>))
+                    }
+
+            val type = field.type
+            val relSchema = if (type is DataType.Partial<*, *>) {
+                type.schema
+            } else if (type is DataType.Nullable<*>) {
+                val actualType = type.actualType
+                if (actualType is DataType.Partial<*, *>) actualType.schema else null
+            } else {
+                null
+            }
+
+            if (relSchema != null) {
+                // got a struct type, must have a relation declared
+                val rel = rels.remove(keyLens)
+                        ?: throw NoSuchElementException("a Relation must be declared for table $name, path $keyLens")
+
+                when (rel) {
+                    is Relation.PrimaryKey -> error("Relation.PrimaryKey must not be used directly")
+                    is Relation.Embedded<*> -> {
+                        if (rel.fieldSetColName != null) {
+                            outColumns.add(
+                                    Pair(Pair(
+                                            rel.fieldSetColName,
+                                            if (rel.path.type is DataType.Nullable) nullableLong else long
+                                    ), null)
+                            )
+                        }
+                        embed(rels, relSchema, rel.factory, rel.path as Lens<SCH, PartialStruct<Schema<*>>> /* assert it has struct type */, outColumns)
+                    }
+                    is Relation.ToOne<*, *, *> -> TODO()
+                    is Relation.ToMany<*, *, *, *> -> TODO()
+                    is Relation.ManyToMany<*, *, *> -> TODO()
+                }.also { }
+            } else {
+                outColumns.add(Pair(keyLens, null))
+            }
+        }
+    }
+
+    val columns: List<Pair<Column, Relation<SCH, *>?>>
+        get() = _columns.value
+
     override fun toString(): String =
-            "Table(schema=$schema, name=$name, ${1+schema.fields.size} columns)"
+            "Table(schema=$schema, name=$name, ${columns.size} columns)"
 
 }
+
+// equals() is not implemented for nullable() but required for tests, let's use the same instance
+internal val nullableLong = nullable(long)
 
 /**
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
  */
-class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
+open class SimpleTable<SCH : Schema<SCH>, ID : IdBound>(
         schema: SCH,
         name: String,
         idColType: DataType.Simple<ID>,

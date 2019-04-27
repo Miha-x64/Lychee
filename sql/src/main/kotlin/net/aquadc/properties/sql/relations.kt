@@ -9,14 +9,20 @@ import net.aquadc.persistence.type.DataType
 /**
  * Describes which way a value of [DataType.Partial] of [Struct]/[Schema] type should be persisted in a relational database.
  */
-sealed class Relation {
+sealed class Relation<S : Schema<S>, P : Lens<S, *>?>(
+        @JvmField val path: P
+) {
+
+    /**
+     * A special marker for primary key. Should not be used directly.
+     */
+    object PrimaryKey : Relation<Nothing, Nothing?>(null)
 
     /**
      * Embed a (Partial)[Struct] of type [NS] into current table.
      * @param S outer [Schema]
-     * @param NS nested [Schema]
      */
-    class Embedded<S : Schema<S>, NS : Schema<NS>> : Relation {
+    class Embedded<S : Schema<S>> : Relation<S, Lens<S, *>> {
 
         /**
          * @param factory which will concat names
@@ -33,21 +39,28 @@ sealed class Relation {
         constructor(factory: LensFactory, path: Lens<S, *>) :
                 this(factory, path, null, null)
 
-        private constructor(factory: LensFactory, path: Lens<S, *>, fieldSetColName: String?, dummy: Nothing?) {
-            when (path.type) {
-                is Schema<*> -> check(fieldSetColName == null) {
-                    "either use partial type of call another constructor(factory, path)"
+        val factory: LensFactory
+        val fieldSetColName: String?
+
+        private constructor(factory: LensFactory, path: Lens<S, *>, fieldSetColName: String?, dummy: Nothing?) : super(path) {
+            val t = path.type
+            val unwrapped = if (t is DataType.Nullable) t.actualType else t
+            when {
+                t is DataType.Nullable<*> -> if (fieldSetColName == null) throw NoSuchElementException(
+                        "either use full (non-partial, non-nullable) type or call another constructor(factory, path, fieldSetColName)"
+                )
+                unwrapped is Schema<*> -> check(fieldSetColName == null) {
+                    "either use partial/nullable type of call another constructor(factory, path)"
                 }
-                is DataType.Partial<*, *> -> check(fieldSetColName != null) {
-                    "either use full (non-partial) type or call another constructor(factory, path, fieldSetColName)"
-                }
-                else -> error("only fields of Struct types can be used with such relations")
+                unwrapped is DataType.Partial<*, *> -> if (fieldSetColName == null) throw NoSuchElementException(
+                        "either use full (non-partial, non-nullable) type or call another constructor(factory, path, fieldSetColName)"
+                )
+                else ->
+                    error("only fields of Struct types can be used with such relations, got $unwrapped at $path")
             }
 
-            /*val schema = (path.type as DataType.Partial<*, *>).schema as NS
-            val nestedFields = schema.fields.map {
-                factory.concatNames(path.name, it.name)
-            }*/
+            this.factory = factory
+            this.fieldSetColName = fieldSetColName
         }
 
     }
@@ -59,7 +72,7 @@ sealed class Relation {
      */
     class ToOne<S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>>(
             path: Lens<S, *>, foreignTable: Table<FS, *, FR>
-    ) : Relation() {
+    ) : Relation<S, Lens<S, *>>(path) {
         init {
             checkToOne(path, foreignTable)
         }
@@ -72,8 +85,9 @@ sealed class Relation {
      * @param FS foreign schema
      * @param FR foreign record
      */
-    class ToMany<S : Schema<S>, SR : Record<S, *>, FS : Schema<FS>, FR : Record<FS, *>>
-    private constructor(ourTable: Table<S, *, SR>, path: Lens<S, *>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, *>) : Relation() {
+    class ToMany<S : Schema<S>, SR : Record<S, *>, FS : Schema<FS>, FR : Record<FS, *>> private constructor(
+            ourTable: Table<S, *, SR>, path: Lens<S, *>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, *>
+    ) : Relation<S, Lens<S, *>>(path) {
         init {
             checkToMany(path, foreignTable)
             checkToOne(joinColumn, ourTable) // ToMany is actually many ToOnes
@@ -88,7 +102,7 @@ sealed class Relation {
 
     class ManyToMany<S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>>(
             path: Lens<S, *>, foreignTable: Table<FS, *, FR>, joinTable: JoinTable
-    ) : Relation() {
+    ) : Relation<S, Lens<S, *>>(path) {
         init {
             checkToMany(path, foreignTable)
         }
@@ -134,7 +148,7 @@ private fun <S : Schema<S>, F : Schema<F>, R : Record<F, *>> checkToOne(path: Le
     val type = path.type
     val realType = if (type is DataType.Nullable<*>) type.actualType else type
     check(realType is Schema<*>) {
-        "only fields of Struct types can be used with such relations"
+        "only fields of Struct types can be used with such relations, got $realType at $path"
     }
     check(realType.schema.javaClass == foreignTable.schema.javaClass) {
         "type of this field and Schema of referenced table must be compatible"
