@@ -27,6 +27,20 @@ class Relations {
         )
     }
 
+    // primary key
+
+    @Test fun `with id`() {
+        assertEquals(
+                listOf(
+                        SchWithId.Id to Relation.PrimaryKey,
+                        SchWithId.Value to null
+                ),
+                TableWithId.columns
+        )
+    }
+
+    // embedded
+
     object EmbedSchema : Schema<EmbedSchema>() {
         val A = "a" let string
         val B = "b" let ShallowSchema

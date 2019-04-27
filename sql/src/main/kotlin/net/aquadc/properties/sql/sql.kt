@@ -271,7 +271,10 @@ private constructor(
                     is Relation.ManyToMany<*, *, *> -> TODO()
                 }.also { }
             } else {
-                outColumns.add(Pair(keyLens, null))
+                outColumns.add(Pair(keyLens,
+                        if (keyLens === pkField) Relation.PrimaryKey as Relation<SCH, *> // say SQL Dialect this is a PK
+                        else null
+                ))
             }
         }
     }

@@ -70,11 +70,7 @@ class JdbcSession(
                 field.type.erased.bind(statement, i, data[field])
             }
             check(statement.executeUpdate() == 1)
-            return table.pkField?.let {
-                // this ugly workaround helps getting primary key
-                // while using crappy SQLite driver with no support for returning them
-                data[it]
-            } ?: statement.generatedKeys.fetchSingle(table.idColType)
+            return statement.generatedKeys.fetchSingle(table.idColType)
         }
 
         private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, colName: String): PreparedStatement =
