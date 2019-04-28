@@ -9,6 +9,7 @@ import net.aquadc.persistence.type.long
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Types
 import java.util.concurrent.ConcurrentHashMap
@@ -42,7 +43,7 @@ class JdbcSession(
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
-    private val replaceStatements = HashMap<Table<*, *, *>, PreparedStatement>()
+    private val insertStatements = HashMap<Table<*, *, *>, PreparedStatement>()
     private val updateStatements = HashMap<Pair<Table<*, *, *>, @ParameterName("columnName") String>, PreparedStatement>()
     private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
@@ -58,18 +59,23 @@ class JdbcSession(
         }
 
         private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): PreparedStatement =
-                replaceStatements.getOrPut(table) {
-                    connection.prepareStatement(dialect.replace(table, table.schema.fields), Statement.RETURN_GENERATED_KEYS)
+                insertStatements.getOrPut(table) {
+                    connection.prepareStatement(dialect.insert(table, table.schema.fields), Statement.RETURN_GENERATED_KEYS)
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val statement = insertStatementWLocked(table)
             val fields = table.schema.fields
             for (i in fields.indices) {
                 val field = fields[i]
                 field.type.erased.bind(statement, i, data[field])
             }
-            check(statement.executeUpdate() == 1)
+            try {
+                check(statement.executeUpdate() == 1)
+            } catch (e: SQLException) {
+                insertStatements.remove(table)!!.close() // poisoned statement
+                throw e
+            }
             return statement.generatedKeys.fetchSingle(table.idColType)
         }
 
@@ -227,7 +233,7 @@ class JdbcSession(
         }
 
         arrayOf(
-                "replace statements" to replaceStatements,
+                "insert statements" to insertStatements,
                 "update statements" to updateStatements,
                 "delete statements" to deleteStatements
         ).forEach { (text, stmts) ->

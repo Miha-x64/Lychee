@@ -94,9 +94,13 @@ fun Dao<*, *, *>.count(): Property<Long> =
 interface Transaction : AutoCloseable {
 
     /**
-     * Insert or replace [data] in a [table].
+     * Insert [data] into a [table].
      */
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
+
+    @Deprecated("this cannot be done safely, with respect to mutability", ReplaceWith("insert(table, data)"))
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): Nothing =
+            throw UnsupportedOperationException()
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, columnName: String, value: T)
 
@@ -129,16 +133,6 @@ interface Transaction : AutoCloseable {
     }
 
 }
-
-/**
- * Insert or replace [data] in a [table].
- * An alias for [Transaction.replace] function.
- */
-@Deprecated("'insert' is implicit about its intentions, 'replace' is explicit", ReplaceWith("replace(table, data)"))
-inline fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> Transaction.insert(
-        table: Table<SCH, ID, REC>, data: Struct<SCH>
-): REC =
-        replace(table, data)
 
 class Order<SCH : Schema<SCH>>(
         @JvmField internal val col: FieldDef<SCH, *>,

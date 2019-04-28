@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Test
+import java.sql.SQLException
 
 
 class SqlPropTest {
@@ -132,13 +133,44 @@ class SqlPropTest {
 
     @Test fun pkAsField() {
         val rec = session.withTransaction {
-            replace(TableWithId, SchWithId.build {
+            insert(TableWithId, SchWithId.build {
                 it[Id] = 19
                 it[Value] = "zzz"
             })
         }
         assertEquals(19L, rec.primaryKey)
         assertEquals(19L, rec[SchWithId.Id])
+        assertEquals("zzz", rec[SchWithId.Value])
+    }
+
+    @Test(expected = SQLException::class)
+    fun `can't insert twice with the same PK in one transaction`() {
+        session.withTransaction {
+            insert(TableWithId, SchWithId.build {
+                it[Id] = 44
+                it[Value] = "yyy"
+            })
+            insert(TableWithId, SchWithId.build {
+                it[Id] = 44
+                it[Value] = "zzz"
+            })
+        }
+    }
+
+    @Test(expected = SQLException::class)
+    fun `can't insert twice with the same PK in different transactions`() {
+        session.withTransaction {
+            insert(TableWithId, SchWithId.build {
+                it[Id] = 44
+                it[Value] = "yyy"
+            })
+        }
+        session.withTransaction {
+            insert(TableWithId, SchWithId.build {
+                it[Id] = 44
+                it[Value] = "zzz"
+            })
+        }
     }
 
 }

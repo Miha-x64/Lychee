@@ -19,8 +19,8 @@ import java.io.DataOutputStream
  */
 object SqliteDialect : Dialect {
 
-    override fun <SCH : Schema<SCH>> replace(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String =
-            StringBuilder("REPLACE INTO ").appendName(table.name)
+    override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String =
+            StringBuilder("INSERT INTO ").appendName(table.name)
                     .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
                     .toString()
 

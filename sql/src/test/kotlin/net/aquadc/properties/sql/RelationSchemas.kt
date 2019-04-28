@@ -10,7 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 
-class Relations {
+class RelationSchemas {
 
     object ShallowSchema : Schema<ShallowSchema>() {
         val A = "a" let string

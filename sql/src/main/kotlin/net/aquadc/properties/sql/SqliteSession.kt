@@ -39,7 +39,7 @@ class SqliteSession(
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
 //    private val selectStatements = ThreadLocal<MutableMap<String, SQLiteStatement>>()
-    private val replaceStatements = New.map<Table<*, *, *>, SQLiteStatement>()
+    private val insertStatements = New.map<Table<*, *, *>, SQLiteStatement>()
     private val updateStatements = New.map<Pair<Table<*, *, *>, @ParameterName("colName") String>, SQLiteStatement>()
     private val deleteStatements = New.map<Table<*, *, *>, SQLiteStatement>()
 
@@ -56,11 +56,11 @@ class SqliteSession(
         }
 
         private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): SQLiteStatement =
-                replaceStatements.getOrPut(table) {
-                    connection.compileStatement(SqliteDialect.replace(table, table.schema.fields))
+                insertStatements.getOrPut(table) {
+                    connection.compileStatement(SqliteDialect.insert(table, table.schema.fields))
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val statement = insertStatementWLocked(table)
             val fields = table.schema.fields
             for (i in fields.indices) {
@@ -238,7 +238,7 @@ class SqliteSession(
         }*/
 
         arrayOf(
-                "replace statements" to replaceStatements,
+                "insert statements" to insertStatements,
                 "update statements" to updateStatements,
                 "delete statements" to deleteStatements
         ).forEach { (text, stmts) ->

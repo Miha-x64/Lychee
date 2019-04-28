@@ -12,7 +12,7 @@ interface Dialect {
     /**
      * Constructs a `REPLACE` (`INSERT OR REPLACE`) ` INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
      */
-    fun <SCH : Schema<SCH>> replace(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String
+    fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String
 
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
