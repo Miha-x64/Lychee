@@ -39,7 +39,17 @@ sealed class DataType<T> {
              * Wrapped non-nullable type.
              */
             val actualType: DataType<T>
-    ) : DataType<T?>()
+    ) : DataType<T?>() {
+
+        override fun hashCode(): Int =
+                actualType.hashCode() xor 0x55555555
+
+        // looks useless, but helps using assertEquals() in tests
+
+        override fun equals(other: Any?): Boolean =
+                other is Nullable<*> && actualType == other.actualType
+
+    }
 
     /**
      * A simple, non-composite (and thus easily composable) type.

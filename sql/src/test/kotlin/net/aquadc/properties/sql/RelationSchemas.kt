@@ -97,8 +97,8 @@ class RelationSchemas {
                         Pair("_id", long) to Relation.PrimaryKey,
                         EmbedPartial.A to null,
                         Pair("fieldsSet", long) to null,
-                        Telescope("", EmbedPartial.B, ShallowSchema.A) to null,
-                        Telescope("", EmbedPartial.B, ShallowSchema.B) to null
+                        Pair("b_a", nullable(ShallowSchema.A.type)) to null,
+                        Pair("b_b", nullable(ShallowSchema.B.type)) to null
                 ),
                 cols
         )
@@ -131,8 +131,8 @@ class RelationSchemas {
                         Pair("_id", long) to Relation.PrimaryKey,
                         EmbedNullable.A to null,
                         Pair("nullability", nullableLong) to null,
-                        Telescope("", EmbedNullable.B, ShallowSchema.A) to null,
-                        Telescope("", EmbedNullable.B, ShallowSchema.B) to null
+                        Pair("b_a", nullable(ShallowSchema.A.type)) to null,
+                        Pair("b_b", nullable(ShallowSchema.B.type)) to null
                 ),
                 cols
         )
@@ -165,8 +165,8 @@ class RelationSchemas {
                         Pair("_id", long) to Relation.PrimaryKey,
                         EmbedNullablePartial.A to null,
                         Pair("fieldSetAndNullability", nullableLong) to null,
-                        Telescope("", EmbedNullablePartial.B, ShallowSchema.A) to null,
-                        Telescope("", EmbedNullablePartial.B, ShallowSchema.B) to null
+                        Pair("b_a", nullable(ShallowSchema.A.type)) to null,
+                        Pair("b_b", nullable(ShallowSchema.B.type)) to null
                 ),
                 cols
         )

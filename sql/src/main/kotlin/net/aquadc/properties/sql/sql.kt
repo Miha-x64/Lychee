@@ -212,7 +212,7 @@ private constructor(
         }
         val columns = ArrayList<Pair<Column, Relation<SCH, *>?>>(/* at least */ rels.size + 1)
         if (pkField == null) columns.add(Pair(Pair(idColName, idColType), Relation.PrimaryKey as Relation<SCH, *>))
-        embed(rels, schema, null, null, columns)
+        embed(rels, schema, null, null, false, columns)
 
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
@@ -222,7 +222,7 @@ private constructor(
     @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
     private fun embed(
             rels: MutableMap<Lens<*, *>, Relation<SCH, *>>, schema: Schema<*>,
-            factory: LensFactory?, prefix: Lens<SCH, PartialStruct<Schema<*>>>?,
+            factory: LensFactory?, prefix: Lens<SCH, PartialStruct<Schema<*>>>?, nullize: Boolean,
             outColumns: ArrayList<Pair<Column, Relation<SCH, *>?>>
     ) {
         schema.fields.forEach { field ->
@@ -254,18 +254,23 @@ private constructor(
                             outColumns.add(
                                     Pair(Pair(
                                             rel.fieldSetColName,
-                                            if (rel.path.type is DataType.Nullable) nullableLong else long
+                                            if (nullize || rel.path.type is DataType.Nullable) nullableLong else long
                                     ), null)
                             )
                         }
-                        embed(rels, relSchema, rel.factory, rel.path as Lens<SCH, PartialStruct<Schema<*>>> /* assert it has struct type */, outColumns)
+                        embed(rels, relSchema, rel.factory,
+                                rel.path as Lens<SCH, PartialStruct<Schema<*>>> /* assert it has struct type */,
+                                nullize || rel.path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
+                                outColumns
+                        )
                     }
                     is Relation.ToOne<*, *, *> -> TODO()
                     is Relation.ToMany<*, *, *, *> -> TODO()
                     is Relation.ManyToMany<*, *, *> -> TODO()
                 }.also { }
             } else {
-                outColumns.add(Pair(keyLens,
+                outColumns.add(Pair(
+                        if (nullize && keyLens.type !is DataType.Nullable) keyLens.name to nullable(keyLens.type as DataType<Any>) else keyLens,
                         if (keyLens === pkField) Relation.PrimaryKey as Relation<SCH, *> // say SQL Dialect this is a PK
                         else null
                 ))
@@ -281,7 +286,7 @@ private constructor(
 
 }
 
-// equals() is not implemented for nullable() but required for tests, let's use the same instance
+// used internally in some places, don't re-instantiate
 internal val nullableLong = nullable(long)
 
 /**
