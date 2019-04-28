@@ -3,6 +3,7 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.type.DataType
 
 
 internal interface LowLevelSession {
@@ -15,7 +16,7 @@ internal interface LowLevelSession {
     fun onTransactionEnd(successful: Boolean)
 
     fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
-            column: FieldDef<SCH, T>, columnName: String, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+            table: Table<SCH, ID, *>, columnName: String, type: DataType<T>, condition: WhereCondition<out SCH>
     ): T
 
     fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(

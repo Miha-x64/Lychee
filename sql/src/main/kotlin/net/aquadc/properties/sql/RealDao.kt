@@ -195,20 +195,18 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         // 'as T' is safe since thisCol won't contain non-T value
     }
 
-    @Suppress("UPPER_BOUND_VIOLATED")
-    override fun <T> getClean(field: FieldDef<SCH, T>, fieldName: String, id: ID): T {
+    override fun <T> getClean(field: FieldDef<SCH, T>, /*todo rm me!*/ fieldName: String, id: ID): T {
         val condition = lowSession.reusableCond(table, table.idColName, id)
-        return lowSession.fetchSingle(field, fieldName, table, condition)
+        return table.fetchStrategyFor(field).fetch(lowSession, table, field, condition)
     }
 
     override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID, update: T) {
         val ourTransact = lowSession.transaction
-        if (transaction !== ourTransact) {
-            if (ourTransact === null)
-                throw IllegalStateException("This can be performed only within a transaction")
-            else
-                throw IllegalStateException("Wrong transaction: requested $transaction, but session's is $ourTransact")
-        }
+        if (transaction !== ourTransact)
+            throw IllegalStateException(
+                    if (ourTransact === null) "This can be performed only within a transaction"
+                    else "Wrong transaction: requested $transaction, but session's is $ourTransact"
+            )
         ourTransact.checkOpenAndThread()
 
         val dirty = getDirty(field, fieldName, id)

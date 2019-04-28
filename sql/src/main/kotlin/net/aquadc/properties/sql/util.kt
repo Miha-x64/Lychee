@@ -3,6 +3,8 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.serialized
@@ -37,11 +39,14 @@ internal inline val FieldDef.Mutable<*, *>.erased
 internal inline val DataType<*>.erased
     get() = this as DataType<Any?>
 
+@Suppress("UPPER_BOUND_VIOLATED")
+internal inline val <SCH : Schema<SCH>, STR : PartialStruct<SCH>, T> Lens<SCH, STR, T>.erased
+    get() = this as Lens<Schema<*>, PartialStruct<*>?, Any?>
+
 internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.Simple<T>) -> R): R =
         when (this) {
             is DataType.Nullable<*> -> {
-                val actualType = actualType as DataType<T>
-                when (actualType) {
+                when (val actualType = actualType as DataType<T>) {
                     is DataType.Nullable<*> -> throw AssertionError()
                     is DataType.Simple -> func(true, actualType)
                     is DataType.Collect<*, *>,

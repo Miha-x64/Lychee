@@ -5,6 +5,7 @@ import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -156,8 +157,6 @@ val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
     get() = Order(this, true)
 
 
-internal typealias Column = Any // Lens<SCH, *> | Pair<String, DataType>
-
 /**
  * Represents a table, i. e. defines structs which can be persisted in a database.
  * @param SCH self, i. e. this table
@@ -204,33 +203,36 @@ private constructor(
      * Returns a list of all relations for this table.
      * This must describe how to store all [Struct] columns relationally.
      */
-    protected open fun relations(): List<Relation<SCH, Lens<SCH, *>>> = emptyList()
+    protected open fun relations(): List<Relation<SCH, ID, *>> = emptyList()
 
-    private val _columns = lazy {
+    private var _fetches: Map<Lens<SCH, REC, *>, FetchStrategy>? = null
+    private val _columns: Lazy<ArrayList<NamedLens<SCH, REC, *>>> = lazy {
         val rels = relations().let { rels ->
-            rels.associateByTo(New.map<Lens<*, *>, Relation<SCH, *>>(rels.size), Relation<SCH, Lens<SCH, *>>::path)
+            rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }
-        val columns = ArrayList<Pair<Column, Relation<SCH, *>?>>(/* at least */ rels.size + 1)
-        if (pkField == null) columns.add(Pair(Pair(idColName, idColType), Relation.PrimaryKey as Relation<SCH, *>))
-        embed(rels, schema, null, null, false, columns)
+        val columns = ArrayList<NamedLens<SCH, REC, *>>(/* at least */ rels.size + 1)
+        if (pkField == null) {
+            columns.add(PkLens(this))
+        }
+        val fetches = New.map<Lens<SCH, REC, *>, FetchStrategy>()
+        embed(rels, schema, null, null, false, columns, fetches)
 
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
+        this._fetches = fetches
         columns
     }
 
     @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
     private fun embed(
-            rels: MutableMap<Lens<*, *>, Relation<SCH, *>>, schema: Schema<*>,
-            factory: LensFactory?, prefix: Lens<SCH, PartialStruct<Schema<*>>>?, nullize: Boolean,
-            outColumns: ArrayList<Pair<Column, Relation<SCH, *>?>>
+            rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
+            naming: NamingConvention?, prefix: NamedLens<SCH, REC, PartialStruct<Schema<*>>?>?, nullize: Boolean,
+            outColumns: ArrayList<NamedLens<SCH, REC, *>>, outFetches: MutableMap<Lens<SCH, REC, *>, FetchStrategy>
     ) {
         schema.fields.forEach { field ->
-            val keyLens =
-                    if (prefix == null/* implies factory == null*/) field as FieldDef<SCH, *>
-                    else /* implies factory != null */ with(factory!!) {
-                        prefix.div<SCH, Schema<*>, PartialStruct<Schema<*>>, Any?>((field as FieldDef<Schema<*>, Any?>))
-                    }
+            val path: NamedLens<SCH, REC, out Any?> =
+                    if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *>
+                    else /* implies naming != null */ naming!!.concatErased(prefix, field) as NamedLens<SCH, REC, out Any?>
 
             val type = field.type
             val relSchema = if (type is DataType.Partial<*, *>) {
@@ -243,43 +245,42 @@ private constructor(
             }
 
             if (relSchema != null) {
-                // got a struct type, must have a relation declared
-                val rel = rels.remove(keyLens)
-                        ?: throw NoSuchElementException("a Relation must be declared for table $name, path $keyLens")
+                // got a struct type, a relation must be declared
+                val rel = rels.remove(path)
+                        ?: throw NoSuchElementException("a Relation must be declared for table $name, path $path")
 
                 when (rel) {
-                    is Relation.PrimaryKey -> error("Relation.PrimaryKey must not be used directly")
-                    is Relation.Embedded<*> -> {
+                    is Relation.Embedded<*, *, *, *> -> {
+                        check(outFetches.put(path, FetchEmbedded) === null)
+
                         if (rel.fieldSetColName != null) {
-                            outColumns.add(
-                                    Pair(Pair(
-                                            rel.fieldSetColName,
-                                            if (nullize || rel.path.type is DataType.Nullable) nullableLong else long
-                                    ), null)
-                            )
+                            outColumns.add(SyntheticColLens<SCH, Record<SCH, ID>, Schema<*>, PartialStruct<Schema<*>>?>(
+                                    this, rel.fieldSetColName, path as Lens<SCH, Record<SCH, ID>, PartialStruct<Schema<*>>?>, nullize
+                            ))
                         }
-                        embed(rels, relSchema, rel.factory,
-                                rel.path as Lens<SCH, PartialStruct<Schema<*>>> /* assert it has struct type */,
-                                nullize || rel.path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
-                                outColumns
+                        embed(rels, relSchema, rel.naming,
+                                path as NamedLens<SCH, REC, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
+                                nullize || path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
+                                outColumns, outFetches
                         )
                     }
-                    is Relation.ToOne<*, *, *> -> TODO()
-                    is Relation.ToMany<*, *, *, *> -> TODO()
-                    is Relation.ManyToMany<*, *, *> -> TODO()
+                    is Relation.ToOne<*, *, *, *, *> -> TODO()
+                    is Relation.ToMany<*, *, *, *, *, *, *> -> TODO()
+                    is Relation.ManyToMany<*, *, *, *, *> -> TODO()
                 }.also { }
             } else {
-                outColumns.add(Pair(
-                        if (nullize && keyLens.type !is DataType.Nullable) keyLens.name to nullable(keyLens.type as DataType<Any>) else keyLens,
-                        if (keyLens === pkField) Relation.PrimaryKey as Relation<SCH, *> // say SQL Dialect this is a PK
-                        else null
-                ))
+                outColumns.add(path)
             }
         }
     }
 
-    val columns: List<Pair<Column, Relation<SCH, *>?>>
+    val columns: List<NamedLens<SCH, REC, *>>
         get() = _columns.value
+
+    internal fun fetchStrategyFor(lens: Lens<SCH, REC, *>): FetchStrategy {
+        val fetches = _fetches ?: _columns.value.let { _ -> _fetches!! /* unwrap lazy */ }
+        return fetches[lens] ?: FetchPrimitive
+    }
 
     override fun toString(): String =
             "Table(schema=$schema, name=$name, ${columns.size} columns)"

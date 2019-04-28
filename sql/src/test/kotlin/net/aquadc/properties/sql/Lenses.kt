@@ -17,11 +17,11 @@ class Lenses {
     }
 
     @Test fun `eq despite names`() = assertEquals(
-            with(SnakeLensFactory) { NestedSchema.Items / SomeSchema.A },
-            with(CamelLensFactory) { NestedSchema.Items / SomeSchema.A }
+            with(SnakeCase) { NestedSchema.Items / SomeSchema.A },
+            with(CamelCase) { NestedSchema.Items / SomeSchema.A }
     )
 
-    @Test fun `nest eq`() = with(SnakeLensFactory) {
+    @Test fun `nest eq`() {
         assertEquals(
                 DeeplyNestedSchema.Items / NestedSchema.Items / SomeSchema.A,
                 DeeplyNestedSchema.Items / (NestedSchema.Items / SomeSchema.A)
@@ -32,7 +32,7 @@ class Lenses {
         )
     }
 
-    @Test fun ne() = with(SnakeLensFactory) {
+    @Test fun ne() {
         assertNotEquals(
                 NestedSchema.Items / SomeSchema.A,
                 NestedSchema.Items / SomeSchema.B
@@ -40,13 +40,13 @@ class Lenses {
     }
 
     @Test fun elements2() {
-        val lens = with(SnakeLensFactory) { NestedSchema.Items / SomeSchema.A }
+        val lens = NestedSchema.Items / SomeSchema.A
         assertEquals(NestedSchema.Items, lens[0])
         assertEquals(SomeSchema.A, lens[1])
     }
 
     @Test fun elements3() {
-        val lens = with(SnakeLensFactory) { DeeplyNestedSchema.Items / NestedSchema.Items / SomeSchema.A }
+        val lens = DeeplyNestedSchema.Items / NestedSchema.Items / SomeSchema.A
         assertEquals(DeeplyNestedSchema.Items, lens[0])
         assertEquals(NestedSchema.Items, lens[1])
         assertEquals(SomeSchema.A, lens[2])

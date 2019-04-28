@@ -3,12 +3,16 @@ package net.aquadc.properties.sql.dialect.sqlite
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
-import net.aquadc.properties.sql.*
+import net.aquadc.properties.sql.NoOrder
+import net.aquadc.properties.sql.Order
+import net.aquadc.properties.sql.PkLens
+import net.aquadc.properties.sql.Table
+import net.aquadc.properties.sql.WhereCondition
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
 import java.io.ByteArrayOutputStream
@@ -19,10 +23,18 @@ import java.io.DataOutputStream
  */
 object SqliteDialect : Dialect {
 
-    override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String =
-            StringBuilder("INSERT INTO ").appendName(table.name)
-                    .append(" (").appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size).append(");")
-                    .toString()
+    override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>): String = buildString {
+        val cols = table.columns
+        val itr = cols.iterator()
+        var size = cols.size
+        if (table.pkField === null) {
+            check(cols[0] is PkLens)
+            itr.next()
+            size--
+        }
+        append("INSERT INTO ").appendName(table.name).append(" (")
+                .appendNames(itr).append(") VALUES (").appendPlaceholders(size).append(");")
+    }
 
     override fun <SCH : Schema<SCH>> selectFieldQuery(
             columnName: String, table: Table<SCH, *, *>, condition: WhereCondition<out SCH>, order: Array<out Order<out SCH>>
@@ -79,39 +91,21 @@ object SqliteDialect : Dialect {
     override fun StringBuilder.appendName(name: String): StringBuilder =
             append('"').append(name.replace("\"", "\"\"")).append('"')
 
-    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: List<FieldDef<SCH, *>>): StringBuilder = apply {
-        if (cols.isNotEmpty()) {
-            for (i in cols.indices) {
-                appendName(cols[i].name).append(", ")
-            }
+    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: Iterator<NamedLens<SCH, *, *>>): StringBuilder = apply {
+        if (cols.hasNext()) {
+            do {
+                appendName(cols.next().name).append(", ")
+            } while (cols.hasNext())
             setLength(length - 2) // trim comma
         }
     }
 
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-        table.columns.forEach { (col, rel) ->
-            val name: String
-            val type: DataType<*>
-            if (col is Lens<*, *>) {
-                name = col.name
-                type = col.type
-            } else if (col is Pair<*, *>) {
-                name = col.first as String
-                type = col.second as DataType<*>
-            } else {
-                throw AssertionError()
-            }
-
-            sb.appendName(name).append(' ').appendNameOf(type)
-            when (rel) {
-                Relation.PrimaryKey -> sb.append(" PRIMARY KEY")
-                is Relation.Embedded -> throw AssertionError("unexpected")
-                is Relation.ToOne<*, *, *> -> TODO()
-                is Relation.ToMany<*, *, *, *> -> TODO()
-                is Relation.ManyToMany<*, *, *> -> TODO()
-                null -> { /* ok */ }
-            }.also { }
+        table.columns.forEach { col ->
+            sb.appendName(col.name).append(' ').appendNameOf(col.type)
+            if (col is PkLens || col === table.pkField)
+                sb.append(" PRIMARY KEY")
 
             /* this is useless since we can store only a full struct with all fields filled:
             if (col.hasDefault) sb.appendDefault(col) */

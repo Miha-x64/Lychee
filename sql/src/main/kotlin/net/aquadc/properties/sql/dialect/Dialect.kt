@@ -1,6 +1,5 @@
 package net.aquadc.properties.sql.dialect
 
-import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.sql.*
 
@@ -10,9 +9,9 @@ import net.aquadc.properties.sql.*
 interface Dialect {
 
     /**
-     * Constructs a `REPLACE` (`INSERT OR REPLACE`) ` INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
+     * Constructs an `INSERT INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
      */
-    fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>, cols: List<FieldDef<SCH, *>>): String
+    fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>): String
 
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`

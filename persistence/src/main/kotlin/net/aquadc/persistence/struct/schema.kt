@@ -2,8 +2,6 @@ package net.aquadc.persistence.struct
 
 import net.aquadc.persistence.New
 import net.aquadc.persistence.type.DataType
-import java.util.Collections.unmodifiableList
-import java.util.Collections.unmodifiableMap
 
 /**
  * Declares a struct (or DTO) schema /ˈskiː.mə/.
@@ -151,42 +149,18 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
- * Implements [hashCode] and [equals]
  */
-abstract class Lens<SCH : Schema<SCH>, T>(
-        @JvmField val name: String,
-        @JvmField val type: DataType<T>
-) /*: (PartialStruct<SCH>) -> T*/ {
+interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>?, T> : (STR) -> T {
 
-    abstract val size: Int
-    abstract operator fun get(index: Int): FieldDef<*, *>
+    val type: DataType<T>
 
-    // copy-paste of orderedHashCode + orderedEquals from AbstractList
-    // note: this intentionally ignores [name] value
+    val size: Int
+    operator fun get(index: Int): NamedLens<*, *, *> // any lens consists of small lenses, which are always named
 
-    override fun hashCode(): Int {
-        var hashCode = 1
-        for (i in 0 until size) {
-            hashCode = 31 * hashCode + (this[i].hashCode())
-        }
-        return hashCode
-    }
+}
 
-    override fun equals(other: Any?): Boolean {
-        if (other !is Lens<*, *> || other.size != size) return false
-
-        for (i in 0 until size) {
-            if (this[i] != other[i]) return false
-        }
-        return true
-    }
-
-    override fun toString(): String = buildString {
-        for (i in 0 until size)
-            append(this@Lens[i]).append('.')
-        setLength(length - 1) // it's safe since there's no empty lenses
-    }
-
+interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>?, T> : Lens<SCH, STR, T> {
+    val name: String
 }
 
 /**
@@ -200,11 +174,11 @@ abstract class Lens<SCH : Schema<SCH>, T>(
  */
 sealed class FieldDef<SCH : Schema<SCH>, T>(
         @JvmField val schema: Schema<SCH>,
-        name: String,
-        type: DataType<T>,
+        override val name: String,
+        override val type: DataType<T>,
         @JvmField val ordinal: Byte,
         default: T
-) : Lens<SCH, T>(name, type), (PartialStruct<SCH>) -> T {
+) : NamedLens<SCH, PartialStruct<SCH>, T> {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
@@ -223,14 +197,13 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
 
     override val size: Int get() = 1
 
-    override fun get(index: Int): FieldDef<*, *> =
+    override fun get(index: Int): NamedLens<*, *, *> =
             if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
 
     override fun hashCode(): Int =
             ordinal.toInt()
 
-    override fun equals(other: Any?): Boolean =
-            this === other
+    // equals() is default ­— identity
 
     override fun toString(): String = schema.javaClass.simpleName + '.' + name + '@' + ordinal + " (" + when (this) {
         is Mutable -> "mutable#$mutableOrdinal"

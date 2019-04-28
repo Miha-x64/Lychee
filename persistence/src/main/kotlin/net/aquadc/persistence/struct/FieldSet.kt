@@ -168,7 +168,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEachIndexed(set: Fie
  */
 inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *>>
 /*internal*/ @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) @Deprecated("Don't. Touch. This. Directly.") constructor(
-        @PublishedApi internal val bitmask: Long
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val bitmask: Long
 )
 
 private fun lowerOnes(r: Byte): Long =

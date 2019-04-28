@@ -4,8 +4,8 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
-import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.persistence.type.long
+import net.aquadc.properties.sql.dialect.Dialect
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -14,8 +14,6 @@ import java.sql.Statement
 import java.sql.Types
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.concurrent.getOrSet
 
 /**
@@ -60,15 +58,16 @@ class JdbcSession(
 
         private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): PreparedStatement =
                 insertStatements.getOrPut(table) {
-                    connection.prepareStatement(dialect.insert(table, table.schema.fields), Statement.RETURN_GENERATED_KEYS)
+                    connection.prepareStatement(dialect.insert(table), Statement.RETURN_GENERATED_KEYS)
                 }
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val statement = insertStatementWLocked(table)
-            val fields = table.schema.fields
-            for (i in fields.indices) {
-                val field = fields[i]
-                field.type.erased.bind(statement, i, data[field])
+            val offset = if (table.pkField === null) 1 else 0
+            val cols = table.columns
+            for (i in 0 until cols.size - offset) {
+                val col = cols[i + offset].erased
+                col.type.bind(statement, i, col(data))
             }
             try {
                 check(statement.executeUpdate() == 1)
@@ -159,9 +158,9 @@ class JdbcSession(
         }
 
         override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
-                column: FieldDef<SCH, T>, columnName: String, table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+                table: Table<SCH, ID, *>, columnName: String, type: DataType<T>, condition: WhereCondition<out SCH>
         ): T =
-                select(columnName, table, condition, NoOrder).fetchSingle(column.type)
+                select(columnName, table, condition, NoOrder).fetchSingle(type)
 
         override fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
