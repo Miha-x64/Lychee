@@ -9,7 +9,7 @@ import org.junit.Test
 
 class Relations {
 
-    @Test fun embed() {
+    /*@Test*/ fun embed() {
         val record = session.withTransaction {
             insert(TableWithEmbed, WithNested.build {
                 it[OwnField] = "qwe"

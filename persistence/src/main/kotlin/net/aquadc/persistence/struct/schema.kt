@@ -9,8 +9,6 @@ import net.aquadc.persistence.type.DataType
  * to final classes with only public fields, no methods and no supertypes.
  * @see Struct
  * @see FieldDef
- *
- * Note: may be moved to [DataType] and become its subtype soon.
  */
 abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF>() {
 
@@ -152,7 +150,16 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
  */
 interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>?, T> : (STR) -> T {
 
+    /**
+     * Type of values stored within a field/column represented by this lens.
+     */
     val type: DataType<T>
+
+    /**
+     * A default/initial/fallback value for a field/column represented by this lens.
+     * @throws RuntimeException if no such value
+     */
+    val default: T
 
     val size: Int
     operator fun get(index: Int): NamedLens<*, *, *> // any lens consists of small lenses, which are always named
@@ -186,7 +193,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
 
     private val _default = default
 
-    val default: T
+    override val default: T
         get() = if (_default === Unset) throw NoSuchElementException("no default value for $this") else _default
 
     val hasDefault: Boolean

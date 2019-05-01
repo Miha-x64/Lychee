@@ -34,7 +34,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
             (field.type as DataType<Any?>).put(ed, field.name, value)
 
             when (field) {
-                is FieldDef.Mutable<SCH, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, /* unused */ "", null, value)
+                is FieldDef.Mutable<SCH, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, null, value)
                 is FieldDef.Immutable<SCH, *> -> value
             }
         }
@@ -52,7 +52,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         this.values = Array(fields.size) {
             val field = fields[it]
             when (field) {
-                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, /* unused */  "", null, Unset)
+                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, null, Unset)
                 is FieldDef.Immutable -> Unset
             }
         }
@@ -88,14 +88,15 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
          *   Thus, 'dirty' state is nonsensical here.
          */
 
-        override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, /* unused */ fieldName: String, id: Nothing?): T =
+        override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?): T =
                 Unset as T
 
-        override fun <T> getClean(field: FieldDef<SCH, T>, /* unused */ fieldName: String, id: Nothing?): T =
-                field.get(prefs)
+        override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?): T =
+                column.get(prefs)
 
-        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, /* unused */ fieldName: String, id: Nothing?, update: T) {
-            transaction.set(field, update)
+        override fun <T> set(transaction: StructTransaction<SCH>, column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?, update: T) {
+            column as FieldDef.Mutable<SCH, T> // all our ManagedProperty instances are created with FieldDef
+            transaction.set(column, update)
         }
 
         // `SharedPreferences` keeps a weak reference and not going to leak us

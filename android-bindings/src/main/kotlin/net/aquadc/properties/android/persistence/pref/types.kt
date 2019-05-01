@@ -3,7 +3,7 @@ package net.aquadc.properties.android.persistence.pref
 import android.content.SharedPreferences
 import android.util.Base64
 import net.aquadc.persistence.fatMapTo
-import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
@@ -12,11 +12,11 @@ import net.aquadc.persistence.type.serialized
 import net.aquadc.properties.android.persistence.assertFitsByte
 import net.aquadc.properties.android.persistence.assertFitsShort
 import net.aquadc.properties.internal.Unset
-import java.lang.Double as JavaLangDouble
 import java.util.EnumSet
+import java.lang.Double as JavaLangDouble
 
 
-internal fun <T> FieldDef<*, T>.get(prefs: SharedPreferences): T {
+internal fun <T> NamedLens<*, *, T>.get(prefs: SharedPreferences): T {
     val value = type.get(prefs, name)
     return if (value === Unset) default else value
 }

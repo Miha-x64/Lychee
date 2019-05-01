@@ -124,6 +124,10 @@ internal abstract class AbsTelescope<TS : Schema<TS>, TR : PartialStruct<TS>, US
         protected val nested: Lens<US, T2, U1>
 ) : BaseLens<TS, TR, U2>(name, type) {
 
+    @Suppress("UNCHECKED_CAST") // correct for both subclasses
+    override val default: U2
+        get() = nested.default as U2
+
     override val size: Int get() = outer.size + nested.size
 
     override fun get(index: Int): NamedLens<*, *, *> {
@@ -234,6 +238,9 @@ internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>?, T
 
     final override val name: String
         get() = _name!! // give this instance as Lens, not NamedLens, when _name is null
+
+    override val default: T // PK and synthetic lenses don't have & don't need it
+        get() = throw UnsupportedOperationException()
 
     override val size: Int
         get() = 1 // true for SyntheticColLens and PkLens, but overridden in AbsTelescope

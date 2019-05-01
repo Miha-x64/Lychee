@@ -3,7 +3,9 @@ package net.aquadc.properties.internal
 import android.support.annotation.RestrictTo
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 
 /**
  * A property whose value can be changed inside a transaction.
@@ -11,11 +13,10 @@ import net.aquadc.persistence.struct.Schema
  * Note: [manager] is not volatile and requires external synchronization if used (e. g. [dropManagement]) concurrently
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
+open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
         private var manager: Manager<SCH, TRANSACTION, ID>?,
-        private val field: FieldDef.Mutable<SCH, T>,
-        private val fieldName: String,
-        val id: ID,
+        private val column: NamedLens<SCH, Struct<SCH>, T>,
+        private val id: ID,
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
 
@@ -24,14 +25,14 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
             val manager = requireManaged()
 
             // check for uncommitted changes
-            val dirty = manager.getDirty(this.field, fieldName, id)
+            val dirty = manager.getDirty(this.column, id)
             if (dirty !== Unset) return dirty
 
             // check cached
             val cached = ref
             if (cached !== Unset) return cached
 
-            val clean = manager.getClean(this.field, fieldName, id)
+            val clean = manager.getClean(this.column, id)
             refUpdater().lazySet(this, clean)
             return clean
         }
@@ -39,11 +40,11 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
     override fun setValue(transaction: TRANSACTION, value: T) {
         val manager = requireManaged()
 
-        val clean = if (ref === Unset) manager.getClean(field, fieldName, id) else Unset
+        val clean = if (ref === Unset) manager.getClean(column, id) else Unset
         // after mutating dirty state we won't be able to see the clean one,
         // so we'll preserve it later in this method
 
-        manager.set(transaction, field, fieldName, id, value)
+        manager.set(transaction, column, id, value)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
@@ -81,7 +82,7 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID> constructor(
                             if (ref !== Unset) ". Last remembered value: '$ref'" else "")
 
     override fun toString(): String =
-            "ManagedProperty(at $field)"
+            "ManagedProperty(at $column)"
 
 }
 
@@ -96,17 +97,16 @@ interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID): T
-    //     actually, ^^^^^ is typically unused. But adds some compile-time type-safety.
+    fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T
 
     /**
      * Returns clean, persisted, stable, committed value visible for all threads.
      */
-    fun <T> getClean(field: FieldDef<SCH, T>, fieldName: String, id: ID): T
+    fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID, update: T)
+    fun <T> set(transaction: TRANSACTION, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T)
 
 }

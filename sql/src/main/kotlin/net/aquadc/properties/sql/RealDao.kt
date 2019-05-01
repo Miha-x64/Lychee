@@ -1,7 +1,8 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Arrayz
 import net.aquadc.properties.internal.ManagedProperty
@@ -45,10 +46,8 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
     }
 
-    internal fun forget(id: ID): WeakReference<REC>? {
-        val ref = recordRefs.remove(id) ?: return null
-        return forgetInternal(ref)
-    }
+    internal fun forget(id: ID): WeakReference<REC>? =
+            recordRefs.remove(id)?.let(::forgetInternal)
 
     internal fun truncate(): List<WeakReference<REC>> {
         val clone = recordRefs.values.mapNotNull(::forgetInternal)
@@ -60,17 +59,6 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         val rec = ref.get() ?: return null
         rec.isManaged = false
         return ref
-    }
-
-    internal fun dropRecordManagement(record: REC) {
-        val defs = record.table.schema.fields
-        val fields = record.values
-        for (i in defs.indices) {
-            when (defs[i]) {
-                is FieldDef.Mutable -> (fields[i] as ManagedProperty<*, *, *, *>).dropManagement()
-                is FieldDef.Immutable -> { /* no-op */ }
-            }.also { }
-        }
     }
 
     internal fun onStructuralChange() {
@@ -185,22 +173,22 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     // region Manager implementation
 
-    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID): T {
+    override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T {
         val transaction = lowSession.transaction ?: return unset()
 
-        val thisCol = transaction.updated?.getFor(table, fieldName) ?: return unset()
+        val thisCol = transaction.updated?.getFor(table, column.name) ?: return unset()
         // we've created this column, we can cast it to original type
 
         return if (thisCol.containsKey(id)) thisCol[id] as T else unset()
         // 'as T' is safe since thisCol won't contain non-T value
     }
 
-    override fun <T> getClean(field: FieldDef<SCH, T>, /*todo rm me!*/ fieldName: String, id: ID): T {
+    override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, /*todo rm me!*/ id: ID): T {
         val condition = lowSession.reusableCond(table, table.idColName, id)
-        return table.fetchStrategyFor(field).fetch(lowSession, table, field, condition)
+        return table.fetchStrategyFor(column).fetch(lowSession, table, column, condition)
     }
 
-    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, fieldName: String, id: ID, update: T) {
+    override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact)
             throw IllegalStateException(
@@ -209,13 +197,13 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
             )
         ourTransact.checkOpenAndThread()
 
-        val dirty = getDirty(field, fieldName, id)
-        val cleanEquals = dirty === Unset && getClean(field, fieldName, id) === update
+        val dirty = getDirty(column, id)
+        val cleanEquals = dirty === Unset && getClean(column, id) === update
         if (dirty === update || cleanEquals) {
             return
         }
 
-        transaction.update(table, id, field, fieldName, update)
+        transaction.update(table, id, column, update)
     }
 
     // endregion Manager implementation

@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import android.support.annotation.RestrictTo
 import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
@@ -19,6 +20,7 @@ import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
+import net.aquadc.properties.internal.mapIndexedToArray
 import net.aquadc.properties.internal.mapToArray
 import net.aquadc.properties.persistence.PropertyStruct
 import kotlin.contracts.ExperimentalContracts
@@ -103,7 +105,7 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
             insert(table, data)
 
-    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, columnName: String, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T)
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
 
@@ -310,9 +312,7 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
 
 
 /**
- * Represents an active record — a container with some properties.
- * Subclass it to provide your own getters and/or computed/foreign properties.
- * TODO: should I provide subclassing-less API, too?
+ * Represents an active record — a container with some values and properties backed by an RDBMS row.
  */
 open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertyStruct<SCH> {
 
@@ -325,6 +325,8 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
     private val dao
         get() = session[table as Table<SCH, ID, Record<SCH, ID>>]
 
+    private val columns: List<NamedLens<SCH, Record<SCH, ID>, *>>
+
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
 
@@ -332,26 +334,35 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
      * Creates new record.
      * Note that such a record is managed and alive (will receive updates) only if created by [Dao].
      */
-    constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) : super(table.schema) {
+    @Deprecated("Will become internal soon, making the whole class effectively final")
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) :
+            this(session, table, primaryKey, table.schema.fields)
+
+    /**
+     * [fields] and [columns] are actually keys and values of a map; [fields] must be in their natural order
+     */
+    internal constructor(
+            session: Session,
+            table: Table<SCH, ID, *>, primaryKey: ID,
+            columns: List<NamedLens<SCH, Record<SCH, ID>, *>>
+    ) : super(table.schema) {
         this.table = table
         this.session = session
         this.primaryKey = primaryKey
-        this.values = createValues(session, table, primaryKey)
-    }
+        this.columns = columns
 
-    @Suppress(
-            "UNCHECKED_CAST",
-            "UPPER_BOUND_VIOLATED" // RLY, I don't want third generic for Record, this adds no type-safety here
-    )
-    private fun createValues(session: Session, table: Table<SCH, ID, *>, primaryKey: ID): Array<Any?> =
-            session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
-                table.schema.fields.mapToArray { col ->
-                    when (col) {
-                        is FieldDef.Mutable -> ManagedProperty(dao, col as FieldDef.Mutable<SCH, Any?>, /* todo: */ col.name, primaryKey, Unset)
-                        is FieldDef.Immutable -> Unset
-                    }
+        @Suppress("UNCHECKED_CAST")
+        this.values = session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
+            schema.fields.mapIndexedToArray { i, field ->
+                when (field) {
+                    is FieldDef.Mutable -> ManagedProperty(dao, columns[i] as NamedLens<SCH, Struct<SCH>, Any?>, primaryKey, Unset)
+                    is FieldDef.Immutable -> Unset
                 }
             }
+        }
+    }
+
 
     override fun <T> get(field: FieldDef<SCH, T>): T = when (field) {
         is FieldDef.Mutable -> prop(field).value
@@ -360,10 +371,10 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             val value = values[index]
 
             if (value === Unset) {
-                val freshValue = dao.getClean(field, /*TODO*/ field.name, primaryKey)
+                val freshValue = dao.getClean(columns[index] as NamedLens<SCH, Struct<SCH>, T>, primaryKey)
                 values[index] = freshValue
                 freshValue
-            } else  value as T
+            } else value as T
         }
     }
 
@@ -372,13 +383,26 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             values[field.ordinal.toInt()] as SqlProperty<T>
 
     var isManaged: Boolean = true
-        @JvmSynthetic internal set
+        @JvmSynthetic internal set // cleared **before** real property unmanagement occurs
 
+    @JvmSynthetic internal fun dropManagement() {
+        val defs = table.schema.fields
+        val vals = values
+        for (i in defs.indices) {
+            when (defs[i]) {
+                is FieldDef.Mutable -> (vals[i] as ManagedProperty<*, *, *, *>).dropManagement()
+                is FieldDef.Immutable -> { /* no-op */ }
+            }.also { }
+        }
+    }
+
+    @Deprecated("now we have normal relations")
     @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
             FieldDef.Mutable<SCH, ForeID>.toOne(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC> =
             (this as FieldDef.Mutable<SCH, ForeID?>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
 
+    @Deprecated("now we have normal relations")
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
             FieldDef.Mutable<SCH, ForeID?>.toOneNullable(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC?> =
             (this@Record prop this@toOneNullable).bind(
@@ -386,6 +410,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
                     { it: ForeREC? -> it?.primaryKey }
             )
 
+    @Deprecated("now we have normal relations")
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
             FieldDef.Mutable<ForeSCH, ID>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)

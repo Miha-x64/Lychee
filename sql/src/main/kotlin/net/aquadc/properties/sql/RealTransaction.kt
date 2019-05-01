@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import java.lang.ref.WeakReference
@@ -58,14 +59,15 @@ internal class RealTransaction(
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            table: Table<SCH, ID, *>, id: ID, column: FieldDef.Mutable<SCH, T>, columnName: String, value: T
+            table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T
     ) {
         checkOpenAndThread()
+        column[column.size - 1] as FieldDef.Mutable // disallow mutating immutable
 
-        lowSession.update(table, id, column, columnName, value)
+        lowSession.update(table, id, column, value)
 
         (updated ?: UpdatesMap().also { updated = it })
-                .getOrPut(table to columnName, New::map)
+                .getOrPut(table to column.name, New::map)
                 .put(id, value)
     }
 
@@ -157,11 +159,8 @@ internal class RealTransaction(
 
         // commit 'unmanaged' status for all the properties which lost their management.
         unmanage?.forEach { (table, refs) ->
-            val man = (lowSession.daos[table.erased] as RealDao<*, IdBound, Record<*, IdBound>>)
             refs.forEach { ref ->
-                ref.get()?.let { rec ->
-                    man.dropRecordManagement(rec as Record<*, IdBound>)
-                }
+                ref.get()?.let(Record<*, *>::dropManagement)
             }
         }
     }

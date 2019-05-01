@@ -100,3 +100,13 @@ inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
     @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
     return array as Array<R>
 }
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+inline fun <T, reified R> List<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {
+    val array = arrayOfNulls<R>(size)
+    for (i in indices) {
+        array[i] = transform(i, this[i])
+    }
+    @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
+    return array as Array<R>
+}

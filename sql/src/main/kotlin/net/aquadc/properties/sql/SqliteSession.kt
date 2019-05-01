@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
@@ -78,8 +79,8 @@ class SqliteSession(
                     connection.compileStatement(SqliteDialect.updateFieldQuery(table, colName))
                 }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: FieldDef<SCH, T>, columnName: String, value: T) {
-            val statement = updateStatementWLocked(table, columnName)
+        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T) {
+            val statement = updateStatementWLocked(table, column.name)
             column.type.bind(statement, 0, value)
             table.idColType.bind(statement, 1, id)
             check(statement.executeUpdateDelete() == 1)
