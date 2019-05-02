@@ -119,7 +119,7 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
             insert(table, data)
 
-    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T)
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
 
@@ -221,7 +221,7 @@ private constructor(
      */
     protected open fun relations(): List<Relation<SCH, ID, *>> = emptyList()
 
-    private var _fetches: Map<Lens<SCH, REC, *>, FetchStrategy>? = null
+    private var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null
     private val _columns: Lazy<ArrayList<NamedLens<SCH, REC, *>>> = lazy {
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
@@ -230,12 +230,12 @@ private constructor(
         if (pkField == null) {
             columns.add(PkLens(this))
         }
-        val fetches = New.map<Lens<SCH, REC, *>, FetchStrategy>()
-        embed(rels, schema, null, null, false, columns, fetches)
+        val delegates = New.map<Lens<SCH, REC, *>, SqlPropertyDelegate>()
+        embed(rels, schema, null, null, false, columns, delegates)
 
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
-        this._fetches = fetches
+        this._delegates = delegates
         columns
     }
 
@@ -243,7 +243,7 @@ private constructor(
     private fun embed(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
             naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?, nullize: Boolean,
-            outColumns: ArrayList<NamedLens<SCH, REC, *>>, outFetches: MutableMap<Lens<SCH, REC, *>, FetchStrategy>
+            outColumns: ArrayList<NamedLens<SCH, REC, *>>, outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate>
     ): List<NamedLens<SCH, Struct<SCH>, *>>? {
         val fields = schema.fields
         val fieldCount = fields.size
@@ -279,9 +279,9 @@ private constructor(
                         val nestedCols = embed(rels, relSchema, rel.naming,
                                 path as NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
                                 nullize || path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
-                                outColumns, outFetches
+                                outColumns, outDelegates
                         )!!
-                        check(outFetches.put(path, FetchEmbedded<SCH, Schema<*>>(relSchema, nestedCols)) === null)
+                        check(outDelegates.put(path, Embedded<SCH, Schema<*>>(relSchema, nestedCols)) === null)
                     }
                     is Relation.ToOne<*, *, *, *, *> -> TODO()
                     is Relation.ToMany<*, *, *, *, *, *, *> -> TODO()
@@ -298,9 +298,9 @@ private constructor(
     val columns: List<NamedLens<SCH, REC, *>>
         get() = _columns.value
 
-    internal fun fetchStrategyFor(lens: Lens<SCH, REC, *>): FetchStrategy {
-        val fetches = _fetches ?: _columns.value.let { _ -> _fetches!! /* unwrap lazy */ }
-        return fetches[lens] ?: FetchPrimitive
+    internal fun delegateFor(lens: Lens<SCH, REC, *>): SqlPropertyDelegate {
+        val fetches = _delegates ?: _columns.value.let { _ -> _delegates!! /* unwrap lazy */ }
+        return fetches[lens] ?: Simple
     }
 
     override fun toString(): String =

@@ -184,7 +184,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     }
 
     override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T =
-            table.fetchStrategyFor(column).fetch(session, lowSession, table, column, id)
+            table.delegateFor(column).fetch(session, lowSession, table, column, id)
 
     override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T) {
         val ourTransact = lowSession.transaction

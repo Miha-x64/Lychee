@@ -3,7 +3,6 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.build
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertSame
 import org.junit.Test
 
 
@@ -27,10 +26,7 @@ class Relations {
         assertEquals("", record[WithNested.Embedded][SchWithId.MutValue])
         assertEquals(16_000_000_000, record[WithNested.OtherOwnField])
 
-        // observability
-
         val emb = record[WithNested.Embedded]
-
         session.withTransaction {
             record[WithNested.Embedded] = SchWithId.build {
                 it[Id] = 100500
@@ -39,7 +35,10 @@ class Relations {
             }
         }
 
-        assertSame(record[WithNested.Embedded], emb) // no immutable field change, just patch
+        val newEmb = record[WithNested.Embedded]
+        assertNotSame(newEmb, emb)
+        assertEquals(100500, record[WithNested.Embedded][SchWithId.Id])
+        assertEquals("200700", record[WithNested.Embedded][SchWithId.Value])
         assertEquals("mutated", emb[SchWithId.MutValue])
 
         session.withTransaction {
@@ -50,11 +49,11 @@ class Relations {
             }
         }
 
-        assertNotSame(record[WithNested.Embedded], emb) // immutable field changed, replace object
-        val _emb = record[WithNested.Embedded]
-        assertEquals(200700, _emb[SchWithId.Id])
-        assertEquals("300900", _emb[SchWithId.Value])
-        assertEquals("changed", _emb[SchWithId.MutValue])
+        assertNotSame(record[WithNested.Embedded], newEmb)
+        val newerEemb = record[WithNested.Embedded]
+        assertEquals(200700, newerEemb[SchWithId.Id])
+        assertEquals("300900", newerEemb[SchWithId.Value])
+        assertEquals("changed", newerEemb[SchWithId.MutValue])
     }
 
 }

@@ -58,13 +58,13 @@ internal class RealTransaction(
         return session[table].require(id)
     }
 
-    override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T
+    override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(
+            table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T
     ) {
         checkOpenAndThread()
         column[column.size - 1] as FieldDef.Mutable // disallow mutating immutable
 
-        lowSession.update(table, id, column, value)
+        table.delegateFor(column).update(session, lowSession, table, column, id, value)
 
         (updated ?: UpdatesMap().also { updated = it })
                 .getOrPut(table to column.name, New::map)
