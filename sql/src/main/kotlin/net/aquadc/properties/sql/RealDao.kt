@@ -183,10 +183,8 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         // 'as T' is safe since thisCol won't contain non-T value
     }
 
-    override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, /*todo rm me!*/ id: ID): T {
-        val condition = lowSession.reusableCond(table, table.idColName, id)
-        return table.fetchStrategyFor(column).fetch(lowSession, table, column, condition)
-    }
+    override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T =
+            table.fetchStrategyFor(column).fetch(session, lowSession, table, column, id)
 
     override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T) {
         val ourTransact = lowSession.transaction

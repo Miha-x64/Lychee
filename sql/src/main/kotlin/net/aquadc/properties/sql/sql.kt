@@ -21,23 +21,37 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.mapIndexedToArray
-import net.aquadc.properties.internal.mapToArray
 import net.aquadc.properties.persistence.PropertyStruct
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 
+/**
+ * Common supertype for all primary keys.
+ */
 typealias IdBound = Any // Serializable in some frameworks
 
+/**
+ * A shorthand for properties backed by RDBMS column & row.
+ */
 typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
+/**
+ * A gateway into RDBMS.
+ */
 interface Session {
 
+    /**
+     * Lazily creates and returns DAO for the given table.
+     */
     operator fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(
             table: Table<SCH, ID, REC>
     ): Dao<SCH, ID, REC>
 
+    /**
+     * Opens a transaction, allowing mutation of data.
+     */
     fun beginTransaction(): Transaction
 
 }
@@ -228,13 +242,17 @@ private constructor(
     @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
     private fun embed(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
-            naming: NamingConvention?, prefix: NamedLens<SCH, REC, PartialStruct<Schema<*>>?>?, nullize: Boolean,
+            naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?, nullize: Boolean,
             outColumns: ArrayList<NamedLens<SCH, REC, *>>, outFetches: MutableMap<Lens<SCH, REC, *>, FetchStrategy>
-    ) {
-        schema.fields.forEach { field ->
-            val path: NamedLens<SCH, REC, out Any?> =
+    ): List<NamedLens<SCH, Struct<SCH>, *>>? {
+        val fields = schema.fields
+        val fieldCount = fields.size
+        val outCols = naming?.let { arrayOfNulls<NamedLens<SCH, Struct<SCH>, *>>(fieldCount) }
+        for (i in 0 until fieldCount) {
+            val field = fields[i]
+            val path: NamedLens<SCH, Struct<SCH>, out Any?> =
                     if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *>
-                    else /* implies naming != null */ naming!!.concatErased(prefix, field) as NamedLens<SCH, REC, out Any?>
+                    else /* implies naming != null */ naming!!.concatErased(prefix, field) as NamedLens<SCH, Struct<SCH>, out Any?>
 
             val type = field.type
             val relSchema = if (type is DataType.Partial<*, *>) {
@@ -253,18 +271,17 @@ private constructor(
 
                 when (rel) {
                     is Relation.Embedded<*, *, *, *> -> {
-                        check(outFetches.put(path, FetchEmbedded) === null)
-
                         if (rel.fieldSetColName != null) {
                             outColumns.add(SyntheticColLens<SCH, Record<SCH, ID>, Schema<*>, PartialStruct<Schema<*>>?>(
                                     this, rel.fieldSetColName, path as Lens<SCH, Record<SCH, ID>, PartialStruct<Schema<*>>?>, nullize
                             ))
                         }
-                        embed(rels, relSchema, rel.naming,
-                                path as NamedLens<SCH, REC, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
+                        val nestedCols = embed(rels, relSchema, rel.naming,
+                                path as NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
                                 nullize || path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
                                 outColumns, outFetches
-                        )
+                        )!!
+                        check(outFetches.put(path, FetchEmbedded<SCH, Schema<*>>(relSchema, nestedCols)) === null)
                     }
                     is Relation.ToOne<*, *, *, *, *> -> TODO()
                     is Relation.ToMany<*, *, *, *, *, *, *> -> TODO()
@@ -273,7 +290,9 @@ private constructor(
             } else {
                 outColumns.add(path)
             }
+            if (outCols != null) outCols[i] = path
         }
+        return (outCols as Array<NamedLens<SCH, Struct<SCH>, *>/*!!*/>?)?.asList()
     }
 
     val columns: List<NamedLens<SCH, REC, *>>
@@ -316,16 +335,16 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
  */
 open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertyStruct<SCH> {
 
-    internal val table: Table<SCH, ID, *>
+    internal val table: Table<*, ID, *>
     protected val session: Session
     internal val _session get() = session
     val primaryKey: ID
 
     @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
     private val dao
-        get() = session[table as Table<SCH, ID, Record<SCH, ID>>]
+        get() = session.get<Schema<*>, ID, Record<*, ID>>(table as Table<Schema<*>, ID, Record<*, ID>>)
 
-    private val columns: List<NamedLens<SCH, Record<SCH, ID>, *>>
+    private val columns: List<NamedLens<*, Record<*, ID>, *>>
 
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
@@ -337,18 +356,18 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
     @Deprecated("Will become internal soon, making the whole class effectively final")
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) :
-            this(session, table, primaryKey, table.schema.fields)
+            this(session, table, table.schema, primaryKey, table.schema.fields as List<NamedLens<*, Record<*, ID>, *>>)
 
     /**
      * [fields] and [columns] are actually keys and values of a map; [fields] must be in their natural order
      */
     internal constructor(
             session: Session,
-            table: Table<SCH, ID, *>, primaryKey: ID,
-            columns: List<NamedLens<SCH, Record<SCH, ID>, *>>
-    ) : super(table.schema) {
-        this.table = table
+            table: Table<*, ID, *>, schema: SCH, primaryKey: ID,
+            columns: List<NamedLens<*, Record<*, ID>, *>>
+    ) : super(schema) {
         this.session = session
+        this.table = table
         this.primaryKey = primaryKey
         this.columns = columns
 
@@ -371,7 +390,8 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             val value = values[index]
 
             if (value === Unset) {
-                val freshValue = dao.getClean(columns[index] as NamedLens<SCH, Struct<SCH>, T>, primaryKey)
+                @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+                val freshValue = dao.getClean(columns[index] as NamedLens<Schema<*>, Struct<Schema<*>>, T>, primaryKey)
                 values[index] = freshValue
                 freshValue
             } else value as T
