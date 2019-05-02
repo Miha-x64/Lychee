@@ -324,6 +324,7 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
 
     constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID>) : super(schema, name, idCol)
 
+    @Deprecated("Stop overriding this! Will become final.")
     override fun newRecord(session: Session, primaryKey: ID): Record<SCH, ID> =
             Record(this, session, primaryKey)
 
@@ -445,12 +446,3 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
  */
 fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T>): (Record<SCH, *>) -> Property<T> =
         { it prop field }
-
-
-internal inline fun <T, U> forEachOfBoth(left: List<T>, right: List<U>, block: (Int, T, U) -> Unit) {
-    val size = left.size
-    check(right.size == size)
-    for (i in 0 until size) {
-        block(i, left[i], right[i])
-    }
-}
