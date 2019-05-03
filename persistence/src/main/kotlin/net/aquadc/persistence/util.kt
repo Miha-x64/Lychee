@@ -3,6 +3,7 @@ package net.aquadc.persistence
 import android.support.annotation.RestrictTo
 import net.aquadc.persistence.type.AnyCollection
 import java.util.Arrays
+import java.util.Collections
 
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -79,6 +80,18 @@ object New {
     fun <K, V> map(copyFrom: Map<K, V>): MutableMap<K, V> =
             if (kitKat) android.util.ArrayMap<K, V>(copyFrom.size).also { it.putAll(copyFrom) }
             else HashMap(copyFrom)
+
+    fun <E> set(): MutableSet<E> =
+            if (kitKat) Collections.newSetFromMap(android.util.ArrayMap(0))
+            else HashSet()
+
+    fun <E> set(initialCapacity: Int): MutableSet<E> =
+            if (kitKat) Collections.newSetFromMap(android.util.ArrayMap(initialCapacity))
+            else HashSet(initialCapacity)
+
+    fun <E> set(copyFrom: Collection<E>): MutableSet<E> =
+            if (kitKat) Collections.newSetFromMap(android.util.ArrayMap<E, Boolean>(copyFrom.size)).also { it.addAll(copyFrom) }
+            else HashSet(copyFrom)
 
 }
 

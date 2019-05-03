@@ -117,7 +117,7 @@ class SqlPropTest {
         sameProp.addUnconfinedChangeListener(listener)
 
         rec.transaction {
-            it[SomeSchema.C] = 100
+            it[C] = 100
         }
 
         assertEquals(100, rec[SomeSchema.C])
@@ -169,6 +169,21 @@ class SqlPropTest {
             insert(TableWithId, SchWithId.build {
                 it[Id] = 44
                 it[Value] = "zzz"
+            })
+        }
+    }
+
+    @Test fun `poisoned statement evicted`() {
+        try {
+            `can't insert twice with the same PK in one transaction`()
+        } catch (ignored: SQLException) {
+            // the statement is poisoned
+        }
+
+        session.withTransaction {
+            insert(TableWithId, SchWithId.build {
+                it[Id] = 86
+                it[Value] = "aaa"
             })
         }
     }

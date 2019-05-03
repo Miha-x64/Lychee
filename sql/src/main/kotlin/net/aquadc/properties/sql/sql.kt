@@ -187,8 +187,7 @@ private constructor(
         val idColType: DataType.Simple<ID>,
         val pkField: FieldDef.Immutable<SCH, ID>?
 // TODO: [unique] indices
-// TODO: a way to declare embedded structs, foreign & join columns
-// TODO: maybe a way to declare an immutable field as a primary key
+// TODO: auto increment
 ) {
 
     @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
@@ -209,12 +208,6 @@ private constructor(
      */
     abstract fun newRecord(session: Session, primaryKey: ID): REC
 
-    init {
-        check(pkField != null || schema.fields.all { idColName != it.name }) {
-            "duplicate column: `$name`.`$idColName`"
-        }
-    }
-
     /**
      * Returns a list of all relations for this table.
      * This must describe how to store all [Struct] columns relationally.
@@ -226,7 +219,7 @@ private constructor(
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }
-        val columns = ArrayList<NamedLens<SCH, REC, *>>(/* at least */ rels.size + 1)
+        val columns = CheckNamesList<NamedLens<SCH, REC, *>>(schema.fields.size)
         if (pkField == null) {
             columns.add(PkLens(this))
         }
@@ -236,7 +229,18 @@ private constructor(
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
         this._delegates = delegates
+        columns.names = null
         columns
+    }
+
+    private class CheckNamesList<E : NamedLens<* , *, *>>(initialCapacity: Int) : ArrayList<E>(initialCapacity) {
+        @JvmField internal var names: MutableSet<String>? = New.set(initialCapacity)
+        override fun add(element: E): Boolean {
+            val name = element.name
+            check(name.isNotBlank()) { "column has blank name: $element" }
+            check(names!!.add(name)) { "duplicate name '$name' assigned to both [${first { it.name == name }}, $element]" }
+            return super.add(element)
+        }
     }
 
     @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
@@ -436,7 +440,12 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             FieldDef.Mutable<ForeSCH, ID>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)
 
-    // TODO: relations for immutable cols
+    override fun toString(): String =
+            if (isManaged) super.toString()
+            else buildString {
+                append(this@Record.javaClass.simpleName).append(':')
+                        .append(schema.javaClass.simpleName).append("(isManaged=false)")
+            }
 
 }
 

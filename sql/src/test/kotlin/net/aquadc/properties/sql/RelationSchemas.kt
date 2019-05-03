@@ -23,6 +23,28 @@ class RelationSchemas {
                 table.columns
         )
     }
+    @Test(expected = IllegalStateException::class) fun `same name as pk`() {
+        SimpleTable(ShallowSchema, "dupeName", "a", long).columns
+    }
+
+    object DupeEmbed : Schema<DupeEmbed>() {
+        val a = "a_b" let string
+        val b = "a" let ShallowSchema
+    }
+    @Test(expected = IllegalStateException::class) fun `same name as nested`() {
+        object : SimpleTable<DupeEmbed, Long>(DupeEmbed, "", "a", long) {
+            override fun relations(): List<Relation<DupeEmbed, Long, *>> = listOf(
+                    Relation.Embedded(SnakeCase, DupeEmbed.b)
+            )
+        }.columns
+    }
+
+    object EmptyName : Schema<EmptyName>() {
+        val a = "" let string
+    }
+    @Test(expected = IllegalStateException::class) fun `empty name`() {
+        SimpleTable(EmptyName, "", "id", long).columns
+    }
 
     // primary key
 

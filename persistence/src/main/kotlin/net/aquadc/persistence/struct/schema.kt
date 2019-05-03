@@ -212,10 +212,10 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
 
     // equals() is default ­— identity
 
-    override fun toString(): String = schema.javaClass.simpleName + '.' + name + '@' + ordinal + " (" + when (this) {
-        is Mutable -> "mutable#$mutableOrdinal"
-        is Immutable -> "immutable#$immutableOrdinal"
-    } + ')'
+    override fun toString(): String = schema.javaClass.simpleName + '[' + name + " #" + ordinal + ' ' + when (this) {
+        is Mutable -> "mut#$mutableOrdinal"
+        is Immutable -> "let#$immutableOrdinal"
+    } + ']'
 
     /**
      * Represents a mutable field of a [Struct]: its value can be changed.
