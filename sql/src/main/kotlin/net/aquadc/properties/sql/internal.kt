@@ -7,7 +7,6 @@ import net.aquadc.persistence.type.DataType
 
 
 internal interface LowLevelSession {
-    fun <SCH : Schema<SCH>, ID : IdBound> exists(table: Table<SCH, ID, *>, primaryKey: ID): Boolean
     fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T)
     fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID)

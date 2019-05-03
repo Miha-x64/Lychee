@@ -141,10 +141,12 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     // region Dao implementation
 
-    override fun find(id: ID): REC? {
-        if (!lowSession.exists(table, id)) return null
-        return recordRefs.getOrPutWeak(id) { table.newRecord(session, id) }
-    }
+    override fun find(id: ID): REC? =
+            when (lowSession.fetchCount(table, lowSession.reusableCond(table, table.idColName, id))) {
+                0L -> null
+                1L -> recordRefs.getOrPutWeak(id) { table.newRecord(session, id) }
+                else -> throw AssertionError()
+            }
 
     override fun select(condition: WhereCondition<out SCH>, vararg order: Order<SCH>): Property<List<REC>> {
         val cor = ConditionAndOrder(condition, order)

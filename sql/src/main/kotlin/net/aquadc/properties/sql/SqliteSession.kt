@@ -46,16 +46,6 @@ class SqliteSession(
 
     private val lowLevel = object : LowLevelSession {
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> exists(table: Table<SCH, ID, *>, primaryKey: ID): Boolean {
-
-            val count = select(null, table, reusableCond(table, table.idColName, primaryKey), NoOrder).fetchSingle(long)
-            return when (count) {
-                0L -> false
-                1L -> true
-                else -> throw AssertionError()
-            }
-        }
-
         private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): SQLiteStatement =
                 insertStatements.getOrPut(table) {
                     connection.compileStatement(SqliteDialect.insert(table))
