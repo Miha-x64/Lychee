@@ -1,18 +1,19 @@
 package net.aquadc.persistence.struct
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SchemaPropsTest {
 
     @Test fun fields() =
-            assertEquals(listOf(SomeSchema.A, SomeSchema.B, SomeSchema.C), SomeSchema.fields)
+            assertArrayEquals(arrayOf(SomeSchema.A, SomeSchema.B, SomeSchema.C), SomeSchema.fields)
 
     @Test fun fieldsByName() =
             assertEquals(mapOf("a" to SomeSchema.A, "b" to SomeSchema.B, "c" to SomeSchema.C), SomeSchema.fieldsByName)
 
     @Test fun mutableFields() =
-            assertEquals(listOf(SomeSchema.C), SomeSchema.mutableFields)
+            assertArrayEquals(arrayOf(SomeSchema.C), SomeSchema.mutableFields)
 
 
 

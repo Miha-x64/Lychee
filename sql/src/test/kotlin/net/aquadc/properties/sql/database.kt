@@ -29,7 +29,7 @@ object WithNested : Schema<WithNested>() {
     val OtherOwnField = "e" let long
 }
 val TableWithEmbed = object : SimpleTable<WithNested, Long>(WithNested, "with_nested", "_id", long) {
-    override fun relations(): List<Relation<WithNested, Long, *>> = listOf(
+    override fun relations(): Array<Relation<WithNested, Long, *>> = arrayOf(
             Relation.Embedded(SnakeCase, WithNested.Embedded)
     )
 }

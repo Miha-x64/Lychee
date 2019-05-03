@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.each
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -72,7 +73,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     }
 
     internal fun onOrderChange(affectedCols: List<Pair<Table<SCH, *, *>, String>>) {
-        affectedCols.forEach { (_, col) ->
+        affectedCols.each { (_, col) ->
             selectionsByOrder[col]?.iterateWeakOrRemove(::updateSelection)
         }
     }

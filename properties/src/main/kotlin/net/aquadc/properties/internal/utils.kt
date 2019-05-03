@@ -91,8 +91,7 @@ inline fun <T> emptyArrayOf(): Array<T> =
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)
 @[JvmField JvmSynthetic PublishedApi] internal val UNIT = `Immutable-`(Unit)
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
+internal inline fun <T, reified R> Array<T>.mapToArray(transform: (T) -> R): Array<R> {
     val array = arrayOfNulls<R>(size)
     for (i in indices) {
         array[i] = transform(this[i])
@@ -102,7 +101,7 @@ inline fun <T, reified R> List<T>.mapToArray(transform: (T) -> R): Array<R> {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-inline fun <T, reified R> List<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {
+inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {
     val array = arrayOfNulls<R>(size)
     for (i in indices) {
         array[i] = transform(i, this[i])

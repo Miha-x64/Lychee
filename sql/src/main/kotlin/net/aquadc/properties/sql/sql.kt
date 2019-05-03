@@ -209,10 +209,10 @@ private constructor(
     abstract fun newRecord(session: Session, primaryKey: ID): REC
 
     /**
-     * Returns a list of all relations for this table.
+     * Returns all relations for this table.
      * This must describe how to store all [Struct] columns relationally.
      */
-    protected open fun relations(): List<Relation<SCH, ID, *>> = emptyList()
+    protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
     private var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null
     private val _columns: Lazy<ArrayList<NamedLens<SCH, REC, *>>> = lazy {
@@ -248,7 +248,7 @@ private constructor(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
             naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?, nullize: Boolean,
             outColumns: ArrayList<NamedLens<SCH, REC, *>>, outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate>
-    ): List<NamedLens<SCH, Struct<SCH>, *>>? {
+    ): Array<NamedLens<SCH, Struct<SCH>, *>>? {
         val fields = schema.fields
         val fieldCount = fields.size
         val outCols = naming?.let { arrayOfNulls<NamedLens<SCH, Struct<SCH>, *>>(fieldCount) }
@@ -296,7 +296,7 @@ private constructor(
             }
             if (outCols != null) outCols[i] = path
         }
-        return (outCols as Array<NamedLens<SCH, Struct<SCH>, *>/*!!*/>?)?.asList()
+        return outCols as Array<NamedLens<SCH, Struct<SCH>, *>/*!!*/>?
     }
 
     val columns: List<NamedLens<SCH, REC, *>>
@@ -314,6 +314,8 @@ private constructor(
 
 // used internally in some places, don't re-instantiate
 internal val nullableLong = nullable(long)
+
+internal val noRelations = emptyArray<Relation<Nothing, Nothing, Nothing>>()
 
 /**
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
@@ -349,7 +351,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
     private val dao
         get() = session.get<Schema<*>, ID, Record<*, ID>>(table as Table<Schema<*>, ID, Record<*, ID>>)
 
-    private val columns: List<NamedLens<*, Record<*, ID>, *>>
+    private val columns: Array<NamedLens<*, Record<*, ID>, *>>
 
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
@@ -361,7 +363,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
     @Deprecated("Will become internal soon, making the whole class effectively final")
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) :
-            this(session, table, table.schema, primaryKey, table.schema.fields as List<NamedLens<*, Record<*, ID>, *>>)
+            this(session, table, table.schema, primaryKey, table.schema.fields as Array<NamedLens<*, Record<*, ID>, *>>)
 
     /**
      * [fields] and [columns] are actually keys and values of a map; [fields] must be in their natural order
@@ -369,7 +371,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
     internal constructor(
             session: Session,
             table: Table<*, ID, *>, schema: SCH, primaryKey: ID,
-            columns: List<NamedLens<*, Record<*, ID>, *>>
+            columns: Array<NamedLens<*, Record<*, ID>, *>>
     ) : super(schema) {
         this.session = session
         this.table = table

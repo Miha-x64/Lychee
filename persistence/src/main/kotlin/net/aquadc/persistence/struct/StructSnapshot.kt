@@ -17,9 +17,6 @@ class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH>, Struct<SCH> {
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(schema: SCH, values: List<Any?>) : this(schema, values.toTypedArray())
-
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     constructor(schema: SCH, values: Array<Any?>) : super(schema) {
         this.values = values
     }

@@ -1,6 +1,7 @@
 package net.aquadc.persistence.stream
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.each
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.PartialStruct
@@ -90,7 +91,7 @@ class StreamWriterVisitor<D, T>(
             // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             output.writeInt(this, arg.size)
             val elementType = type.elementType
-            arg.forEach { /*recur*/ elementType.write(output, this, it as E) }
+            arg.each { /*recur*/ elementType.write(output, this, it as E) }
         }
     }
 

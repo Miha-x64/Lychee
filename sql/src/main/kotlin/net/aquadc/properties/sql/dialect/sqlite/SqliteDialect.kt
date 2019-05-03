@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql.dialect.sqlite
 
+import net.aquadc.persistence.each
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
@@ -102,7 +103,7 @@ object SqliteDialect : Dialect {
 
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-        table.columns.forEach { col ->
+        table.columns.each { col ->
             sb.appendName(col.name).append(' ').appendNameOf(col.type)
             if (col is PkLens || col === table.pkField)
                 sb.append(" PRIMARY KEY")

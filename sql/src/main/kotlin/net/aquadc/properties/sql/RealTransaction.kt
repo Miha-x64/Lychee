@@ -1,6 +1,7 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.New
+import net.aquadc.persistence.each
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
@@ -159,7 +160,7 @@ internal class RealTransaction(
 
         // commit 'unmanaged' status for all the properties which lost their management.
         unmanage?.forEach { (table, refs) ->
-            refs.forEach { ref ->
+            refs.each { ref ->
                 ref.get()?.let(Record<*, *>::dropManagement)
             }
         }

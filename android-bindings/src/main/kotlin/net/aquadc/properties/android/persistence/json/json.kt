@@ -5,6 +5,7 @@ import android.util.Base64
 import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
+import net.aquadc.persistence.each
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -175,7 +176,7 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
                 list.firstOrNull()?.schema?.allFieldSet() ?: /* otherwise it doesn't matter */ FieldSet(0)
 ) {
     beginArray()
-    list.forEach { write(it, fields) }
+    list.each { write(it, fields) }
     endArray()
 }
 
@@ -228,7 +229,7 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
         if (nullable && arg === null) nullValue() // Nullable.encode is null->null, skip it
         else type.elementType.let { elType ->
             beginArray()
-            type.store(arg).fatAsList<Any?>().forEach { write(elType, it as E) }
+            type.store(arg).fatAsList<Any?>().each { write(elType, it as E) }
             // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             endArray()
         }

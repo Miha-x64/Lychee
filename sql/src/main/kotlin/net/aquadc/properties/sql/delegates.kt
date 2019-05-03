@@ -41,13 +41,13 @@ internal object Simple : SqlPropertyDelegate {
 
 internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>>(
         private val schema: TSCH,
-        private val columns: List<NamedLens<SCH, Struct<SCH>, *>>
+        private val columns: Array<NamedLens<SCH, Struct<SCH>, *>>
 ) : SqlPropertyDelegate {
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> fetch(
             session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
     ): T =
-            Record(session, table, schema, id, columns as List<NamedLens<*, Record<*, ID>, *>>) as T
+            Record(session, table, schema, id, columns as Array<NamedLens<*, Record<*, ID>, *>>) as T
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
             session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T

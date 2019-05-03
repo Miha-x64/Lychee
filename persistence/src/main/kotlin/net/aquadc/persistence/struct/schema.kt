@@ -19,6 +19,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
      */
     @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
+    private var mutableCount: Byte = 0
 
     /**
      * A list of fields of this struct.
@@ -28,31 +29,30 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      *   so let it be synchronized (it's default [lazy] mode).
      * }
      */
-    val fields: List<FieldDef<SELF, *>>
+    val fields: Array<out FieldDef<SELF, *>>
         get() = _fields.value
     private val _fields =
-            lazy(LazyFields(0) as () -> List<FieldDef<SELF, *>>)
+            lazy(LazyFields(0) as () -> Array<out FieldDef<SELF, *>>)
 
     val fieldsByName: Map<String, FieldDef<SELF, *>>
         get() = _byName.value
     private val _byName =
             lazy(LazyFields(1) as () -> Map<String, FieldDef<SELF, *>>)
 
-    val mutableFields: List<FieldDef.Mutable<SELF, *>>
+    val mutableFields: Array<out FieldDef.Mutable<SELF, *>>
         get() = _mutableFields.value
     private val _mutableFields =
-            lazy(LazyFields(2) as () -> List<FieldDef.Mutable<SELF, *>>)
+            lazy(LazyFields(2) as () -> Array<out FieldDef.Mutable<SELF, *>>)
 
-    val immutableFields: List<FieldDef.Immutable<SELF, *>>
+    val immutableFields: Array<out FieldDef.Immutable<SELF, *>>
         get() = _immutableFields.value
     private val _immutableFields =
-            lazy(LazyFields(3) as () -> List<FieldDef.Immutable<SELF, *>>)
-
-    private var tmpMutableCount: Byte = 0
+            lazy(LazyFields(3) as () -> Array<out FieldDef.Immutable<SELF, *>>)
 
     /**
      * Gets called before this fully initialized structDef gets used for the first time.
      */
+    @Deprecated("looks useless")
     protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *>>) { }
 
     @JvmSynthetic internal fun tmpFields() =
@@ -74,7 +74,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      */
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
-        val col = FieldDef.Mutable(this@Schema, this, dataType, fields.size.toByte(), default, tmpMutableCount++)
+        val col = FieldDef.Mutable(this@Schema, this, dataType, fields.size.toByte(), default, mutableCount++)
         fields.add(col)
         return col
     }
@@ -86,7 +86,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      */
     protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
-        val col = FieldDef.Immutable(this@Schema, this, dataType, fields.size.toByte(), (fields.size - tmpMutableCount).toByte())
+        val col = FieldDef.Immutable(this@Schema, this, dataType, fields.size.toByte(), (fields.size - mutableCount).toByte())
         fields.add(col)
         return col
     }
@@ -100,20 +100,22 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
         override fun invoke(): Any? = when (mode) {
             0 -> {
-                val fields = tmpFields()
-                check(fields.isNotEmpty()) { "Struct must have at least one field." }
+                val fieldList = tmpFields()
+                val fields = arrayOfNulls<FieldDef<SELF, *>>(fieldList.size)
+                check(fieldList.isNotEmpty()) { "Struct must have at least one field." }
                 // Schema.allFieldSet() relies on field count ∈ [1; 64]
                 // and FieldDef constructor checks for ordinal ∈ [0; 63]
 
                 val nameSet = HashSet<String>()
-                for (i in fields.indices) {
-                    val col = fields[i]
-                    if (!nameSet.add(col.name)) {
-                        throw IllegalStateException("duplicate column: `${this@Schema.javaClass.simpleName}`.`${col.name}`")
+                for (i in fieldList.indices) {
+                    val field = fieldList[i]
+                    if (!nameSet.add(field.name)) {
+                        throw IllegalStateException("duplicate column: `${this@Schema.javaClass.simpleName}`.`${field.name}`")
                     }
+                    fields[i] = field
                 }
 
-                beforeFreeze(nameSet, fields)
+                beforeFreeze(nameSet, fieldList)
                 tmpFields = null
                 fields
             }
@@ -122,10 +124,20 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
                 fields.associateByTo(New.map<String, FieldDef<SELF, *>>(fields.size), FieldDef<SELF, *>::name)
 
             2 ->
-                fields.filterIsInstance<FieldDef.Mutable<SELF, *>>()
+                arrayOfNulls<FieldDef.Mutable<SELF, *>>(mutableCount.toInt()).also { mut ->
+                    var i = 0
+                    fields.forEach { field ->
+                        if (field is FieldDef.Mutable) mut[i++] = field
+                    }
+                }
 
             3 ->
-                fields.filterIsInstance<FieldDef.Immutable<SELF, *>>()
+                arrayOfNulls<FieldDef.Immutable<SELF, *>>(fields.size - mutableCount.toInt()).also { mut ->
+                    var i = 0
+                    fields.forEach { field ->
+                        if (field is FieldDef.Immutable) mut[i++] = field
+                    }
+                }
 
             else ->
                 throw AssertionError()

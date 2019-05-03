@@ -151,3 +151,10 @@ fun <E> AnyCollection.fatAsList(): List<E> = when (this) {
     is DoubleArray -> this.asList() as List<E>
     else -> throw AssertionError()
 }
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <E> List<E>.each(consume: (E) -> Unit) {
+    for (i in indices) {
+        consume(this[i])
+    }
+}

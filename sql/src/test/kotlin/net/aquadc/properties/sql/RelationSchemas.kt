@@ -33,7 +33,7 @@ class RelationSchemas {
     }
     @Test(expected = IllegalStateException::class) fun `same name as nested`() {
         object : SimpleTable<DupeEmbed, Long>(DupeEmbed, "", "a", long) {
-            override fun relations(): List<Relation<DupeEmbed, Long, *>> = listOf(
+            override fun relations(): Array<Relation<DupeEmbed, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, DupeEmbed.b)
             )
         }.columns
@@ -67,7 +67,7 @@ class RelationSchemas {
     }
     @Test fun `embed struct`() {
         val table = object : SimpleTable<EmbedSchema, Long>(EmbedSchema, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedSchema, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedSchema, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedSchema.B)
             )
         }
@@ -90,14 +90,14 @@ class RelationSchemas {
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for partial`() {
         object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedPartial, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedPartial, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedPartial.B)
             )
         }.columns
     }
     @Test fun `embed partial`() {
         val table: SimpleTable<EmbedPartial, Long> = object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedPartial, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedPartial, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedPartial.B, "fieldsSet")
             )
         }
@@ -121,14 +121,14 @@ class RelationSchemas {
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for nullable`() {
         object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedNullable, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedNullable, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedNullable.B)
             )
         }.columns
     }
     @Test fun `embed nullable`() {
         val table = object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedNullable, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedNullable, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedNullable.B, "nullability")
             )
         }
@@ -152,14 +152,14 @@ class RelationSchemas {
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for partial nullable`() {
         object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedNullablePartial, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedNullablePartial, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedNullablePartial.B)
             )
         }.columns
     }
     @Test fun `embed nullable partial`() {
         val table = object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", "_id", long) {
-            override fun relations(): List<Relation<EmbedNullablePartial, Long, *>> = listOf(
+            override fun relations(): Array<Relation<EmbedNullablePartial, Long, *>> = arrayOf(
                     Relation.Embedded(SnakeCase, EmbedNullablePartial.B, "fieldSetAndNullability")
             )
         }
