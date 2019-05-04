@@ -1,6 +1,7 @@
 @file:JvmName("PropertyStructs")
 package net.aquadc.properties.persistence
 
+import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.*
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
@@ -37,7 +38,7 @@ interface TransactionalPropertyStruct<SCH : Schema<SCH>> : PropertyStruct<SCH>, 
  */
 fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> =
         schema.mutableFields.map { prop(it) }.mapValueList { newMutableValues ->
-            StructSnapshot(schema, if (schema.immutableFields.isEmpty()) newMutableValues.toTypedArray() else {
+            StructSnapshot(schema, if (schema.immutableFields.isEmpty()) newMutableValues.array() else {
                 schema.fields.mapToArray { field ->
                     when (field) {
                         is FieldDef.Mutable -> newMutableValues[field.mutableOrdinal.toInt()]

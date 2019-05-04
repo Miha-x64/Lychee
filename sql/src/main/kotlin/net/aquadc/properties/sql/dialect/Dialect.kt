@@ -1,7 +1,11 @@
 package net.aquadc.properties.sql.dialect
 
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.properties.sql.*
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.properties.sql.Order
+import net.aquadc.properties.sql.Table
+import net.aquadc.properties.sql.WhereCondition
 
 /**
  * Represents an SQL dialect. Provides functions for building queries.
@@ -40,7 +44,7 @@ interface Dialect {
     /**
      *  Constructs an SQL query like `UPDATE <table> SET <col> = ?`
      */
-    fun <SCH : Schema<SCH>> updateFieldQuery(table: Table<SCH, *, *>, colName: String): String
+    fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<NamedLens<SCH, Struct<SCH>, *>>): String
 
     /**
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`

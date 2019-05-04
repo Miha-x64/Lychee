@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
@@ -43,7 +44,7 @@ class JdbcSession(
     private var transaction: RealTransaction? = null
     private val selectStatements = ThreadLocal<HashMap<String, PreparedStatement>>()
     private val insertStatements = HashMap<Table<*, *, *>, PreparedStatement>()
-    private val updateStatements = HashMap<Pair<Table<*, *, *>, @ParameterName("columnName") String>, PreparedStatement>()
+    private val updateStatements = HashMap<Table<*, *, *>, HashMap<Any, PreparedStatement>>()
     private val deleteStatements = HashMap<Table<*, *, *>, PreparedStatement>()
 
     private val lowLevel = object : LowLevelSession {
@@ -70,15 +71,30 @@ class JdbcSession(
             return statement.generatedKeys.fetchSingle(table.idColType)
         }
 
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, colName: String): PreparedStatement =
-                updateStatements.getOrPut(Pair(table, colName)) {
-                    connection.prepareStatement(dialect.updateFieldQuery(table, colName))
-                }
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, cols: Any): PreparedStatement =
+                updateStatements
+                        .getOrPut(table, ::HashMap)
+                        .getOrPut(cols) {
+                            val colArray =
+                                    if (cols is Array<*>) cols as Array<NamedLens<SCH, Struct<SCH>, *>>
+                                    else arrayOf(cols as NamedLens<SCH, Struct<SCH>, *>)
+                            connection.prepareStatement(dialect.updateQuery(table, colArray))
+                        }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T) {
-            val statement = updateStatementWLocked(table, column.name)
-            column.type.bind(statement, 0, value)
-            table.idColType.bind(statement, 1, id)
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
+            val statement = updateStatementWLocked(table, columns)
+            val colCount = if (columns is Array<*>) {
+                columns as Array<NamedLens<SCH, Struct<SCH>, *>>
+                values as Array<*>
+                columns.forEachIndexed { i, col ->
+                    columns[i].type.erased.bind(statement, i, values[i])
+                }
+                columns.size
+            } else {
+                (columns as NamedLens<SCH, Struct<SCH>, *>).type.erased.bind(statement, 0, values)
+                1
+            }
+            table.idColType.bind(statement, colCount, id)
             check(statement.executeUpdate() == 1)
         }
 
@@ -159,7 +175,7 @@ class JdbcSession(
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColType)
-                        .toTypedArray<Any>() as Array<ID>
+                        .array<Any>() as Array<ID>
 
         private fun <T> ResultSet.fetchAll(type: DataType<T>): List<T> {
             val values = ArrayList<T>()

@@ -40,11 +40,12 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
     override fun setValue(transaction: TRANSACTION, value: T) {
         val manager = requireManaged()
 
-        val clean = if (ref === Unset) manager.getClean(column, id) else Unset
+        val _ref = ref
+        val clean = if (_ref === Unset) manager.getClean(column, id) else Unset
         // after mutating dirty state we won't be able to see the clean one,
         // so we'll preserve it later in this method
 
-        manager.set(transaction, column, id, value)
+        manager.set(transaction, column, id, if (clean === Unset) _ref else clean as T, value)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
@@ -67,6 +68,20 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
                     null
             )
         }
+    }
+
+    fun swapSilentlyLocked(new: T): T {
+        requireManaged()
+
+        val prev = ref
+        refUpdater().lazySet(this, new)
+        return prev
+    }
+
+    fun refreshLocked() {
+        val oldValue = ref
+        ref = Unset as T
+        valueChanged(oldValue, value, null)
     }
 
     fun dropManagement() {
@@ -107,6 +122,6 @@ interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T)
+    fun <T> set(transaction: TRANSACTION, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T)
 
 }

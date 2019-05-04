@@ -6,6 +6,7 @@ import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
@@ -79,10 +80,17 @@ object SqliteDialect : Dialect {
         setLength(length - 2)
     }
 
-    override fun <SCH : Schema<SCH>> updateFieldQuery(table: Table<SCH, *, *>, colName: String): String =
-            StringBuilder("UPDATE ").appendName(table.name)
-                    .append(" SET ").appendName(colName).append(" = ? WHERE ").appendName(table.idColName).append(" = ?;")
-                    .toString()
+    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<NamedLens<SCH, Struct<SCH>, *>>): String =
+            buildString {
+                append("UPDATE ").appendName(table.name).append(" SET ")
+
+                cols.forEach { col ->
+                    appendName(col.name).append(" = ?, ")
+                }
+                setLength(length - 2) // assume not empty
+
+                append(" WHERE ").appendName(table.idColName).append(" = ?;")
+            }
 
     override fun deleteRecordQuery(table: Table<*, *, *>): String =
             StringBuilder("DELETE FROM ").appendName(table.name)
@@ -103,7 +111,7 @@ object SqliteDialect : Dialect {
 
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
-        table.columns.each { col ->
+        table.columns.forEach { col ->
             sb.appendName(col.name).append(' ').appendNameOf(col.type)
             if (col is PkLens || col === table.pkField)
                 sb.append(" PRIMARY KEY")

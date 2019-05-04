@@ -94,7 +94,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?): T =
                 column.get(prefs)
 
-        override fun <T> set(transaction: StructTransaction<SCH>, column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?, update: T) {
+        override fun <T> set(transaction: StructTransaction<SCH>, column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?, previous: T, update: T) {
             column as FieldDef.Mutable<SCH, T> // all our ManagedProperty instances are created with FieldDef
             transaction.set(column, update)
         }

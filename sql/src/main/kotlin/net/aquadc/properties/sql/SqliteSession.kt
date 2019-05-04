@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteProgram
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.New
+import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
@@ -41,7 +42,7 @@ class SqliteSession(
     private var transaction: RealTransaction? = null
 //    private val selectStatements = ThreadLocal<MutableMap<String, SQLiteStatement>>()
     private val insertStatements = New.map<Table<*, *, *>, SQLiteStatement>()
-    private val updateStatements = New.map<Pair<Table<*, *, *>, @ParameterName("colName") String>, SQLiteStatement>()
+    private val updateStatements = New.map<Table<*, *, *>, MutableMap<Any, SQLiteStatement>>()
     private val deleteStatements = New.map<Table<*, *, *>, SQLiteStatement>()
 
     private val lowLevel = object : LowLevelSession {
@@ -64,15 +65,30 @@ class SqliteSession(
             return id as ID
         }
 
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, colName: String): SQLiteStatement =
-                updateStatements.getOrPut(Pair(table, colName)) {
-                    connection.compileStatement(SqliteDialect.updateFieldQuery(table, colName))
-                }
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, cols: Any): SQLiteStatement =
+                updateStatements
+                        .getOrPut(table, ::HashMap)
+                        .getOrPut(cols) {
+                            val colArray =
+                                    if (cols is Array<*>) cols as Array<NamedLens<SCH, Struct<SCH>, *>>
+                                    else arrayOf(cols as NamedLens<SCH, Struct<SCH>, *>)
+                            connection.compileStatement(SqliteDialect.updateQuery(table, colArray))
+                        }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T) {
-            val statement = updateStatementWLocked(table, column.name)
-            column.type.bind(statement, 0, value)
-            table.idColType.bind(statement, 1, id)
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
+            val statement = updateStatementWLocked(table, columns)
+            val colCount = if (columns is Array<*>) {
+                columns as Array<NamedLens<SCH, Struct<SCH>, *>>
+                values as Array<*>
+                columns.forEachIndexed { i, col ->
+                    columns[i].type.erased.bind(statement, i, values[i])
+                }
+                columns.size
+            } else {
+                (columns as NamedLens<SCH, Struct<SCH>, *>).type.erased.bind(statement, 0, values)
+                1
+            }
+            table.idColType.bind(statement, colCount, id)
             check(statement.executeUpdateDelete() == 1)
         }
 
@@ -161,7 +177,7 @@ class SqliteSession(
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColType)
-                        .toTypedArray<Any>() as Array<ID>
+                        .array<Any>() as Array<ID>
 
         private fun <T> Cursor.fetchAll(type: DataType<T>): List<T> {
             if (!moveToFirst()) {

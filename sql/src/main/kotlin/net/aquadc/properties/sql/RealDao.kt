@@ -1,17 +1,20 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.each
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.properties.*
+import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.Property
+import net.aquadc.properties.concurrentPropertyOf
+import net.aquadc.properties.distinct
 import net.aquadc.properties.function.Arrayz
-import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.internal.`Distinct-`
 import net.aquadc.properties.internal.`Mapped-`
+import net.aquadc.properties.map
 import net.aquadc.properties.sql.dialect.Dialect
 import java.lang.ref.WeakReference
+import java.util.BitSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.CopyOnWriteArraySet
@@ -37,15 +40,12 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     // SELECT _id WHERE ...
     private val selections = ConcurrentHashMap<ConditionAndOrder<SCH>, WeakReference<Property<List<REC>>>>()
     // same items here, but in different format
-    private val selectionsByOrder = ConcurrentHashMap<@ParameterName("columnName") String, CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>>()
-
-    @Suppress("UNCHECKED_CAST")
-    internal fun <T> commitValue(id: ID, colName: String, value: T) {
-        recordRefs.getWeakOrRemove(id)?.let { rec ->
-            val ord = table.schema.fieldsByName[colName]!!.ordinal.toInt() // TODO
-            (rec.values[ord] as ManagedProperty<SCH, Transaction, T, ID>).commit(value)
-        }
+    private val selectionsByOrder = Array(table.columns.size) { _ ->
+        CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>()
     }
+
+    internal fun getCached(id: ID): REC? =
+            recordRefs.getWeakOrRemove(id)
 
     internal fun forget(id: ID): WeakReference<REC>? =
             recordRefs.remove(id)?.let(::forgetInternal)
@@ -72,9 +72,11 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
     }
 
-    internal fun onOrderChange(affectedCols: List<Pair<Table<SCH, *, *>, String>>) {
-        affectedCols.each { (_, col) ->
-            selectionsByOrder[col]?.iterateWeakOrRemove(::updateSelection)
+    internal fun onOrderChange(affectedCols: BitSet) {
+        for (i in 0 until affectedCols.length()) {
+            if (affectedCols[i]) {
+                selectionsByOrder[i].iterateWeakOrRemove(::updateSelection)
+            }
         }
     }
 
@@ -130,13 +132,16 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         }
     }
 
-    private inline fun <E : Any> MutableIterable<WeakReference<E>>.iterateWeakOrRemove(func: (E) -> Unit) {
-        val itr = iterator()
-        while (itr.hasNext()) {
-            val ref = itr.next()
-            val el = ref.get()
-            if (el === null) itr.remove()
-            else func(el)
+    private inline fun <E : Any> MutableCollection<WeakReference<E>>.iterateWeakOrRemove(func: (E) -> Unit) {
+        if (isNotEmpty()) {
+            // every damn Java collection creates new iterator even if it is empty and may just return emptyIterator()
+            val itr = iterator()
+            while (itr.hasNext()) {
+                val ref = itr.next()
+                val el = ref.get()
+                if (el === null) itr.remove()
+                else func(el)
+            }
         }
     }
 
@@ -158,12 +163,13 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
                     .map(PrimaryKeys(table, lowSession))
                     .distinct(Arrayz.Equal)
                     .map(Query(this))
-        }) { r, p ->
-            // ugly one ;)
+        }) { r, p -> // ugly one ;)
             ref = r
             prop = p
         }
-        order.forEach { selectionsByOrder.getOrPut(/* TODO: */ it.col.name, ::CopyOnWriteArraySet).add(ref) }
+        order.forEach { ord ->
+            selectionsByOrder[table.columnIndices[ord.col]!!].add(ref)
+        }
         return prop
     }
 
@@ -177,19 +183,14 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     // region Manager implementation
 
     override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T {
-        val transaction = lowSession.transaction ?: return unset()
-
-        val thisCol = transaction.updated?.getFor(table, column.name) ?: return unset()
-        // we've created this column, we can cast it to original type
-
-        return if (thisCol.containsKey(id)) thisCol[id] as T else unset()
-        // 'as T' is safe since thisCol won't contain non-T value
+        val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
+        return thisRec[table.columnIndices[column]!!] as T
     }
 
     override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T =
             table.delegateFor(column).fetch(session, lowSession, table, column, id)
 
-    override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, update: T) {
+    override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact)
             throw IllegalStateException(
@@ -204,7 +205,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
             return
         }
 
-        transaction.update(table, id, column, update)
+        transaction.update(table, id, column, previous, update)
     }
 
     // endregion Manager implementation

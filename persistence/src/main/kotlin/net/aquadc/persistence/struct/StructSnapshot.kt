@@ -1,6 +1,7 @@
 package net.aquadc.persistence.struct
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.values
 
 /**
  * Represents a fully immutable snapshot of a struct.
@@ -12,8 +13,7 @@ class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH>, Struct<SCH> {
     private val values: Array<Any?>
 
     constructor(source: Struct<SCH>) : super(source.schema) {
-        val fields = schema.fields
-        this.values = Array(fields.size) { i -> source[fields[i]] }
+        this.values = source.values()
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)

@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 import android.support.annotation.RestrictTo
 import net.aquadc.persistence.New
+import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -119,7 +120,7 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
             insert(table, data)
 
-    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, previous: T, value: T)
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
 
@@ -206,6 +207,7 @@ private constructor(
     /**
      * Instantiates a record. Typically consists of a single constructor call.
      */
+    @Deprecated("Stop overriding this! Will become final.")
     abstract fun newRecord(session: Session, primaryKey: ID): REC
 
     /**
@@ -215,7 +217,7 @@ private constructor(
     protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
     private var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null
-    private val _columns: Lazy<ArrayList<NamedLens<SCH, REC, *>>> = lazy {
+    private val _columns: Lazy<Array<out NamedLens<SCH, REC, *>>> = lazy {
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }
@@ -229,16 +231,15 @@ private constructor(
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
         this._delegates = delegates
-        columns.names = null
-        columns
+        columns.array()
     }
 
     private class CheckNamesList<E : NamedLens<* , *, *>>(initialCapacity: Int) : ArrayList<E>(initialCapacity) {
-        @JvmField internal var names: MutableSet<String>? = New.set(initialCapacity)
+        private val names = New.set<String>(initialCapacity)
         override fun add(element: E): Boolean {
             val name = element.name
             check(name.isNotBlank()) { "column has blank name: $element" }
-            check(names!!.add(name)) { "duplicate name '$name' assigned to both [${first { it.name == name }}, $element]" }
+            check(names.add(name)) { "duplicate name '$name' assigned to both [${first { it.name == name }}, $element]" }
             return super.add(element)
         }
     }
@@ -248,10 +249,10 @@ private constructor(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
             naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?, nullize: Boolean,
             outColumns: ArrayList<NamedLens<SCH, REC, *>>, outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate>
-    ): Array<NamedLens<SCH, Struct<SCH>, *>>? {
+    ): Array<NamedLens<SCH, REC, *>>? {
         val fields = schema.fields
         val fieldCount = fields.size
-        val outCols = naming?.let { arrayOfNulls<NamedLens<SCH, Struct<SCH>, *>>(fieldCount) }
+        val outCols = naming?.let { arrayOfNulls<NamedLens<SCH, REC, *>>(fieldCount) }
         for (i in 0 until fieldCount) {
             val field = fields[i]
             val path: NamedLens<SCH, Struct<SCH>, out Any?> =
@@ -285,7 +286,7 @@ private constructor(
                                 nullize || path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
                                 outColumns, outDelegates
                         )!!
-                        check(outDelegates.put(path, Embedded<SCH, Schema<*>>(relSchema, nestedCols)) === null)
+                        check(outDelegates.put(path, Embedded<SCH, Schema<*>, ID, REC>(relSchema, nestedCols)) === null)
                     }
                     is Relation.ToOne<*, *, *, *, *> -> TODO()
                     is Relation.ToMany<*, *, *, *, *, *, *> -> TODO()
@@ -296,15 +297,88 @@ private constructor(
             }
             if (outCols != null) outCols[i] = path
         }
-        return outCols as Array<NamedLens<SCH, Struct<SCH>, *>/*!!*/>?
+        return outCols as Array<NamedLens<SCH, REC, *>/*!!*/>?
     }
 
-    val columns: List<NamedLens<SCH, REC, *>>
+    val columns: Array<out NamedLens<SCH, REC, *>>
         get() = _columns.value
 
+
+    private var _columnsByName: Map<String, NamedLens<SCH, REC, *>>? = null
+
+    val columnsByName: Map<String, NamedLens<SCH, REC, *>>
+        get() = _columnsByName
+                ?: columns.let { cols ->
+                    cols.associateByTo(New.map(cols.size), NamedLens<SCH, REC, *>::name)
+                }.also { _columnsByName = it }
+
+
+    private var _columnIndices: Map<NamedLens<SCH, REC, *>, Int>? = null
+
+    val columnIndices: Map<NamedLens<SCH, REC, *>, Int>
+        get() = _columnIndices
+                ?: columns.let { cols ->
+                    New.map<NamedLens<SCH, REC, *>, Int>(cols.size).also { map ->
+                        columns.forEachIndexed { i, col -> map[col] = i }
+                    }
+                }.also { _columnIndices = it }
+
     internal fun delegateFor(lens: Lens<SCH, REC, *>): SqlPropertyDelegate {
-        val fetches = _delegates ?: _columns.value.let { _ -> _delegates!! /* unwrap lazy */ }
-        return fetches[lens] ?: Simple
+        val delegates = _delegates ?: _columns.value.let { _ -> _delegates!! /* unwrap lazy */ }
+        return delegates[lens] ?: Simple
+    }
+
+    internal fun preCommitValues(record: Record<SCH, ID>, columnValues: Array<Any?>, tmpSet: HashSet<Any?>) {
+        val prevFieldValues = columnValues.last() as Array<out Any?>?
+        for (i in columns.indices) {
+            val value = columnValues[i]
+            if (value !== Unset) {
+                val col = columns[i]
+                // we generate lenses ourselves, so we can be sure about their types:
+                val firstLens = col[0]
+                when {
+                    col is FieldDef.Mutable -> { /* nothing to do here, will change on next pass */ }
+                    col is AbsTelescope<*, *, *, *, *, *, *> && firstLens is FieldDef.Mutable -> {
+                        if (tmpSet.add(firstLens)) { // deduplication
+                            if (prevFieldValues !== null) {
+                                val idx = firstLens.ordinal.toInt()
+                                if (prevFieldValues[idx] !== Unset) {
+                                    val evicted = (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).swapSilentlyLocked(prevFieldValues[idx])
+                                    evicted as Record<*, *>
+                                    evicted.isManaged = false
+                                    evicted.dropManagement()
+                                    // ^^ not sure whether this pair is good
+                                }
+                            }
+                        }
+                    }
+                    else -> throw AssertionError("column $col does not seem to be mutable")
+                }
+            }
+        }
+        tmpSet.clear()
+    }
+    internal fun commitValues(record: Record<SCH, ID>, columnValues: Array<Any?>, tmpSet: HashSet<Any?>) {
+        for (i in columns.indices) {
+            val value = columnValues[i]
+            if (value !== Unset) {
+                val col = columns[i]
+                val firstLens = col[0]
+                when {
+                    col is FieldDef.Mutable -> {
+                        (record.values[col.ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
+                    }
+                    col is AbsTelescope<*, *, *, *, *, *, *> && firstLens is FieldDef.Mutable -> {
+                        if (tmpSet.add(firstLens)) {
+                            val idx = firstLens.ordinal.toInt()
+                            (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).refreshLocked()
+                        }
+                    }
+                    else -> throw AssertionError("column $col does not seem to be mutable")
+                }
+            }
+        }
+        tmpSet.clear()
     }
 
     override fun toString(): String =
@@ -313,9 +387,9 @@ private constructor(
 }
 
 // used internally in some places, don't re-instantiate
-internal val nullableLong = nullable(long)
+@JvmField internal val nullableLong = nullable(long)
 
-internal val noRelations = emptyArray<Relation<Nothing, Nothing, Nothing>>()
+@JvmField internal val noRelations = emptyArray<Relation<Nothing, Nothing, Nothing>>()
 
 /**
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
@@ -355,6 +429,16 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
 
     @JvmField @JvmSynthetic
     internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
+
+    internal fun copyValues(): Array<Any?> {
+        val size = values.size
+        val out = arrayOfNulls<Any>(size)
+        val flds = schema.fields
+        repeat(size) { i ->
+            out[i] = this[flds[i]]
+        }
+        return out
+    }
 
     /**
      * Creates new record.
@@ -413,7 +497,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
         @JvmSynthetic internal set // cleared **before** real property unmanagement occurs
 
     @JvmSynthetic internal fun dropManagement() {
-        val defs = table.schema.fields
+        val defs = schema.fields
         val vals = values
         for (i in defs.indices) {
             when (defs[i]) {

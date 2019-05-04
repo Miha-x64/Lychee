@@ -8,7 +8,11 @@ import net.aquadc.persistence.type.DataType
 
 internal interface LowLevelSession {
     fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
-    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID, *>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T)
+    /** [columns] : [values] is a map */
+    fun <SCH : Schema<SCH>, ID : IdBound> update(
+            table: Table<SCH, ID, *>, id: ID,
+            columns: Any /* = [array of] NamedLens<SCH, Struct<SCH>, *>> */, values: Any? /* = [array of] Any? */
+    )
     fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID)
     fun truncate(table: Table<*, *, *>)
     val daos: Map<Table<*, *, *>, RealDao<*, *, *>>

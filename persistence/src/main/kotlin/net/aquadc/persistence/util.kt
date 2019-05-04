@@ -1,6 +1,8 @@
 package net.aquadc.persistence
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.AnyCollection
 import java.util.Arrays
 import java.util.Collections
@@ -158,3 +160,14 @@ fun <E> List<E>.each(consume: (E) -> Unit) {
         consume(this[i])
     }
 }
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> Struct<SCH>.values(): Array<Any?> {
+    val fields = schema.fields
+    return Array(fields.size) { i -> this[fields[i]] }
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+inline fun <reified T> List<T>.array(): Array<T> =
+        (this as java.util.List<T>).toArray(arrayOfNulls<T>(size))
+

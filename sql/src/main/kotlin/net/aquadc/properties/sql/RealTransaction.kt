@@ -6,18 +6,20 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.properties.internal.Unset
 import java.lang.ref.WeakReference
+import java.util.Arrays
+import java.util.BitSet
+
 
 @Suppress(
-        "PLATFORM_CLASS_MAPPED_TO_KOTLIN", // using finalization guard
-        "ReplacePutWithAssignment" // shut up, I want to write my code in cute columns
+        "ReplacePutWithAssignment", "ReplaceGetOrSet" // shut up, I want to write my code in cute columns
 )
 internal class RealTransaction(
         private val session: Session,
         private val lowSession: LowLevelSession
-) : java.lang.Object(), Transaction {
+) : Transaction {
 
-    private val createdAt = Exception()
     private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
     private var isSuccessful = false
 
@@ -45,31 +47,36 @@ internal class RealTransaction(
                 .add(id)
 
         // write all insertion fields as updates
+        /* hmm, looks like we don't need it, uncommitted values will be read from DB if ever requested TODO consider
         val updated = updated ?: UpdatesMap().also { updated = it }
 
         val fields = table.schema.fields
         for (i in fields.indices) {
             val field = fields[i]
             when (field) {
-                is FieldDef.Mutable -> updated.put(table, /* todo */ field.name, data[field], id)
+                is FieldDef.Mutable -> updated.put(table, field.name hey, what about nested ones?, data[field], id)
                 is FieldDef.Immutable -> { }
             }.also { }
-        }
+        }*/
 
         return session[table].require(id)
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(
-            table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, value: T
+            table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, previous: T, value: T
     ) {
         checkOpenAndThread()
         column[column.size - 1] as FieldDef.Mutable // disallow mutating immutable
 
-        table.delegateFor(column).update(session, lowSession, table, column, id, value)
+        val updates = (updated ?: UpdatesMap().also { updated = it })
+                .getOrPut(table, New::map)
+                .getOrPut(id) {
+                    val arr = arrayOfNulls<Any>(table.columns.size + 1)
+                    Arrays.fill(arr, 0, table.columns.size, Unset)
+                    arr // leave last cell `null`, it is for old values!
+                }
 
-        (updated ?: UpdatesMap().also { updated = it })
-                .getOrPut(table to column.name, New::map)
-                .put(id, value)
+        table.delegateFor(column).update(session, lowSession, table, column, id, previous, value, into = updates)
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>) {
@@ -130,12 +137,22 @@ internal class RealTransaction(
             }
         }
 
-        // value changes
         val upd = updated
-        upd?.forEach { (tblToCol, idToVal) ->
-            val (table, colName) = tblToCol
-            idToVal.forEach { (id, value) ->
-                lowSession.daos[table]?.erased?.commitValue(id, colName, value)
+        val tmpSet = HashSet<Any?>()
+        // evict nested (still deletions!)
+        upd?.forEach { (table, idToRec) ->
+            idToRec.forEach { (id, upd) ->
+                lowSession.daos[table]?.erased?.getCached(id)?.let { rec ->
+                    table.erased.preCommitValues(rec, upd, tmpSet)
+                }
+            }
+        }
+        // value changes
+        upd?.forEach { (table, idToRec) ->
+            idToRec.forEach { (id, upd) ->
+                lowSession.daos[table]?.erased?.getCached(id)?.let { rec ->
+                    table.erased.commitValues(rec, upd, tmpSet)
+                }
             }
         }
 
@@ -144,17 +161,23 @@ internal class RealTransaction(
         if (ins != null || del != null || upd != null) {
             val changedTables = (ins?.keys ?: emptySet<Table<*, *, *>>()) + (del?.keys ?: emptySet())
 
-            lowSession.daos.forEach { (table, dao) ->
+            var updatedCols: BitSet? = null
+            for ((table, dao) in lowSession.daos) {
                 if (table in changedTables) {
                     dao.onStructuralChange()
                 } else if (upd != null) {
-                    val updatedInTable = upd.keys.filter { it.first == table }
-                    if (updatedInTable.isNotEmpty()) {
-                        @Suppress("UPPER_BOUND_VIOLATED")
-                        dao.erased.onOrderChange(updatedInTable as List<Pair<Table<Any, *, *>, String>>)
+                    if (updatedCols === null) updatedCols = BitSet(table.columns.size)
+
+                    upd[table]?.values?.forEach { values ->
+                        for (i in 0 until table.columns.size) {
+                            if (values[i] !== Unset) updatedCols.set(i)
+                        }
+                    }
+                    if (!updatedCols.isEmpty) {
+                        dao.onOrderChange(updatedCols)
+                        updatedCols.clear()
                     }
                 }
-
             }
         }
 
@@ -170,12 +193,6 @@ internal class RealTransaction(
     internal fun checkOpenAndThread() {
         check(thread === Thread.currentThread()) {
             if (thread === null) "this transaction was already closed" else "called from wrong thread"
-        }
-    }
-
-    override fun finalize() {
-        if (thread !== null) {
-            throw IllegalStateException("unclosed transaction being finalized, originally created at", createdAt)
         }
     }
 

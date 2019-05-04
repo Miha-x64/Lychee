@@ -6,6 +6,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
+import net.aquadc.properties.internal.mapIndexedToArray
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -19,7 +20,7 @@ class RelationSchemas {
     @Test fun `no rels`() {
         val table = SimpleTable(ShallowSchema, "zzz", "_id", long)
         assertEquals(
-                listOf(PkLens(table), ShallowSchema.A, ShallowSchema.B),
+                arrayOf(PkLens(table), ShallowSchema.A, ShallowSchema.B),
                 table.columns
         )
     }
@@ -50,7 +51,7 @@ class RelationSchemas {
 
     @Test fun `with id`() {
         assertEquals(
-                listOf(SchWithId.Id, SchWithId.Value, SchWithId.MutValue),
+                arrayOf(SchWithId.Id, SchWithId.Value, SchWithId.MutValue),
                 TableWithId.columns
         )
     }
@@ -71,9 +72,9 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, EmbedSchema.B)
             )
         }
-        assertEquals(listOf("_id", "a", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "b_a", "b_b"), table.columns.names())
         assertEquals(
-                listOf(
+                arrayOf(
                         PkLens(table),
                         EmbedSchema.A,
                         Telescope1("", EmbedSchema.B, ShallowSchema.A),
@@ -101,9 +102,9 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, EmbedPartial.B, "fieldsSet")
             )
         }
-        assertEquals(listOf("_id", "a", "fieldsSet", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "fieldsSet", "b_a", "b_b"), table.columns.names())
         assertEquals(
-                listOf(
+                arrayOf(
                         PkLens(table),
                         EmbedPartial.A,
                         SyntheticColLens(table,"fieldsSet", EmbedPartial.B, false),
@@ -132,9 +133,9 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, EmbedNullable.B, "nullability")
             )
         }
-        assertEquals(listOf("_id", "a", "nullability", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "nullability", "b_a", "b_b"), table.columns.names())
         assertEquals(
-                listOf(
+                arrayOf(
                         PkLens(table),
                         EmbedNullable.A,
                         SyntheticColLens(table, "nullability", EmbedNullable.B, true),
@@ -164,11 +165,11 @@ class RelationSchemas {
             )
         }
         assertEquals(
-                listOf("_id", "a", "fieldSetAndNullability", "b_a", "b_b"),
+                arrayOf("_id", "a", "fieldSetAndNullability", "b_a", "b_b"),
                 table.columns.names()
         )
         assertEquals(
-                listOf(
+                arrayOf(
                         PkLens(table),
                         EmbedNullablePartial.A,
                         SyntheticColLens(table, "fieldSetAndNullability", EmbedNullablePartial.B, false),
@@ -179,10 +180,10 @@ class RelationSchemas {
         )
     }
 
-    private fun List<NamedLens<*, *, *>>.names(): List<String> =
-            map(NamedLens<*, *, *>::name)
+    private fun Array<out NamedLens<*, *, *>>.names(): Array<out String> =
+            mapIndexedToArray { _, it -> it.name }
 
-    private fun assertEquals(expected: List<Any?>, actual: List<Any?>) {
+    private fun assertEquals(expected: Array<out Any?>, actual: Array<out Any?>) {
         if (expected.size != actual.size) assertEquals(expected as Any, actual as Any) // fallback to JUnit impl
         expected.zip(actual).forEachIndexed { idx, (ex, ac) ->
             assertEquals("at $idx", ex, ac) // fail separately
