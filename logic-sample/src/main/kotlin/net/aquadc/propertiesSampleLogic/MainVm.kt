@@ -29,7 +29,7 @@ class MainVm(
     val buttonClickedProp = propertyOf(false).also {
         it.clearEachAnd {
             user.transaction { t ->
-                t.setFrom(editableUser, User.Email + User.Name + User.Surname)
+                t.setFrom(editableUser, Email + Name + Surname)
             }
         }
     }

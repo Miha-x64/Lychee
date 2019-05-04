@@ -105,7 +105,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
             if (ref.get() !== null) {
                 sb.append(prefix).append(" ").let {
                     cor.condition.appendSqlTo(dialect, it)
-                    if (!cor.order.isEmpty()) {
+                    if (cor.order.isNotEmpty()) {
                         it.append(" ORDER BY ...")
                     }
                 }

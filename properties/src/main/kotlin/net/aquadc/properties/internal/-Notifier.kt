@@ -22,8 +22,7 @@ abstract class `-Notifier`<out T>(
             if (thread == null) {
                 concState().get().listeners.any { it != null }
             } else {
-                val lis = nonSyncListeners
-                when (lis) {
+                when (val lis = nonSyncListeners) {
                     null -> false
                     is Function2<*, *, *> -> true
                     is Array<*> -> lis.any { it != null }

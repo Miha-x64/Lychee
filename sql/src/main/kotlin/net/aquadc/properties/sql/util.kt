@@ -32,10 +32,6 @@ internal fun <SCH : Schema<SCH>, T, ID : IdBound> UpdatesMap.put(table: Table<SC
 internal inline val Table<*, *, *>.erased
     get() = this as Table<Any, IdBound, Record<Any, IdBound>>
 
-@Suppress("UPPER_BOUND_VIOLATED")
-internal inline val FieldDef.Mutable<*, *>.erased
-    get() = this as FieldDef.Mutable<Any, Any?>
-
 internal inline val DataType<*>.erased
     get() = this as DataType<Any?>
 

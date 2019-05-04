@@ -120,8 +120,8 @@ class SqliteSession(
             val argValues = ArrayList<Any>()
             condition.appendValuesTo(argNames, argValues)
 
-            return with(SqliteDialect) {
-                val sql = SQLiteQueryBuilder.buildQueryString( // fixme: building SQL myself may save some allocations
+            val sql = with(SqliteDialect) {
+                SQLiteQueryBuilder.buildQueryString( // fixme: building SQL myself may save some allocations
                         /*distinct=*/false,
                         table.name,
                         if (columnName == null) arrayOf("COUNT(*)") else arrayOf(columnName),
@@ -131,24 +131,24 @@ class SqliteSession(
                         if (order.isEmpty()) null else StringBuilder().appendOrderClause(order).toString(),
                         /*limit=*/null
                 )
-
-                // a workaround for binding BLOBS, as suggested in https://stackoverflow.com/a/23159664/3050249
-                connection.rawQueryWithFactory(
-                        { db, masterQuery, editTable, query ->
-                            forEachOfBoth(argNames, argValues) { idx, name, value ->
-                                val conv =
-                                        if (name == table.idColName) table.idColType
-                                        else table.schema.fieldsByName[name]!!.type
-                                conv.erased.bind(query, idx, value)
-                            }
-                            SQLiteCursor(masterQuery, editTable, query)
-                        },
-                        sql,
-                        /*selectionArgs=*/null,
-                        SQLiteDatabase.findEditTable(table.name),
-                        /*cancellationSignal=*/null
-                )
             }
+
+            // a workaround for binding BLOBS, as suggested in https://stackoverflow.com/a/23159664/3050249
+            return connection.rawQueryWithFactory(
+                    { db, masterQuery, editTable, query ->
+                        forEachOfBoth(argNames, argValues) { idx, name, value ->
+                            val conv =
+                                    if (name == table.idColName) table.idColType
+                                    else table.schema.fieldsByName[name]!!.type
+                            conv.erased.bind(query, idx, value)
+                        }
+                        SQLiteCursor(masterQuery, editTable, query)
+                    },
+                    sql,
+                    /*selectionArgs=*/null,
+                    SQLiteDatabase.findEditTable(table.name),
+                    /*cancellationSignal=*/null
+            )
         }
 
         override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(

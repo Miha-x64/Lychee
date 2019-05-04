@@ -155,14 +155,14 @@ sealed class DataType<T> {
 /**
  * Match/visit (on) this [dataType], passing [arg] and [payload] into [this] visitor.
  */
-@Suppress("NOTHING_TO_INLINE") // hope this will generate monomorphic call-site
+@Suppress(
+        "NOTHING_TO_INLINE", // hope this will generate monomorphic call-site
+        "UNCHECKED_CAST"
+)
 inline fun <PL, ARG, T, R> DataTypeVisitor<PL, ARG, T, R>.match(dataType: DataType<T>, payload: PL, arg: ARG): R =
     when (dataType) {
         is DataType.Nullable<*> -> {
-            @Suppress("UNCHECKED_CAST")
-            val actualType = dataType.actualType as DataType<T> // T is narrowed to T!!
-
-            when (actualType) {
+            when (val actualType = dataType.actualType as DataType<T/*!!*/>) {
                 is DataType.Nullable<*> -> throw AssertionError()
                 is DataType.Simple -> payload.simple(arg, true, actualType)
                 is DataType.Collect<*, *> -> payload.collection(arg, true, actualType as DataType.Collect<T, *>)

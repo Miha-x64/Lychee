@@ -56,7 +56,7 @@ object SqliteDialect : Dialect {
                 .append(" WHERE ")
         sb.appendWhereClause(condition)
 
-        if (!order.isEmpty())
+        if (order.isNotEmpty())
             sb.append(" ORDER BY ").appendOrderClause(order)
 
         return sb.toString()

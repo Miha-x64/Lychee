@@ -95,7 +95,7 @@ object New {
 
 }
 
-internal inline fun <T, R> AnyCollection.fatMap(transform: (T) -> R): List<R> = when (this) {
+/*internal inline fun <T, R> AnyCollection.fatMap(transform: (T) -> R): List<R> = when (this) {
     is List<*> -> Array<Any?>(size) { transform(this[it] as T) }
     is Collection<*> -> arrayOfNulls<Any>(size).also { dest ->
         forEachIndexed<Any?> { i, el -> dest[i] = transform(el as T) }
@@ -108,7 +108,7 @@ internal inline fun <T, R> AnyCollection.fatMap(transform: (T) -> R): List<R> = 
     is FloatArray -> Array<Any?>(size) { transform(this[it] as T) }
     is DoubleArray -> Array<Any?>(size) { transform(this[it] as T) }
     else -> throw AssertionError()
-}.asList() as List<R>
+}.asList() as List<R>*/
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest: C, transform: (T) -> R): C = when (this) {

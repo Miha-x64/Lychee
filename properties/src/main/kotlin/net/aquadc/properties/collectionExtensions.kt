@@ -72,8 +72,7 @@ operator fun <T> MutableProperty<Set<T>>.minusAssign(victim: T): Unit =
     update { set ->
         if (!set.contains(victim)) return
 
-        val size = set.size
-        when (size) {
+        when (val size = set.size) {
          // 0 -> empty set won't contain anything — eliminated by 'contains()' check
             1 -> emptySet()
             2 -> set.first { it != victim }.let(::setOf)

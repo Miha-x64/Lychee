@@ -6,6 +6,7 @@ android {
     buildToolsVersion build_tools_version
 
     defaultConfig {
+        //noinspection MinSdkTooLow
         minSdkVersion 12 // View.OnAttachStateChangeListener is since 12
         targetSdkVersion target_android_version
         versionCode 1
@@ -46,7 +47,7 @@ dependencies {
     testImplementation 'com.squareup.okio:okio:1.15.0'
     testImplementation project(':testing')
     testImplementation project(':extended-persistence') // partial(Struct) is here
-    testImplementation 'org.robolectric:robolectric:4.1'
+    testImplementation 'org.robolectric:robolectric:4.2'
 }
 
 apply from: rootProject.file('release-bintray.gradle')

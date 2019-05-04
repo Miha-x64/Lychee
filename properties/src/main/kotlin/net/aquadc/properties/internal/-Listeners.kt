@@ -301,8 +301,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     }
 
     private fun nonSyncReallyAddChangeListener(onChange: LISTENER, pending: Array<Any?>?) {
-        val listeners = nonSyncListeners
-        when (listeners) {
+        when (val listeners = nonSyncListeners) {
             null -> {
                 nonSyncListeners = onChange
                 changeObservedStateTo(true)
@@ -316,8 +315,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                     // don't check observed state, just assume it's 'true' during notification
                 } else {
                     // not notifying, we can do anything we want
-                    val insIdx = listeners.compact() // remove nulls
-                    when (insIdx) {
+                    when (val insIdx = listeners.compact(/* remove nulls */)) {
                         -1 -> {// no nulls, grow
                             nonSyncListeners = listeners.with(onChange)
                         }
@@ -403,8 +401,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             }
         } else { // single-thread
             checkThread()
-            val listeners = nonSyncListeners
-            when (listeners) {
+            when (val listeners = nonSyncListeners) {
                 null -> return
                 // this typecheck will break if single-threaded DiffProperty will be added! [2/2]
                 is Function2<*, *, *> -> {

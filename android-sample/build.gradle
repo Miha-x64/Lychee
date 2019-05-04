@@ -3,13 +3,13 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.getkeepsafe.dexcount'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion target_android_version
     buildToolsVersion build_tools_version
 
     defaultConfig {
         applicationId "net.aquadc.propertiesSampleApp"
         minSdkVersion 19
-        targetSdkVersion 26
+        targetSdkVersion target_android_version
         versionCode 1
         versionName "1.0"
 
@@ -68,6 +68,6 @@ dependencies {
     implementation project(':persistence') // required for saving state — ParcelPropertiesMemento is there
     implementation project(':logic-sample') // ViewModels are here
 
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.2'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
 }

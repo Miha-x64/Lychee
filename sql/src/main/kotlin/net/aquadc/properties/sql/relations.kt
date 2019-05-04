@@ -15,7 +15,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
 ) {
 
     /**
-     * Embed a (Partial)[Struct] of type [NS] into current table.
+     * Embed a (Partial)[Struct] of type [ET] into current table.
      * @param S outer [Schema]
      */
     class Embedded<S : Schema<S>, ID : IdBound, ES : Schema<ES>, ET : PartialStruct<ES>?> : Relation<S, ID, ET> {
@@ -80,7 +80,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
     /**
      * There are some entities which reference this one by our primary key.
      * @param S outer schema
-     * @param SR outer record
+     * @param R outer record
      * @param FS foreign schema
      * @param FR foreign record
      */
@@ -95,7 +95,8 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
         companion object {
             operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> Table<S, ID, R>.invoke(
                     path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, *>
-            ) = ToMany(this, path, foreignTable, joinColumn)
+            ): ToMany<S, ID, FS, R, FID, FR, C> =
+                    ToMany(this, path, foreignTable, joinColumn)
         }
     }
 

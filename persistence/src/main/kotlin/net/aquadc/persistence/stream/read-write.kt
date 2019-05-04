@@ -167,8 +167,7 @@ class StreamReaderVisitor<D, T>(
     }
 
     override fun <E> D.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>): T {
-        val count = input.readInt(this)
-        return when (count) {
+        return when (val count = input.readInt(this)) {
             -1 -> check(nullable).let { null as T }
             0 -> type.load(emptyList<Nothing>())
             else -> type.load(type.elementType.let { elementType ->
