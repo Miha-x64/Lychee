@@ -1,11 +1,11 @@
 package net.aquadc.properties.internal
 
 import android.support.annotation.RestrictTo
-import net.aquadc.properties.TransactionalProperty
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.properties.TransactionalProperty
 
 /**
  * A property whose value can be changed inside a transaction.

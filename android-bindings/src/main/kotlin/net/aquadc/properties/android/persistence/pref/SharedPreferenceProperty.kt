@@ -2,41 +2,25 @@ package net.aquadc.properties.android.persistence.pref
 
 import android.content.SharedPreferences
 import net.aquadc.persistence.type.DataType
-import net.aquadc.properties.ChangeListener
-import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.Property
-import net.aquadc.properties.internal.`-Notifier`
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+import net.aquadc.properties.TransactionalProperty
+import net.aquadc.properties.internal.`Notifier-1AtomicRef`
 
 /**
  * Wraps a value from [SharedPreferences].
- * Caveats:
- * * [SharedPreferences.OnSharedPreferenceChangeListener.onSharedPreferenceChanged] is being called on main thread
- * * when bound, there will be some lag between source value change and change notification
- * * CAS is not a straight CAS, may be inaccurate a bit
+ * Note that [SharedPreferences.OnSharedPreferenceChangeListener.onSharedPreferenceChanged] is called on main thread
  */
 class SharedPreferenceProperty<T>(
         private val prefs: SharedPreferences,
         private val key: String,
         private val defaultValue: T,
         private val type: DataType<T>
-) : `-Notifier`<T>(true), MutableProperty<T> {
+) : `Notifier-1AtomicRef`<T, T>(
+        concurrent = true,
+        initialRef = type.get(prefs, key, defaultValue)
+), TransactionalProperty<SharedPreferences.Editor, T> {
 
     // we need a strong reference because shared prefs holding a weak one
-    private val changeListener = object :
-            SharedPreferences.OnSharedPreferenceChangeListener, ChangeListener<T> {
-
-        override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String) {
-            changed(key)
-        }
-
-        // sample change listener
-        override fun invoke(old: T, new: T) {
-            sampleChanged(new)
-        }
-
-    }
-
+    private val changeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key -> changed(key) }
     init {
         prefs.registerOnSharedPreferenceChangeListener(changeListener)
     }
@@ -45,77 +29,21 @@ class SharedPreferenceProperty<T>(
     internal fun changed(key: String) {
         if (this.key == key) {
             val new = type.get(prefs, this.key, defaultValue)
-            val old = valueUpdater<T>().getAndSet(this, new)
+            val old = refUpdater().getAndSet(this, new)
             valueChanged(old, new, null)
         }
     }
 
-    @Volatile @Suppress("UNUSED")
-    private var valueRef: T = type.get(prefs, key, defaultValue)
-
     override var value: T
-        get() = valueUpdater<T>().get(this)
+        get() = ref
         set(newValue) {
-            dropBinding()
-
-            // update then
             val ed = prefs.edit()
             type.put(ed, key, newValue)
-            ed.apply()
+            ed.apply() // and wait until onSharedPreferenceChanged comes
         }
 
-    @Volatile @Suppress("UNUSED")
-    private var sample: Property<T>? = null
-
-    @Synchronized @Deprecated("This property may soon become Transactional", level = DeprecationLevel.ERROR)
-    override fun bindTo(sample: Property<T>) {
-        val newSample = if (sample.mayChange) sample else null
-        val oldSample = sampleUpdater<T>().getAndSet(this, newSample)
-        oldSample?.removeChangeListener(changeListener)
-        newSample?.addChangeListener(changeListener)
-
-        val ed = prefs.edit()
-        type.put(ed, key, sample.value)
-        ed.apply()
-    }
-
-    // may be inaccurate
-    @Deprecated("This property may soon become Transactional", level = DeprecationLevel.ERROR)
-    override fun casValue(expect: T, update: T): Boolean {
-        dropBinding()
-        return if (valueRef === expect) {
-            value = update
-            true
-        } else {
-            false
-        }
-    }
-
-    private fun dropBinding() {
-        val oldSample = sampleUpdater<T>().getAndSet(this, null)
-        oldSample?.removeChangeListener(changeListener)
-    }
-
-    @Suppress("MemberVisibilityCanBePrivate") // using internal to avoid synthetic accessors
-    internal fun sampleChanged(new: T) {
-        val ed = prefs.edit()
-        type.put(ed, key, new)
-        ed.apply()
-    }
-
-    @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST") // just safe unchecked cast, should produce no bytecode
-    private companion object {
-        @JvmField
-        val ValueUpdater: AtomicReferenceFieldUpdater<SharedPreferenceProperty<*>, Any?> =
-                AtomicReferenceFieldUpdater.newUpdater(SharedPreferenceProperty::class.java, Any::class.java, "valueRef")
-        @JvmField
-        val SampleUpdater: AtomicReferenceFieldUpdater<SharedPreferenceProperty<*>, Property<*>?> =
-                AtomicReferenceFieldUpdater.newUpdater(SharedPreferenceProperty::class.java, Property::class.java, "sample")
-
-        inline fun <T> valueUpdater() =
-                ValueUpdater as AtomicReferenceFieldUpdater<SharedPreferenceProperty<T>, T>
-        inline fun <T> sampleUpdater() =
-                SampleUpdater as AtomicReferenceFieldUpdater<SharedPreferenceProperty<T>, Property<T>>
+    override fun setValue(transaction: SharedPreferences.Editor, value: T) {
+        type.put(transaction, key, value) // and pray that this one is ours...
     }
 
 }
