@@ -40,8 +40,26 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
         private val values: Array<Any?>
 ) {
 
-    operator fun <T> set(key: FieldDef<SCH, T>, value: T) {
-        values[key.ordinal.toInt()] = value
+    /**
+     * Asserts that the given field is set and gets its value.
+     * Useful for patching structures deeply:
+     *    struct.copy {
+     *        it[Nested] = it[Nested].copy {
+     *            it[SomeField] = newValue
+     *        }
+     *    }
+     */
+    operator fun <T> get(key: FieldDef<SCH, T>): T {
+        val v = values[key.ordinal.toInt()]
+        if (v === Unset) throw NoSuchElementException()
+        else return v as T
+    }
+
+    /**
+     * Assigns the given [value] to the specified [field].
+     */
+    operator fun <T> set(field: FieldDef<SCH, T>, value: T) {
+        values[field.ordinal.toInt()] = value
     }
 
     /**
