@@ -3,6 +3,7 @@ package net.aquadc.properties.sql
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.copy
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.distinct
 import net.aquadc.properties.function.Objectz
@@ -18,7 +19,7 @@ class Relations {
         val record = session.withTransaction {
             val rec = insert(TableWithEmbed, WithNested.build {
                 it[OwnField] = "qwe"
-                it[Embedded] = SchWithId.build {
+                it[Nested] = SchWithId.build {
                     it[Id] = 100500
                     it[Value] = "200700"
                 }
@@ -27,22 +28,22 @@ class Relations {
 
             // read uncommitted
             assertEquals("qwe", rec[WithNested.OwnField])
-            assertEquals(100500, rec[WithNested.Embedded][SchWithId.Id])
-            assertEquals("200700", rec[WithNested.Embedded][SchWithId.Value])
+            assertEquals(100500, rec[WithNested.Nested][SchWithId.Id])
+            assertEquals("200700", rec[WithNested.Nested][SchWithId.Value])
             assertEquals(16_000_000_000, rec[WithNested.OtherOwnField])
 
             rec
         }
 
         assertEquals("qwe", record[WithNested.OwnField])
-        assertEquals(100500, record[WithNested.Embedded][SchWithId.Id])
-        assertEquals("200700", record[WithNested.Embedded][SchWithId.Value])
-        assertEquals("", record[WithNested.Embedded][SchWithId.MutValue])
+        assertEquals(100500, record[WithNested.Nested][SchWithId.Id])
+        assertEquals("200700", record[WithNested.Nested][SchWithId.Value])
+        assertEquals("", record[WithNested.Nested][SchWithId.MutValue])
         assertEquals(16_000_000_000, record[WithNested.OtherOwnField])
 
-        val emb = record[WithNested.Embedded]
+        val emb = record[WithNested.Nested]
         session.withTransaction {
-            record[WithNested.Embedded] = SchWithId.build {
+            record[WithNested.Nested] = SchWithId.build {
                 it[Id] = 100500
                 it[Value] = "200700"
                 it[MutValue] = "mutated"
@@ -51,7 +52,7 @@ class Relations {
             assertEquals("uncommitted should be visible through mut col", "mutated", emb[SchWithId.MutValue])
         }
 
-        val newEmb = record[WithNested.Embedded]
+        val newEmb = record[WithNested.Nested]
         assertNotSame(newEmb, emb)
         assertEquals(100500, newEmb[SchWithId.Id])
         assertEquals("200700", newEmb[SchWithId.Value])
@@ -62,7 +63,7 @@ class Relations {
         val rec = session.withTransaction {
             insert(TableWithEmbed, WithNested.build {
                 it[OwnField] = "qwe"
-                it[Embedded] = SchWithId.build {
+                it[Nested] = SchWithId.build {
                     it[Id] = 100500
                     it[Value] = "200700"
                 }
@@ -71,7 +72,7 @@ class Relations {
         }
 
         var called = 0
-        rec.prop(WithNested.Embedded).map(SchWithId.Value).distinct(Objectz.Same).addUnconfinedChangeListener { old, new ->
+        rec.prop(WithNested.Nested).map(SchWithId.Value).distinct(Objectz.Same).addUnconfinedChangeListener { old, new ->
             assertEquals("200700", old)
             assertEquals("200701", new)
             called = 1
@@ -79,13 +80,13 @@ class Relations {
 
         var oldNest: Struct<SchWithId>? = null
         var newNest: Struct<SchWithId>? = null
-        rec.prop(WithNested.Embedded).addUnconfinedChangeListener { old, new ->
+        rec.prop(WithNested.Nested).addUnconfinedChangeListener { old, new ->
             if (oldNest === null) oldNest = StructSnapshot(old)
             newNest = new
         } // skip bouncing, may have several updates
 
         session.withTransaction {
-            rec[WithNested.Embedded] = SchWithId.build {
+            rec[WithNested.Nested] = SchWithId.build {
                 it[Id] = 100500
                 it[Value] = "200701"
             }
@@ -104,6 +105,42 @@ class Relations {
         }, newNest)
     }
 
-    // TODO: test deeper nesting
+    @Test fun `deep embed`() {
+        val rec = session.withTransaction {
+            insert(TableWithDeepEmbed, DeeplyNested.build {
+                it[OwnField] = "something"
+                it[Nested] = WithNested.build {
+                    it[OwnField] = "whatever"
+                    it[Nested] = SchWithId.build {
+                        it[Id] = -1
+                        it[Value] = "zzz"
+                        it[MutValue] = "hey"
+                    }
+                    it[OtherOwnField] = 111
+                }
+            })
+        }
+
+        var called = 0
+        rec.prop(DeeplyNested.Nested)
+                .map(WithNested.Nested)
+                .map(SchWithId.MutValue)
+                .distinct(dropIfValues = Objectz.Same)
+                .addUnconfinedChangeListener { old, new ->
+                    assertEquals("hey", old)
+                    assertEquals("hi", new)
+                    called++
+                }
+
+        session.withTransaction {
+            rec[DeeplyNested.Nested] = rec[DeeplyNested.Nested].copy {
+                it[Nested] = it[Nested].copy {
+                    it[MutValue] = "hi"
+                }
+            }
+        }
+
+        assertEquals(1, called)
+    }
 
 }

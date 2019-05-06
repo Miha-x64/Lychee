@@ -5,7 +5,7 @@ import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.values
+import net.aquadc.persistence.valuesOf
 import net.aquadc.properties.internal.Unset
 
 /**
@@ -42,26 +42,27 @@ internal object Simple : SqlPropertyDelegate {
 
 internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val schema: TSCH,
+        private val lenses: Array<NamedLens<SCH, REC, *>>,
         private val columns: Array<NamedLens<SCH, REC, *>>
 ) : SqlPropertyDelegate {
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> fetch(
             session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
     ): T =
-            Record(session, table, schema, id, columns as Array<NamedLens<*, Record<*, ID>, *>>) as T
-    //      ^^^^^^ will be visible outside as Struct, using Record for laziness
+            Record(session, table, schema, id, lenses as Array<NamedLens<*, Record<*, ID>, *>>) as T
+    //      ^^^^^^ will be visible outside as Struct, using Record for laziness; fixme: superfluous ManagedProperty instances
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
             session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
     ) {
         val prev = StructSnapshot(previous as Struct<TSCH>)
-        val vals = (update as Struct<TSCH>).values()
+        val vals = (update as Struct<TSCH>).valuesOf(columns, path.size)
 
         lowSession.update(table, id, columns, vals)
 
         val columnIndices = table.columnIndices
         for (i in columns.indices) {
-            columnIndices[columns[i] as NamedLens<SCH, Nothing, out Any?>]?.let { idx ->
+            columnIndices[columns[i] as NamedLens<SCH, Nothing, out Any?>]!!.let { idx ->
                 into[idx] = vals[i]
             }
         }

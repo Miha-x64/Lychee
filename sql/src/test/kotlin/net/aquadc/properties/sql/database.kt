@@ -25,18 +25,29 @@ val TableWithId = SimpleTable(SchWithId, "with_id", SchWithId.Id)
 
 object WithNested : Schema<WithNested>() {
     val OwnField = "q" let string
-    val Embedded = "w" mut SchWithId
+    val Nested = "w" mut SchWithId
     val OtherOwnField = "e" let long
 }
 val TableWithEmbed = object : SimpleTable<WithNested, Long>(WithNested, "with_nested", "_id", long) {
     override fun relations(): Array<Relation<WithNested, Long, *>> = arrayOf(
-            Relation.Embedded(SnakeCase, WithNested.Embedded)
+            Relation.Embedded(SnakeCase, WithNested.Nested)
+    )
+}
+
+object DeeplyNested : Schema<DeeplyNested>() {
+    val OwnField = "own" let string
+    val Nested = "nest" mut WithNested
+}
+val TableWithDeepEmbed = object : SimpleTable<DeeplyNested, Long>(DeeplyNested, "deep", "_id", long) {
+    override fun relations(): Array<out Relation<DeeplyNested, Long, *>> = arrayOf(
+            Relation.Embedded(SnakeCase, DeeplyNested.Nested),
+            Relation.Embedded(SnakeCase, DeeplyNested.Nested / WithNested.Nested)
     )
 }
 
 val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
     val stmt = conn.createStatement()
-    arrayOf(SomeTable, TableWithId, TableWithEmbed).forEach {
+    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed).forEach {
         stmt.execute(SqliteDialect.createTable(it))
     }
     stmt.close()

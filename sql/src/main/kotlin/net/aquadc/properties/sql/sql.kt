@@ -252,7 +252,7 @@ private constructor(
     ): Array<NamedLens<SCH, REC, *>>? {
         val fields = schema.fields
         val fieldCount = fields.size
-        val outCols = naming?.let { arrayOfNulls<NamedLens<SCH, REC, *>>(fieldCount) }
+        val outLenses = naming?.let { arrayOfNulls<NamedLens<SCH, REC, *>>(fieldCount) }
         for (i in 0 until fieldCount) {
             val field = fields[i]
             val path: NamedLens<SCH, Struct<SCH>, out Any?> =
@@ -276,17 +276,22 @@ private constructor(
 
                 when (rel) {
                     is Relation.Embedded<*, *, *, *> -> {
+                        val start = outColumns.size
                         if (rel.fieldSetColName != null) {
                             outColumns.add(SyntheticColLens<SCH, Record<SCH, ID>, Schema<*>, PartialStruct<Schema<*>>?>(
                                     this, rel.fieldSetColName, path as Lens<SCH, Record<SCH, ID>, PartialStruct<Schema<*>>?>, nullize
                             ))
                         }
-                        val nestedCols = embed(rels, relSchema, rel.naming,
+                        val nestedLenses = embed(rels, relSchema, rel.naming,
                                 path as NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
                                 nullize || path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
                                 outColumns, outDelegates
                         )!!
-                        check(outDelegates.put(path, Embedded<SCH, Schema<*>, ID, REC>(relSchema, nestedCols)) === null)
+                        val nestedCols = outColumns.subList(start, outColumns.size)
+                        check(outDelegates.put(path, Embedded<SCH, Schema<*>, ID, REC>(
+                                relSchema, nestedLenses, nestedCols.toTypedArray()
+                                //     ArrayList$SubList ^^^^^^^^^^ checks for concurrent modifications and cannot be passed as is
+                        )) === null)
                     }
                     is Relation.ToOne<*, *, *, *, *> -> TODO()
                     is Relation.ToMany<*, *, *, *, *, *, *> -> TODO()
@@ -295,9 +300,9 @@ private constructor(
             } else {
                 outColumns.add(path)
             }
-            if (outCols != null) outCols[i] = path
+            if (outLenses != null) outLenses[i] = path
         }
-        return outCols as Array<NamedLens<SCH, REC, *>/*!!*/>?
+        return outLenses as Array<NamedLens<SCH, REC, *>/*!!*/>?
     }
 
     val columns: Array<out NamedLens<SCH, REC, *>>

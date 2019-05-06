@@ -1,6 +1,7 @@
 package net.aquadc.persistence
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.AnyCollection
@@ -166,6 +167,17 @@ fun <SCH : Schema<SCH>> Struct<SCH>.values(): Array<Any?> {
     val fields = schema.fields
     return Array(fields.size) { i -> this[fields[i]] }
 }
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> Struct<SCH>.valuesOf(lenses: Array<out Lens<*, *, *>>, drop: Int): Array<Any?> =
+        Array(lenses.size) { i ->
+            val lens = lenses[i]
+            var v: Any? = this
+            for (j in drop until lens.size) {
+                v = lens[j](v)
+            }
+            v
+        }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 inline fun <reified T> List<T>.array(): Array<T> =

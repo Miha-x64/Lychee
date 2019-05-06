@@ -184,7 +184,9 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
     override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T {
         val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
-        return thisRec[table.columnIndices[column]!!] as T
+        val index = table.columnIndices[column] ?: return unset()
+        //                           nothing to do here ^^^^^^^^^^^^^^ if this 'column' is an embedded struct
+        return thisRec[index] as T
     }
 
     override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T =
@@ -193,10 +195,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
     override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact)
-            throw IllegalStateException(
-                    if (ourTransact === null) "This can be performed only within a transaction"
-                    else "Wrong transaction: requested $transaction, but session's is $ourTransact"
-            )
+            error("Wrong transaction: requested $transaction, but session's is $ourTransact")
         ourTransact.checkOpenAndThread()
 
         val dirty = getDirty(column, id)
