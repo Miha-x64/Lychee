@@ -45,9 +45,24 @@ val TableWithDeepEmbed = object : SimpleTable<DeeplyNested, Long>(DeeplyNested, 
     )
 }
 
+object GoDeeper : Schema<GoDeeper>() {
+    val First = "first" let DeeplyNested
+    val Second = "second" let DeeplyNested
+}
+val WeNeedTOGoDeeper = object : SimpleTable<GoDeeper, Long>(GoDeeper, "deeper", "_id", long) {
+    override fun relations(): Array<out Relation<GoDeeper, Long, *>> = arrayOf(
+            Relation.Embedded(SnakeCase, GoDeeper.First),
+            Relation.Embedded(SnakeCase, GoDeeper.First / DeeplyNested.Nested),
+            Relation.Embedded(SnakeCase, GoDeeper.First / DeeplyNested.Nested / WithNested.Nested),
+            Relation.Embedded(SnakeCase, GoDeeper.Second),
+            Relation.Embedded(SnakeCase, GoDeeper.Second / DeeplyNested.Nested),
+            Relation.Embedded(SnakeCase, GoDeeper.Second / DeeplyNested.Nested / WithNested.Nested)
+    )
+}
+
 val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
     val stmt = conn.createStatement()
-    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed).forEach {
+    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper).forEach {
         stmt.execute(SqliteDialect.createTable(it))
     }
     stmt.close()

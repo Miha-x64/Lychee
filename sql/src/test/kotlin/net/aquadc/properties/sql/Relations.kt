@@ -143,4 +143,41 @@ class Relations {
         assertEquals(1, called)
     }
 
+    @Test fun `we need to go deeper`() {
+        val f = DeeplyNested.build {
+            it[OwnField] = "f1"
+            it[Nested] = WithNested.build {
+                it[OwnField] = "f2.1"
+                it[Nested] = SchWithId.build {
+                    it[Id] = 0xF_2_2_1
+                    it[Value] = "f2.2.2"
+                    it[MutValue] = "f2.2.3"
+                }
+                it[OtherOwnField] = 0xF_2_3
+            }
+        }
+        val s = DeeplyNested.build {
+            it[OwnField] = "s1"
+            it[Nested] = WithNested.build {
+                it[OwnField] = "s2.1"
+                it[Nested] = SchWithId.build {
+                    it[Id] = 0x5_2_2_1
+                    it[Value] = "s2.2.2"
+                    it[MutValue] = "s2.2.3"
+                }
+                it[OtherOwnField] = 0x5_2_3
+            }
+        }
+
+        val rec = session.withTransaction {
+            insert(WeNeedTOGoDeeper, GoDeeper.build {
+                it[First] = f
+                it[Second] = s
+            })
+        }
+
+        assertEquals(f, rec[GoDeeper.First])
+        assertEquals(s, rec[GoDeeper.Second])
+    }
+
 }
