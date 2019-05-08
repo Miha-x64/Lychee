@@ -2,6 +2,7 @@
 @file:JvmName("CollectionPropertiesInline")
 package net.aquadc.properties
 
+import net.aquadc.persistence.each
 import net.aquadc.properties.function.`AppliedFunc1-`
 import net.aquadc.properties.function.identity
 import net.aquadc.properties.internal.`MultiMapped-`
@@ -28,7 +29,7 @@ inline fun <T, R> Collection<Property<T>>.foldValues(initial: R, crossinline ope
             it as List<T>
 
             var accumulator = initial
-            for (element in it) accumulator = operation(accumulator, element)
+            it.each { element -> accumulator = operation(accumulator, element) }
             val ret: Any? = accumulator
             ret
         } as (List<T>) -> R)

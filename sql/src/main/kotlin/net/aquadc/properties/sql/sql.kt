@@ -289,7 +289,7 @@ private constructor(
                         )!!
                         val nestedCols = outColumns.subList(start, outColumns.size)
                         check(outDelegates.put(path, Embedded<SCH, Schema<*>, ID, REC>(
-                                relSchema, nestedLenses, nestedCols.toTypedArray()
+                                relSchema, nestedLenses, nestedCols.array()
                                 //     ArrayList$SubList ^^^^^^^^^^ checks for concurrent modifications and cannot be passed as is
                         )) === null)
                     }
