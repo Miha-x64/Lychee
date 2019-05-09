@@ -17,7 +17,7 @@ import java.util.BitSet
 )
 internal class RealTransaction(
         private val session: Session,
-        private val lowSession: LowLevelSession
+        private val lowSession: LowLevelSession<*>
 ) : Transaction {
 
     private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
@@ -85,7 +85,7 @@ internal class RealTransaction(
 
         val table = record.table
         val id = record.primaryKey
-        lowSession.delete(table, id)
+        lowSession.delete(table as Table<SCH, ID, Record<SCH, ID>>, id)
 
         val del = deletedMap()
         if (del[table] != Unit) {
@@ -121,7 +121,7 @@ internal class RealTransaction(
         var unmanage: MutableMap<Table<*, *, *>, List<WeakReference<out Record<*, *>>>>? = null
         if (del != null) {
             for ((table, ids) in del) { // forEach here will be unable to smart-case `unmanage` var
-                val man = lowSession.daos[table.erased] as RealDao<*, IdBound, *>?
+                val man = lowSession.daos[table.erased] as RealDao<*, IdBound, *, *>?
                 if (man != null) {
                     val removed: List<WeakReference<out Record<*, *>>> = if (ids is Unit) {
                         man.truncate()
@@ -197,7 +197,7 @@ internal class RealTransaction(
     }
 
     @Suppress("UPPER_BOUND_VIOLATED")
-    private inline val RealDao<*, *, *>.erased
-        get() = this as RealDao<Any, IdBound, Record<Any, IdBound>>
+    private inline val RealDao<*, *, *, *>.erased
+        get() = this as RealDao<Any, IdBound, Record<Any, IdBound>, *>
 
 }

@@ -6,7 +6,7 @@ import java.util.Arrays
 
 internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
         private val table: Table<SCH, ID, *>,
-        private val lowSession: LowLevelSession
+        private val lowSession: LowLevelSession<*>
 ) : (ConditionAndOrder<SCH>) -> Array<ID> {
 
     override fun invoke(cor: ConditionAndOrder<SCH>): Array<ID> =
@@ -25,7 +25,7 @@ internal class Query<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 
 internal class Count<SCH : Schema<SCH>, ID : IdBound>(
         private val table: Table<SCH, ID, *>,
-        private val lowSession: LowLevelSession
+        private val lowSession: LowLevelSession<*>
 ): (WhereCondition<out SCH>) -> Long {
 
     override fun invoke(condition: WhereCondition<out SCH>): Long =

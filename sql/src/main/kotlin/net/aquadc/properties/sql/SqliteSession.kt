@@ -32,28 +32,21 @@ class SqliteSession(
 
     @Suppress("UNCHECKED_CAST")
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(table: Table<SCH, ID, REC>): Dao<SCH, ID, REC> =
-            lowLevel.daos.getOrPut(table) {
-                RealDao(this, lowLevel, table, SqliteDialect)
-            } as Dao<SCH, ID, REC>
+            getDao(table) as Dao<SCH, ID, REC>
+
+    private fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, SQLiteStatement> =
+            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table as Table<SCH, ID, Record<SCH, ID>>, SqliteDialect) } as RealDao<SCH, ID, *, SQLiteStatement>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
     private var transaction: RealTransaction? = null
-//    private val selectStatements = ThreadLocal<MutableMap<String, SQLiteStatement>>()
-    private val insertStatements = New.map<Table<*, *, *>, SQLiteStatement>()
-    private val updateStatements = New.map<Table<*, *, *>, MutableMap<Any, SQLiteStatement>>()
-    private val deleteStatements = New.map<Table<*, *, *>, SQLiteStatement>()
 
-    private val lowLevel = object : LowLevelSession {
-
-        private fun <SCH : Schema<SCH>> insertStatementWLocked(table: Table<SCH, *, *>): SQLiteStatement =
-                insertStatements.getOrPut(table) {
-                    connection.compileStatement(SqliteDialect.insert(table))
-                }
+    private val lowLevel = object : LowLevelSession<SQLiteStatement> {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
-            val statement = insertStatementWLocked(table)
+            val dao = getDao(table)
+            val statement = dao.insertStatement ?: connection.compileStatement(SqliteDialect.insert(table)).also { dao.insertStatement = it }
             val offset = if (table.pkField === null) 1 else 0
             val cols = table.columns
             for (i in 0 until cols.size - offset) {
@@ -65,9 +58,9 @@ class SqliteSession(
             return id as ID
         }
 
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, cols: Any): SQLiteStatement =
-                updateStatements
-                        .getOrPut(table, ::HashMap)
+        private fun <SCH : Schema<SCH>, ID : IdBound> updateStatementWLocked(table: Table<SCH, ID, *>, cols: Any): SQLiteStatement =
+                getDao(table)
+                        .updateStatements
                         .getOrPut(cols) {
                             val colArray =
                                     if (cols is Array<*>) cols as Array<NamedLens<SCH, Struct<SCH>, *>>
@@ -81,7 +74,7 @@ class SqliteSession(
                 columns as Array<NamedLens<SCH, Struct<SCH>, *>>
                 values as Array<*>
                 columns.forEachIndexed { i, col ->
-                    columns[i].type.erased.bind(statement, i, values[i])
+                    col.type.erased.bind(statement, i, values[i])
                 }
                 columns.size
             } else {
@@ -92,13 +85,9 @@ class SqliteSession(
             check(statement.executeUpdateDelete() == 1)
         }
 
-        private fun deleteStatementWLocked(table: Table<*, *, *>): SQLiteStatement =
-                deleteStatements.getOrPut(table) {
-                    connection.compileStatement(SqliteDialect.deleteRecordQuery(table))
-                }
-
-        override fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID) {
-            val statement = deleteStatementWLocked(table)
+        override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID) {
+            val dao = getDao(table)
+            val statement = dao.deleteStatement ?: connection.compileStatement(SqliteDialect.deleteRecordQuery(table)).also { dao.deleteStatement = it }
             table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdateDelete() == 1)
         }
@@ -107,7 +96,7 @@ class SqliteSession(
             connection.execSQL(SqliteDialect.truncate(table))
         }
 
-        override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *>>()
+        override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, SQLiteStatement>>()
 
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
@@ -167,12 +156,12 @@ class SqliteSession(
             )
         }
 
-        override fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
+        override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, columnName: String, type: DataType<T>, condition: WhereCondition<out SCH>
         ): T =
                 select(columnName, table, condition, NoOrder).fetchSingle(type)
 
-        override fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
+        override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
@@ -193,7 +182,7 @@ class SqliteSession(
             return values as List<T>
         }
 
-        override fun <ID : IdBound, SCH : Schema<SCH>> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>): Long =
+        override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>): Long =
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
@@ -234,25 +223,18 @@ class SqliteSession(
         lowLevel.daos.forEach { (table: Table<*, *, *>, dao: Dao<*, *, *>) ->
             sb.append(" ").append(table.name).append("\n")
             dao.dump("  ", sb)
-        }
 
-        /*arrayOf(
-                "select statements" to selectStatements
-        ).forEach { (name, stmts) ->
-            sb.append(name).append(" (for current thread)\n")
-            stmts.get()?.keys?.forEach { sql ->
+            sb.append("  select statements (for current thread)\n")
+            dao.selectStatements.get()?.keys?.forEach { sql ->
                 sb.append(' ').append(sql).append("\n")
             }
-        }*/
 
-        arrayOf(
-                "insert statements" to insertStatements,
-                "update statements" to updateStatements,
-                "delete statements" to deleteStatements
-        ).forEach { (text, stmts) ->
-            sb.append(text).append('\n')
-            stmts.keys.forEach {
-                sb.append(' ').append(it).append('\n')
+            arrayOf(
+                    "insert statements" to dao.insertStatement,
+                    "update statements" to dao.updateStatements,
+                    "delete statements" to dao.deleteStatement
+            ).forEach { (text, stmts) ->
+                sb.append("  ").append(text).append(": ").append(stmts)
             }
         }
     }

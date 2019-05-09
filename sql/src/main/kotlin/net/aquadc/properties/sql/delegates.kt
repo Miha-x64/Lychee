@@ -16,23 +16,23 @@ import net.aquadc.properties.internal.Unset
 internal interface SqlPropertyDelegate {
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> fetch(
-            session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
+            session: Session, lowSession: LowLevelSession<*>, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
     ): T
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
+            session: Session, lowSession: LowLevelSession<*>, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
     )
 }
 
 internal object Simple : SqlPropertyDelegate {
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> fetch(
-            session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
+            session: Session, lowSession: LowLevelSession<*>, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
     ): T =
             lowSession.fetchSingle(table, path.name, path.type, lowSession.reusableCond(table, table.idColName, id))
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
+            session: Session, lowSession: LowLevelSession<*>, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
     ) {
         lowSession.update(table, id, path, update)
         into[table.columnIndices[path]!!] = update
@@ -47,13 +47,13 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
 ) : SqlPropertyDelegate {
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> fetch(
-            session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
+            session: Session, lowSession: LowLevelSession<*>, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID
     ): T =
             Record(session, table, schema, id, lenses as Array<NamedLens<*, Record<*, ID>, *>>) as T
     //      ^^^^^^ will be visible outside as Struct, using Record for laziness; fixme: superfluous ManagedProperty instances
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            session: Session, lowSession: LowLevelSession, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
+            session: Session, lowSession: LowLevelSession<*>, table: Table<SCH, ID, *>, path: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T, into: Array<Any?>
     ) {
         val prev = StructSnapshot(previous as Struct<TSCH>)
         val vals = (update as Struct<TSCH>).valuesOf(columns, path.size)

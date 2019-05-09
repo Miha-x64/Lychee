@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -23,15 +24,24 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 
-internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
+internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, STMT>(
         private val session: Session,
-        private val lowSession: LowLevelSession,
+        private val lowSession: LowLevelSession<STMT>,
         private val table: Table<SCH, ID, REC>,
         private val dialect: Dialect
 ) : Dao<SCH, ID, REC> {
 
-    // there's no ReferenceQueue, just evict when reference gets nulled out
+    // helpers for Sessions
 
+    internal val selectStatements = ThreadLocal<MutableMap<String, STMT>>()
+
+    // these three are guarded by RW lock
+    internal var insertStatement: STMT? = null
+    internal val updateStatements = New.map<Any, STMT>()
+    internal var deleteStatement: STMT? = null
+
+
+    // there's no ReferenceQueue, just evict when reference gets nulled out
     private val recordRefs = ConcurrentHashMap<ID, WeakReference<REC>>()
 
     // SELECT COUNT(*) WHERE ...

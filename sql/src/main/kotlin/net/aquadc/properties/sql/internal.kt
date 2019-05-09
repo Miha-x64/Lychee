@@ -1,32 +1,37 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
+import java.util.concurrent.ConcurrentHashMap
 
 
-internal interface LowLevelSession {
+internal interface LowLevelSession<STMT> {
     fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
+
     /** [columns] : [values] is a map */
     fun <SCH : Schema<SCH>, ID : IdBound> update(
             table: Table<SCH, ID, *>, id: ID,
             columns: Any /* = [array of] NamedLens<SCH, Struct<SCH>, *>> */, values: Any? /* = [array of] Any? */
     )
-    fun <ID : IdBound> delete(table: Table<*, ID, *>, primaryKey: ID)
+
+    fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID)
+
     fun truncate(table: Table<*, *, *>)
-    val daos: Map<Table<*, *, *>, RealDao<*, *, *>>
+
+    val daos: ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, STMT>>
+
     fun onTransactionEnd(successful: Boolean)
 
-    fun <ID : IdBound, SCH : Schema<SCH>, T> fetchSingle(
+    fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
             table: Table<SCH, ID, *>, columnName: String, type: DataType<T>, condition: WhereCondition<out SCH>
     ): T
 
-    fun <ID : IdBound, SCH : Schema<SCH>> fetchPrimaryKeys(
+    fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
             table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
     ): Array<ID>
 
-    fun <ID : IdBound, SCH : Schema<SCH>> fetchCount(
+    fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
             table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
     ): Long
 
