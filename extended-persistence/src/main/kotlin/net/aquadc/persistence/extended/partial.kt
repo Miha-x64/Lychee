@@ -42,7 +42,7 @@ fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH
  */
 class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
-    override val fields: FieldSet<SCH, *>
+    override val fields: FieldSet<SCH, FieldDef<SCH, *>>
     private val values: Array<Any?>
 
     constructor(source: Struct<SCH>, fields: FieldSet<SCH, *>) : super(source.schema) {

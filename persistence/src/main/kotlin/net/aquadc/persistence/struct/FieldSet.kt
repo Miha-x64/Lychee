@@ -7,8 +7,18 @@ import android.support.annotation.RestrictTo
 
 /**
  * Returns an empty set of fields.
+ * Useful when you need a `var` of type `FieldSet<SCH, FieldDef<SCH, *>>` for filling it with `+=` later.
  */
-inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> emptyFieldSet(): FieldSet<SCH, F> =
+inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> emptyFieldSet(dummy: Nothing? = null): FieldSet<SCH, F> =
+        FieldSet(0L)
+
+/**
+ * Returns an empty set of fields.
+ * Useful for passing anywhere because it is a subtype of
+ * both `FieldSet<SCH, FieldDef.Mutable<SCH, *>>` abd `FieldSet<SCH, FieldDef.Immutable<SCH, *>>`.
+ * [SCH] of output type is still not [Nothing] because it is safer to leave it invariant everywhere.
+ */
+inline fun <SCH : Schema<SCH>> emptyFieldSet(): FieldSet<SCH, Nothing> =
         FieldSet(0L)
 
 /**
@@ -73,6 +83,13 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> F.plus(other: F): 
  */
 inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, G : F, H : F> FieldSet<SCH, G>.plus(other: H): FieldSet<SCH, F> =
         FieldSet(bitmask or (1L shl other.ordinal.toInt()))
+
+/**
+ * Returns a set representing intersection of [this] set and the [other] set.
+ * Theoretically, [F] type should be intersection of [G] and [H], but it does not seem to be denotable.
+ */
+inline infix fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, G : F, H : F> FieldSet<SCH, G>.intersect(other: FieldSet<SCH, H>): FieldSet<SCH, F> =
+        FieldSet(this.bitmask and other.bitmask)
 
 /**
  * Returns a set equal to [this] without [other] field.

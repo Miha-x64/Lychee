@@ -22,7 +22,7 @@ interface PartialStruct<SCH : Schema<SCH>> {
     /**
      * Returns a set of fields which have values.
      */
-    val fields: FieldSet<SCH, *>
+    val fields: FieldSet<SCH, FieldDef<SCH, *>>
 
     /**
      * Returns the value of the requested field, if it is present.

@@ -1,7 +1,5 @@
 package net.aquadc.persistence.struct
 
-import net.aquadc.persistence.type.DataType
-
 /**
  * Represents an instance of a struct /strʌkt/ —
  * a map with [FieldDef] keys (can be treated as [String] or [Byte])
@@ -18,7 +16,7 @@ interface Struct<SCH : Schema<SCH>> : PartialStruct<SCH> {
     /**
      * Always returns a full set of fields declared in schema.
      */
-    override val fields: FieldSet<SCH, *>
+    override val fields: FieldSet<SCH, FieldDef<SCH, *>>
         get() = schema.allFieldSet()
 
     // re-abstracted to clarify contract

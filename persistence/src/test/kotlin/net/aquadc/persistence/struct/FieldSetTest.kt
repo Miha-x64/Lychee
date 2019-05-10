@@ -5,26 +5,26 @@ import org.junit.Test
 
 class FieldSetTest {
 
-    @Test fun emptyEach() {
+    @Test fun `empty forEach`() {
         SomeSchema.forEach(emptyFieldSet()) {
             fail()
         }
     }
-    @Test fun emptyContains() {
-        assertFalse(SomeSchema.A in emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>())
-        assertFalse(SomeSchema.B in emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>())
-        assertFalse(SomeSchema.C in emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>())
+    @Test fun `empty contains`() {
+        assertFalse(SomeSchema.A in emptyFieldSet<SomeSchema>())
+        assertFalse(SomeSchema.B in emptyFieldSet<SomeSchema>())
+        assertFalse(SomeSchema.C in emptyFieldSet<SomeSchema>())
     }
-    @Test fun emptySize() {
-        assertEquals(0.toByte(), emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().size)
+    @Test fun `size of empty`() {
+        assertEquals(0.toByte(), emptyFieldSet<SomeSchema>().size)
     }
-    @Test fun emptyIdxOf() {
-        assertEquals(-1, emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().indexOf(SomeSchema.A).toInt())
-        assertEquals(-1, emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().indexOf(SomeSchema.B).toInt())
-        assertEquals(-1, emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>().indexOf(SomeSchema.C).toInt())
+    @Test fun `empty indexOf`() {
+        assertEquals(-1, emptyFieldSet<SomeSchema>().indexOf(SomeSchema.A).toInt())
+        assertEquals(-1, emptyFieldSet<SomeSchema>().indexOf(SomeSchema.B).toInt())
+        assertEquals(-1, emptyFieldSet<SomeSchema>().indexOf(SomeSchema.C).toInt())
     }
-    @Test fun emptyMinus() {
-        val empty = emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>()
+    @Test fun `empty minus`() {
+        val empty = emptyFieldSet<SomeSchema>()
         assertEquals(empty, empty - empty)
         assertEquals(empty, empty - SomeSchema.A.asFieldSet())
         assertEquals(empty, empty - SomeSchema.B.asFieldSet())
@@ -32,105 +32,122 @@ class FieldSetTest {
         assertEquals(empty, empty - (SomeSchema.A + SomeSchema.B))
         assertEquals(empty, empty - SomeSchema.allFieldSet())
     }
+    @Test fun `empty intersect`() {
+        assertEquals(emptyFieldSet<SomeSchema>(), emptyFieldSet<SomeSchema>() intersect emptyFieldSet())
+    }
 
 
-    @Test fun singleEach() {
+    @Test fun `single forEach`() {
         val list = ArrayList<FieldDef<SomeSchema, *>>()
         SomeSchema.forEach(SomeSchema.B.asFieldSet(), { list.add(it) })
         assertEquals(listOf(SomeSchema.B), list)
     }
-    @Test fun singleContains() {
+    @Test fun `single contains`() {
         val set = SomeSchema.B.asFieldSet()
         assertFalse(SomeSchema.A in set)
         assertTrue(SomeSchema.B in set)
         assertFalse(SomeSchema.C in set)
     }
-    @Test fun singleSize() {
+    @Test fun `size of single`() {
         assertEquals(1.toByte(), SomeSchema.B.asFieldSet().size)
     }
-    @Test fun singleIdxOf() {
+    @Test fun `single indexOf`() {
         val set = SomeSchema.B.asFieldSet<SomeSchema, FieldDef<SomeSchema, *>>()
         assertEquals(-1, set.indexOf(SomeSchema.A).toInt())
         assertEquals(0, set.indexOf(SomeSchema.B).toInt())
         assertEquals(-1, set.indexOf(SomeSchema.C).toInt())
     }
-    @Test fun singleMinus() {
-        val empty = emptyFieldSet<SomeSchema, FieldDef<SomeSchema, *>>()
+    @Test fun `single minus`() {
+        val empty = emptyFieldSet<SomeSchema>()
         assertEquals(SomeSchema.A.asFieldSet(), SomeSchema.A.asFieldSet() - empty)
         assertEquals(empty, SomeSchema.A.asFieldSet() - SomeSchema.A)
         assertEquals(SomeSchema.A.asFieldSet(), SomeSchema.A.asFieldSet() - SomeSchema.B)
         assertEquals(SomeSchema.A.asFieldSet(), SomeSchema.A + SomeSchema.B - SomeSchema.B)
     }
+    @Test fun `single intersect`() {
+        assertEquals(emptyFieldSet<SomeSchema>(), SomeSchema.A.asFieldSet() intersect emptyFieldSet())
+        assertEquals(emptyFieldSet<SomeSchema>(), SomeSchema.A.asFieldSet() intersect SomeSchema.B.asFieldSet())
+    }
 
 
-    @Test fun twoEach() {
+    @Test fun `two forEach`() {
         val list = ArrayList<FieldDef<SomeSchema, *>>()
         SomeSchema.forEach(SomeSchema.A + SomeSchema.B, { list.add(it) })
         assertEquals(listOf(SomeSchema.A, SomeSchema.B), list)
     }
-    @Test fun twoContain() {
+    @Test fun `two contain`() {
         val set = SomeSchema.B + SomeSchema.C
         assertFalse(SomeSchema.A in set)
         assertTrue(SomeSchema.B in set)
         assertTrue(SomeSchema.C in set)
     }
-    @Test fun twoSize() {
+    @Test fun `two size`() {
         assertEquals(2.toByte(), (SomeSchema.A + SomeSchema.B).size)
     }
-    @Test fun twoIdxOf() {
+    @Test fun `two indexOf`() {
         val set = SomeSchema.A.plus<SomeSchema, FieldDef<SomeSchema, *>>(SomeSchema.B)
         assertEquals(0, set.indexOf(SomeSchema.A).toInt())
         assertEquals(1, set.indexOf(SomeSchema.B).toInt())
         assertEquals(-1, set.indexOf(SomeSchema.C).toInt())
     }
-    @Test fun twoMinus() {
+    @Test fun `two minus`() {
         assertEquals(SomeSchema.A + SomeSchema.B, SomeSchema.A + SomeSchema.B - SomeSchema.C)
         assertEquals(SomeSchema.A + SomeSchema.B, SomeSchema.A + SomeSchema.B + SomeSchema.C - SomeSchema.C)
     }
+    @Test fun `two intersect`() {
+        assertEquals(emptyFieldSet<SomeSchema>(), SomeSchema.A.asFieldSet() intersect SomeSchema.B.asFieldSet())
+        assertEquals(SomeSchema.A.asFieldSet(), SomeSchema.A.asFieldSet() intersect SomeSchema.A.asFieldSet())
+    }
 
 
-    @Test fun allEach() {
+    @Test fun `several intersect`() {
+        assertEquals(SomeSchema.A.asFieldSet(), SomeSchema.A + SomeSchema.C intersect (SomeSchema.A + SomeSchema.B))
+        assertEquals(SomeSchema.A + SomeSchema.B, SomeSchema.allFieldSet() intersect (SomeSchema.A + SomeSchema.B))
+    }
+
+
+    @Test fun `all forEach`() {
         val list = ArrayList<FieldDef<SomeSchema, *>>()
         SomeSchema.forEach(SomeSchema.A + SomeSchema.B + SomeSchema.C, { list.add(it) })
         assertEquals(listOf(SomeSchema.A, SomeSchema.B, SomeSchema.C), list)
     }
 
-    @Test fun allEach63() {
+    @Test fun `all63 forEach`() {
         val list = ArrayList<FieldDef<Schema63, *>>()
         Schema63.forEach(Schema63.allFieldSet(), { list.add(it) })
         assertEquals(63, list.size)
     }
-    @Test fun all63Size() {
+    @Test fun `all63 size`() {
         assertEquals(63.toByte(), Schema63.allFieldSet().size)
     }
-    @Test fun allMinus() {
+    @Test fun `all minus`() {
         assertEquals(SomeSchema.A + SomeSchema.B, SomeSchema.allFieldSet() - SomeSchema.C)
     }
 
-    @Test fun allEach64() {
+    @Test fun `all64 forEach`() {
         val list = ArrayList<FieldDef<Schema64, *>>()
         Schema64.forEach(Schema64.allFieldSet(), { list.add(it) })
         assertEquals(64, list.size)
     }
-    @Test fun all64Size() {
+    @Test fun `all64 size`() {
         assertEquals(64.toByte(), Schema64.allFieldSet().size)
     }
 
-    @Test fun allContain() {
+    @Test fun `all contain`() {
         val set = SomeSchema.allFieldSet()
         assertTrue(SomeSchema.A in set)
         assertTrue(SomeSchema.B in set)
         assertTrue(SomeSchema.C in set)
     }
 
-    @Test fun allContain63() {
+    @Test fun `all63 contain`() {
         val set = Schema63.allFieldSet()
         Schema63.fields.forEach { field ->
             assertTrue(field in set)
         }
     }
 
-    @Test fun allContain64() {
+    @Test fun `all64 contain`() {
         val set = Schema64.allFieldSet()
         Schema64.fields.forEach { field ->
             assertTrue(field in set)
