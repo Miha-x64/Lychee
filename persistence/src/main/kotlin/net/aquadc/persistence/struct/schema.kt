@@ -211,8 +211,12 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset
 
-    override fun invoke(p1: PartialStruct<SCH>): T =
-            p1[this]
+    /**
+     * Asserts [struct] contains [this] field and gets its value.
+     * @throws NoSuchElementException if absent
+     */
+    override fun invoke(struct: PartialStruct<SCH>): T =
+            struct.getOrThrow(this)
 
     override val size: Int get() = 1
 

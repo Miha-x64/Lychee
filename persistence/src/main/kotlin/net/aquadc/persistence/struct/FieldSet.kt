@@ -126,7 +126,8 @@ val FieldSet<*, *>.isEmpty: Boolean
     get() = bitmask == 0L
 
 /**
- * Returns index of [field] in this set. Useful for memory layouts of partial structs.
+ * Returns index of [field] in this set.
+ * Memory layouts of partial structs are built on top of this.
  */
 fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: FieldDef<SCH, *>): Byte {
     val ord = field.ordinal

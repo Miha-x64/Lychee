@@ -12,6 +12,7 @@ import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.buildUpon
+import net.aquadc.persistence.struct.contains
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.indexOf
@@ -63,8 +64,7 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    override fun <T> get(field: FieldDef<SCH, T>): T =
+    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =
             try {
                 values[fields.indexOf(field).toInt()] as T
             } catch (e: ArrayIndexOutOfBoundsException) {
@@ -72,6 +72,27 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
             }
 
 }
+
+/**
+ * Returns value of the [field], or `null`, if absent.
+ */
+fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrNull(field: FieldDef<SCH, T>): T? =
+        if (field in fields) getOrThrow(field)
+        else null
+
+/**
+ * Returns value of the [field], or [defaultValue], if absent.
+ */
+fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrDefault(field: FieldDef<SCH, T>, defaultValue: T): T =
+        if (field in fields) getOrThrow(field)
+        else defaultValue
+
+/**
+ * Returns value of the [field], or evaluates and returns [defaultValue], if absent.
+ */
+inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrElse(field: FieldDef<SCH, T>, defaultValue: () -> T): T =
+        if (field in fields) getOrThrow(field)
+        else defaultValue()
 
 /**
  * Builds a [PartialStruct].

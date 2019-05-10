@@ -198,9 +198,9 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
     endObject()
 }
 
-@Suppress("NOTHING_TO_INLINE") // just capture T
+@Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>) =
-        write(field.type, struct[field])
+        write(field.type, struct.getOrThrow(field))
 
 private val writerVis = JsonWriterVisitor<Any?>()
 @JvmSynthetic internal fun <T> JsonWriter.write(type: DataType<T>, value: T) =

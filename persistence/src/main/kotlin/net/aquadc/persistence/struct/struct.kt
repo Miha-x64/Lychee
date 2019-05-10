@@ -19,11 +19,14 @@ interface Struct<SCH : Schema<SCH>> : PartialStruct<SCH> {
     override val fields: FieldSet<SCH, FieldDef<SCH, *>>
         get() = schema.allFieldSet()
 
-    // re-abstracted to clarify contract
     /**
      * Returns the value of the requested field.
      */
-    override fun <T> get(field: FieldDef<SCH, T>): T
+    operator fun <T> get(field: FieldDef<SCH, T>): T
+
+    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =
+            get(field)
+
 }
 
 

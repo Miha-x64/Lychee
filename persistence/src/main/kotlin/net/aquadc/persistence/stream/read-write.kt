@@ -30,9 +30,9 @@ fun <D, SCH : Schema<SCH>> BetterDataOutput<D>.write(output: D, struct: Struct<S
     }
 }
 
-@Suppress("NOTHING_TO_INLINE") // just capture T
+@Suppress("NOTHING_TO_INLINE") // just capture T; assert [field] is present
 private inline fun <D, SCH : Schema<SCH>, T> BetterDataOutput<D>.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>, to: D) {
-    field.type.write(this, to, struct[field])
+    field.type.write(this, to, struct.getOrThrow(field))
 }
 
 /**
@@ -102,7 +102,7 @@ class StreamWriterVisitor<D, T>(
             val partial = type.store(arg)
             val fields = partial.fields
             output.writeByte(this, fields.size)
-            type.schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
+            type.schema.forEach(fields) { field ->
                 output.writeByte(this, field.ordinal)
                 output.writeValueFrom(partial, field, this)
             }

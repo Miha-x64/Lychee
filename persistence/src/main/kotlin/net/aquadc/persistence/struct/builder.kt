@@ -28,8 +28,8 @@ fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
 fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>): StructBuilder<SCH> {
     val fs = source.schema.fields
     val values = Array<Any?>(fs.size) { Unset }
-    source.schema.forEach<SCH, FieldDef<SCH, *>>(source.fields) { field ->
-        values[field.ordinal.toInt()] = source[field]
+    source.schema.forEach(source.fields) { field ->
+        values[field.ordinal.toInt()] = source.getOrThrow(field)
     }
     return StructBuilder(values)
 }
@@ -76,7 +76,7 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
 
     // captures [T] and asserts [field] is present in [source]
     private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef<SCH, T>) {
-        this[field] = source[field]
+        this[field] = source.getOrThrow(field)
     }
 
     /**

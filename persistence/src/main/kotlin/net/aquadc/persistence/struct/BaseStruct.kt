@@ -20,9 +20,9 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
         @Suppress("UNCHECKED_CAST")
         other as PartialStruct<SCH> // other.type is our type, so it's safe
 
-        schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
-            val our = this[field]
-            val their = other[field]
+        schema.forEach(fields) { field ->
+            val our = getOrThrow(field)
+            val their = other.getOrThrow(field)
             if (!reallyEqual(our, their)) return false
         }
         return true
@@ -31,16 +31,16 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
     override fun hashCode(): Int {
         var result = 0
 
-        schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
-            result = 31 * result + this[field].realHashCode()
+        schema.forEach(fields) { field ->
+            result = 31 * result + this.getOrThrow(field).realHashCode()
         }
         return result
     }
 
     override fun toString(): String = buildString {
         append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.javaClass.simpleName).append('(')
-        schema.forEach<SCH, FieldDef<SCH, *>>(fields) { field ->
-            append(field.name).append('=').append(this@BaseStruct[field].realToString()).append(", ")
+        schema.forEach(fields) { field ->
+            append(field.name).append('=').append(getOrThrow(field).realToString()).append(", ")
         }
         if (!fields.isEmpty) {
             setLength(length - 2)

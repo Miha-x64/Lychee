@@ -28,6 +28,6 @@ interface PartialStruct<SCH : Schema<SCH>> {
      * Returns the value of the requested field, if it is present.
      * @throws NoSuchElementException if requested value is absent
      */
-    operator fun <T> get(field: FieldDef<SCH, T>): T
+    fun <T> getOrThrow(field: FieldDef<SCH, T>): T
 
 }
