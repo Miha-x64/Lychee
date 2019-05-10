@@ -111,4 +111,28 @@ class StructTests {
         })
     }
 
+    @Test fun `copy from`() {
+        val aaa = SomeSchema.build {
+            it[A] = "a"
+            it[B] = 1
+            it[C] = 1L
+        }
+
+        val bbb = SomeSchema.build {
+            it[A] = "b"
+            it[B] = 2
+            it[C] = 2L
+        }
+
+        val mix = aaa.copy {
+            it.setFrom(bbb, SomeSchema.A + SomeSchema.B)
+        }
+
+        assertEquals(SomeSchema.build {
+            it[A] = "b"
+            it[B] = 2
+            it[C] = 1L
+        }, mix)
+    }
+
 }

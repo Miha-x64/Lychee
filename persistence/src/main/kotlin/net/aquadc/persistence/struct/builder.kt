@@ -24,7 +24,8 @@ inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>)
 fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
         StructBuilder<SCH>(Array(schema.fields.size) { Unset })
 
-@PublishedApi internal fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>): StructBuilder<SCH> {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>): StructBuilder<SCH> {
     val fs = source.schema.fields
     val values = Array<Any?>(fs.size) { Unset }
     source.schema.forEach<SCH, FieldDef<SCH, *>>(source.fields) { field ->
@@ -60,6 +61,22 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
      */
     operator fun <T> set(field: FieldDef<SCH, T>, value: T) {
         values[field.ordinal.toInt()] = value
+    }
+
+    fun setFrom(
+            source: PartialStruct<SCH>,
+            fields: FieldSet<SCH, FieldDef<SCH, *>> = source.schema.allFieldSet()
+    ): FieldSet<SCH, FieldDef<SCH, *>> {
+        val intersect = source.fields intersect fields
+        source.schema.forEach(intersect) { field ->
+            mutateFrom(source, field)
+        }
+        return intersect
+    }
+
+    // captures [T] and asserts [field] is present in [source]
+    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef<SCH, T>) {
+        this[field] = source[field]
     }
 
     /**

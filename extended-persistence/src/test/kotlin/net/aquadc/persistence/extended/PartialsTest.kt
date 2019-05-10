@@ -2,6 +2,7 @@ package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
+import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.plus
 import org.junit.Assert.assertEquals
@@ -51,7 +52,7 @@ class PartialsTest {
         assertEquals(taken[SomeSchema.C], 1L)
     }
 
-    @Test fun takeAll() {
+    @Test fun `take all`() {
         val full = SomeSchema.build {
             it[A] = ""
             it[B] = 1
@@ -59,6 +60,23 @@ class PartialsTest {
         }
 
         assertEquals(full, full.take(SomeSchema.allFieldSet()))
+    }
+
+    @Test fun `copy from`() {
+        assertEquals(SomeSchema.buildPartial {
+            it[A] = "a"
+            it[B] = 1
+        }, SomeSchema.buildPartial {
+            it[A] = "a"
+        }.copy {
+            assertEquals(
+                    B.asFieldSet(),
+                    it.setFrom(SomeSchema.buildPartial {
+                        it[B] = 1
+                        it[C] = 1L
+                    }, A + B)
+            )
+        })
     }
 
 }

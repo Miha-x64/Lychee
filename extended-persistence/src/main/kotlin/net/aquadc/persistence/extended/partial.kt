@@ -11,6 +11,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
+import net.aquadc.persistence.struct.buildUpon
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.indexOf
@@ -78,10 +79,29 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) -> Unit): PartialStruct<SCH> {
     val builder = newBuilder(this)
     build(this, builder)
+    return finish(builder)
+}
+
+/**
+ * Creates a [PartialStruct] consisting of [fields] from [this].
+ */
+fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *>>): PartialStruct<SCH> =
+        if (fields == schema.allFieldSet()) {
+            if (this is StructSnapshot) this else StructSnapshot(this)
+        } else {
+            PartialStructSnapshot(this, fields)
+        }
+
+/**
+ * Builds a [StructSnapshot] filled with data from [this] and applies changes via [mutate].
+ */
+inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>) -> Unit): PartialStruct<SCH> {
+    val builder = buildUpon(this)
+    mutate(schema, builder)
+    return schema.finish(builder)
+}
+
+@PublishedApi internal fun <SCH : Schema<SCH>> SCH.finish(builder: StructBuilder<SCH>): PartialStruct<SCH> {
     val values = builder.expose()
     return if (builder.fieldsPresent() == allFieldSet()) StructSnapshot(schema, values) else PartialStructSnapshot(schema, builder.fieldsPresent(), values)
 }
-
-fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *>>): PartialStruct<SCH> =
-        if (fields == schema.allFieldSet()) StructSnapshot(this)
-        else PartialStructSnapshot(this, fields)
