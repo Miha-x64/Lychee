@@ -1,5 +1,4 @@
 @file:JvmName("Structs")
-@file:Suppress("NOTHING_TO_INLINE")
 
 package net.aquadc.persistence.struct
 
@@ -9,17 +8,24 @@ import kotlin.contracts.contract
 
 
 /**
- * Updates all [fields] with values from [source].
+ * Updates field values from [source].
+ * @return a set of updated fields
+ *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
  */
 fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
-        source: Struct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
+        source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
+        /* default value for [fields] may be mutableFieldSet(), but StructBuilder's default is different */
+): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
+        source.fields.intersectMutable(fields).also { intersect ->
+            source.schema.forEach(intersect) { field ->
+                mutateFrom(source, field) // capture type
+            }
+        }
+@Suppress("NOTHING_TO_INLINE")
+private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(
+        source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T>
 ) {
-    source.schema.forEach(fields) {
-        mutateFrom(source, it) // capture type
-    }
-}
-private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(source: Struct<SCH>, field: FieldDef.Mutable<SCH, T>) {
-    this[field] = source[field]
+    this[field] = source.getOrThrow(field)
 }
 
 /**

@@ -125,7 +125,7 @@ class StructTests {
         }
 
         val mix = aaa.copy {
-            it.setFrom(bbb, SomeSchema.A + SomeSchema.B)
+            assertEquals(A + B, it.setFrom(bbb, A + B))
         }
 
         assertEquals(SomeSchema.build {

@@ -63,17 +63,20 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
         values[field.ordinal.toInt()] = value
     }
 
+    /**
+     * Assigns field values from [source].
+     * @return a set of updated fields
+     *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
+     */
     fun setFrom(
             source: PartialStruct<SCH>,
             fields: FieldSet<SCH, FieldDef<SCH, *>> = source.schema.allFieldSet()
-    ): FieldSet<SCH, FieldDef<SCH, *>> {
-        val intersect = source.fields intersect fields
-        source.schema.forEach(intersect) { field ->
-            mutateFrom(source, field)
-        }
-        return intersect
-    }
-
+    ): FieldSet<SCH, FieldDef<SCH, *>> =
+            source.fields.intersect(fields).also { intersect ->
+                source.schema.forEach(intersect) { field ->
+                    mutateFrom(source, field)
+                }
+            }
     // captures [T] and asserts [field] is present in [source]
     private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef<SCH, T>) {
         this[field] = source.getOrThrow(field)

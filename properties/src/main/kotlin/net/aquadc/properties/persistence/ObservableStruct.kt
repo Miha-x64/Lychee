@@ -3,13 +3,14 @@ package net.aquadc.properties.persistence
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.SimpleStructTransaction
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructTransaction
 import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.intersectMutable
 import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.identity
@@ -71,15 +72,21 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     }
 
     /**
-     * Updates all [fields] with values from [source].
+     * Updates field values from [source].
+     * @return a set of updated fields
+     *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
-    fun setFrom(source: Struct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>) {
-        schema.forEach(fields) {
-            mutateFrom(source, it) // capture type
-        }
-    }
-    private inline fun <T> mutateFrom(source: Struct<SCH>, field: FieldDef.Mutable<SCH, T>) {
-        this[field] = source[field]
+    fun setFrom(
+            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
+    ): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
+            source.fields.intersectMutable(fields).also { intersect ->
+                schema.forEach(fields) { field ->
+                    mutateFrom(source, field) // capture type
+                }
+            }
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T>) {
+        this[field] = source.getOrThrow(field)
     }
 
     @Suppress("UNCHECKED_CAST")
