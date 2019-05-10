@@ -1,3 +1,4 @@
+@file:JvmName("TextViewBindings")
 package net.aquadc.properties.android.bindings.widget
 
 import android.content.res.Resources

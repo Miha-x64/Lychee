@@ -1,3 +1,4 @@
+@file:JvmName("CardViewBindings")
 package net.aquadc.properties.android.bindings.widget
 
 import android.support.v4.content.ContextCompat

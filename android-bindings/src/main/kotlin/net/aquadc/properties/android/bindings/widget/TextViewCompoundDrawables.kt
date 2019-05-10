@@ -1,3 +1,4 @@
+@file:JvmName("CompoundDrawableBindings")
 package net.aquadc.properties.android.bindings.widget
 
 import android.annotation.SuppressLint

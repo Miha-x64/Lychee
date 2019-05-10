@@ -1,3 +1,4 @@
+@file:JvmName("ViewBindings")
 package net.aquadc.properties.android.bindings.view
 
 import android.graphics.drawable.Drawable

@@ -1,3 +1,4 @@
+@file:JvmName("CompoundButtonBindings")
 package net.aquadc.properties.android.bindings.widget
 
 import android.widget.CompoundButton

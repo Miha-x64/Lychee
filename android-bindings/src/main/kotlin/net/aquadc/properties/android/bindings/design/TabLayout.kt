@@ -1,3 +1,4 @@
+@file:JvmName("TabLayoutBindings")
 package net.aquadc.properties.android.bindings.design
 
 import android.support.design.widget.TabLayout

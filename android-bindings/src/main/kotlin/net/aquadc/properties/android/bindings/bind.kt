@@ -1,3 +1,4 @@
+@file:JvmName("Bindings")
 package net.aquadc.properties.android.bindings
 
 import android.os.Build
