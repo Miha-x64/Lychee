@@ -20,6 +20,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import net.aquadc.properties.ChangeListener
+import net.aquadc.properties.android.bindings.SetWhenClicked
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.android.bindings.widget.bindToText
 import net.aquadc.properties.propertyOf
@@ -177,7 +178,7 @@ class SqliteActivity : Activity() {
 
     }
 
-    class EditDialogFragment : DialogFragment(), DialogInterface.OnClickListener {
+    class EditDialogFragment : DialogFragment() {
 
         val vm: SqlViewModel
             get() = (activity as SqliteActivity).vm
@@ -197,12 +198,8 @@ class SqliteActivity : Activity() {
                             }
                         }.view)
                         .setPositiveButton("Ok", null)
-                        .setNegativeButton("Delete", this)
+                        .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
                         .create()
-
-        override fun onClick(dialog: DialogInterface, which: Int) {
-            vm.deleteClicked.set()
-        }
 
     }
 

@@ -6,9 +6,11 @@ import android.os.Build
 import android.view.View
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.bindings.SetWhenClicked
 import net.aquadc.properties.android.bindings.bindViewTo
-import net.aquadc.properties.set
 
+
+// region Property Bindings
 
 /**
  * Passes [visibleProperty] value to [View.setVisibility]:
@@ -31,12 +33,6 @@ fun View.bindEnabledTo(enabledProperty: Property<Boolean>): Unit =
         bindViewTo(enabledProperty) { v, ena -> v.isEnabled = ena }
 
 /**
- * Sets [clickedProperty] to `true` when [this] view gets clicked.
- */
-fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>): Unit =
-        setOnClickListener { clickedProperty.set() }
-
-/**
  * Binds background using [View.setBackground].
  */
 fun View.bindBackgroundTo(backgroundProperty: Property<Drawable?>): Unit =
@@ -54,6 +50,24 @@ fun View.bindBackgroundTo(backgroundProperty: Property<Int>): Unit =
  */
 fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
         bindViewTo(backgroundColorProperty, SetBackground.Color)
+
+// endregion Property Bindings
+
+// region Event Bindings
+
+/**
+ * Sets [clickedProperty] to `true` when [this] view gets clicked.
+ */
+fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>): Unit =
+        setOnClickListener(SetWhenClicked(clickedProperty))
+
+/**
+ * Sets [clickedProperty] to `true` when [this] view gets long-clicked.
+ */
+fun View.setWhenLongClicked(clickedProperty: MutableProperty<Boolean>): Unit =
+        setOnLongClickListener(SetWhenClicked(clickedProperty))
+
+// endregion Event Bindings
 
 private val SetVisibilitySoftly = SetVisibility(View.INVISIBLE)
 private val SetVisibilityHardly = SetVisibility(View.GONE)
