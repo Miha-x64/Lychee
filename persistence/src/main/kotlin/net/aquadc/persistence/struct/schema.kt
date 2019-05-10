@@ -159,8 +159,10 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
+ * [invoke] function must return [T] if input is not `null` and contains the requested field,
+ * i. e. it must be safe to cast `Lens<SCH, PartialStruct<SCH>?, T>` to `(Struct<SCH>) -> T`
  */
-interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>?, T> : (STR) -> T {
+interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : (STR) -> T? {
 
     /**
      * Type of values stored within a field/column represented by this lens.
@@ -178,7 +180,15 @@ interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>?, T> : (STR) -> T 
 
 }
 
-interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>?, T> : Lens<SCH, STR, T> {
+/**
+ * Returns a function which is a special case of this [Lens] for non-partial [Struct]s
+ * which implies non-nullable [T] as a return type.
+ */
+fun <SCH : Schema<SCH>, T> Lens<SCH, Struct<SCH>, T>.ofStruct(): (Struct<SCH>) -> T =
+        this as (Struct<SCH>) -> T
+
+
+interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : Lens<SCH, STR, T> {
     val name: String
 }
 
@@ -212,11 +222,11 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
         @JvmName("hasDefault") get() = _default !== Unset
 
     /**
-     * Asserts [struct] contains [this] field and gets its value.
-     * @throws NoSuchElementException if absent
+     * Returns value of [this] field for the given [struct], or `null`, if it is absent.
      */
-    override fun invoke(struct: PartialStruct<SCH>): T =
-            struct.getOrThrow(this)
+    override fun invoke(struct: PartialStruct<SCH>): T? =
+            if (this in struct.fields) struct.getOrThrow(this)
+            else null
 
     override val size: Int get() = 1
 

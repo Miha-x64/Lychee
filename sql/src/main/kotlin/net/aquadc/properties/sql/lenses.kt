@@ -20,13 +20,13 @@ abstract class NamingConvention {
     operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> NamedLens<TS, TR, T?>.div(
             nested: NamedLens<US, T, U>
     ): NamedLens<TS, TR, U?> =
-            Telescope0(concatNames(this.name, nested.name), this, nested)
+            Telescope(concatNames(this.name, nested.name), true, this, nested)
 
     @JvmName("1")
     operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> NamedLens<TS, TR, T>.div(
             nested: NamedLens<US, T, U>
     ): NamedLens<TS, TR, U> =
-            Telescope1(concatNames(this.name, nested.name), this, nested)
+            Telescope(concatNames(this.name, nested.name), false, this, nested)
 
 }
 
@@ -34,25 +34,23 @@ abstract class NamingConvention {
 operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> Lens<TS, TR, T?>.div(
         nested: Lens<US, T, U>
 ): Lens<TS, TR, U?> =
-        Telescope0(null, this, nested)
+        Telescope(null, true, this, nested)
 
 @JvmName("1")
 operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> Lens<TS, TR, T>.div(
         nested: Lens<US, T, U>
 ): Lens<TS, TR, U> =
-        Telescope1(null, this, nested)
+        Telescope(null, false, this, nested)
 
-@Suppress("UPPER_BOUND_VIOLATED")
+@Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
 internal fun <SCH : Schema<SCH>, STR : PartialStruct<SCH>> NamingConvention?.concatErased(
         dis: Lens<SCH, STR, *>, that: Lens<*, *, *>
 ): Lens<SCH, STR, *> =
-        (if (this !== null && dis is NamedLens && that is NamedLens) concatNames(dis.name, that.name) else null).let { name ->
-            if (dis.type is DataType.Nullable<*>) Telescope0<SCH, STR, Schema<*>, PartialStruct<Schema<*>>, PartialStruct<Schema<*>>>(
-                    name, dis as Lens<SCH, STR, PartialStruct<Schema<*>>?>, that as Lens<Schema<*>, PartialStruct<Schema<*>>, PartialStruct<Schema<*>>>
-            ) else Telescope1<SCH, STR, Schema<*>, PartialStruct<Schema<*>>, PartialStruct<Schema<*>>>(
-                    name, dis as Lens<SCH, STR, PartialStruct<Schema<*>>>, that as Lens<Schema<*>, PartialStruct<Schema<*>>, PartialStruct<Schema<*>>>
-            )
-        }
+        Telescope<SCH, STR, Schema<*>, PartialStruct<Schema<*>>, Any?>(
+                (if (this !== null && dis is NamedLens && that is NamedLens) concatNames(dis.name, that.name) else null),
+                dis.type is DataType.Nullable<*>,
+                dis as Lens<SCH, STR, out PartialStruct<Schema<*>>?>, that as Lens<Schema<*>, PartialStruct<Schema<*>>, out Any?>
+        )
 
 /**
  * Generates lenses which names are concatenated using snake_case
@@ -79,54 +77,23 @@ object CamelCase : NamingConvention() {
 
 }
 
-// region telescope impl
-
-internal class Telescope0<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U>(
+internal class Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U>(
         name: String?,
-        outer: Lens<TS, TR, T?>, nested: Lens<US, T, U>
-) : AbsTelescope<TS, TR, US, T?, T, U, U?>(
+        private val addNullability: Boolean,
+        private val outer: Lens<TS, TR, out T?>,
+        private val nested: Lens<US, T, out U>
+) : BaseLens<TS, TR, U>(
         name,
-        (if (nested.type is DataType.Nullable<*>) nested.type else nullable(nested.type as DataType<Any>)) as DataType<U?>,
-        outer, nested
+        nested.type.let { type ->
+            if (addNullability && type !is DataType.Nullable<*>) nullable(type as DataType<Any>) else type
+        } as DataType<U>
 ) {
 
-    override fun invoke(p1: TR): U? =
-            outer(p1)?.let(nested)
+    override fun invoke(p1: TR): U?
+            = outer(p1)?.let(nested)
 
-    override fun toString(): String = buildString {
-        for (i in 0 until size)
-            append(this@Telescope0[i]).append("?.")
-        setLength(length - 1) // it's safe since there's no empty lenses
-    }
-
-}
-
-internal class Telescope1<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U>(
-        name: String?,
-        outer: Lens<TS, TR, T>, nested: Lens<US, T, U>
-) : AbsTelescope<TS, TR, US, T, T, U, U>(name, nested.type, outer, nested) {
-
-    override fun invoke(p1: TR): U =
-            nested(outer(p1))
-
-    override fun toString(): String = buildString {
-        for (i in 0 until size)
-            append(this@Telescope1[i]).append('.')
-        setLength(length - 1) // it's safe since there's no empty lenses
-    }
-
-}
-
-internal abstract class AbsTelescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T1 : PartialStruct<US>?, T2 : PartialStruct<US>, U1, U2>(
-        name: String?,
-        type: DataType<U2>,
-        protected val outer: Lens<TS, TR, T1>,
-        protected val nested: Lens<US, T2, U1>
-) : BaseLens<TS, TR, U2>(name, type) {
-
-    @Suppress("UNCHECKED_CAST") // correct for both subclasses
-    override val default: U2
-        get() = nested.default as U2
+    override val default: U
+        get() = nested.default
 
     override val size: Int get() = outer.size + nested.size
 
@@ -153,6 +120,12 @@ internal abstract class AbsTelescope<TS : Schema<TS>, TR : PartialStruct<TS>, US
             if (this[i] != other[i]) return false
         }
         return true
+    }
+
+    override fun toString(): String = buildString {
+        append(outer)
+        if (addNullability) append('?')
+        append('.').append(nested)
     }
 
 }
@@ -185,7 +158,7 @@ internal class PkLens<S : Schema<S>, ID : IdBound>(
 
 }
 
-internal class SyntheticColLens<S : Schema<S>, ST : PartialStruct<S>?, TS : Schema<TS>, TR : PartialStruct<TS>?>(
+internal class SyntheticColLens<S : Schema<S>, ST : PartialStruct<S>, TS : Schema<TS>, TR : PartialStruct<TS>?>(
         private val table: Table<S, *, *>,
         name: String,
         private val path: Lens<S, ST, TR>,
@@ -231,7 +204,7 @@ internal class SyntheticColLens<S : Schema<S>, ST : PartialStruct<S>?, TS : Sche
 }
 
 // ugly class for minimizing method count / vtable size
-internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>?, T>(
+internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>, T>(
         private val _name: String?,
         final override val type: DataType<T>
 ) : NamedLens<SCH, STR, T> {
@@ -243,7 +216,7 @@ internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>?, T
         get() = throw UnsupportedOperationException()
 
     override val size: Int
-        get() = 1 // true for SyntheticColLens and PkLens, but overridden in AbsTelescope
+        get() = 1 // true for SyntheticColLens and PkLens, but overridden in Telescope
 
 }
 

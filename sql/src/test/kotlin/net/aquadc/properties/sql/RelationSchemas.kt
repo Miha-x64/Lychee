@@ -77,8 +77,8 @@ class RelationSchemas {
                 arrayOf(
                         PkLens(table),
                         EmbedSchema.A,
-                        Telescope1("", EmbedSchema.B, ShallowSchema.A),
-                        Telescope1("", EmbedSchema.B, ShallowSchema.B)
+                        Telescope("", false, EmbedSchema.B, ShallowSchema.A),
+                        Telescope("", false, EmbedSchema.B, ShallowSchema.B)
                 ),
                 table.columns
         )
@@ -108,8 +108,8 @@ class RelationSchemas {
                         PkLens(table),
                         EmbedPartial.A,
                         SyntheticColLens(table,"fieldsSet", EmbedPartial.B, false),
-                        Telescope1("b_a", EmbedPartial.B, ShallowSchema.A),
-                        Telescope1("b_b", EmbedPartial.B, ShallowSchema.B)
+                        Telescope("b_a", false, EmbedPartial.B, ShallowSchema.A),
+                        Telescope("b_b", false, EmbedPartial.B, ShallowSchema.B)
                 ),
                 table.columns
         )
@@ -139,8 +139,8 @@ class RelationSchemas {
                         PkLens(table),
                         EmbedNullable.A,
                         SyntheticColLens(table, "nullability", EmbedNullable.B, true),
-                        Telescope0("b_a", EmbedNullable.B, ShallowSchema.A),
-                        Telescope0("b_b", EmbedNullable.B, ShallowSchema.B)
+                        Telescope("b_a", true, EmbedNullable.B, ShallowSchema.A),
+                        Telescope("b_b", true, EmbedNullable.B, ShallowSchema.B)
                 ),
                 table.columns
         )
@@ -173,8 +173,8 @@ class RelationSchemas {
                         PkLens(table),
                         EmbedNullablePartial.A,
                         SyntheticColLens(table, "fieldSetAndNullability", EmbedNullablePartial.B, false),
-                        Telescope0("b_a", EmbedNullablePartial.B, ShallowSchema.A),
-                        Telescope0("b_b", EmbedNullablePartial.B, ShallowSchema.B)
+                        Telescope("b_a", true, EmbedNullablePartial.B, ShallowSchema.A),
+                        Telescope("b_b", true, EmbedNullablePartial.B, ShallowSchema.B)
                 ),
                 table.columns
         )

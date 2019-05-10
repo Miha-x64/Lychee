@@ -343,7 +343,7 @@ private constructor(
                 val firstLens = col[0]
                 when {
                     col is FieldDef.Mutable -> { /* nothing to do here, will change on next pass */ }
-                    col is AbsTelescope<*, *, *, *, *, *, *> && firstLens is FieldDef.Mutable -> {
+                    col is Telescope<*, *, *, *, *> && firstLens is FieldDef.Mutable -> {
                         if (tmpSet.add(firstLens)) { // deduplication
                             if (prevFieldValues !== null) {
                                 val idx = firstLens.ordinal.toInt()
@@ -373,7 +373,7 @@ private constructor(
                     col is FieldDef.Mutable -> {
                         (record.values[col.ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
                     }
-                    col is AbsTelescope<*, *, *, *, *, *, *> && firstLens is FieldDef.Mutable -> {
+                    col is Telescope<*, *, *, *, *> && firstLens is FieldDef.Mutable -> {
                         if (tmpSet.add(firstLens)) {
                             val idx = firstLens.ordinal.toInt()
                             (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).refreshLocked()
