@@ -2,7 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.realHashCode
 import net.aquadc.persistence.reallyEqual
-import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.internal.emptyArrayOf
 import net.aquadc.properties.sql.dialect.Dialect
@@ -47,14 +47,14 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     private val singleValue: Boolean
     @JvmField @JvmSynthetic internal var valueOrValues: Any // if (singleValue) Any else Array<Any>
 
-    constructor(col: FieldDef<SCH, T>, op: CharSequence, value: Any) {
+    constructor(col: NamedLens<SCH, *, T>, op: CharSequence, value: Any) {
         this.colName = col.name
         this.op = op
         this.singleValue = true
         this.valueOrValues = value
     }
 
-    constructor(col: FieldDef<SCH, T>, op: CharSequence, values: Array<Any>) {
+    constructor(col: NamedLens<SCH, *, T>, op: CharSequence, values: Array<Any>) {
         this.colName = col.name
         this.op = op
         this.singleValue = false
@@ -138,43 +138,43 @@ internal class BiCond<SCH : Schema<SCH>>(
 
 }
 
-infix fun <SCH : Schema<SCH>, T> FieldDef<SCH, T>.eq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T> NamedLens<SCH, *, T>.eq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
         else ColCond(this, " = ?", value as Any)
 
-infix fun <SCH : Schema<SCH>, T> FieldDef<SCH, T>.notEq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T> NamedLens<SCH, *, T>.notEq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
         else ColCond(this, " <> ?", value as Any)
 
-infix fun <SCH : Schema<SCH>, T : String?> FieldDef<SCH, T>.like(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> NamedLens<SCH, *, T>.like(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ?", value)
 
-infix fun <SCH : Schema<SCH>, T : String?> FieldDef<SCH, T>.notLike(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> NamedLens<SCH, *, T>.notLike(value: String): WhereCondition<SCH> =
         ColCond(this, " NOT LIKE ?", value)
 
 // let U be nullable, but not T
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.between(range: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.between(range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.notBetween(range: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.notBetween(range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.isIn(values: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.isIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.notIn(values: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.notIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.greaterThan(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.greaterThan(value: T): WhereCondition<SCH> =
         ColCond(this, " > ?", value)
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.greaterOrEq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.greaterOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " >= ?", value)
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.lessThan(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.lessThan(value: T): WhereCondition<SCH> =
         ColCond(this, " < ?", value)
 
-infix fun <SCH : Schema<SCH>, T : Any, U : T> FieldDef<SCH, U>.lessOrEq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.lessOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " <= ?", value)
 
 
