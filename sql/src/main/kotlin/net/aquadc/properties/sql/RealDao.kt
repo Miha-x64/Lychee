@@ -208,12 +208,6 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
             error("Wrong transaction: requested $transaction, but session's is $ourTransact")
         ourTransact.checkOpenAndThread()
 
-        val dirty = getDirty(column, id)
-        val cleanEquals = dirty === Unset && getClean(column, id) === update
-        if (dirty === update || cleanEquals) {
-            return
-        }
-
         transaction.update(table, id, column, previous, update)
     }
 
