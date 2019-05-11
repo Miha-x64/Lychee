@@ -208,7 +208,7 @@ class SqliteSession(
 
     override fun beginTransaction(): Transaction {
         val wLock = lock.writeLock()
-        check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in transaction" }
+        check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
         wLock.lock()
         connection.beginTransaction()
         val tr = RealTransaction(this, lowLevel)

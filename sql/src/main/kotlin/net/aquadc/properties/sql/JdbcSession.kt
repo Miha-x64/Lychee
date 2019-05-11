@@ -208,7 +208,7 @@ class JdbcSession(
 
     override fun beginTransaction(): Transaction {
         val wLock = lock.writeLock()
-        check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in transaction" }
+        check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
         wLock.lock()
         val tr = RealTransaction(this, lowLevel)
         transaction = tr

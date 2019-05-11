@@ -128,7 +128,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
             when (successful) {
                 true -> ed.apply() // SharedPrefs will trigger listeners automatically, nothing to do here
                 false -> Unit // nothing to do here
-                null -> error("attempting to close an already closed transaction")
+                null -> error("transaction is already closed")
             }
             successful = null
         }

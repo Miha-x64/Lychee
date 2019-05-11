@@ -93,7 +93,7 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
 
     private fun requireManaged(): Manager<SCH, TRANSACTION, ID> =
             manager ?: throw IllegalStateException(
-                    "${toString()} is not managed anymore, e. g. was removed from underlying storage" +
+                    "${toString()} is not managed anymore" + // e. g. was removed from underlying storage
                             if (ref !== Unset) ". Last remembered value: '$ref'" else "")
 
     override fun toString(): String =
