@@ -1,9 +1,10 @@
 package net.aquadc.persistence.extended
 
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class CollectionTypesTest {
+class NumericTypesTest {
 
     @Test fun `byte array`() {
         assertArrayEquals(byteArrayOf(1, 2, 3), byteCollection.load(byteArrayOf(1, 2, 3)))
@@ -45,6 +46,38 @@ class CollectionTypesTest {
         assertArrayEquals(doubleArrayOf(1.0, 2.0, 3.0), doubleCollection.load(arrayOf(1.0, 2.0, 3.0)), 0.0)
         assertArrayEquals(doubleArrayOf(1.0, 2.0, 3.0), doubleCollection.load(listOf(1.0, 2.0, 3.0)), 0.0)
         assertArrayEquals(doubleArrayOf(1.0, 2.0, 3.0), doubleCollection.store(doubleArrayOf(1.0, 2.0, 3.0)) as DoubleArray, 0.0)
+    }
+
+    @Test fun uByte() {
+        assertEquals(10.toUByte(), uByte.load(10.toShort()))
+        assertEquals(100.toUByte(), uByte.load(100.toShort()))
+        assertEquals(200.toUByte(), uByte.load(200.toShort()))
+        assertEquals(200.toShort(), uByte.store(200.toUByte()))
+        assertEquals(0.toShort(), uByte.store(0.toUByte()))
+    }
+
+    @Test(expected = IllegalArgumentException::class) fun `incorrect uByte`() {
+        uByte.load(256.toShort())
+    }
+
+    @Test fun uShort() {
+        assertEquals(10.toUShort(), uShort.load(10))
+        assertEquals(65535.toUShort(), uShort.load(65535))
+        assertEquals(10000, uShort.store(10000.toUShort()))
+    }
+
+    @Test(expected = IllegalArgumentException::class) fun `incorrect uShort`() {
+        uShort.load(65536)
+    }
+
+    @Test fun uInt() {
+        assertEquals(10.toUInt(), uInt.load(10L))
+        assertEquals(4_000_000_000L.toUInt(), uInt.load(4_000_000_000L))
+        assertEquals(4_000_000_000L, uInt.store(4_000_000_000L.toUInt()))
+    }
+
+    @Test(expected = IllegalArgumentException::class) fun `incorrect uInt`() {
+        uInt.load(5_000_000_000L)
     }
 
 }

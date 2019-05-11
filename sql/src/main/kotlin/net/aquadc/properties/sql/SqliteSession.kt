@@ -293,8 +293,9 @@ class SqliteSession(
     }
 
     private fun Short.assertFitsByte(): Byte {
-        if (this !in Byte.MIN_VALUE..Byte.MAX_VALUE)
-            throw IllegalStateException("value ${this} cannot be fit into a byte")
+        require(this in Byte.MIN_VALUE..Byte.MAX_VALUE) {
+            "value $this cannot be fit into ${Byte::class.java.simpleName}"
+        }
         return toByte()
     }
 
