@@ -23,7 +23,7 @@ inline fun <T, D> concurrentDiffPropertyOf(value: T): MutableDiffProperty<T, D> 
 /**
  * Returns new [DiffProperty] calculated from [this] [Property].
  */
-inline fun <T, D> Property<T>.calculateDiffOn(worker: Worker, noinline calculate: (T, T) -> D): DiffProperty<T, D> =
+inline fun <T, D, F : Any> Property<T>.calculateDiffOn(worker: Worker<F>, noinline calculate: (T, T) -> D): DiffProperty<T, D> =
         `ConcComputedDiff-`(this, calculate, worker)
 
 /**

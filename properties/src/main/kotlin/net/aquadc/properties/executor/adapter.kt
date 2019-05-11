@@ -8,14 +8,26 @@ import java.lang.UnsupportedOperationException
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicInteger
 
-internal class MapWhenChanged<in T, U>(
-        private val mapOn: Worker,
+internal class MapWhenChanged<in T, U, F : Any>(
+        private val mapOn: Worker<F>,
         private val map: (T) -> U,
         private val consumer: (U) -> Unit
 ) : ChangeListener<T> {
 
+    // we don't need atomic.getAndSet here because listeners are called strictly sequentially.
+    // I'm even not sure whether volatile useful here
+    @Volatile internal var running: F? = null
+
     override fun invoke(old: T, new: T) {
-        mapOn.map(new, map, consumer)
+        running?.let(mapOn::cancel)
+        running = mapOn.map(new, map, consumer)
+    }
+
+    fun cancel() {
+        running?.let {
+            mapOn.cancel(it)
+            running = null
+        }
     }
 
 }

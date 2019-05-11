@@ -1,17 +1,17 @@
 package net.aquadc.properties.diff
 
-import net.aquadc.properties.ChangeListener
-import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.concurrentPropertyOf
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.WorkerOnExecutor
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+
 
 class DiffProp {
 
@@ -29,6 +29,41 @@ class DiffProp {
         diffProp.removeChangeListener(listener)
         prop.value = 200
         assertEquals(90, diff) // nothing changed, we've unsubscribed
+    }
+
+    @Test(expected = IllegalStateException::class) fun `fail on background`() {
+        val ex = AtomicReference<Throwable>()
+        val exec = Executors.newSingleThreadExecutor {
+            Thread().also {
+                it.uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, e -> ex.set(e) }
+            }
+        }
+        val prop = concurrentPropertyOf(10)
+        val diffProp = prop.calculateDiffOn(WorkerOnExecutor(exec)) { _, _ -> throw IllegalStateException() }
+        diffProp.addUnconfinedChangeListener { _, _, _ ->  }
+        prop.value = 100500
+
+        exec.shutdown()
+        check(exec.awaitTermination(1, TimeUnit.SECONDS))
+        ex.get()?.let { throw it }
+    }
+
+    @Test fun `cancel calculation`() {
+        val called = AtomicBoolean()
+        val exec = Executors.newSingleThreadExecutor()
+        val prop = concurrentPropertyOf(10)
+        val diffProp = prop.calculateDiffOn(WorkerOnExecutor(exec)) { _, _ -> called.set(true) }
+
+        exec.execute { Thread.sleep(100) }
+        val changeListener = { _: Int, _: Int, _: Unit -> }
+        diffProp.addUnconfinedChangeListener(changeListener)
+
+        prop.value = 100500
+        diffProp.removeChangeListener(changeListener)
+
+        exec.shutdown()
+        check(exec.awaitTermination(1, TimeUnit.SECONDS))
+        assertEquals(false, called.get())
     }
 
     @Test fun calculateDiffInOnWorker() {

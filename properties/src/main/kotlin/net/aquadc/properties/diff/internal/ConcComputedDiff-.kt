@@ -7,10 +7,10 @@ import net.aquadc.properties.executor.Worker
 
 
 @PublishedApi
-internal class `ConcComputedDiff-`<T, D>(
+internal class `ConcComputedDiff-`<T, D, F : Any>(
         private val original: Property<T>,
         private val calculateDiff: (T, T) -> D,
-        private val computeOn: Worker
+        private val computeOn: Worker<F>
 ) : `ConcDiff-Notifier`<T, D>(), ChangeListener<T>, (T, T, D) -> Unit {
 
     /*
@@ -22,8 +22,13 @@ internal class `ConcComputedDiff-`<T, D>(
     override var value: T = original.value
         private set
 
+    // we don't need atomic.getAndSet here because listeners are called strictly sequentially.
+    // I'm even not sure whether volatile useful here
+    @Volatile private var running: F? = null
+
     override fun invoke(old: T, new: T) {
-        computeOn.map2(old, new, calculateDiff, this)
+        running?.let(computeOn::cancel)
+        running = computeOn.map2(old, new, calculateDiff, this)
     }
 
     override fun invoke(old: T, new: T, diff: D) {
@@ -36,6 +41,10 @@ internal class `ConcComputedDiff-`<T, D>(
             original.addUnconfinedChangeListener(this)
         } else {
             original.removeChangeListener(this)
+            running?.let {
+                computeOn.cancel(it)
+                running = null
+            }
         }
     }
 

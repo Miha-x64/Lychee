@@ -21,7 +21,7 @@ fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
  * Calling [transform] from [worker] thread is not guaranteed:
  * it will be called in-place if there's no pre-mapped value.
  */
-fun <T, R> Property<T>.mapOn(worker: Worker, transform: (T) -> R): Property<R> = when {
+fun <T, R> Property<T>.mapOn(worker: Worker<*>, transform: (T) -> R): Property<R> = when {
     this.mayChange -> `Mapped-`(this, transform, worker)
     else -> immutablePropertyOf(transform(value))
 }

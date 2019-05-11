@@ -10,7 +10,7 @@ import net.aquadc.properties.executor.*
 open class `Mapped-`<in O, out T>(
         @JvmField @JvmSynthetic val original: Property<@UnsafeVariance O>,
         @JvmField @JvmSynthetic internal val map: (O) -> T,
-        mapOn: Worker
+        mapOn: Worker<*>
 ) : `Notifier-1AtomicRef`<T, @UnsafeVariance T>(original.isConcurrent, unset()) {
 
     init {
@@ -52,6 +52,7 @@ open class `Mapped-`<in O, out T>(
         } else {
             original.removeChangeListener(originalChanged)
             refUpdater().eagerOrLazySet(this, thread, unset())
+            (originalChanged as? MapWhenChanged<*, *, *>)?.cancel()
         }
     }
 
