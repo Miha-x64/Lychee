@@ -14,7 +14,7 @@ import org.junit.Assert.assertNotSame
 import org.junit.Test
 
 
-class Relations {
+class EmbedRelationsTest {
 
     @Test fun embed() {
         val record = session.withTransaction {
@@ -180,5 +180,55 @@ class Relations {
         assertEquals(f, rec[GoDeeper.First])
         assertEquals(s, rec[GoDeeper.Second])
     }
+
+    @Test fun `embed nullable`() {
+        val record = session.withTransaction {
+            val rec = insert(TableWithNullableEmbed, WithNullableNested.build {
+                it[OwnField] = "qwe"
+                it[Nested] = null
+                it[OtherOwnField] = 16_000_000_000
+            })
+
+            // read uncommitted
+            assertEquals("qwe", rec[WithNullableNested.OwnField])
+            assertEquals(null, rec[WithNullableNested.Nested])
+            assertEquals(16_000_000_000, rec[WithNullableNested.OtherOwnField])
+
+            rec
+        }
+
+        assertEquals("qwe", record[WithNullableNested.OwnField])
+        assertEquals(null, record[WithNullableNested.Nested])
+        assertEquals(16_000_000_000, record[WithNullableNested.OtherOwnField])
+
+        session.withTransaction {
+            record[WithNullableNested.Nested] = SchWithId.build {
+                it[Id] = 100500
+                it[Value] = "200700"
+                it[MutValue] = "mutated"
+            }
+        }
+
+        val emb = record[WithNullableNested.Nested]!!
+        assertEquals(100500, emb[SchWithId.Id])
+        assertEquals("200700", emb[SchWithId.Value])
+        assertEquals("mutated", emb[SchWithId.MutValue])
+
+        session.withTransaction {
+            record[WithNullableNested.Nested] = null
+        }
+
+        assertEquals("qwe", record[WithNullableNested.OwnField])
+        assertEquals(null, record[WithNullableNested.Nested])
+        assertEquals(16_000_000_000, record[WithNullableNested.OtherOwnField])
+    }
+
+    /*@Test fun `embed partial`() {
+        TODO()
+    }
+
+    @Test fun `embed nullable partial`() {
+        TODO()
+    }*/
 
 }

@@ -1,8 +1,8 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.type.DataType
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -24,7 +24,7 @@ internal interface LowLevelSession<STMT> {
     fun onTransactionEnd(successful: Boolean)
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID, *>, columnName: String, type: DataType<T>, condition: WhereCondition<out SCH>
+            table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
     ): T
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(

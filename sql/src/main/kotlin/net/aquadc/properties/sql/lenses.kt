@@ -158,15 +158,12 @@ internal class PkLens<S : Schema<S>, ID : IdBound>(
 
 }
 
-internal class SyntheticColLens<S : Schema<S>, ST : PartialStruct<S>, TS : Schema<TS>, TR : PartialStruct<TS>?>(
-        private val table: Table<S, *, *>,
-        name: String,
-        private val path: Lens<S, ST, TR>,
-        nullize: Boolean
-) : BaseLens<S, ST, Long? /*= FieldSet<TS, *>?*/>(
-        name,
-        if (nullize || path.type is DataType.Nullable<*>) nullableLong else long as DataType<Long?>
-) {
+internal class FieldSetLens<S : Schema<S>>(
+        name: String
+) : BaseLens<S, PartialStruct<S>, Long>(name, long) {
+
+    override fun invoke(p1: PartialStruct<S>): Long? =
+            p1.fields.bitmask
 
     override fun get(index: Int): NamedLens<*, *, *> =
             if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
@@ -177,11 +174,10 @@ internal class SyntheticColLens<S : Schema<S>, ST : PartialStruct<S>, TS : Schem
     // tests only
 
     override fun equals(other: Any?): Boolean =
-            other is SyntheticColLens<*, *, *, *> &&
-                    table === other.table && path == other.path && name == other.name && type == other.type
+            other is FieldSetLens<*> && name == other.name && type == other.type
 
     override fun toString(): String = buildString {
-        append(table.name).append('.').append(name).append(" (")
+        append(name).append(" (")
         val nullable = type is DataType.Nullable<*>
         val actual: DataType<*> = if (type is DataType.Nullable<*>) type.actualType else type
         val partial = actual !is Schema<*>
@@ -189,16 +185,6 @@ internal class SyntheticColLens<S : Schema<S>, ST : PartialStruct<S>, TS : Schem
         if (nullable && partial) append(", ")
         if (partial) append("fields set")
         append(')')
-    }
-
-    override fun invoke(p1: ST): Long? {
-        val struct = path(p1)
-        return if (struct === null) {
-            check(type === nullableLong) // === check(path.type is DataType.Nullable<*>)
-            null
-        } else {
-            struct.fields.bitmask
-        }
     }
 
 }
@@ -216,7 +202,7 @@ internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>, T>
         get() = throw UnsupportedOperationException()
 
     override val size: Int
-        get() = 1 // true for SyntheticColLens and PkLens, but overridden in Telescope
+        get() = 1 // true for FieldSetLens and PkLens, but overridden in Telescope
 
 }
 

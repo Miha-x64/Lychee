@@ -128,10 +128,13 @@ sealed class DataType<T> {
         /**
          * Converts a persistable value into its in-memory representation.
          * @param fields a set of fields provided within [values] array
-         * @param values all values for [fields] listed, with gaps for absent values,
-         *     so `values[field.ordinal]` is a valid value for a field; `null` is allowed only if [fields] are empty
+         * @param values all values for [fields] listed
+         *   if [Array.size] is equal [net.aquadc.persistence.struct.size], field layout in [values] is assumed to be 'packed'
+         *   if size is equal to [Schema]'s declared field count, layout is assumed to be 'sparse'
+         *   `null` is allowed only if [fields] are empty
          * @return in-memory representation of data in [values]
-         * @see net.aquadc.persistence.struct.forEachIndexed function to iterate over a [FieldSet] in natural order
+         * @see net.aquadc.persistence.struct.indexOf
+         * @see net.aquadc.persistence.fill
          */
         abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>?): T
 

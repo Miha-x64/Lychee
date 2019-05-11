@@ -4,6 +4,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import java.sql.DriverManager
@@ -60,9 +61,21 @@ val WeNeedTOGoDeeper = object : SimpleTable<GoDeeper, Long>(GoDeeper, "deeper", 
     )
 }
 
+
+object WithNullableNested : Schema<WithNullableNested>() {
+    val OwnField = "q" let string
+    val Nested = "w" mut nullable(SchWithId)
+    val OtherOwnField = "e" let long
+}
+val TableWithNullableEmbed = object : SimpleTable<WithNullableNested, Long>(WithNullableNested, "with_nullable_nested", "_id", long) {
+    override fun relations(): Array<Relation<WithNullableNested, Long, *>> = arrayOf(
+            Relation.Embedded(SnakeCase, WithNullableNested.Nested, "nested_fields")
+    )
+}
+
 val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
     val stmt = conn.createStatement()
-    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper).forEach {
+    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper, TableWithNullableEmbed).forEach {
         stmt.execute(SqliteDialect.createTable(it))
     }
     stmt.close()

@@ -102,12 +102,12 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, EmbedPartial.B, "fieldsSet")
             )
         }
-        assertEquals(arrayOf("_id", "a", "fieldsSet", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "b_fieldsSet", "b_a", "b_b"), table.columns.names())
         assertEquals(
                 arrayOf(
                         PkLens(table),
                         EmbedPartial.A,
-                        SyntheticColLens(table,"fieldsSet", EmbedPartial.B, false),
+                        EmbedPartial.B / FieldSetLens("fieldsSet"),
                         Telescope("b_a", false, EmbedPartial.B, ShallowSchema.A),
                         Telescope("b_b", false, EmbedPartial.B, ShallowSchema.B)
                 ),
@@ -133,12 +133,12 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, EmbedNullable.B, "nullability")
             )
         }
-        assertEquals(arrayOf("_id", "a", "nullability", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "b_nullability", "b_a", "b_b"), table.columns.names())
         assertEquals(
                 arrayOf(
                         PkLens(table),
                         EmbedNullable.A,
-                        SyntheticColLens(table, "nullability", EmbedNullable.B, true),
+                        EmbedNullable.B / FieldSetLens("nullability"),
                         Telescope("b_a", true, EmbedNullable.B, ShallowSchema.A),
                         Telescope("b_b", true, EmbedNullable.B, ShallowSchema.B)
                 ),
@@ -165,14 +165,14 @@ class RelationSchemas {
             )
         }
         assertEquals(
-                arrayOf("_id", "a", "fieldSetAndNullability", "b_a", "b_b"),
+                arrayOf("_id", "a", "b_fieldSetAndNullability", "b_a", "b_b"),
                 table.columns.names()
         )
         assertEquals(
                 arrayOf(
                         PkLens(table),
                         EmbedNullablePartial.A,
-                        SyntheticColLens(table, "fieldSetAndNullability", EmbedNullablePartial.B, false),
+                        EmbedNullablePartial.B / FieldSetLens("fieldSetAndNullability"),
                         Telescope("b_a", true, EmbedNullablePartial.B, ShallowSchema.A),
                         Telescope("b_b", true, EmbedNullablePartial.B, ShallowSchema.B)
                 ),

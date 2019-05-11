@@ -83,9 +83,9 @@ class JdbcSession(
             val statement = updateStatementWLocked(table, columns)
             val colCount = if (columns is Array<*>) {
                 columns as Array<NamedLens<SCH, Struct<SCH>, *>>
-                values as Array<*>
+                values as Array<*>?
                 columns.forEachIndexed { i, col ->
-                    col.type.erased.bind(statement, i, values[i])
+                    col.type.erased.bind(statement, i, values?.get(i))
                 }
                 columns.size
             } else {
@@ -161,9 +161,9 @@ class JdbcSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID, *>, columnName: String, type: DataType<T>, condition: WhereCondition<out SCH>
+                table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
         ): T =
-                select(columnName, table, condition, NoOrder).fetchSingle(type)
+                select(column.name, table, reusableCond(table, table.idColName, id), NoOrder).fetchSingle(column.type)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
@@ -188,7 +188,8 @@ class JdbcSession(
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
 
-        @Suppress("UPPER_BOUND_VIOLATED") private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
+        @Suppress("UPPER_BOUND_VIOLATED")
+        private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
         @Suppress("UNCHECKED_CAST")
         override fun <SCH : Schema<SCH>, T : Any> reusableCond(

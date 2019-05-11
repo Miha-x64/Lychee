@@ -284,10 +284,9 @@ private constructor(
                 when (rel) {
                     is Relation.Embedded<*, *, *, *> -> {
                         val start = outColumns.size
-                        if (rel.fieldSetColName != null) {
-                            outColumns.add(SyntheticColLens<SCH, Record<SCH, ID>, Schema<*>, PartialStruct<Schema<*>>?>(
-                                    this, rel.fieldSetColName, path as Lens<SCH, Record<SCH, ID>, PartialStruct<Schema<*>>?>, nullize
-                            ))
+                        val fieldSetCol = rel.fieldSetColName?.let { fieldSetColName ->
+                            (rel.naming.concatErased(path, FieldSetLens<Schema<*>>(fieldSetColName)) as NamedLens<SCH, REC, out Long?>)
+                                    .also { outColumns.add(it) }
                         }
                         val nestedLenses = embed(rels, relSchema, rel.naming,
                                 path as NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
@@ -296,7 +295,7 @@ private constructor(
                         )!!
                         val nestedCols = outColumns.subList(start, outColumns.size)
                         check(outDelegates.put(path, Embedded<SCH, Schema<*>, ID, REC>(
-                                relSchema, nestedLenses, nestedCols.array()
+                                relSchema, nestedLenses, nestedCols.array(), fieldSetCol
                                 //     ArrayList$SubList ^^^^^^^^^^ checks for concurrent modifications and cannot be passed as is
                         )) === null)
                     }
@@ -356,10 +355,11 @@ private constructor(
                                 val idx = firstLens.ordinal.toInt()
                                 if (prevFieldValues[idx] !== Unset) {
                                     val evicted = (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).swapSilentlyLocked(prevFieldValues[idx])
-                                    evicted as Record<*, *>
-                                    evicted.isManaged = false
-                                    evicted.dropManagement()
-                                    // ^^ not sure whether this pair is good
+                                    (evicted as Record<*, *>?)?.let {
+                                        it.isManaged = false
+                                        it.dropManagement()
+                                        // ^^ not sure whether this pair is good
+                                    }
                                 }
                             }
                         }
@@ -397,9 +397,6 @@ private constructor(
             "Table(schema=$schema, name=$name, ${columns.size} columns)"
 
 }
-
-// used internally in some places, don't re-instantiate
-@JvmField internal val nullableLong = nullable(long)
 
 @JvmField internal val noRelations = emptyArray<Relation<Nothing, Nothing, Nothing>>()
 

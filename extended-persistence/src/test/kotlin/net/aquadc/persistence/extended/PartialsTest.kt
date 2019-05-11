@@ -85,4 +85,16 @@ class PartialsTest {
         })
     }
 
+    @Test fun `create sparse`() {
+        assertEquals(SomeSchema.buildPartial {
+            it[B] = 99
+        }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), arrayOf(null, 99, null)))
+    }
+
+    @Test fun `create packed`() {
+        assertEquals(SomeSchema.buildPartial {
+            it[B] = 99
+        }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), arrayOf(99)))
+    }
+
 }

@@ -1,9 +1,16 @@
 package net.aquadc.persistence
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructBuilder
+import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.size
+import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.AnyCollection
 import java.util.Arrays
 import java.util.Collections
@@ -183,3 +190,27 @@ fun <SCH : Schema<SCH>> Struct<SCH>.valuesOf(lenses: Array<out Lens<*, *, *>>, d
 inline fun <reified T> List<T>.array(): Array<T> =
         (this as java.util.List<T>).toArray(arrayOfNulls<T>(size))
 
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<out Any?>?) {
+    when (values?.size ?: 0) {
+        0 -> // empty
+            Unit
+
+        fields.size.toInt() -> { // 'packed'
+            values!!
+            schema.forEachIndexed(fields) { idx, field ->
+                builder[field as FieldDef<SCH, Any?>] = values[idx]
+            }
+        }
+
+        schema.fields.size -> { // 'sparse'
+            values!!
+            schema.forEach(fields) { field ->
+                builder[field as FieldDef<SCH, Any?>] = values[field.ordinal.toInt()]
+            }
+        }
+
+        else ->
+            error("cannot set ${schema.toString(fields)} to ${values?.asList()}: inconsistent sizes")
+    }
+}

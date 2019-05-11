@@ -2,6 +2,7 @@
 package net.aquadc.persistence.extended
 
 import android.support.annotation.RestrictTo
+import net.aquadc.persistence.fill
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -28,11 +29,7 @@ fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH
                 get() = schema
 
             override fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>?): PartialStruct<SCH> =
-                    schema.buildPartial { b ->
-                        schema.forEach(fields) { field ->
-                            b[field as FieldDef<SCH, Any?>] = values!![field.ordinal.toInt()]
-                        }
-                    }
+                    schema.buildPartial { builder -> fill(builder, this, fields, values) }
 
             override fun store(value: PartialStruct<SCH>): PartialStruct<SCH> =
                     value
