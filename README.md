@@ -283,6 +283,9 @@ storedPlayer.transaction { p ->
 -assumenosideeffects class net.aquadc.persistence.type.SimpleNoOp {
     private void sanityCheck(java.lang.Object);
 }
+-assumenosideeffects class net.aquadc.persistence.extended.CollectionNoOp {
+    private void sanityCheck(java.lang.Object);
+}
 
 # https://sourceforge.net/p/proguard/bugs/660/
 -keepclassmembernames class net.aquadc.properties.internal.** {
