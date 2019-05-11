@@ -7,9 +7,10 @@ buildscript {
     ext.target_android_version = 28
 
     repositories {
-        jcenter()
+        mavenCentral()
         google()
         maven { url "https://plugins.gradle.org/m2/" }
+        jcenter()
     }
 
     dependencies {
