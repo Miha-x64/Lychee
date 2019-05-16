@@ -1,6 +1,12 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.ofStruct
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -50,6 +56,19 @@ class Lenses {
         assertEquals(DeeplyNestedSchema.Items, lens[0])
         assertEquals(NestedSchema.Items, lens[1])
         assertEquals(SomeSchema.A, lens[2])
+    }
+
+    object NestedPartial : Schema<NestedPartial>() {
+        val Item = "" let partial(SomeSchema)
+    }
+    @Test fun partial() {
+        val l: Lens<NestedPartial, PartialStruct<NestedPartial>, PartialStruct<SomeSchema>> = NestedPartial.Item
+        val lens = l / SomeSchema.A
+        val struct = NestedPartial.build {
+            it[Item] = SomeSchema.buildPartial {  }
+        }
+        val value = lens.ofStruct()(struct)
+        assertEquals(null, value)
     }
 
 }

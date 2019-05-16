@@ -1,9 +1,11 @@
+@file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullable
@@ -17,30 +19,30 @@ abstract class NamingConvention {
     abstract fun concatNames(outer: String, nested: String): String
 
     @JvmName("0")
-    operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> NamedLens<TS, TR, T?>.div(
+    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> NamedLens<TS, TR, out T?>.div(
             nested: NamedLens<US, T, U>
     ): NamedLens<TS, TR, U?> =
-            Telescope(concatNames(this.name, nested.name), true, this, nested)
+            Telescope(concatNames(this.name, nested.name), this, nested)
 
     @JvmName("1")
-    operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> NamedLens<TS, TR, T>.div(
+    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : Struct<US>, U> NamedLens<TS, TR, T>.div(
             nested: NamedLens<US, T, U>
     ): NamedLens<TS, TR, U> =
-            Telescope(concatNames(this.name, nested.name), false, this, nested)
+            Telescope(concatNames(this.name, nested.name), this, nested)
 
 }
 
 @JvmName("0")
-operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> Lens<TS, TR, T?>.div(
+inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> Lens<TS, TR, out T?>.div(
         nested: Lens<US, T, U>
 ): Lens<TS, TR, U?> =
-        Telescope(null, true, this, nested)
+        Telescope(null, this, nested)
 
 @JvmName("1")
-operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> Lens<TS, TR, T>.div(
+inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : Struct<US>, U> Lens<TS, TR, T>.div(
         nested: Lens<US, T, U>
 ): Lens<TS, TR, U> =
-        Telescope(null, false, this, nested)
+        Telescope(null, this, nested)
 
 @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
 internal fun <SCH : Schema<SCH>, STR : PartialStruct<SCH>> NamingConvention?.concatErased(
@@ -48,7 +50,6 @@ internal fun <SCH : Schema<SCH>, STR : PartialStruct<SCH>> NamingConvention?.con
 ): Lens<SCH, STR, *> =
         Telescope<SCH, STR, Schema<*>, PartialStruct<Schema<*>>, Any?>(
                 (if (this !== null && dis is NamedLens && that is NamedLens) concatNames(dis.name, that.name) else null),
-                dis.type is DataType.Nullable<*>,
                 dis as Lens<SCH, STR, out PartialStruct<Schema<*>>?>, that as Lens<Schema<*>, PartialStruct<Schema<*>>, out Any?>
         )
 
@@ -77,25 +78,32 @@ object CamelCase : NamingConvention() {
 
 }
 
-internal class Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U>(
+@PublishedApi internal class Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U>
+@PublishedApi internal constructor(
         name: String?,
-        private val addNullability: Boolean,
         private val outer: Lens<TS, TR, out T?>,
         private val nested: Lens<US, T, out U>
 ) : BaseLens<TS, TR, U>(
         name,
-        nested.type.let { type ->
-            if (addNullability && type !is DataType.Nullable<*>) nullable(type as DataType<Any>) else type
+        run {
+            if (outer.type is Schema<*> || nested.type is DataType.Nullable<*>) nested.type
+            else nullable(nested.type as DataType<Any>)
         } as DataType<U>
 ) {
 
-    override fun invoke(p1: TR): U?
-            = outer(p1)?.let(nested)
+    private inline val addNullability
+        get() = outer.type !is Schema<*>
+
+    override fun invoke(p1: TR): U? {
+        val a = outer(p1)
+        return if (a == null && addNullability) null else nested(a as T)
+    }
 
     override val default: U
         get() = nested.default
 
-    override val size: Int get() = outer.size + nested.size
+    override val size: Int
+        get() = outer.size + nested.size
 
     override fun get(index: Int): NamedLens<*, *, *> {
         val outerSize = outer.size

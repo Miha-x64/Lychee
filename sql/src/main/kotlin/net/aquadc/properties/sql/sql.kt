@@ -233,7 +233,7 @@ private constructor(
             columns.add(PkLens(this))
         }
         val delegates = New.map<Lens<SCH, REC, *>, SqlPropertyDelegate>()
-        embed(rels, schema, null, null, false, columns, delegates)
+        embed(rels, schema, null, null, columns, delegates)
 
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
@@ -254,7 +254,7 @@ private constructor(
     @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
     private fun embed(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
-            naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?, nullize: Boolean,
+            naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?,
             outColumns: ArrayList<NamedLens<SCH, REC, *>>, outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate>
     ): Array<NamedLens<SCH, REC, *>>? {
         val fields = schema.fields
@@ -290,7 +290,6 @@ private constructor(
                         }
                         val nestedLenses = embed(rels, relSchema, rel.naming,
                                 path as NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
-                                nullize || path.type !is Schema<*>, // if type is nullable or partial, all columns must be nullable
                                 outColumns, outDelegates
                         )!!
                         val nestedCols = outColumns.subList(start, outColumns.size)
