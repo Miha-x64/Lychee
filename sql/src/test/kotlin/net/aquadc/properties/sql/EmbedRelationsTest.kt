@@ -1,7 +1,11 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.copy
+import net.aquadc.persistence.extended.getOrDefault
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
+import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.copy
 import net.aquadc.persistence.struct.ofStruct
@@ -11,13 +15,14 @@ import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.map
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 
 class EmbedRelationsTest {
 
     @Test fun embed() {
-        val record = session.withTransaction {
+        val rec = session.withTransaction {
             val rec = insert(TableWithEmbed, WithNested.build {
                 it[OwnField] = "qwe"
                 it[Nested] = SchWithId.build {
@@ -27,6 +32,7 @@ class EmbedRelationsTest {
                 it[OtherOwnField] = 16_000_000_000
             })
 
+            assertSame(rec[WithNested.OwnField], rec[WithNested.OwnField])
             // read uncommitted
             assertEquals("qwe", rec[WithNested.OwnField])
             assertEquals(100500, rec[WithNested.Nested][SchWithId.Id])
@@ -36,24 +42,26 @@ class EmbedRelationsTest {
             rec
         }
 
-        assertEquals("qwe", record[WithNested.OwnField])
-        assertEquals(100500, record[WithNested.Nested][SchWithId.Id])
-        assertEquals("200700", record[WithNested.Nested][SchWithId.Value])
-        assertEquals("", record[WithNested.Nested][SchWithId.MutValue])
-        assertEquals(16_000_000_000, record[WithNested.OtherOwnField])
+        assertSame(rec[WithNested.OwnField], rec[WithNested.OwnField])
+        assertEquals("qwe", rec[WithNested.OwnField])
+        assertEquals(100500, rec[WithNested.Nested][SchWithId.Id])
+        assertEquals("200700", rec[WithNested.Nested][SchWithId.Value])
+        assertEquals("", rec[WithNested.Nested][SchWithId.MutValue])
+        assertEquals(16_000_000_000, rec[WithNested.OtherOwnField])
 
-        val emb = record[WithNested.Nested]
+        val emb = rec[WithNested.Nested]
         session.withTransaction {
-            record[WithNested.Nested] = SchWithId.build {
+            rec[WithNested.Nested] = SchWithId.build {
                 it[Id] = 100500
                 it[Value] = "200700"
                 it[MutValue] = "mutated"
             }
 
             assertEquals("uncommitted should be visible through mut col", "mutated", emb[SchWithId.MutValue])
+            // which is not guaranteed for immutable columns, though
         }
 
-        val newEmb = record[WithNested.Nested]
+        val newEmb = rec[WithNested.Nested]
         assertNotSame(newEmb, emb)
         assertEquals(100500, newEmb[SchWithId.Id])
         assertEquals("200700", newEmb[SchWithId.Value])
@@ -210,6 +218,7 @@ class EmbedRelationsTest {
         }
 
         val emb = record[WithNullableNested.Nested]!!
+        assertSame(emb, record[WithNullableNested.Nested])
         assertEquals(100500, emb[SchWithId.Id])
         assertEquals("200700", emb[SchWithId.Value])
         assertEquals("mutated", emb[SchWithId.MutValue])
@@ -223,11 +232,42 @@ class EmbedRelationsTest {
         assertEquals(16_000_000_000, record[WithNullableNested.OtherOwnField])
     }
 
-    /*@Test fun `embed partial`() {
-        TODO()
+    @Test fun `embed partial`() {
+        val rec = session.withTransaction {
+            val rec = insert(TableWithPartialEmbed, WithPartialNested.build {
+                it[Nested] = SchWithId.buildPartial {
+                    it[Value] = "I'm another String!"
+                }
+                it[OwnField] = "I'm a String!"
+            })
+
+            assertSame(rec[WithPartialNested.Nested], rec[WithPartialNested.Nested])
+            assertEquals(SchWithId.Value.asFieldSet(), rec[WithPartialNested.Nested].fields)
+            assertEquals(-1L, rec[WithPartialNested.Nested].getOrDefault(SchWithId.Id, -1L))
+            assertEquals("I'm another String!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.Value, ""))
+            assertEquals("!!!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.MutValue, "!!!"))
+            assertEquals("I'm a String!", rec[WithPartialNested.OwnField])
+
+            rec
+        }
+        assertSame(rec[WithPartialNested.Nested], rec[WithPartialNested.Nested])
+        assertEquals(SchWithId.Value.asFieldSet(), rec[WithPartialNested.Nested].fields)
+        assertEquals(-1L, rec[WithPartialNested.Nested].getOrDefault(SchWithId.Id, -1L))
+        assertEquals("I'm another String!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.Value, ""))
+        assertEquals("!!!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.MutValue, "!!!"))
+        assertEquals("I'm a String!", rec[WithPartialNested.OwnField])
+        val nest = rec[WithPartialNested.Nested]
+
+        session.withTransaction {
+            rec[WithPartialNested.Nested] = rec[WithPartialNested.Nested].copy {
+                it[MutValue] = "some real strings here!"
+            }
+        }
+        assertNotSame(nest, rec[WithPartialNested.Nested])
+        assertEquals("some real strings here!", rec[WithPartialNested.Nested].getOrThrow(SchWithId.MutValue))
     }
 
-    @Test fun `embed nullable partial`() {
+    /*@Test fun `embed nullable partial`() {
         TODO()
     }*/
 

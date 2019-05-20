@@ -4,6 +4,7 @@ import android.support.annotation.RestrictTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
@@ -176,7 +177,7 @@ fun <SCH : Schema<SCH>> Struct<SCH>.values(): Array<Any?> {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> Struct<SCH>.valuesOf(lenses: Array<out Lens<*, *, *>>, drop: Int): Array<Any?> =
+fun <SCH : Schema<SCH>> PartialStruct<SCH>.valuesOf(lenses: Array<out Lens<*, *, *>>, drop: Int): Array<Any?> =
         Array(lenses.size) { i ->
             val lens = lenses[i]
             var v: Any? = this

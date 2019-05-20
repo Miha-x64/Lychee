@@ -234,6 +234,27 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEachIndexed(set: Fie
 }
 
 /**
+ * Invokes [func] on each element of the [set].
+ */
+inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> {
+    val fields = fields
+    val out = arrayOfNulls<R>(set.size.toInt())
+    var idx = 0
+    var ord = 0
+    var mask = set.bitmask
+    while (mask != 0L) {
+        if ((mask and 1L) == 1L) {
+            out[idx] = func(idx, fields[ord] as F)
+            idx += 1
+        }
+
+        mask = mask ushr 1
+        ord++
+    }
+    return out as Array<R>
+}
+
+/**
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
 inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *>>

@@ -194,8 +194,11 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
 
     override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T {
         val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
-        val index = table.columnIndices[column] ?: return unset()
-        //                           nothing to do here ^^^^^^^^^^^^^^ if this 'column' is an embedded struct
+
+        val index: Int = table.columnIndices[column] ?: return unset()
+        //                           nothing to do here ^^^^^^^^^^^^^^
+        // if this lens points to a struct rather than a column
+
         return thisRec[index] as T
     }
 

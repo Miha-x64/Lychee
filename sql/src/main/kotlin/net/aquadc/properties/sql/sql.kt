@@ -11,18 +11,19 @@ import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.intersectMutable
+import net.aquadc.persistence.struct.mapIndexed
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.long
-import net.aquadc.persistence.type.nullable
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.internal.Unset
-import net.aquadc.properties.internal.mapIndexedToArray
 import net.aquadc.properties.persistence.PropertyStruct
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -223,7 +224,7 @@ private constructor(
      */
     protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
-    private var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null
+    private var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null // fixme: replace with Array
     private val _columns: Lazy<Array<out NamedLens<SCH, REC, *>>> = lazy {
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
@@ -354,7 +355,7 @@ private constructor(
                                 val idx = firstLens.ordinal.toInt()
                                 if (prevFieldValues[idx] !== Unset) {
                                     val evicted = (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).swapSilentlyLocked(prevFieldValues[idx])
-                                    (evicted as Record<*, *>?)?.let {
+                                    (evicted as PartialRecord<*, *>?)?.let {
                                         it.isManaged = false
                                         it.dropManagement()
                                         // ^^ not sure whether this pair is good
@@ -422,21 +423,19 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
 /**
  * Represents an active record — a container with some values and properties backed by an RDBMS row.
  */
-open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertyStruct<SCH> {
+open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, PropertyStruct<SCH> {
 
-    internal val table: Table<*, ID, *>
-    protected val session: Session
     internal val _session get() = session
-    val primaryKey: ID
 
-    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
-    private val dao
-        get() = session.get<Schema<*>, ID, Record<*, ID>>(table as Table<Schema<*>, ID, Record<*, ID>>)
+    // overrides multi-inhrit
 
-    private val columns: Array<NamedLens<*, Record<*, ID>, *>>
+    override val fields: FieldSet<SCH, FieldDef<SCH, *>>
+        get() = schema.allFieldSet()
 
-    @JvmField @JvmSynthetic
-    internal val values: Array<Any?>  // = ManagedProperty<Transaction, T> | T
+    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =
+            get(field)
+
+    // end
 
     internal fun copyValues(): Array<Any?> {
         val size = values.size
@@ -464,22 +463,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             session: Session,
             table: Table<*, ID, *>, schema: SCH, primaryKey: ID,
             columns: Array<NamedLens<*, Record<*, ID>, *>>
-    ) : super(schema) {
-        this.session = session
-        this.table = table
-        this.primaryKey = primaryKey
-        this.columns = columns
-
-        @Suppress("UNCHECKED_CAST")
-        this.values = session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
-            schema.fields.mapIndexedToArray { i, field ->
-                when (field) {
-                    is FieldDef.Mutable -> ManagedProperty(dao, columns[i] as NamedLens<SCH, Struct<SCH>, Any?>, primaryKey, Unset)
-                    is FieldDef.Immutable -> Unset
-                }
-            }
-        }
-    }
+    ) : super(session, table, schema, primaryKey, columns, schema.allFieldSet())
 
 
     override fun <T> get(field: FieldDef<SCH, T>): T = when (field) {
@@ -501,20 +485,6 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
     override fun <T> prop(field: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
             values[field.ordinal.toInt()] as SqlProperty<T>
 
-    var isManaged: Boolean = true
-        @JvmSynthetic internal set // cleared **before** real property unmanagement occurs
-
-    @JvmSynthetic internal fun dropManagement() {
-        val defs = schema.fields
-        val vals = values
-        for (i in defs.indices) {
-            when (defs[i]) {
-                is FieldDef.Mutable -> (vals[i] as ManagedProperty<*, *, *, *>).dropManagement()
-                is FieldDef.Immutable -> { /* no-op */ }
-            }.also { }
-        }
-    }
-
     @Deprecated("now we have normal relations")
     @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
@@ -534,10 +504,70 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : BaseStruct<SCH>, PropertySt
             FieldDef.Mutable<ForeSCH, ID>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)
 
+    }
+
+open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor(
+        protected val session: Session,
+        internal val table: Table<*, ID, *>, schema: SCH,
+        val primaryKey: ID,
+        internal val columns: Array<NamedLens<*, Record<*, ID>, *>>,
+        override val fields: FieldSet<SCH, FieldDef<SCH, *>> // fixme: the field is unused by Record
+) : BaseStruct<SCH>(schema) {
+
+    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+    internal val dao
+        get() = session.get<Schema<*>, ID, Record<*, ID>>(table as Table<Schema<*>, ID, Record<*, ID>>)
+
+    @JvmField @JvmSynthetic @Suppress("UNCHECKED_CAST")
+    internal val values: Array<Any?/* = ManagedProperty<Transaction, T> | T */> =
+            session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
+                schema.mapIndexed(fields) { i, field ->
+                    when (field) {
+                        is FieldDef.Mutable -> ManagedProperty(
+                                dao, columns[field.ordinal.toInt()] as NamedLens<SCH, Struct<SCH>, Any?>, primaryKey, Unset
+                        )
+                        is FieldDef.Immutable -> Unset
+                    }
+                }
+            }
+
+    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T {
+        val index = fields.indexOf(field).toInt()
+        val value = try {
+            values[index]
+        } catch (_: ArrayIndexOutOfBoundsException) {
+            throw NoSuchElementException(field.toString())
+        }
+        return when (field) {
+            is FieldDef.Mutable -> (value as SqlProperty<T>).value
+            is FieldDef.Immutable -> {
+                if (value === Unset) {
+                    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+                    val freshValue = dao.getClean(columns[field.ordinal.toInt()] as NamedLens<Schema<*>, Struct<Schema<*>>, T>, primaryKey)
+                    values[index] = freshValue
+                    freshValue
+                } else value as T
+            }
+        }
+    }
+
+    var isManaged: Boolean = true
+        @JvmSynthetic internal set // cleared **before** real property unmanagement occurs
+
+    @JvmSynthetic internal fun dropManagement() {
+        val vals = values
+        schema.forEachIndexed(fields) { i, field ->
+            when (field) {
+                is FieldDef.Mutable -> (vals[i] as ManagedProperty<*, *, *, *>).dropManagement()
+                is FieldDef.Immutable -> { /* no-op */ }
+            }.also { }
+        }
+    }
+
     override fun toString(): String =
             if (isManaged) super.toString()
             else buildString {
-                append(this@Record.javaClass.simpleName).append(':')
+                append(this@PartialRecord.javaClass.simpleName).append(':')
                         .append(schema.javaClass.simpleName).append("(isManaged=false)")
             }
 

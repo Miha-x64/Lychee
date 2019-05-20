@@ -6,7 +6,6 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
-import net.aquadc.properties.internal.mapIndexedToArray
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -188,6 +187,15 @@ class RelationSchemas {
         expected.zip(actual).forEachIndexed { idx, (ex, ac) ->
             assertEquals("at $idx", ex, ac) // fail separately
         }
+    }
+
+    private inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {
+        val array = arrayOfNulls<R>(size)
+        for (i in indices) {
+            array[i] = transform(i, this[i])
+        }
+        @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
+        return array as Array<R>
     }
 
 }

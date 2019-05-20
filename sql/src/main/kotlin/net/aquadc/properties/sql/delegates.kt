@@ -8,6 +8,8 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
+import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.valuesOf
 import net.aquadc.properties.internal.Unset
@@ -61,9 +63,11 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
             schema.allFieldSet()
         }
 
-        return fieldSet?.let { fields ->
-            Record(session, table, schema, id, lenses as Array<NamedLens<*, Record<*, ID>, *>>)
-            //  ^^^^^^ will be visible outside as (Partial)Struct(?), using Record for laziness; fixme: superfluous ManagedProperty instances
+        return when (fieldSet) {
+            null -> null
+            schema.allFieldSet() -> Record(session, table, schema, id, lenses as Array<NamedLens<*, Record<*, ID>, *>>)
+                                 // ^^^^^^ will be visible outside as (Partial)Struct(?), using Record for laziness; fixme: superfluous ManagedProperty instances
+            else -> PartialRecord(session, table, schema, id, lenses as Array<NamedLens<*, Record<*, ID>, *>>, fieldSet)
         } as T
     }
 
@@ -79,7 +83,7 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
                     .load((previous as PartialStruct<TSCH>).fields, previous.packedValues())
             else -> throw AssertionError()
         }
-        val vals = (update as Struct<TSCH>?)?.valuesOf(columns, path.size)
+        val vals = (update as PartialStruct<TSCH>?)?.valuesOf(columns, path.size)
 
         lowSession.update(table, id, columns, vals)
 
@@ -100,5 +104,9 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
 }
 
 private fun <SCH : Schema<SCH>> PartialStruct<SCH>.packedValues(): Array<Any?> {
-    TODO()
+    val values = arrayOfNulls<Any>(fields.size.toInt())
+    schema.forEachIndexed(fields) { idx, field ->
+        values[idx] = getOrThrow(field)
+    }
+    return values
 }

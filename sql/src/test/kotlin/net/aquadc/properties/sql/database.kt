@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.int
@@ -73,9 +74,19 @@ val TableWithNullableEmbed = object : SimpleTable<WithNullableNested, Long>(With
     )
 }
 
+object WithPartialNested : Schema<WithPartialNested>() {
+    val Nested = "nested" mut partial(SchWithId)
+    val OwnField = "q" let string
+}
+val TableWithPartialEmbed = object : SimpleTable<WithPartialNested, Long>(WithPartialNested, "with_partial_nested", "_id", long) {
+    override fun relations(): Array<Relation<WithPartialNested, Long, *>> = arrayOf(
+            Relation.Embedded(SnakeCase, WithPartialNested.Nested, "nested_fields")
+    )
+}
+
 val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
     val stmt = conn.createStatement()
-    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper, TableWithNullableEmbed).forEach {
+    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper, TableWithNullableEmbed, TableWithPartialEmbed).forEach {
         stmt.execute(SqliteDialect.createTable(it))
     }
     stmt.close()
