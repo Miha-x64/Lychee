@@ -19,7 +19,9 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 
-class EmbedRelationsTest {
+open class EmbedRelationsTest {
+
+    open val session: Session get() = jdbcSession
 
     @Test fun embed() {
         val rec = session.withTransaction {
@@ -267,8 +269,49 @@ class EmbedRelationsTest {
         assertEquals("some real strings here!", rec[WithPartialNested.Nested].getOrThrow(SchWithId.MutValue))
     }
 
-    /*@Test fun `embed nullable partial`() {
-        TODO()
-    }*/
+    @Test fun `embed nullable partial`() {
+        val nest2 = SchWithId.build {
+            it[Id] = 111L
+            it[Value] = "yyy"
+            it[MutValue] = "zzz"
+        }
+
+        val rec = session.withTransaction {
+            insert(TableWithEverything, WithEverything.build {
+                it[Nest1] = WithPartialNested.buildPartial {
+                    it[OwnField] = "whatever"
+                }
+                it[Nest2] = nest2
+            })
+        }
+
+        assertEquals("whatever", rec[WithEverything.Nest1]!!.getOrThrow(WithPartialNested.OwnField))
+        assertEquals(nest2, rec[WithEverything.Nest2])
+
+        val rec2 = session.withTransaction {
+            insert(TableWithEverything, WithEverything.build {
+                it[Nest1] = null
+                it[Nest2] = nest2
+            })
+        }
+        assertEquals(null, rec2[WithEverything.Nest1])
+        assertEquals(nest2, rec2[WithEverything.Nest2])
+
+
+        val rec3 = session.withTransaction {
+            insert(TableWithEverything, WithEverything.build {
+                it[Nest1] = WithPartialNested.buildPartial {
+                    it[Nested] = SchWithId.buildPartial {  }
+                    it[OwnField] = ""
+                }
+                it[Nest2] = nest2
+            })
+        }
+        assertEquals(WithPartialNested.build {
+            it[Nested] = SchWithId.buildPartial {  }
+            it[OwnField] = ""
+        }, rec3[WithEverything.Nest1])
+        assertEquals(nest2, rec2[WithEverything.Nest2])
+    }
 
 }

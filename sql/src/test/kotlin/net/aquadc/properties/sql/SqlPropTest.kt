@@ -8,14 +8,19 @@ import net.aquadc.properties.testing.assertReturnsGarbage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import org.junit.Test
 import java.sql.SQLException
 
 
-class SqlPropTest {
+open class SqlPropTest {
+
+    open val session: Session get() = jdbcSession
+
+    private val someDao get() = session[SomeTable]
 
     @Test fun record() = assertReturnsGarbage {
-        val rec = createTestRecord()
+        val rec = session.createTestRecord()
         assertEquals("first", rec[SomeSchema.A])
         assertEquals(2, rec[SomeSchema.B])
         assertEquals(3, rec[SomeSchema.C])
@@ -51,10 +56,10 @@ class SqlPropTest {
     }
 
     @Test fun count() = assertReturnsGarbage {
-        val cnt = SomeDao.count()
-        assertSame(cnt, SomeDao.count())
+        val cnt = someDao.count()
+        assertSame(cnt, someDao.count())
         assertEquals(0L, cnt.value)
-        val rec = createTestRecord()
+        val rec = session.createTestRecord()
         assertEquals(1L, cnt.value)
         session.withTransaction { delete(rec) }
         assertEquals(0L, cnt.value)
@@ -62,10 +67,10 @@ class SqlPropTest {
     }
 
     @Test fun select() = assertReturnsGarbage {
-        val sel = SomeDao.selectAll()
-        assertSame(sel, SomeDao.selectAll())
+        val sel = someDao.selectAll()
+        assertSame(sel, someDao.selectAll())
         assertEquals(emptyList<Nothing>(), sel.value)
-        val rec = createTestRecord()
+        val rec = session.createTestRecord()
         assertEquals(listOf(rec), sel.value)
         session.withTransaction { delete(rec) }
         assertEquals(emptyList<Nothing>(), sel.value)
@@ -73,17 +78,17 @@ class SqlPropTest {
     }
 
     @Test fun selectConditionally() = assertReturnsGarbage {
-        val rec = createTestRecord()
-        val sel = SomeDao.select(SomeSchema.A eq "first", SomeSchema.A.asc)
-        assertSame(sel, SomeDao.select(SomeSchema.A eq "first", SomeSchema.A.asc))
+        val rec = session.createTestRecord()
+        val sel = someDao.select(SomeSchema.A eq "first", SomeSchema.A.asc)
+        assertSame(sel, someDao.select(SomeSchema.A eq "first", SomeSchema.A.asc))
         session.withTransaction { delete(rec) }
         sel
     }
 
     @Test fun selectNone() = assertReturnsGarbage {
-        val rec = createTestRecord()
-        val sel = SomeDao.select(SomeSchema.A notEq "first")
-        assertSame(sel, SomeDao.select(SomeSchema.A notEq "first"))
+        val rec = session.createTestRecord()
+        val sel = someDao.select(SomeSchema.A notEq "first")
+        assertSame(sel, someDao.select(SomeSchema.A notEq "first"))
         assertEquals(emptyList<Nothing>(), sel.value)
         session.withTransaction { delete(rec) }
         sel
@@ -91,7 +96,7 @@ class SqlPropTest {
 
 
     @Test fun transactionalWrapper() {
-        val originalRec = createTestRecord()
+        val originalRec = session.createTestRecord()
         val rec = originalRec.transactional()
 
         assertEquals("first", rec[SomeSchema.A])
@@ -143,42 +148,51 @@ class SqlPropTest {
         assertEquals("zzz", rec[SchWithId.Value])
     }
 
-    @Test(expected = SQLException::class)
+    open val duplicatePkExceptionClass: Class<*> = SQLException::class.java
+
     fun `can't insert twice with the same PK in one transaction`() {
-        session.withTransaction {
-            insert(TableWithId, SchWithId.build {
-                it[Id] = 44
-                it[Value] = "yyy"
-            })
-            insert(TableWithId, SchWithId.build {
-                it[Id] = 44
-                it[Value] = "zzz"
-            })
+        try {
+            session.withTransaction {
+                insert(TableWithId, SchWithId.build {
+                    it[Id] = 44
+                    it[Value] = "yyy"
+                })
+                insert(TableWithId, SchWithId.build {
+                    it[Id] = 44
+                    it[Value] = "zzz"
+                })
+            }
+        } catch (e: Exception) {
+            if (!duplicatePkExceptionClass.isInstance(e)) {
+                fail()
+            }
         }
     }
 
-    @Test(expected = SQLException::class)
     fun `can't insert twice with the same PK in different transactions`() {
-        session.withTransaction {
-            insert(TableWithId, SchWithId.build {
-                it[Id] = 44
-                it[Value] = "yyy"
-            })
-        }
-        session.withTransaction {
-            insert(TableWithId, SchWithId.build {
-                it[Id] = 44
-                it[Value] = "zzz"
-            })
+        try {
+            session.withTransaction {
+                insert(TableWithId, SchWithId.build {
+                    it[Id] = 44
+                    it[Value] = "yyy"
+                })
+            }
+            session.withTransaction {
+                insert(TableWithId, SchWithId.build {
+                    it[Id] = 44
+                    it[Value] = "zzz"
+                })
+            }
+        } catch (e: Exception) {
+            if (!duplicatePkExceptionClass.isInstance(e)) {
+                fail()
+            }
         }
     }
 
     @Test fun `poisoned statement evicted`() {
-        try {
-            `can't insert twice with the same PK in one transaction`()
-        } catch (ignored: SQLException) {
-            // the statement is poisoned
-        }
+        `can't insert twice with the same PK in one transaction`()
+        // now the statement may be poisoned
 
         session.withTransaction {
             insert(TableWithId, SchWithId.build {

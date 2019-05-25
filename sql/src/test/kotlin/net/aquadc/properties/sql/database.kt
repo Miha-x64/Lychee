@@ -84,18 +84,32 @@ val TableWithPartialEmbed = object : SimpleTable<WithPartialNested, Long>(WithPa
     )
 }
 
-val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
-    val stmt = conn.createStatement()
-    arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper, TableWithNullableEmbed, TableWithPartialEmbed).forEach {
-        stmt.execute(SqliteDialect.createTable(it))
-    }
-    stmt.close()
-}, SqliteDialect)
+object WithEverything : Schema<WithEverything>() {
+    val Nest1 = "nest1" let nullable(partial(WithPartialNested))
+    val Nest2 = "nest2" mut SchWithId
+}
+val TableWithEverything = object : SimpleTable<WithEverything, Long>(WithEverything, "with_everything", "_id", long) {
+    override fun relations(): Array<out Relation<WithEverything, Long, *>> = arrayOf(
+            Relation.Embedded(SnakeCase, WithEverything.Nest1, "fields"),
+            Relation.Embedded(SnakeCase, WithEverything.Nest1 / WithPartialNested.Nested, "fields"),
+            Relation.Embedded(SnakeCase, WithEverything.Nest2)
+    )
+}
 
-val SomeDao = session[SomeTable]
+val Tables = arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper, TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything)
 
-fun createTestRecord() =
-        session.withTransaction {
+val jdbcSession by lazy { // init only when requested, unused in Rololectric tests
+    JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
+        val stmt = conn.createStatement()
+        Tables.forEach {
+            stmt.execute(SqliteDialect.createTable(it))
+        }
+        stmt.close()
+    }, SqliteDialect)
+}
+
+fun Session.createTestRecord() =
+        withTransaction {
             insert(SomeTable, SomeSchema.build {
                 it[A] = "first"
                 it[B] = 2

@@ -6,6 +6,11 @@ repositories {
     mavenCentral()
 }
 
+// expose tests for android-bindings which use the same test classes with SQLiteDatabase
+configurations { testOutput }
+task testJar(type:Jar) { from sourceSets.main.output + sourceSets.test.output }
+artifacts { testOutput testJar }
+
 dependencies {
     compileOnly "com.google.android:android:$android_artifact_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
