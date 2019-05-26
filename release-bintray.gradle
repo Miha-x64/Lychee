@@ -12,8 +12,8 @@ ext {
 
   libraryDescription = POM_DESCRIPTION
 
-  siteUrl = 'http://github.com/Miha-x64/reactive-properties/'
-  gitUrl = 'http://github.com/Miha-x64/reactive-properties.git'
+  siteUrl = 'http://github.com/Miha-x64/Lychee/'
+  gitUrl = 'http://github.com/Miha-x64/Lychee.git'
 
   libraryVersion = POM_VERSION
 
@@ -22,7 +22,7 @@ ext {
   developerEmail = 'silizium@ok.de'
 
   licenseName = 'Apache-2.0'
-  licenseUrl = 'https://github.com/Miha-x64/reactive-properties/blob/master/LICENSE'
+  licenseUrl = 'https://github.com/Miha-x64/Lychee/blob/master/LICENSE'
   allLicenses = ['Apache-2.0']
 }
 
