@@ -1,7 +1,6 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.array
-import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
@@ -148,11 +147,14 @@ class JdbcSession(
                     .getOrSet(::HashMap)
                     .getOrPut(query) { connection.prepareStatement(query) }
                     .also { stmt ->
-                        val argNames = ArrayList<String>()
-                        val argValues = ArrayList<Any>()
-                        condition.appendValuesTo(table, argNames, argValues)
-                        forEachOfBoth(argNames, argValues) { idx, name, value ->
-                            table.columnsByName[name]!!.type.erased.bind(stmt, idx, value)
+                        val size = condition.size
+                        if (size > 0) {
+                            val argNames = arrayOfNulls<String>(size)
+                            val argValues = arrayOfNulls<Any>(size)
+                            condition.setValuesTo(table, 0, argNames, argValues)
+                            forEachOfBoth(argNames, argValues) { idx, name, value ->
+                                table.columnsByName[name]!!.type.erased.bind(stmt, idx, value)
+                            }
                         }
                     }
                     .executeQuery()

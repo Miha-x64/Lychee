@@ -19,15 +19,20 @@ import java.lang.Math.min
 interface WhereCondition<SCH : Schema<SCH>> {
 
     /**
+     * Number of columns and values to substitute
+     */
+    val size: Int
+
+    /**
      * Appends corresponding part of SQL query to [builder] using [dialect].
      */
     fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder
 
     /**
-     * Appends contained colName-value-pairs to the given [colNames] and [colValues] lists.
-     * [colValues] has non-nullable type because you can't treat ` = ?` as `IS NULL`.
+     * Appends contained colName-value-pairs to the given [outColNames] and [outColValues] lists.
+     * [outColValues] has non-nullable type because you can't treat ` = ?` as `IS NULL`.
      */
-    fun appendValuesTo(context: Table<SCH, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>)
+    fun setValuesTo(context: Table<SCH, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>)
 
     @Deprecated("replaced with a function", ReplaceWith("emptyCondition()"), DeprecationLevel.ERROR)
     object Empty
@@ -42,8 +47,9 @@ inline fun <SCH : Schema<SCH>> emptyCondition(): WhereCondition<SCH> =
         EmptyCondition as WhereCondition<SCH>
 
 @PublishedApi internal object EmptyCondition : WhereCondition<Nothing> {
+    override val size: Int get() = 0
     override fun appendSqlTo(context: Table<Nothing, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-    override fun appendValuesTo(context: Table<Nothing, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>) {}
+    override fun setValuesTo(context: Table<Nothing, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>) {}
 }
 
 
@@ -69,18 +75,22 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
         this.valueOrValues = values
     }
 
+    override val size: Int
+        get() = if (singleValue) 1 else (valueOrValues as Array<*>).size
+
     override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
             with(dialect) { builder.appendName(context.columnByLens(lens)!!.name) }.append(op)
 
-    override fun appendValuesTo(context: Table<SCH, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>) {
+    override fun setValuesTo(context: Table<SCH, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>) {
         val colName = context.columnByLens(lens)!!.name
         if (singleValue) {
-            colNames.add(colName)
-            colValues.add(valueOrValues)
+            outColNames[offset] = colName
+            outColValues[offset] = valueOrValues
         } else {
-            (valueOrValues as Array<out Any>).forEach { value ->
-                colNames.add(colName)
-                colValues.add(value)
+            (valueOrValues as Array<out Any>).forEachIndexed { i, value ->
+                val idx = offset + i
+                outColNames[idx] = colName
+                outColValues[idx] = value
             }
         }
     }
@@ -175,6 +185,9 @@ internal class BiCond<SCH : Schema<SCH>>(
         private val right: WhereCondition<SCH>
 ) : WhereCondition<SCH> {
 
+    override val size: Int
+        get() = left.size + right.size
+
     override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder {
         builder.append('(')
         left.appendSqlTo(context, dialect, builder)
@@ -183,9 +196,9 @@ internal class BiCond<SCH : Schema<SCH>>(
                 .append(')')
     }
 
-    override fun appendValuesTo(context: Table<SCH, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>) {
-        left.appendValuesTo(context, colNames, colValues)
-        right.appendValuesTo(context, colNames, colValues)
+    override fun setValuesTo(context: Table<SCH, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>) {
+        left.setValuesTo(context, offset, outColNames, outColValues)
+        right.setValuesTo(context, offset + left.size, outColNames, outColValues)
     }
 
     override fun hashCode(): Int {

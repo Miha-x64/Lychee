@@ -120,10 +120,6 @@ class SqliteSession(
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<out SCH>>
         ): Cursor {
-            val argNames = ArrayList<String>()
-            val argValues = ArrayList<Any>()
-            condition.appendValuesTo(table, argNames, argValues)
-
             val sql = with(SqliteDialect) {
                 SQLiteQueryBuilder.buildQueryString( // fixme: building SQL myself may save some allocations
                         /*distinct=*/false,
@@ -140,9 +136,16 @@ class SqliteSession(
             // a workaround for binding BLOBS, as suggested in https://stackoverflow.com/a/23159664/3050249
             return connection.rawQueryWithFactory(
                     { db, masterQuery, editTable, query ->
-                        forEachOfBoth(argNames, argValues) { idx, name, value ->
-                            table.columnsByName[name]!!.type.erased.bind(query, idx, value)
+                        val size = condition.size
+                        if (size > 0) {
+                            val argNames = arrayOfNulls<String>(size)
+                            val argValues = arrayOfNulls<Any>(size)
+                            condition.setValuesTo(table, 0, argNames, argValues)
+                            forEachOfBoth(argNames, argValues) { idx, name, value ->
+                                table.columnsByName[name]!!.type.erased.bind(query, idx, value)
+                            }
                         }
+
                         SQLiteCursor(masterQuery, editTable, query)
                     },
                     sql,

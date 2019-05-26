@@ -53,7 +53,7 @@ internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, sim
             is DataType.Partial<*, *> -> func(false, serialized(this))
         }
 
-internal inline fun <T, U> forEachOfBoth(left: List<T>, right: List<U>, block: (Int, T, U) -> Unit) {
+internal inline fun <T, U> forEachOfBoth(left: Array<T>, right: Array<U>, block: (Int, T, U) -> Unit) {
     val size = left.size
     check(right.size == size)
     for (i in 0 until size) {
