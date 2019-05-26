@@ -29,10 +29,10 @@ interface WhereCondition<SCH : Schema<SCH>> {
     fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder
 
     /**
-     * Appends contained colName-value-pairs to the given [outColNames] and [outColValues] lists.
+     * Appends contained colName-value-pairs to the given [outCols] and [outColValues] lists.
      * [outColValues] has non-nullable type because you can't treat ` = ?` as `IS NULL`.
      */
-    fun setValuesTo(context: Table<SCH, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>)
+    fun setValuesTo(offset: Int, outCols: Array<in Lens<SCH, Record<SCH, *>, *>>, outColValues: Array<in Any>)
 
     @Deprecated("replaced with a function", ReplaceWith("emptyCondition()"), DeprecationLevel.ERROR)
     object Empty
@@ -49,7 +49,7 @@ inline fun <SCH : Schema<SCH>> emptyCondition(): WhereCondition<SCH> =
 @PublishedApi internal object EmptyCondition : WhereCondition<Nothing> {
     override val size: Int get() = 0
     override fun appendSqlTo(context: Table<Nothing, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-    override fun setValuesTo(context: Table<Nothing, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>) {}
+    override fun setValuesTo(offset: Int, outCols: Array<in Lens<Nothing, Record<Nothing, *>, *>>, outColValues: Array<in Any>) {}
 }
 
 
@@ -81,15 +81,14 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
             with(dialect) { builder.appendName(context.columnByLens(lens)!!.name) }.append(op)
 
-    override fun setValuesTo(context: Table<SCH, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>) {
-        val colName = context.columnByLens(lens)!!.name
+    override fun setValuesTo(offset: Int, outCols: Array<in Lens<SCH, Record<SCH, *>, *>>, outColValues: Array<in Any>) {
         if (singleValue) {
-            outColNames[offset] = colName
+            outCols[offset] = lens
             outColValues[offset] = valueOrValues
         } else {
             (valueOrValues as Array<out Any>).forEachIndexed { i, value ->
                 val idx = offset + i
-                outColNames[idx] = colName
+                outCols[idx] = lens
                 outColValues[idx] = value
             }
         }
@@ -196,9 +195,9 @@ internal class BiCond<SCH : Schema<SCH>>(
                 .append(')')
     }
 
-    override fun setValuesTo(context: Table<SCH, *, *>, offset: Int, outColNames: Array<in String>, outColValues: Array<in Any>) {
-        left.setValuesTo(context, offset, outColNames, outColValues)
-        right.setValuesTo(context, offset + left.size, outColNames, outColValues)
+    override fun setValuesTo(offset: Int, outCols: Array<in Lens<SCH, Record<SCH, *>, *>>, outColValues: Array<in Any>) {
+        left.setValuesTo(offset, outCols, outColValues)
+        right.setValuesTo(offset + left.size, outCols, outColValues)
     }
 
     override fun hashCode(): Int {

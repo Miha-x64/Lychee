@@ -46,11 +46,9 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val dao = getDao(table)
             val statement = dao.insertStatement ?: connection.compileStatement(SqliteDialect.insert(table)).also { dao.insertStatement = it }
-            val offset = if (table.pkField === null) 1 else 0
-            val cols = table.columns
-            for (i in 0 until cols.size - offset) {
-                val field = cols[i + offset].erased
-                field.type.bind(statement, i, field(data))
+
+            bindInsertionParams(table, data) { type, idx, value ->
+                type.bind(statement, idx, value)
             }
             val id = statement.executeInsert()
             check(id != -1L)
@@ -69,18 +67,9 @@ class SqliteSession(
 
         override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
             val statement = updateStatementWLocked(table, columns)
-            val colCount = if (columns is Array<*>) {
-                columns as Array<NamedLens<SCH, Struct<SCH>, *>>
-                values as Array<*>?
-                columns.forEachIndexed { i, col ->
-                    col.type.erased.bind(statement, i, values?.get(i))
-                }
-                columns.size
-            } else {
-                (columns as NamedLens<SCH, Struct<SCH>, *>).type.erased.bind(statement, 0, values)
-                1
+            bindUpdateParams(table, id, columns, values) { type, idx, value ->
+                type.bind(statement, idx, value)
             }
-            table.idColType.bind(statement, colCount, id)
             check(statement.executeUpdateDelete() == 1)
         }
 
@@ -135,15 +124,9 @@ class SqliteSession(
 
             // a workaround for binding BLOBS, as suggested in https://stackoverflow.com/a/23159664/3050249
             return connection.rawQueryWithFactory(
-                    { db, masterQuery, editTable, query ->
-                        val size = condition.size
-                        if (size > 0) {
-                            val argNames = arrayOfNulls<String>(size)
-                            val argValues = arrayOfNulls<Any>(size)
-                            condition.setValuesTo(table, 0, argNames, argValues)
-                            forEachOfBoth(argNames, argValues) { idx, name, value ->
-                                table.columnsByName[name]!!.type.erased.bind(query, idx, value)
-                            }
+                    { _, masterQuery, editTable, query ->
+                        bindQueryParams(condition, table) { type, idx, value ->
+                            type.bind(query, idx, value)
                         }
 
                         SQLiteCursor(masterQuery, editTable, query)

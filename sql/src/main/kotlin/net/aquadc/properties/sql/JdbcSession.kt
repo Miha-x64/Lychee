@@ -52,11 +52,8 @@ class JdbcSession(
             val dao = getDao(table)
             val statement = dao.insertStatement ?: connection.prepareStatement(dialect.insert(table), Statement.RETURN_GENERATED_KEYS).also { dao.insertStatement = it }
 
-            val offset = if (table.pkField === null) 1 else 0
-            val cols = table.columns
-            for (i in 0 until cols.size - offset) {
-                val col = cols[i + offset].erased
-                col.type.bind(statement, i, col(data))
+            bindInsertionParams(table, data) { type, idx, value ->
+                type.bind(statement, idx, value)
             }
             try {
                 check(statement.executeUpdate() == 1)
@@ -81,18 +78,9 @@ class JdbcSession(
 
         override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
             val statement = updateStatementWLocked(table, columns)
-            val colCount = if (columns is Array<*>) {
-                columns as Array<NamedLens<SCH, Struct<SCH>, *>>
-                values as Array<*>?
-                columns.forEachIndexed { i, col ->
-                    col.type.erased.bind(statement, i, values?.get(i))
-                }
-                columns.size
-            } else {
-                (columns as NamedLens<SCH, Struct<SCH>, *>).type.erased.bind(statement, 0, values)
-                1
+            bindUpdateParams(table, id, columns, values) { type, idx, value ->
+                type.bind(statement, idx, value)
             }
-            table.idColType.bind(statement, colCount, id)
             check(statement.executeUpdate() == 1)
         }
 
@@ -147,14 +135,8 @@ class JdbcSession(
                     .getOrSet(::HashMap)
                     .getOrPut(query) { connection.prepareStatement(query) }
                     .also { stmt ->
-                        val size = condition.size
-                        if (size > 0) {
-                            val argNames = arrayOfNulls<String>(size)
-                            val argValues = arrayOfNulls<Any>(size)
-                            condition.setValuesTo(table, 0, argNames, argValues)
-                            forEachOfBoth(argNames, argValues) { idx, name, value ->
-                                table.columnsByName[name]!!.type.erased.bind(stmt, idx, value)
-                            }
+                        bindQueryParams(condition, table) { type, idx, value ->
+                            type.bind(stmt, idx, value)
                         }
                     }
                     .executeQuery()
