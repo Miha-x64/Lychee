@@ -4,6 +4,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 
 
 /**
@@ -144,6 +145,34 @@ sealed class DataType<T> {
          */
         abstract fun store(value: T): PartialStruct<SCH>
 
+    }
+
+    // note: these functions ignore the
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is DataType<*> || javaClass !== other.javaClass) return false
+        // class identity equality   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ guarantees the same behaviour
+
+        return when (this) {
+            is Nullable<*> -> other is Nullable<*> && actualType == other.actualType
+            is Simple -> other is Simple<*> && kind === other.kind
+            is Collect<*, *> -> other is Collect<*, *> && elementType == other.elementType
+            is Partial<*, *> -> other is Partial<*, *> && schema == other.schema && (this is Struct<*> == other is Struct<*>)
+        }
+    }
+
+    override fun hashCode(): Int = when (this) {
+        is Nullable<*> -> 13 * actualType.hashCode()
+        is Simple -> 31 * kind.hashCode()
+        is Collect<*, *> -> 63 * elementType.hashCode()
+        is Partial<*, *> -> (if (this is Struct<*>) 1 else 127) * schema.hashCode()
+    }
+
+    override fun toString(): String = when (this) {
+        is Nullable<*> -> "nullable($actualType)"
+        is Simple -> kind.toString()
+        is Collect<*, *> -> "collection($elementType)"
+        is Partial<*, *> -> "partial($schema)" // overridden in Schema itself
     }
 
 
