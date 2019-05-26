@@ -20,7 +20,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
      */
     @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
-    private var mutableCount: Byte = 0
+    @JvmField @JvmSynthetic internal var mutableCount: Byte = 0
 
     /**
      * A list of fields of this struct.

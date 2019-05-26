@@ -12,7 +12,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
 
 
 @PublishedApi internal class RecordTransactionalAdapter<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
-        private val record: REC
+        @JvmField @JvmSynthetic internal val record: REC
 ) : BaseStruct<SCH>(record.schema), TransactionalPropertyStruct<SCH> {
 
     override fun <T> get(field: FieldDef<SCH, T>): T =

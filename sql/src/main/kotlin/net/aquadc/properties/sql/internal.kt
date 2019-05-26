@@ -29,7 +29,7 @@ internal interface LowLevelSession<STMT> {
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
             table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
-    ): Array<ID>
+    ): Array<ID> // TODO: should return primitive arrays, too
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
             table: Table<SCH, ID, *>, condition: WhereCondition<SCH>

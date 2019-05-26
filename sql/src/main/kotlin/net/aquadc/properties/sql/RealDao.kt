@@ -223,23 +223,3 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
             Unset as T
 
 }
-
-private inline fun <K, V : Any> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V): V =
-        getOrPutWeak(key, create) { _, v -> v }
-
-@UseExperimental(ExperimentalContracts::class)
-private inline fun <K, V : Any, R> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V, success: (WeakReference<V>, V) -> R): R {
-    contract {
-        callsInPlace(success, InvocationKind.EXACTLY_ONCE)
-    }
-
-    while (true) {
-        val ref = getOrPut(key) {
-            // putIfAbsent here may return either newly created or concurrently inserted value
-            WeakReference(create())
-        }
-        val value = ref.get()
-        if (value === null) remove(key, ref)
-        else return success(ref, value)
-    }
-}

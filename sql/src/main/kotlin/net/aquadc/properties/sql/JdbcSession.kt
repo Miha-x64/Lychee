@@ -22,15 +22,15 @@ import kotlin.concurrent.getOrSet
  * Represents a database connection through JDBC.
  */
 class JdbcSession(
-        private val connection: Connection,
-        private val dialect: Dialect
+        @JvmField @JvmSynthetic internal val connection: Connection,
+        @JvmField @JvmSynthetic internal val dialect: Dialect
 ) : Session {
 
     init {
         connection.autoCommit = false
     }
 
-    private val lock = ReentrantReadWriteLock()
+    @JvmField @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
     @Suppress("UNCHECKED_CAST")
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(
@@ -38,13 +38,13 @@ class JdbcSession(
     ): Dao<SCH, ID, REC> =
             getDao(table) as Dao<SCH, ID, REC>
 
-    private fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, PreparedStatement> =
+    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, PreparedStatement> =
             lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table as Table<SCH, ID, Record<SCH, ID>>, dialect) } as RealDao<SCH, ID, *, PreparedStatement>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
-    private var transaction: RealTransaction? = null
+    @JvmField @JvmSynthetic internal var transaction: RealTransaction? = null
 
     private val lowLevel: LowLevelSession<PreparedStatement> = object : LowLevelSession<PreparedStatement> {
 
@@ -185,6 +185,62 @@ class JdbcSession(
             return condition
         }
 
+        private fun <T> ResultSet.fetchSingle(type: DataType<T>): T {
+            try {
+                check(next())
+                return type.get(this, 0)
+            } finally {
+                close()
+            }
+        }
+
+        private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
+            val i = 1 + index
+            flattened { isNullable, simple ->
+                if (value == null) {
+                    check(isNullable)
+                    statement.setNull(i, Types.NULL)
+                } else {
+                    val v = simple.store(value)
+                    when (simple.kind) {
+                        DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
+                        DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
+                        DataType.Simple.Kind.I16 -> statement.setShort(i, v as Short)
+                        DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
+                        DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
+                        DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
+                        DataType.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
+                        DataType.Simple.Kind.Str -> statement.setString(i, v as String)
+                        // not sure whether setBlob should be used:
+                        DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
+                    }.also { }
+                }
+            }
+        }
+
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
+            val i = 1 + index
+
+            return flattened { isNullable, simple ->
+                val v = when (simple.kind) {
+                    DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
+                    DataType.Simple.Kind.I8 -> resultSet.getByte(i)
+                    DataType.Simple.Kind.I16 -> resultSet.getShort(i)
+                    DataType.Simple.Kind.I32 -> resultSet.getInt(i)
+                    DataType.Simple.Kind.I64 -> resultSet.getLong(i)
+                    DataType.Simple.Kind.F32 -> resultSet.getFloat(i)
+                    DataType.Simple.Kind.F64 -> resultSet.getDouble(i)
+                    DataType.Simple.Kind.Str -> resultSet.getString(i)
+                    DataType.Simple.Kind.Blob -> resultSet.getBytes(i)
+                }
+
+                // must check, will get zeroes otherwise
+                if (resultSet.wasNull()) check(isNullable).let { null as T }
+                else simple.load(v)
+            }
+        }
+
     }
 
 
@@ -221,62 +277,6 @@ class JdbcSession(
             ).forEach { (text, stmts) ->
                 sb.append("  ").append(text).append(": ").append(stmts)
             }
-        }
-    }
-
-    private fun <T> ResultSet.fetchSingle(type: DataType<T>): T {
-        try {
-            check(next())
-            return type.get(this, 0)
-        } finally {
-            close()
-        }
-    }
-
-    private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
-        val i = 1 + index
-        flattened { isNullable, simple ->
-            if (value == null) {
-                check(isNullable)
-                statement.setNull(i, Types.NULL)
-            } else {
-                val v = simple.store(value)
-                when (simple.kind) {
-                    DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
-                    DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
-                    DataType.Simple.Kind.I16 -> statement.setShort(i, v as Short)
-                    DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
-                    DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
-                    DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
-                    DataType.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
-                    DataType.Simple.Kind.Str -> statement.setString(i, v as String)
-                    // not sure whether setBlob should be used:
-                    DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
-                }.also { }
-            }
-        }
-    }
-
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
-        val i = 1 + index
-
-        return flattened { isNullable, simple ->
-            val v = when (simple.kind) {
-                DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
-                DataType.Simple.Kind.I8 -> resultSet.getByte(i)
-                DataType.Simple.Kind.I16 -> resultSet.getShort(i)
-                DataType.Simple.Kind.I32 -> resultSet.getInt(i)
-                DataType.Simple.Kind.I64 -> resultSet.getLong(i)
-                DataType.Simple.Kind.F32 -> resultSet.getFloat(i)
-                DataType.Simple.Kind.F64 -> resultSet.getDouble(i)
-                DataType.Simple.Kind.Str -> resultSet.getString(i)
-                DataType.Simple.Kind.Blob -> resultSet.getBytes(i)
-            }
-
-            // must check, will get zeroes otherwise
-            if (resultSet.wasNull()) check(isNullable).let { null as T }
-            else simple.load(v)
         }
     }
 

@@ -15,6 +15,7 @@ import net.aquadc.properties.sql.PkLens
 import net.aquadc.properties.sql.Table
 import net.aquadc.properties.sql.WhereCondition
 import net.aquadc.properties.sql.dialect.Dialect
+import net.aquadc.properties.sql.dialect.appendHex
 import net.aquadc.properties.sql.dialect.appendPlaceholders
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -154,16 +155,6 @@ object SqliteDialect : Dialect {
                 error("unsupported²")
             }
         }.match(col.type, this, col.default)
-    }
-
-    private val hexChars = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
-    private fun StringBuilder.appendHex(bytes: ByteArray): StringBuilder {
-        for (b in bytes) {
-            val v = b.toInt() and 0xFF
-            append(hexChars[v ushr 4])
-            append(hexChars[v and 0x0F])
-        }
-        return this
     }
 
     private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {

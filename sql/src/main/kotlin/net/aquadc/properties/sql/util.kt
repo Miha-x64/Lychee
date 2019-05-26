@@ -9,6 +9,11 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.serialized
+import java.lang.ref.WeakReference
+import java.util.concurrent.ConcurrentMap
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 
 internal typealias UpdatesMap = MutableMap<
@@ -102,3 +107,24 @@ internal inline fun <SCH : Schema<SCH>, ID : IdBound> bindUpdateParams(
     }
     bind(table.idColType as DataType<Any?>, colCount, id)
 }
+
+internal inline fun <K, V : Any> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V): V =
+        getOrPutWeak(key, create) { _, v -> v }
+
+@UseExperimental(ExperimentalContracts::class)
+internal inline fun <K, V : Any, R> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V, success: (WeakReference<V>, V) -> R): R {
+    contract {
+        callsInPlace(success, InvocationKind.EXACTLY_ONCE)
+    }
+
+    while (true) {
+        val ref = getOrPut(key) {
+            // putIfAbsent here may return either newly created or concurrently inserted value
+            WeakReference(create())
+        }
+        val value = ref.get()
+        if (value === null) remove(key, ref)
+        else return success(ref, value)
+    }
+}
+

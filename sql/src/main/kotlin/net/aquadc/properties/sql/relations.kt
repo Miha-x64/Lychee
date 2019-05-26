@@ -135,7 +135,7 @@ class JoinTable(
 
 }
 
-private fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
+internal fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
         path: Lens<S, Record<S, ID>, *>, foreignTable: Table<FS, *, FR>) {
     val type = path.type
     check(type is DataType.Collect<*, *>) {
@@ -150,7 +150,7 @@ private fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>> c
     }
 }
 
-private fun <S : Schema<S>, ID : IdBound, F : Schema<F>, R : Record<F, *>> checkToOne(path: Lens<S, Record<S, ID>, *>, foreignTable: Table<F, *, R>) {
+internal fun <S : Schema<S>, ID : IdBound, F : Schema<F>, R : Record<F, *>> checkToOne(path: Lens<S, Record<S, ID>, *>, foreignTable: Table<F, *, R>) {
     val type = path.type
     val realType = if (type is DataType.Nullable<*>) type.actualType else type
     check(realType is Schema<*>) {

@@ -24,22 +24,22 @@ import kotlin.concurrent.getOrSet
  */
 // TODO: use simpleQueryForLong and simpleQueryForString with compiled statements where possible
 class SqliteSession(
-        private val connection: SQLiteDatabase
+        @JvmSynthetic @JvmField internal val connection: SQLiteDatabase
 ) : Session {
 
-    private val lock = ReentrantReadWriteLock()
+    @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
     @Suppress("UNCHECKED_CAST")
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(table: Table<SCH, ID, REC>): Dao<SCH, ID, REC> =
             getDao(table) as Dao<SCH, ID, REC>
 
-    private fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, SQLiteStatement> =
+    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, SQLiteStatement> =
             lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table as Table<SCH, ID, Record<SCH, ID>>, SqliteDialect) } as RealDao<SCH, ID, *, SQLiteStatement>
 
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
-    private var transaction: RealTransaction? = null
+    @JvmSynthetic @JvmField internal var transaction: RealTransaction? = null
 
     private val lowLevel = object : LowLevelSession<SQLiteStatement> {
 
@@ -185,6 +185,62 @@ class SqliteSession(
             return condition
         }
 
+        private fun <T> Cursor.fetchSingle(type: DataType<T>): T {
+            try {
+                check(moveToFirst())
+                return type.get(this, 0)
+            } finally {
+                close()
+            }
+        }
+
+        internal fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
+            val i = 1 + index
+            flattened { isNullable, simple ->
+                if (value == null) {
+                    check(isNullable)
+                    statement.bindNull(i)
+                } else {
+                    val v = simple.store(value)
+                    when (simple.kind) {
+                        DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
+                        DataType.Simple.Kind.I8,
+                        DataType.Simple.Kind.I16,
+                        DataType.Simple.Kind.I32,
+                        DataType.Simple.Kind.I64 -> statement.bindLong(i, (v as Number).toLong())
+                        DataType.Simple.Kind.F32,
+                        DataType.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
+                        DataType.Simple.Kind.Str -> statement.bindString(i, v as String)
+                        DataType.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
+                    }.also { }
+                }
+            }
+        }
+
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = flattened { isNullable, simple ->
+            if (cursor.isNull(index))
+                check(isNullable).let { null as T }
+            else simple.load(when (simple.kind) {
+                DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
+                DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
+                DataType.Simple.Kind.I16 -> cursor.getShort(index)
+                DataType.Simple.Kind.I32 -> cursor.getInt(index)
+                DataType.Simple.Kind.I64 -> cursor.getLong(index)
+                DataType.Simple.Kind.F32 -> cursor.getFloat(index)
+                DataType.Simple.Kind.F64 -> cursor.getDouble(index)
+                DataType.Simple.Kind.Str -> cursor.getString(index)
+                DataType.Simple.Kind.Blob -> cursor.getBlob(index)
+            })
+        }
+
+        private fun Short.assertFitsByte(): Byte {
+            require(this in Byte.MIN_VALUE..Byte.MAX_VALUE) {
+                "value $this cannot be fit into ${Byte::class.java.simpleName}"
+            }
+            return toByte()
+        }
+
     }
 
 
@@ -223,62 +279,6 @@ class SqliteSession(
                 sb.append("  ").append(text).append(": ").append(stmts)
             }
         }
-    }
-
-    private fun <T> Cursor.fetchSingle(type: DataType<T>): T {
-        try {
-            check(moveToFirst())
-            return type.get(this, 0)
-        } finally {
-            close()
-        }
-    }
-
-    private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
-        val i = 1 + index
-        flattened { isNullable, simple ->
-            if (value == null) {
-                check(isNullable)
-                statement.bindNull(i)
-            } else {
-                val v = simple.store(value)
-                when (simple.kind) {
-                    DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
-                    DataType.Simple.Kind.I8,
-                    DataType.Simple.Kind.I16,
-                    DataType.Simple.Kind.I32,
-                    DataType.Simple.Kind.I64 -> statement.bindLong(i, (v as Number).toLong())
-                    DataType.Simple.Kind.F32,
-                    DataType.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
-                    DataType.Simple.Kind.Str -> statement.bindString(i, v as String)
-                    DataType.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
-                }.also { }
-            }
-        }
-    }
-
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = flattened { isNullable, simple ->
-        if (cursor.isNull(index))
-            check(isNullable).let { null as T }
-        else simple.load(when (simple.kind) {
-            DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
-            DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
-            DataType.Simple.Kind.I16 -> cursor.getShort(index)
-            DataType.Simple.Kind.I32 -> cursor.getInt(index)
-            DataType.Simple.Kind.I64 -> cursor.getLong(index)
-            DataType.Simple.Kind.F32 -> cursor.getFloat(index)
-            DataType.Simple.Kind.F64 -> cursor.getDouble(index)
-            DataType.Simple.Kind.Str -> cursor.getString(index)
-            DataType.Simple.Kind.Blob -> cursor.getBlob(index)
-        })
-    }
-
-    private fun Short.assertFitsByte(): Byte {
-        require(this in Byte.MIN_VALUE..Byte.MAX_VALUE) {
-            "value $this cannot be fit into ${Byte::class.java.simpleName}"
-        }
-        return toByte()
     }
 
 }

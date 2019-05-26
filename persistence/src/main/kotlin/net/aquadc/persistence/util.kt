@@ -164,7 +164,7 @@ fun <E> AnyCollection.fatAsList(): List<E> = when (this) {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <E> List<E>.each(consume: (E) -> Unit) {
+inline fun <E> List<E>.each(consume: (E) -> Unit) {
     for (i in indices) {
         consume(this[i])
     }

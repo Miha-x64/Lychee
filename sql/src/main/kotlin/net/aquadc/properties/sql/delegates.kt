@@ -101,12 +101,12 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
         oldVals[(path as FieldDef.Mutable).ordinal.toInt()] = prev
     }
 
-}
-
-private fun <SCH : Schema<SCH>> PartialStruct<SCH>.packedValues(): Array<Any?> {
-    val values = arrayOfNulls<Any>(fields.size.toInt())
-    schema.forEachIndexed(fields) { idx, field ->
-        values[idx] = getOrThrow(field)
+    private fun <SCH : Schema<SCH>> PartialStruct<SCH>.packedValues(): Array<Any?> {
+        val values = arrayOfNulls<Any>(fields.size.toInt())
+        schema.forEachIndexed(fields) { idx, field ->
+            values[idx] = getOrThrow(field)
+        }
+        return values
     }
-    return values
+
 }

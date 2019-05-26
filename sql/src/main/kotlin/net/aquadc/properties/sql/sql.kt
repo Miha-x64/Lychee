@@ -224,7 +224,7 @@ private constructor(
      */
     protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
-    private var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null // fixme: replace with Array
+    @JvmSynthetic @JvmField internal var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null // fixme: replace with Array
     private val _columns: Lazy<Array<out NamedLens<SCH, REC, *>>> = lazy {
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
@@ -252,8 +252,8 @@ private constructor(
         }
     }
 
-    @Suppress("UPPER_BOUND_VIOLATED") // some bad code with raw types here
-    private fun embed(
+    // some bad code with raw types here
+    @Suppress("UPPER_BOUND_VIOLATED") @JvmSynthetic internal fun embed(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
             naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?,
             outColumns: ArrayList<NamedLens<SCH, REC, *>>, outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate>
