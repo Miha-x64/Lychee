@@ -39,7 +39,7 @@ sealed class DataType<T> {
             /**
              * Wrapped non-nullable type.
              */
-            val actualType: DataType<T>
+            @JvmField val actualType: DataType<T>
     ) : DataType<T?>() {
 
         override fun hashCode(): Int =
@@ -59,7 +59,7 @@ sealed class DataType<T> {
             /**
              * Specifies exact type of stored values.
              */
-            val kind: Kind
+            @JvmField val kind: Kind
     ) : DataType<T>() {
 
         enum class Kind {
@@ -98,7 +98,7 @@ sealed class DataType<T> {
             /**
              * [DataType] of all the elements in such collections.
              */
-            val elementType: DataType<E>
+            @JvmField val elementType: DataType<E>
     ) : DataType<C>() {
 
         /**
