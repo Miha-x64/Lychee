@@ -75,14 +75,27 @@ class PartialsTest {
         }, SomeSchema.buildPartial {
             it[A] = "a"
         }.copy {
-            assertEquals(
-                    B.asFieldSet(),
-                    it.setFrom(SomeSchema.buildPartial {
-                        it[B] = 1
-                        it[C] = 1L
-                    }, A + B)
-            )
+            val changed = it.setFrom(SomeSchema.buildPartial {
+                it[B] = 1
+                it[C] = 1L
+            }, A + B)
+            assertEquals(B.asFieldSet(), changed)
         })
+    }
+
+    @Test fun `copy partially`() {
+        val some = SomeSchema.build {
+            it[A] = "some"
+            it[B] = 2
+            it[C] = 6L
+        }
+
+        assertEquals(
+                SomeSchema.buildPartial {
+                    it[C] = 6L
+                },
+                some.copy(SomeSchema.C.asFieldSet())
+        )
     }
 
     @Test fun `create sparse`() {

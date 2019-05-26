@@ -15,7 +15,7 @@ inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit
  * Builds a [StructSnapshot] filled with data from [this] and applies changes via [mutate].
  */
 inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
-    val builder = buildUpon(this)
+    val builder = buildUpon(this, schema.allFieldSet())
     mutate(schema, builder)
     return builder.finish(schema, searchForDefaults = false)
 }
@@ -25,10 +25,10 @@ fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
         StructBuilder<SCH>(Array(schema.fields.size) { Unset })
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>): StructBuilder<SCH> {
+fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef<SCH, *>>): StructBuilder<SCH> {
     val fs = source.schema.fields
     val values = Array<Any?>(fs.size) { Unset }
-    source.schema.forEach(source.fields) { field ->
+    source.schema.forEach(source.fields intersect fields) { field ->
         values[field.ordinal.toInt()] = source.getOrThrow(field)
     }
     return StructBuilder(values)

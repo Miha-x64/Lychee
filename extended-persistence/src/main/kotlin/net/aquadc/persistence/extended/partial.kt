@@ -14,7 +14,6 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.buildUpon
 import net.aquadc.persistence.struct.contains
-import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.newBuilder
@@ -113,8 +112,11 @@ fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *>>
 /**
  * Builds a [StructSnapshot] filled with data from [this] and applies changes via [mutate].
  */
-inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>) -> Unit): PartialStruct<SCH> {
-    val builder = buildUpon(this)
+inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(
+        fields: FieldSet<SCH, FieldDef<SCH, *>> = schema.allFieldSet(),
+        mutate: SCH.(StructBuilder<SCH>) -> Unit = { }
+): PartialStruct<SCH> {
+    val builder = buildUpon(this, fields)
     mutate(schema, builder)
     return schema.finish(builder)
 }
