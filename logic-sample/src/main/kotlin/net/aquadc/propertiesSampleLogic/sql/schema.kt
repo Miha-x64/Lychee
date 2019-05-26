@@ -19,7 +19,7 @@ fun Transaction.insertHuman(name: String, surname: String): Human =
                 it[Surname] = surname
         })
 
-class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Human.Tbl, session, id) {
+class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Tbl, session, id) {
 
     val nameProp get() = this prop Name
     val surname get() = this[Surname]

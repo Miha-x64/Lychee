@@ -48,7 +48,7 @@ class SqliteActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        vm = (lastNonConfigurationInstance as? SqlViewModel) ?:
+        vm = (lastNonConfigurationInstance as SqlViewModel?) ?:
                 SqlViewModel(SqliteSession(Helper(applicationContext).writableDatabase))
 
         if (savedInstanceState == null) {

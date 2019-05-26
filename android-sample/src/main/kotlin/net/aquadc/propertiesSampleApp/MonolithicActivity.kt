@@ -68,9 +68,9 @@ class MonolithicActivity : Activity() {
 
     private fun saveButtonClicked() {
         app.user.transaction {
-            it[User.Email] = emailInput.text.toString()
-            it[User.Name] = nameInput.text.toString()
-            it[User.Surname] = surnameInput.text.toString()
+            it[Email] = emailInput.text.toString()
+            it[Name] = nameInput.text.toString()
+            it[Surname] = surnameInput.text.toString()
         }
         textChanged()
     }
