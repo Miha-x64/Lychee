@@ -1,6 +1,6 @@
 exclude_paths:
   # ignore undocumented test cases, etc
-  - 'properties/src/test/**'
+  - '**/src/test/**'
   # ignore unused parameters, constant conditions, etc
   - 'fake-bindings/**'
   # ignore undocumented public declarations in samples
