@@ -28,15 +28,15 @@ internal interface LowLevelSession<STMT> {
     ): T
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-            table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
+            table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): Array<ID>
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
-            table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+            table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
     ): Long
 
     val transaction: RealTransaction?
 
-    fun <SCH : Schema<SCH>, T : Any> reusableCond(table: Table<SCH, *, *>, colName: String, value: T): ColCond<SCH, T>
+    fun <SCH : Schema<SCH>, ID : IdBound> pkCond(table: Table<SCH, ID, out Record<SCH, ID>>, value: ID): ColCond<SCH, ID>
 
 }

@@ -22,18 +22,18 @@ interface Dialect {
      */
     fun <SCH : Schema<SCH>> selectFieldQuery(
             columnName: String, table: Table<SCH, *, *>,
-            condition: WhereCondition<out SCH>, order: Array<out Order<out SCH>>
+            condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String
 
     /**
      * Constructs an SQL query like `SELECT COUNT(*) from <table> WHERE <condition>`
      */
-    fun <SCH : Schema<SCH>> selectCountQuery(table: Table<SCH, *, *>, condition: WhereCondition<out SCH>): String
+    fun <SCH : Schema<SCH>> selectCountQuery(table: Table<SCH, *, *>, condition: WhereCondition<SCH>): String
 
     /**
      * Appends WHERE clause (without WHERE itself) to [this] builder.
      */
-    fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(condition: WhereCondition<out SCH>): StringBuilder
+    fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(context: Table<SCH, *, *>, condition: WhereCondition<SCH>): StringBuilder
 
     /**
      * Appends ORDER clause (without ORDER BY itself) to [this] builder.

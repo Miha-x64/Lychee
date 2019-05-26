@@ -1,6 +1,5 @@
 package net.aquadc.properties.sql.dialect.sqlite
 
-import net.aquadc.persistence.each
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
@@ -39,23 +38,23 @@ object SqliteDialect : Dialect {
     }
 
     override fun <SCH : Schema<SCH>> selectFieldQuery(
-            columnName: String, table: Table<SCH, *, *>, condition: WhereCondition<out SCH>, order: Array<out Order<out SCH>>
+            columnName: String, table: Table<SCH, *, *>, condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String =
             selectQuery(columnName, table, condition, order)
 
     override fun <SCH : Schema<SCH>> selectCountQuery(
-            table: Table<SCH, *, *>, condition: WhereCondition<out SCH>
+            table: Table<SCH, *, *>, condition: WhereCondition<SCH>
     ): String =
             selectQuery(null, table, condition, NoOrder)
 
     private fun <SCH : Schema<SCH>> selectQuery(
-            columnName: String?, table: Table<SCH, *, *>, condition: WhereCondition<out SCH>, order: Array<out Order<out SCH>>
+            columnName: String?, table: Table<SCH, *, *>, condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String {
         val sb = StringBuilder("SELECT ")
                 .let { if (columnName == null) it.append("COUNT(*)") else it.appendName(columnName) }
                 .append(" FROM ").appendName(table.name)
                 .append(" WHERE ")
-        sb.appendWhereClause(condition)
+        sb.appendWhereClause(table, condition)
 
         if (order.isNotEmpty())
             sb.append(" ORDER BY ").appendOrderClause(order)
@@ -64,10 +63,11 @@ object SqliteDialect : Dialect {
     }
 
     override fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(
-            condition: WhereCondition<out SCH>
+            context: Table<SCH, *, *>,
+            condition: WhereCondition<SCH>
     ): StringBuilder = apply {
         val afterWhere = length
-        condition.appendSqlTo(this@SqliteDialect, this)
+        condition.appendSqlTo(context, this@SqliteDialect, this)
 
         if (length == afterWhere) append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
     }

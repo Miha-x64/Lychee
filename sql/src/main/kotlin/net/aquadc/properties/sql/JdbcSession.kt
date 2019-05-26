@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -135,7 +136,7 @@ class JdbcSession(
         private fun <ID : IdBound, SCH : Schema<SCH>> select(
                 columnName: String?,
                 table: Table<SCH, ID, *>,
-                condition: WhereCondition<out SCH>,
+                condition: WhereCondition<SCH>,
                 order: Array<out Order<out SCH>>
         ): ResultSet {
             val query =
@@ -149,12 +150,9 @@ class JdbcSession(
                     .also { stmt ->
                         val argNames = ArrayList<String>()
                         val argValues = ArrayList<Any>()
-                        condition.appendValuesTo(argNames, argValues)
+                        condition.appendValuesTo(table, argNames, argValues)
                         forEachOfBoth(argNames, argValues) { idx, name, value ->
-                            val conv =
-                                    if (name == table.idColName) table.idColType
-                                    else table.schema.fieldsByName[name]!!.type
-                            conv.erased.bind(stmt, idx, value)
+                            table.columnsByName[name]!!.type.erased.bind(stmt, idx, value)
                         }
                     }
                     .executeQuery()
@@ -163,10 +161,10 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
         ): T =
-                select(column.name, table, reusableCond(table, table.idColName, id), NoOrder).fetchSingle(column.type)
+                select(column.name, table, pkCond<SCH, ID>(table, id), NoOrder).fetchSingle(column.type)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-                table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>
+                table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select(table.idColName, table, condition, order)
                         .fetchAll(table.idColType)
@@ -181,7 +179,7 @@ class JdbcSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
-                table: Table<SCH, ID, *>, condition: WhereCondition<out SCH>
+                table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
         ): Long =
                 select(null, table, condition, NoOrder).fetchSingle(long)
 
@@ -192,13 +190,13 @@ class JdbcSession(
         private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
         @Suppress("UNCHECKED_CAST")
-        override fun <SCH : Schema<SCH>, T : Any> reusableCond(
-                table: Table<SCH, *, *>, colName: String, value: T
-        ): ColCond<SCH, T> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<SCH, T>>).getOrSet {
-                ColCond(table.schema.fields[0] as FieldDef<SCH, T>, " = ?", value)
+        override fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
+                table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
+        ): ColCond<SCH, ID> {
+            val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
+                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, ID>, " = ?", value)
             }
-            condition.colName = colName
+            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, ID> // unchecked: we don't mind actual types
             condition.valueOrValues = value
             return condition
         }

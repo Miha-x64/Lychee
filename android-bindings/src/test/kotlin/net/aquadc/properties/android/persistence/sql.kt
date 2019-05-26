@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import net.aquadc.properties.sql.EmbedRelationsTest
+import net.aquadc.properties.sql.QueryBuilderTests
 import net.aquadc.properties.sql.Session
 import net.aquadc.properties.sql.SqlPropTest
 import net.aquadc.properties.sql.SqliteSession
@@ -72,6 +73,21 @@ class SqlPropRoboTest : SqlPropTest() {
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class EmbedRelationsRoboTest : EmbedRelationsTest() {
+    private lateinit var db: SQLiteDatabase
+    override lateinit var session: Session
+    @Before fun init() {
+        db = sqliteDb()
+        session = SqliteSession(db)
+    }
+    @After fun close() {
+        db.close()
+    }
+}
+
+
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
+class QueryBuilderRoboTests : QueryBuilderTests() {
     private lateinit var db: SQLiteDatabase
     override lateinit var session: Session
     @Before fun init() {

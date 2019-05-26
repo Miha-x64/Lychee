@@ -2,7 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.realHashCode
 import net.aquadc.persistence.reallyEqual
-import net.aquadc.persistence.struct.NamedLens
+import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.internal.emptyArrayOf
 import net.aquadc.properties.sql.dialect.Dialect
@@ -21,50 +21,59 @@ interface WhereCondition<SCH : Schema<SCH>> {
     /**
      * Appends corresponding part of SQL query to [builder] using [dialect].
      */
-    fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder
+    fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder
 
     /**
      * Appends contained colName-value-pairs to the given [colNames] and [colValues] lists.
      * [colValues] has non-nullable type because you can't treat ` = ?` as `IS NULL`.
      */
-    fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>)
+    fun appendValuesTo(context: Table<SCH, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>)
 
-    /**
-     * Represents an absence of any conditions.
-     */
-    object Empty : WhereCondition<Nothing> {
-        override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-        override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {}
-    }
+    @Deprecated("replaced with a function", ReplaceWith("emptyCondition()"), DeprecationLevel.ERROR)
+    object Empty
 
 }
+
+/**
+ * Represents an absence of any conditions.
+ */
+@Suppress("UNCHECKED_CAST", "NOTHING_TO_INLINE") // special, empty implementation
+inline fun <SCH : Schema<SCH>> emptyCondition(): WhereCondition<SCH> =
+        EmptyCondition as WhereCondition<SCH>
+
+@PublishedApi internal object EmptyCondition : WhereCondition<Nothing> {
+    override fun appendSqlTo(context: Table<Nothing, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder = builder
+    override fun appendValuesTo(context: Table<Nothing, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>) {}
+}
+
 
 internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
 
     // mutable for internal code, he-he
-    @JvmField @JvmSynthetic internal var colName: String
+    @JvmField @JvmSynthetic internal var lens: Lens<SCH, Record<SCH, *>, T>
     private val op: CharSequence
     private val singleValue: Boolean
     @JvmField @JvmSynthetic internal var valueOrValues: Any // if (singleValue) Any else Array<Any>
 
-    constructor(col: NamedLens<SCH, *, T>, op: CharSequence, value: Any) {
-        this.colName = col.name
+    constructor(lens: Lens<SCH, Record<SCH, *>, T>, op: CharSequence, value: Any) {
+        this.lens = lens
         this.op = op
         this.singleValue = true
         this.valueOrValues = value
     }
 
-    constructor(col: NamedLens<SCH, *, T>, op: CharSequence, values: Array<Any>) {
-        this.colName = col.name
+    constructor(lens: Lens<SCH, Record<SCH, *>, T>, op: CharSequence, values: Array<out Any>) {
+        this.lens = lens
         this.op = op
         this.singleValue = false
         this.valueOrValues = values
     }
 
-    override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder =
-            with(dialect) { builder.appendName(colName) }.append(op)
+    override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
+            with(dialect) { builder.appendName(context.columnByLens(lens)!!.name) }.append(op)
 
-    override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {
+    override fun appendValuesTo(context: Table<SCH, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>) {
+        val colName = context.columnByLens(lens)!!.name
         if (singleValue) {
             colNames.add(colName)
             colValues.add(valueOrValues)
@@ -80,7 +89,7 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
         if (this === other) return true
         if (other !is ColCond<*, *>) return false
 
-        if (colName != other.colName) return false
+        if (lens != other.lens) return false
         if (op != other.op) return false
         if (singleValue != other.singleValue) return false
         if (!reallyEqual(valueOrValues, other.valueOrValues)) return false
@@ -89,7 +98,7 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     }
 
     override fun hashCode(): Int {
-        var result = colName.hashCode()
+        var result = lens.hashCode()
         result = 31 * result + op.hashCode()
         result = 31 * result + singleValue.hashCode()
         result = 31 * result + valueOrValues.realHashCode()
@@ -98,23 +107,85 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
 
 }
 
+infix fun <SCH : Schema<SCH>, T> Lens<SCH, Record<SCH, *>, T>.eq(value: T): WhereCondition<SCH> =
+        if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
+        else ColCond(this, " = ?", value as Any)
+
+infix fun <SCH : Schema<SCH>, T> Lens<SCH, Record<SCH, *>, T>.notEq(value: T): WhereCondition<SCH> =
+        if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
+        else ColCond(this, " <> ?", value as Any)
+
+infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.like(value: String): WhereCondition<SCH> =
+        ColCond(this, " LIKE ?", value)
+
+infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.notLike(value: String): WhereCondition<SCH> =
+        ColCond(this, " NOT LIKE ?", value)
+
+infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.startsWith(value: String): WhereCondition<SCH> =
+        ColCond(this, " LIKE (? || '%')", value)
+
+// fun doesNotStartWith? startsWithout?
+
+infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.endsWith(value: String): WhereCondition<SCH> =
+        ColCond(this, " LIKE ('%' || ?)", value)
+
+// fun doesNotEndWith? endsWithout?
+
+infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.contains(value: String): WhereCondition<SCH> =
+        ColCond(this, " LIKE ('%' || ? || '%')", value)
+
+// fun doesNotContain? notContains?
+
+// `out T?`: allow lenses to look at nullable types
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.between(range: Array<T>): WhereCondition<SCH> =
+        ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.notBetween(range: Array<T>): WhereCondition<SCH> =
+        ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
+
+infix fun <SCH : Schema<SCH>, T : Comparable<T>> Lens<SCH, Record<SCH, *>, out T?>.between(range: ClosedRange<T>): WhereCondition<SCH> =
+        ColCond(this, " BETWEEN ? AND ?", arrayOf<Any>(range.start, range.endInclusive))
+
+infix fun <SCH : Schema<SCH>, T : Comparable<T>> Lens<SCH, Record<SCH, *>, out T?>.notBetween(range: ClosedRange<T>): WhereCondition<SCH> =
+        ColCond(this, " NOT BETWEEN ? AND ?", arrayOf<Any>(range.start, range.endInclusive))
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.isIn(values: Array<T>): WhereCondition<SCH> =
+        ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.notIn(values: Array<T>): WhereCondition<SCH> =
+        ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.greaterThan(value: T): WhereCondition<SCH> =
+        ColCond(this, " > ?", value)
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.greaterOrEq(value: T): WhereCondition<SCH> =
+        ColCond(this, " >= ?", value)
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.lessThan(value: T): WhereCondition<SCH> =
+        ColCond(this, " < ?", value)
+
+infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T>.lessOrEq(value: T): WhereCondition<SCH> =
+        ColCond(this, " <= ?", value)
+
+
 internal class BiCond<SCH : Schema<SCH>>(
         private val left: WhereCondition<SCH>,
         private val and: Boolean,
         private val right: WhereCondition<SCH>
 ) : WhereCondition<SCH> {
 
-    override fun appendSqlTo(dialect: Dialect, builder: StringBuilder): StringBuilder {
+    override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder {
         builder.append('(')
-        left.appendSqlTo(dialect, builder)
+        left.appendSqlTo(context, dialect, builder)
                 .append(if (and) " AND " else " OR ")
-        return right.appendSqlTo(dialect, builder)
+        return right.appendSqlTo(context, dialect, builder)
                 .append(')')
     }
 
-    override fun appendValuesTo(colNames: ArrayList<String>, colValues: ArrayList<Any>) {
-        left.appendValuesTo(colNames, colValues)
-        right.appendValuesTo(colNames, colValues)
+    override fun appendValuesTo(context: Table<SCH, *, *>, colNames: ArrayList<String>, colValues: ArrayList<Any>) {
+        left.appendValuesTo(context, colNames, colValues)
+        right.appendValuesTo(context, colNames, colValues)
     }
 
     override fun hashCode(): Int {
@@ -137,46 +208,6 @@ internal class BiCond<SCH : Schema<SCH>>(
     }
 
 }
-
-infix fun <SCH : Schema<SCH>, T> NamedLens<SCH, *, T>.eq(value: T): WhereCondition<SCH> =
-        if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
-        else ColCond(this, " = ?", value as Any)
-
-infix fun <SCH : Schema<SCH>, T> NamedLens<SCH, *, T>.notEq(value: T): WhereCondition<SCH> =
-        if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
-        else ColCond(this, " <> ?", value as Any)
-
-infix fun <SCH : Schema<SCH>, T : String?> NamedLens<SCH, *, T>.like(value: String): WhereCondition<SCH> =
-        ColCond(this, " LIKE ?", value)
-
-infix fun <SCH : Schema<SCH>, T : String?> NamedLens<SCH, *, T>.notLike(value: String): WhereCondition<SCH> =
-        ColCond(this, " NOT LIKE ?", value)
-
-// let U be nullable, but not T
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.between(range: Array<T>): WhereCondition<SCH> =
-        ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.notBetween(range: Array<T>): WhereCondition<SCH> =
-        ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.isIn(values: Array<T>): WhereCondition<SCH> =
-        ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.notIn(values: Array<T>): WhereCondition<SCH> =
-        ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.greaterThan(value: T): WhereCondition<SCH> =
-        ColCond(this, " > ?", value)
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.greaterOrEq(value: T): WhereCondition<SCH> =
-        ColCond(this, " >= ?", value)
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.lessThan(value: T): WhereCondition<SCH> =
-        ColCond(this, " < ?", value)
-
-infix fun <SCH : Schema<SCH>, T : Any, U : T> NamedLens<SCH, *, U>.lessOrEq(value: T): WhereCondition<SCH> =
-        ColCond(this, " <= ?", value)
-
 
 infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.and(that: WhereCondition<SCH>): WhereCondition<SCH> =
         BiCond(this, true, that)

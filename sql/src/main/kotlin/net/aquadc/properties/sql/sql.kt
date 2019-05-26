@@ -65,11 +65,11 @@ interface Session {
  */
 interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<SCH, Transaction, ID> {
     fun find(id: ID /* TODO fields to prefetch */): REC?
-    fun select(condition: WhereCondition<out SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty | group by | having
+    fun select(condition: WhereCondition<SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty | group by | having
     // TODO: selectWhole(...): Property<List<Property<StructSnapshot<SCH>>>>
     // TODO: fetch(...): List<StructSnapshot<SCH>>
     // todo raw queries, joins
-    fun count(condition: WhereCondition<out SCH>): Property<Long>
+    fun count(condition: WhereCondition<SCH>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 }
 
@@ -98,15 +98,15 @@ fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.r
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.select(
-        condition: WhereCondition<out SCH>, vararg order: Order<SCH>/* TODO: prefetch */
+        condition: WhereCondition<SCH>, vararg order: Order<SCH>/* TODO: prefetch */
 ): Property<List<REC>> =
         select(condition, order)
 
 fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.selectAll(vararg order: Order<SCH>): Property<List<REC>> =
-        select(WhereCondition.Empty, order)
+        select(emptyCondition(), order)
 
-fun Dao<*, *, *>.count(): Property<Long> =
-        count(WhereCondition.Empty)
+fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.count(): Property<Long> =
+        count(emptyCondition())
 
 @JvmField val NoOrder = emptyArray<Order<Nothing>>()
 
@@ -314,6 +314,9 @@ private constructor(
     val columns: Array<out NamedLens<SCH, REC, *>>
         get() = _columns.value
 
+    val pkColumn: NamedLens<SCH, REC, ID>
+        get() = columns[0] as NamedLens<SCH, REC, ID>
+
 
     private var _columnsByName: Map<String, NamedLens<SCH, REC, *>>? = null
 
@@ -338,6 +341,9 @@ private constructor(
         val delegates = _delegates ?: _columns.value.let { _ -> _delegates!! /* unwrap lazy */ }
         return delegates[lens] ?: Simple
     }
+    internal fun <T> columnByLens(lens: Lens<SCH, Record<SCH, ID>, T>): NamedLens<SCH, REC, T>? =
+            (columnIndices as Map<Lens<SCH, Record<SCH, ID>, *>, Int>)[lens]?.let { columns[it] as NamedLens<SCH, REC, T> }
+    // fixme ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ looks like inference bug
 
     internal fun preCommitValues(record: Record<SCH, ID>, columnValues: Array<Any?>, tmpSet: HashSet<Any?>) {
         val prevFieldValues = columnValues.last() as Array<out Any?>?

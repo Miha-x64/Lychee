@@ -45,7 +45,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
     private val recordRefs = ConcurrentHashMap<ID, WeakReference<REC>>()
 
     // SELECT COUNT(*) WHERE ...
-    private val counts = ConcurrentHashMap<WhereCondition<out SCH>, WeakReference<`Mapped-`<WhereCondition<out SCH>, Long>>>()
+    private val counts = ConcurrentHashMap<WhereCondition<SCH>, WeakReference<`Mapped-`<WhereCondition<SCH>, Long>>>()
 
     // SELECT _id WHERE ...
     private val selections = ConcurrentHashMap<ConditionAndOrder<SCH>, WeakReference<Property<List<REC>>>>()
@@ -94,7 +94,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
         val mapped = selection as `Mapped-`<*, *>
         val distinct = mapped.original as `Distinct-`
         val anotherMapped = distinct.original as `Mapped-`<*, *>
-        val mutable = anotherMapped.original as MutableProperty<WhereCondition<out SCH>> // lol, some bad code right here
+        val mutable = anotherMapped.original as MutableProperty<WhereCondition<SCH>> // lol, some bad code right here
         mutable.value = mutable.value
     }
 
@@ -109,14 +109,14 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
         sb.append(prefix).append("counts\n")
         counts.entries.forEach { (cond, ref) ->
             if (ref.get() != null)
-                sb.append(prefix).append(" ").let { cond.appendSqlTo(dialect, it) }.append("\n")
+                sb.append(prefix).append(" ").let { cond.appendSqlTo(table, dialect, it) }.append("\n")
         }
 
         sb.append(prefix).append("selections\n")
         selections.forEach { (cor, ref) ->
             if (ref.get() !== null) {
                 sb.append(prefix).append(" ").let {
-                    cor.condition.appendSqlTo(dialect, it)
+                    cor.condition.appendSqlTo(table, dialect, it)
                     if (cor.order.isNotEmpty()) {
                         it.append(" ORDER BY ...")
                     }
@@ -158,13 +158,13 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
     // region Dao implementation
 
     override fun find(id: ID): REC? =
-            when (lowSession.fetchCount(table, lowSession.reusableCond(table, table.idColName, id))) {
+            when (lowSession.fetchCount(table, lowSession.pkCond(table, id))) {
                 0L -> null
                 1L -> recordRefs.getOrPutWeak(id) { table.newRecord(session, id) }
                 else -> throw AssertionError()
             }
 
-    override fun select(condition: WhereCondition<out SCH>, vararg order: Order<SCH>): Property<List<REC>> {
+    override fun select(condition: WhereCondition<SCH>, vararg order: Order<SCH>): Property<List<REC>> {
         val cor = ConditionAndOrder(condition, order)
         val ref: WeakReference<Property<List<REC>>>
         val prop: Property<List<REC>>
@@ -183,9 +183,9 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
         return prop
     }
 
-    override fun count(condition: WhereCondition<out SCH>): Property<Long> =
+    override fun count(condition: WhereCondition<SCH>): Property<Long> =
             counts.getOrPutWeak(condition) {
-                concurrentPropertyOf(condition).map(Count(table, lowSession)) as `Mapped-`<WhereCondition<out SCH>, Long>
+                concurrentPropertyOf(condition).map(Count(table, lowSession)) as `Mapped-`<WhereCondition<SCH>, Long>
             }
 
     // endregion Dao implementation

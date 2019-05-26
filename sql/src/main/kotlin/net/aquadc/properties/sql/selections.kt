@@ -26,9 +26,9 @@ internal class Query<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
 internal class Count<SCH : Schema<SCH>, ID : IdBound>(
         private val table: Table<SCH, ID, *>,
         private val lowSession: LowLevelSession<*>
-): (WhereCondition<out SCH>) -> Long {
+): (WhereCondition<SCH>) -> Long {
 
-    override fun invoke(condition: WhereCondition<out SCH>): Long =
+    override fun invoke(condition: WhereCondition<SCH>): Long =
             lowSession.fetchCount(table, condition)
 
 }
@@ -47,7 +47,7 @@ internal class Selection<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
 }
 
 internal class ConditionAndOrder<SCH : Schema<SCH>>(
-        @JvmField internal val condition: WhereCondition<out SCH>,
+        @JvmField internal val condition: WhereCondition<SCH>,
         @JvmField internal val order: Array<out Order<SCH>>
 ) {
 
