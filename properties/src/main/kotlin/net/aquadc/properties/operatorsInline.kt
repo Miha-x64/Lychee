@@ -41,6 +41,8 @@ inline infix fun Property<Boolean>.or(that: Property<Boolean>): Property<Boolean
 inline infix fun Property<Boolean>.xor(that: Property<Boolean>): Property<Boolean> =
         mapWith(that, `BoolFunc-`.Xor)
 
+// TODO: inc, dec
+
 
 //
 // Number(s) -> Number

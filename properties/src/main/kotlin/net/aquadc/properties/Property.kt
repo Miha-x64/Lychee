@@ -40,6 +40,11 @@ interface Property<out T> {
      */
     fun addChangeListener(onChange: ChangeListener<T>)
 
+    // TODO: for better concurrent correctness, should return current value!
+
+    // TODO: add a way to subscribe `(changed: P, old: T, new: T) -> Unit where  : Property<out T>`
+    //  and make Bi-Mapped and Multi-Mapped props cheaper
+
     /**
      * Subscribe on value changes on [executor].
      * Acts like [MutableList.add]: [onChange] will be added even if it is already added.

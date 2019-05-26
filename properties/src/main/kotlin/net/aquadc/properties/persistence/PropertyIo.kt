@@ -28,6 +28,8 @@ interface PropertyIo {
 
 }
 
+// TODO: maybe rename `x`
+
 /** Reads or writes a [Boolean] value */
 @JvmName("bool") inline infix fun PropertyIo.x(prop: MutableProperty<Boolean>): Unit =
         bool.invoke(prop)
