@@ -26,6 +26,7 @@ repositories {
 dependencies {
     implementation 'net.aquadc.properties:properties:0.0.9' // core, both for JVM and Android
     implementation 'net.aquadc.properties:persistence:0.0.9' // persistence for JVM and Android
+    implementation 'net.aquadc.properties:extended-persistence:0.0.9' // Partial Structs, unsigned types, primitive arrays
     implementation 'net.aquadc.properties:android-bindings:0.0.9' // Android-only AAR package
 }
 ```
@@ -211,7 +212,16 @@ Another thing is `PersistableProperties`: this interface allows you
 to save or restore the state of a ViewModel using `ByteArray` via a single method
 without declaring symmetrical, bolierplate and error-prone `writeToParcel` and `createFromParcel` methods.
 
-But the most interesting and reusable things are around `Struct`, `Schema`, and `DataType`.
+```kt
+override fun saveOrRestore(io: PropertyIo) {
+    // infix function calls
+    io x prop1
+    io x prop2
+    io x prop3
+}
+```
+
+But the most interesting and reusable things are all around `Struct`, `Schema`, and `DataType`.
 
 `Schema` is a definition of a data bag with named, ordered, typed fields.
 ```kt
@@ -234,7 +244,16 @@ field values can be accessed with indexing operator:
 ```kt
 assertEquals(0, player[Player.Score]) // Score is equal to the default value which was set in Schema
 ```
-Okay, the `player` is fully immutable, but we want a mutable observable instance:
+The builder-function is recommended for setting all required fields:
+```kt
+fun Player(name: String, surname: String) = Player.build { p ->
+    p[Name] = name
+    p[Surname] = surname
+}
+```
+
+
+Okay, the `player` instance is fully immutable, but we want a mutable observable one:
 ```kt
 val observablePlayer = ObservableStruct(player)
 val scoreProp: Property<Int> = observablePlayer prop Player.Score
@@ -257,6 +276,21 @@ storedPlayer.transaction { p ->
 }
 ```
 
+There is JSON support built on top of `android.util.JsonReader/Writer`:
+```kt
+val jsonPlayer = JsonReader(StringReader(
+        """{"name":"Hank","surname":"Rearden"}"""
+)).read(Player)
+
+val jsonPlayers = JsonReader(StringReader(
+        """[ {"name":"Hank","surname":"Rearden"}, ... ]"""
+)).readListOf(Player)
+
+JsonWriter(...).write(value)
+```
+
+Also, [SQLite support](/sql/) is currently being developed.
+
 
 ## ProGuard rules for Android
 (for `:persistence`, `:properties` and `:android-bindings`)
@@ -273,7 +307,7 @@ storedPlayer.transaction { p ->
   public static **[] values();
 }
 
-# bindings to JavaFX
+# bindings to Java(FX)
 -dontwarn net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
 -assumenosideeffects class net.aquadc.properties.executor.PlatformExecutors {
     private void findFxFactory(java.util.ArrayList); # bindings to JavaFX
