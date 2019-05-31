@@ -18,10 +18,13 @@ import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.persistence.json.read
+import net.aquadc.properties.android.persistence.json.readListOf
 import net.aquadc.properties.android.persistence.json.write
 import net.aquadc.properties.persistence.enum
 import okio.ByteString
-import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Test
 import java.io.StringReader
 import java.io.StringWriter
@@ -84,24 +87,36 @@ class PersistenceTest {
         }
     }
 
-    @Test fun json() {
+    @Test fun `json object`() {
         val json = StringWriter().also { JsonWriter(it).write(instance) }.toString()
         val deserialized = JsonReader(StringReader(json)).read(Sch)
         assertEqualToOriginal(deserialized, true)
+    }
+
+    @Test fun `empty json array`() {
+        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).readListOf(string))
+        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).read(collection(string)))
+    }
+
+    @Test fun `json string list`() {
+        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).readListOf(string))
+        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).read(collection(string)))
+
+        assertEquals("""["1","22","ttt"]""", StringWriter().also { JsonWriter(it).write(collection(string), listOf("1", "22", "ttt")) }.toString())
     }
 
     fun assertEqualToOriginal(deserialized: Struct<Sch>, assertNotSame: Boolean) {
         with(Sch) { arrayOf(INT, DOUBLE, ENUM, ENUM_SET, ENUM_SET_BITMASK, ENUM_SET_COLLECTION, STRING, BYTES, BLOB) }.forEach { field ->
             val orig = instance[field]
             val copy = deserialized[field]
-            Assert.assertEquals(orig, copy)
+            assertEquals(orig, copy)
             if (assertNotSame && orig::class.javaPrimitiveType === null && !orig.javaClass.isEnum)
-                Assert.assertNotSame(field.toString(), orig, copy)
+                assertNotSame(field.toString(), orig, copy)
         }
-        Assert.assertEquals(instance, deserialized)
-        Assert.assertNotSame(instance, deserialized)
-        Assert.assertEquals(instance.hashCode(), deserialized.hashCode())
-        Assert.assertEquals(
+        assertEquals(instance, deserialized)
+        assertNotSame(instance, deserialized)
+        assertEquals(instance.hashCode(), deserialized.hashCode())
+        assertEquals(
                 instance.toString().let { it.substring(it.indexOf('(')) }, // drop struct type, leave contents
                 deserialized.toString().let { it.substring(it.indexOf('(')) }
         ) // hmm... this relies on objects order inside a set

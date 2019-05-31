@@ -12,10 +12,7 @@ import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.StructBuilder
-import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
-import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.plus
@@ -27,42 +24,22 @@ import net.aquadc.properties.android.persistence.assertFitsShort
 
 
 /**
- * Reads a JSON 'array' of 'objects' as a list of [StructSnapshot]s according to [SCH],
+ * Reads a JSON 'array' of values denoted by [type] as a list of [T]s,
  * consuming both opening and closing square braces.
- * Each object is read using [read].
+ * Each value is read using [read].
  */
-fun <SCH : Schema<SCH>> JsonReader.readListOf(schema: SCH): List<StructSnapshot<SCH>> {
-    beginArray()
-    val list = if (!hasNext()) emptyList() else {
-        val first = read(schema)
-
-        if (!hasNext()) listOf(first) else {
-            val list = ArrayList<StructSnapshot<SCH>>()
-            list.add(first)
-
-            do list.add(read(schema))
-            while (hasNext())
-
-            list
-        }
-    }
-    endArray()
-
-    return list
-}
-
-// duplicate will go away when Schema will become a DataType
-@JvmSynthetic internal fun <T> JsonReader.readList(type: DataType<T>): List<T> {
-    beginArray()
+fun <T> JsonReader.readListOf(type: DataType<T>): List<T> {
     // TODO: when [type] is primitive, use specialized collections
+
+    beginArray()
     val list = if (!hasNext()) emptyList() else {
-        val first = readValue(type)
+        val first = read(type)
 
         if (!hasNext()) listOf(first) else {
             val list = ArrayList<T>()
             list.add(first)
 
-            do list.add(readValue(type))
+            do list.add(read(type))
             while (hasNext())
 
             list
@@ -74,32 +51,19 @@ fun <SCH : Schema<SCH>> JsonReader.readListOf(schema: SCH): List<StructSnapshot<
 }
 
 /**
- * Reads a JSON 'object' as a single [StructSnapshot] according to [SCH],
- * ignoring key-value pairs not listed in [SCH],
- * consuming both opening and closing curly braces.
+ * Reads a JSON value denoted by [type] as [T].
+ *
+ * For [Schema]s and [DataType.Partial]s,
+ * this ignores key-value pairs not listed in schema,
+ * and consumes both opening and closing curly braces.
  * Throws an exception if there was no value for any [FieldDef] without a default value,
- * or if [JsonReader] meets unexpected token for the given [FieldDef.type].
+ * or if [JsonReader] met unexpected token for the given [FieldDef.type].
  */
-fun <SCH : Schema<SCH>> JsonReader.read(schema: SCH): StructSnapshot<SCH> = schema.build { builder ->
-    beginObject()
-    while (hasNext()) {
-        val name = nextName()
-        val field = fieldsByName[name]
-
-        if (field === null) skipValue()
-        else readValueInto(builder, field)
-    }
-    endObject()
-}
-
-@Suppress("NOTHING_TO_INLINE") // exists just to capture type into T
-private inline fun <SCH : Schema<SCH>, T> JsonReader.readValueInto(target: StructBuilder<SCH>, field: FieldDef<SCH, T>) {
-    target[field] = readValue(field.type)
-}
+fun <T> JsonReader.read(type: DataType<T>): T =
+        (readerVis as JsonReaderVisitor<T>).match(type, this, null)
 
 private val readerVis = JsonReaderVisitor<Any?>()
-@JvmSynthetic internal fun <T> JsonReader.readValue(type: DataType<T>): T =
-        (readerVis as JsonReaderVisitor<T>).match(type, this, null)
+
 private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T> {
 
     override fun JsonReader.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>): T =
@@ -122,7 +86,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
             if (nullable && peek() === JsonToken.NULL) {
                 skipValue()
                 null as T
-            } else type.load(readList(type.elementType))
+            } else type.load(readListOf(type.elementType))
 
     override fun <SCH : Schema<SCH>> JsonReader.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
             when (val actual = peek()) {
@@ -132,7 +96,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                     null as T
                 }
                 JsonToken.BEGIN_ARRAY -> { // treat [] as {}, if you were unlucky to deal with PHP server-side
-                    check(isLenient) { "expected object, was array. Set lenient if you want to treat empty arrays as empty Partials." }
+                    check(isLenient) { "expected object, was array. Set lenient=true to treat empty arrays as empty objects" }
                     beginArray()
                     endArray() // crash on nonempty arrays
                     type.load(emptyFieldSet(), null)
@@ -149,7 +113,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                             if (field == null) skipValue() // unsupported value
                             else {
                                 fields += field
-                                values[field.ordinal.toInt()] = readValue(field.type)
+                                values[field.ordinal.toInt()] = read(field.type)
                             }
                         } while (hasNext())
                     }
@@ -198,13 +162,17 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
     endObject()
 }
 
+/**
+ * Writes a value denoted by [type].
+ */
+fun <T> JsonWriter.write(type: DataType<T>, value: T): Unit =
+        (writerVis as JsonWriterVisitor<T>).match(type, this, value)
+
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>) =
         write(field.type, struct.getOrThrow(field))
 
 private val writerVis = JsonWriterVisitor<Any?>()
-@JvmSynthetic internal fun <T> JsonWriter.write(type: DataType<T>, value: T) =
-        (writerVis as JsonWriterVisitor<T>).match(type, this, value)
 
 private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
     override fun JsonWriter.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
