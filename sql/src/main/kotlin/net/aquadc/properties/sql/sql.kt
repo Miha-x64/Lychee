@@ -1,3 +1,4 @@
+@file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.properties.sql
 
 import android.support.annotation.RestrictTo
@@ -77,7 +78,6 @@ interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<
  * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove [Record]s.
  * In future will retry conflicting transaction by calling [block] more than once.
  */
-@UseExperimental(ExperimentalContracts::class)
 inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
     contract {
         callsInPlace(block, InvocationKind.AT_LEAST_ONCE)

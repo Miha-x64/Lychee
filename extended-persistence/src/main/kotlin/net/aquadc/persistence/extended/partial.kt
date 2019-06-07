@@ -1,4 +1,5 @@
 @file:JvmName("Partials")
+@file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.extended
 
 import android.support.annotation.RestrictTo
@@ -19,6 +20,9 @@ import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.newBuilder
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 
 fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH>, SCH> =
@@ -86,14 +90,19 @@ fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrDefault(field: FieldDef<SCH, 
 /**
  * Returns value of the [field], or evaluates and returns [defaultValue], if absent.
  */
-inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrElse(field: FieldDef<SCH, T>, defaultValue: () -> T): T =
-        if (field in fields) getOrThrow(field)
-        else defaultValue()
+inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrElse(field: FieldDef<SCH, T>, defaultValue: () -> T): T {
+    contract { callsInPlace(defaultValue, InvocationKind.AT_MOST_ONCE) }
+
+    return if (field in fields) getOrThrow(field)
+    else defaultValue()
+}
 
 /**
  * Builds a [PartialStruct].
  */
 inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) -> Unit): PartialStruct<SCH> {
+    contract { callsInPlace(build, InvocationKind.EXACTLY_ONCE) }
+
     val builder = newBuilder(this)
     build(this, builder)
     return finish(builder)
@@ -116,6 +125,8 @@ inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(
         fields: FieldSet<SCH, FieldDef<SCH, *>> = schema.allFieldSet(),
         mutate: SCH.(StructBuilder<SCH>) -> Unit = { }
 ): PartialStruct<SCH> {
+    contract { callsInPlace(mutate, InvocationKind.EXACTLY_ONCE) }
+
     val builder = buildUpon(this, fields)
     mutate(schema, builder)
     return schema.finish(builder)

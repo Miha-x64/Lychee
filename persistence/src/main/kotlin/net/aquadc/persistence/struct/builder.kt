@@ -1,11 +1,17 @@
+@file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.struct
 
 import android.support.annotation.RestrictTo
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /**
  * Builds a [StructSnapshot] or throws if field value neither specified explicitly nor has a default.
  */
 inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
+    contract { callsInPlace(build, InvocationKind.EXACTLY_ONCE) }
+
     val builder = newBuilder<SCH>(this)
     build(this, builder)
     return builder.finish(this, searchForDefaults = true)
@@ -15,6 +21,8 @@ inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit
  * Builds a [StructSnapshot] filled with data from [this] and applies changes via [mutate].
  */
 inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
+    contract { callsInPlace(mutate, InvocationKind.EXACTLY_ONCE) }
+
     val builder = buildUpon(this, schema.allFieldSet())
     mutate(schema, builder)
     return builder.finish(schema, searchForDefaults = false)
