@@ -112,7 +112,11 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                             val field = byName[nextName()]
                             if (field == null) skipValue() // unsupported value
                             else {
+                                val oldFields = fields
                                 fields += field
+                                if (oldFields.bitmask == fields.bitmask) {
+                                    throw UnsupportedOperationException("duplicate name in JSON object: ${field.name}")
+                                }
                                 values[field.ordinal.toInt()] = read(field.type)
                             }
                         } while (hasNext())

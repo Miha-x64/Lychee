@@ -122,4 +122,8 @@ class PersistenceTest {
         ) // hmm... this relies on objects order inside a set
     }
 
+    @Test(expected = UnsupportedOperationException::class) fun `fail on dupe JSON names`() {
+        JsonReader(StringReader("""{"int":1, "int": 2}""")).read(partial(Sch))
+    }
+
 }
