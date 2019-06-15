@@ -1,40 +1,52 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.NamedLens
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+typealias ShallowSchema = Tuple<String, Long>
+val shallowSchema = Tuple("a", string, "b", long)
+
+typealias DupeEmbed = Tuple<String, Struct<ShallowSchema>>
+val dupeEmbed = Tuple("a_b", string, "a", shallowSchema)
+
+typealias EmbedSchema = Tuple<String, Struct<ShallowSchema>>
+val embedSchema = Tuple("a", string, "b", shallowSchema)
+
+typealias EmbedPartial = Tuple<String, PartialStruct<ShallowSchema>>
+val embedPartial = Tuple("a", string, "b", partial(shallowSchema))
+
+typealias EmbedNullable = Tuple<String, Struct<ShallowSchema>?>
+val embedNullable = Tuple("a", string, "b", nullable(shallowSchema))
+
+val embedNullablePartial = Tuple("a", string, "b", nullable(partial(shallowSchema)))
+typealias EmbedNullablePartial = Tuple<String, PartialStruct<ShallowSchema>?>
 
 class RelationSchemas {
 
-    object ShallowSchema : Schema<ShallowSchema>() {
-        val A = "a" let string
-        val B = "b" mut long
-    }
     @Test fun `no rels`() {
-        val table = SimpleTable(ShallowSchema, "zzz", "_id", long)
+        val table = SimpleTable(shallowSchema, "zzz", "_id", long)
         assertEquals(
-                arrayOf(PkLens(table), ShallowSchema.A, ShallowSchema.B),
+                arrayOf(PkLens(table), shallowSchema.First, shallowSchema.Second),
                 table.columns
         )
     }
     @Test(expected = IllegalStateException::class) fun `same name as pk`() {
-        SimpleTable(ShallowSchema, "dupeName", "a", long).columns
+        SimpleTable(shallowSchema, "dupeName", "a", long).columns
     }
 
-    object DupeEmbed : Schema<DupeEmbed>() {
-        val a = "a_b" let string
-        val b = "a" let ShallowSchema
-    }
     @Test(expected = IllegalStateException::class) fun `same name as nested`() {
-        object : SimpleTable<DupeEmbed, Long>(DupeEmbed, "", "a", long) {
+        object : SimpleTable<DupeEmbed, Long>(dupeEmbed, "", "a", long) {
             override fun relations(): Array<Relation<DupeEmbed, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, DupeEmbed.b)
+                    Relation.Embedded(SnakeCase, dupeEmbed.Second)
             )
         }.columns
     }
@@ -57,110 +69,94 @@ class RelationSchemas {
 
     // embedded
 
-    object EmbedSchema : Schema<EmbedSchema>() {
-        val A = "a" let string
-        val B = "b" let ShallowSchema
-    }
     @Test(expected = NoSuchElementException::class)
     fun `rels required`() {
-        SimpleTable(EmbedSchema, "zzz", "_id", long).columns
+        SimpleTable(embedSchema, "zzz", "_id", long).columns
     }
     @Test fun `embed struct`() {
-        val table = object : SimpleTable<EmbedSchema, Long>(EmbedSchema, "zzz", "_id", long) {
+        val table = object : SimpleTable<EmbedSchema, Long>(embedSchema, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedSchema, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedSchema.B)
+                    Relation.Embedded(SnakeCase, embedSchema.Second)
             )
         }
         assertEquals(arrayOf("_id", "a", "b_a", "b_b"), table.columns.names())
         assertEquals(
                 arrayOf(
                         PkLens(table),
-                        EmbedSchema.A,
-                        Telescope("", EmbedSchema.B, ShallowSchema.A),
-                        Telescope("", EmbedSchema.B, ShallowSchema.B)
+                        embedSchema.First,
+                        Telescope("", embedSchema.Second, shallowSchema.First),
+                        Telescope("", embedSchema.Second, shallowSchema.Second)
                 ),
                 table.columns
         )
     }
 
-    object EmbedPartial : Schema<EmbedPartial>() {
-        val A = "a" let string
-        val B = "b" let partial(ShallowSchema)
-    }
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for partial`() {
-        object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", "_id", long) {
+        object : SimpleTable<EmbedPartial, Long>(embedPartial, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedPartial, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedPartial.B)
+                    Relation.Embedded(SnakeCase, embedPartial.Second)
             )
         }.columns
     }
     @Test fun `embed partial`() {
-        val table: SimpleTable<EmbedPartial, Long> = object : SimpleTable<EmbedPartial, Long>(EmbedPartial, "zzz", "_id", long) {
+        val table: SimpleTable<EmbedPartial, Long> = object : SimpleTable<EmbedPartial, Long>(embedPartial, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedPartial, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedPartial.B, "fieldsSet")
+                    Relation.Embedded(SnakeCase, embedPartial.Second, "fieldsSet")
             )
         }
         assertEquals(arrayOf("_id", "a", "b_fieldsSet", "b_a", "b_b"), table.columns.names())
         assertEquals(
                 arrayOf(
                         PkLens(table),
-                        EmbedPartial.A,
-                        EmbedPartial.B / FieldSetLens("fieldsSet"),
-                        Telescope("b_a", EmbedPartial.B, ShallowSchema.A),
-                        Telescope("b_b", EmbedPartial.B, ShallowSchema.B)
+                        embedPartial.First,
+                        embedPartial.Second / FieldSetLens("fieldsSet"),
+                        Telescope("b_a", embedPartial.Second, shallowSchema.First),
+                        Telescope("b_b", embedPartial.Second, shallowSchema.Second)
                 ),
                 table.columns
         )
     }
 
-    object EmbedNullable : Schema<EmbedNullable>() {
-        val A = "a" let string
-        val B = "b" let nullable(ShallowSchema)
-    }
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for nullable`() {
-        object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", "_id", long) {
+        object : SimpleTable<EmbedNullable, Long>(embedNullable, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedNullable, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedNullable.B)
+                    Relation.Embedded(SnakeCase, embedNullable.Second)
             )
         }.columns
     }
     @Test fun `embed nullable`() {
-        val table = object : SimpleTable<EmbedNullable, Long>(EmbedNullable, "zzz", "_id", long) {
+        val table = object : SimpleTable<EmbedNullable, Long>(embedNullable, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedNullable, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedNullable.B, "nullability")
+                    Relation.Embedded(SnakeCase, embedNullable.Second, "nullability")
             )
         }
         assertEquals(arrayOf("_id", "a", "b_nullability", "b_a", "b_b"), table.columns.names())
         assertEquals(
                 arrayOf(
                         PkLens(table),
-                        EmbedNullable.A,
-                        EmbedNullable.B / FieldSetLens("nullability"),
-                        Telescope("b_a", EmbedNullable.B, ShallowSchema.A),
-                        Telescope("b_b", EmbedNullable.B, ShallowSchema.B)
+                        embedNullable.First,
+                        embedNullable.Second / FieldSetLens("nullability"),
+                        Telescope("b_a", embedNullable.Second, shallowSchema.First),
+                        Telescope("b_b", embedNullable.Second, shallowSchema.Second)
                 ),
                 table.columns
         )
     }
 
-    object EmbedNullablePartial : Schema<EmbedNullablePartial>() {
-        val A = "a" let string
-        val B = "b" let nullable(partial(ShallowSchema))
-    }
     @Test(expected = NoSuchElementException::class)
     fun `fieldSetCol required for partial nullable`() {
-        object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", "_id", long) {
+        object : SimpleTable<EmbedNullablePartial, Long>(embedNullablePartial, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedNullablePartial, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedNullablePartial.B)
+                    Relation.Embedded(SnakeCase, embedNullablePartial.Second)
             )
         }.columns
     }
     @Test fun `embed nullable partial`() {
-        val table = object : SimpleTable<EmbedNullablePartial, Long>(EmbedNullablePartial, "zzz", "_id", long) {
+        val table = object : SimpleTable<EmbedNullablePartial, Long>(embedNullablePartial, "zzz", "_id", long) {
             override fun relations(): Array<Relation<EmbedNullablePartial, Long, *>> = arrayOf(
-                    Relation.Embedded(SnakeCase, EmbedNullablePartial.B, "fieldSetAndNullability")
+                    Relation.Embedded(SnakeCase, embedNullablePartial.Second, "fieldSetAndNullability")
             )
         }
         assertEquals(
@@ -170,10 +166,10 @@ class RelationSchemas {
         assertEquals(
                 arrayOf(
                         PkLens(table),
-                        EmbedNullablePartial.A,
-                        EmbedNullablePartial.B / FieldSetLens("fieldSetAndNullability"),
-                        Telescope("b_a", EmbedNullablePartial.B, ShallowSchema.A),
-                        Telescope("b_b", EmbedNullablePartial.B, ShallowSchema.B)
+                        embedNullablePartial.First,
+                        embedNullablePartial.Second / FieldSetLens("fieldSetAndNullability"),
+                        Telescope("b_a", embedNullablePartial.Second, shallowSchema.First),
+                        Telescope("b_b", embedNullablePartial.Second, shallowSchema.Second)
                 ),
                 table.columns
         )
