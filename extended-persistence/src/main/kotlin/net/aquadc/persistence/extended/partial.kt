@@ -31,7 +31,7 @@ fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH
             override val schema: SCH
                 get() = schema
 
-            override fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>?): PartialStruct<SCH> =
+            override fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): PartialStruct<SCH> =
                     schema.buildPartial { builder -> fill(builder, this, fields, values) }
 
             override fun store(value: PartialStruct<SCH>): PartialStruct<SCH> =

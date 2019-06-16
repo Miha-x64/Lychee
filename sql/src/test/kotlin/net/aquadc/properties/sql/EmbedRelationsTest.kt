@@ -60,7 +60,7 @@ open class EmbedRelationsTest {
             }
 
             assertEquals("uncommitted should be visible through mut col", "mutated", emb[SchWithId.MutValue])
-            // which is not guaranteed for immutable columns, though
+            // fixme which is not guaranteed for immutable columns, though
         }
 
         val newEmb = rec[WithNested.Nested]

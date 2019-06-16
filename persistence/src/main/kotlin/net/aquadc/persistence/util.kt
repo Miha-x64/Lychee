@@ -10,6 +10,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.isEmpty
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.AnyCollection
@@ -192,26 +193,32 @@ inline fun <reified T> List<T>.array(): Array<T> =
         (this as java.util.List<T>).toArray(arrayOfNulls<T>(size))
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<out Any?>?) {
-    when (values?.size ?: 0) {
-        0 -> // empty
-            Unit
+fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?) {
+    when {
+        values === null -> { // empty
+            require(fields.isEmpty)
+        }
 
-        fields.size.toInt() -> { // 'packed'
-            values!!
+        values !is Array<*> -> { // single
+            require(fields.size.toInt() == 1)
+            schema.forEach(fields) {
+                builder[it as FieldDef<SCH, Any?>] = values
+            }
+        }
+
+        values.size == fields.size.toInt() -> { // 'packed'
             schema.forEachIndexed(fields) { idx, field ->
                 builder[field as FieldDef<SCH, Any?>] = values[idx]
             }
         }
 
-        schema.fields.size -> { // 'sparse'
-            values!!
+        values.size == schema.fields.size -> { // 'sparse'
             schema.forEach(fields) { field ->
                 builder[field as FieldDef<SCH, Any?>] = values[field.ordinal.toInt()]
             }
         }
 
         else ->
-            error("cannot set ${schema.toString(fields)} to ${values?.asList()}: inconsistent sizes")
+            error("cannot set ${schema.toString(fields)} to ${values.realToString()}: inconsistent sizes")
     }
 }

@@ -129,15 +129,16 @@ sealed class DataType<T> {
         /**
          * Converts a persistable value into its in-memory representation.
          * @param fields a set of fields provided within [values] array
-         * @param values all values for [fields] listed
-         *   if [Array.size] is equal [net.aquadc.persistence.struct.size], field layout in [values] is assumed to be 'packed'
-         *   if size is equal to [Schema]'s declared field count, layout is assumed to be 'sparse'
-         *   `null` is allowed only if [fields] are empty
+         * @param values all values for [fields] listed, may be
+         *   not an array, [fields] expected to have size of 1, and [values] treated as a value for the single field
+         *   an array of size [net.aquadc.persistence.struct.size], field layout in [values] is assumed to be 'packed'
+         *   an array of size equal to [Schema]'s declared field count, layout is assumed to be 'sparse'
+         *   `null` if [fields] are empty
          * @return in-memory representation of data in [values]
          * @see net.aquadc.persistence.struct.indexOf
          * @see net.aquadc.persistence.fill
          */
-        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Array<Any?>?): T
+        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): T
 
         /**
          * Converts in-memory value into its persistable representation.
@@ -147,7 +148,6 @@ sealed class DataType<T> {
 
     }
 
-    // note: these functions ignore the
 
     override fun equals(other: Any?): Boolean {
         if (other !is DataType<*> || javaClass !== other.javaClass) return false

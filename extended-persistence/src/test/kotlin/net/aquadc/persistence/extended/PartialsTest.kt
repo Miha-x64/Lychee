@@ -110,4 +110,10 @@ class PartialsTest {
         }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), arrayOf(99)))
     }
 
+    @Test fun `create single`() {
+        assertEquals(SomeSchema.buildPartial {
+            it[B] = 99
+        }, net.aquadc.persistence.extended.partial(SomeSchema).load(SomeSchema.B.asFieldSet(), 99))
+    }
+
 }
