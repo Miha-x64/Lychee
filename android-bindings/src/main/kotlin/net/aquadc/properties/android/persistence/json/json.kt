@@ -212,7 +212,7 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
         else {
             val partial = type.store(arg)
             beginObject()
-            partial.schema.forEach<SCH, FieldDef<SCH, *>>(partial.fields) { field ->
+            type.schema.forEach<SCH, FieldDef<SCH, *>>(partial.fields) { field ->
                 name(field.name)
                 writeValueFrom(partial, field)
             }

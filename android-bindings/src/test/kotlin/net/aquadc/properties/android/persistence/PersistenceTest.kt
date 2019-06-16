@@ -2,6 +2,8 @@ package net.aquadc.properties.android.persistence
 
 import android.util.JsonReader
 import android.util.JsonWriter
+import net.aquadc.persistence.extended.Tuple
+import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
@@ -124,6 +126,19 @@ class PersistenceTest {
 
     @Test(expected = UnsupportedOperationException::class) fun `fail on dupe JSON names`() {
         JsonReader(StringReader("""{"int":1, "int": 2}""")).read(partial(Sch))
+    }
+
+    @Test fun renaming() {
+        val innerSchema = Tuple("q", string, "w", string)
+        val schema = Tuple("a", string, "b", innerSchema)
+
+        assertEquals(
+                """{"first":"lorem","second":{"a":"ipsum","b":"dolor"}}""",
+                StringWriter().also { JsonWriter(it).write(
+                        Tuple("first", string, "second", Tuple("a", string, "b", string)),
+                        schema.build("lorem", innerSchema.build("ipsum", "dolor"))
+                ) }.toString()
+        )
     }
 
 }
