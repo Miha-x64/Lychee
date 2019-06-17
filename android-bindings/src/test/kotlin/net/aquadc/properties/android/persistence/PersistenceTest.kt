@@ -3,12 +3,14 @@ package net.aquadc.properties.android.persistence
 import android.util.JsonReader
 import android.util.JsonWriter
 import net.aquadc.persistence.extended.Tuple
+import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.byteString
 import net.aquadc.persistence.type.collection
 import net.aquadc.persistence.type.double
@@ -140,5 +142,100 @@ class PersistenceTest {
                 ) }.toString()
         )
     }
+
+    val smallSchema = Tuple3("a", string, "b", string, "c", string)
+    val partialSmallSchema = partial(smallSchema)
+
+    @Test fun `json empty partial`() {
+        assertEquals(
+                """{}""",
+                write(partialSmallSchema, smallSchema.buildPartial())
+        )
+        assertEquals(
+                smallSchema.buildPartial(),
+                read("""{}""", partialSmallSchema)
+        )
+        assertEquals(
+                smallSchema.buildPartial(),
+                read("""[]""", partialSmallSchema, lenient = true)
+        )
+    }
+
+    @Test fun `json partial with a single field`() {
+        assertEquals(
+                """{"a":"lorem"}""",
+                write(partialSmallSchema, smallSchema.buildPartial(first = "lorem"))
+        )
+        assertEquals(
+                """{"b":"lorem"}""",
+                write(partialSmallSchema, smallSchema.buildPartial(second = "lorem"))
+        )
+        assertEquals(
+                smallSchema.buildPartial(first = "lorem"),
+                read("""{"a":"lorem"}""", partialSmallSchema)
+        )
+        assertEquals(
+                smallSchema.buildPartial(second = "lorem"),
+                read("""{"b":"lorem"}""", partialSmallSchema)
+        )
+    }
+
+    @Test fun `json partial`() {
+        assertEquals(
+                """{"a":"lorem","b":"ipsum"}""",
+                write(partialSmallSchema, smallSchema.buildPartial(first = "lorem", second = "ipsum"))
+        )
+        assertEquals(
+                """{"a":"lorem","c":"ipsum"}""",
+                write(partialSmallSchema, smallSchema.buildPartial(first = "lorem", third = "ipsum"))
+        )
+        assertEquals(
+                """{"b":"lorem","c":"ipsum"}""",
+                write(partialSmallSchema, smallSchema.buildPartial(second = "lorem", third = "ipsum"))
+        )
+
+        assertEquals(
+                smallSchema.buildPartial(first = "lorem", second = "ipsum"),
+                read("""{"a":"lorem","b":"ipsum"}""", partialSmallSchema)
+        )
+        assertEquals(
+                smallSchema.buildPartial(first = "lorem", third = "ipsum"),
+                read("""{"a":"lorem","c":"ipsum"}""", partialSmallSchema)
+        )
+        assertEquals(
+                smallSchema.buildPartial(second = "lorem", third = "ipsum"),
+                read("""{"b":"lorem","c":"ipsum"}""", partialSmallSchema)
+        )
+    }
+
+    @Test fun `full json partial`() {
+        assertEquals(
+                """{"a":"lorem","b":"ipsum","c":"dolor"}""",
+                write(smallSchema, smallSchema.build("lorem", "ipsum", "dolor"))
+        )
+        assertEquals(
+                """{"a":"lorem","b":"ipsum","c":"dolor"}""",
+                write(partialSmallSchema, smallSchema.buildPartial("lorem", "ipsum", "dolor"))
+        )
+
+        assertEquals(
+                smallSchema.build("lorem", "ipsum", "dolor"),
+                read("""{"a":"lorem","b":"ipsum","c":"dolor"}""", smallSchema)
+        )
+        assertEquals(
+                smallSchema.buildPartial("lorem", "ipsum", "dolor"),
+                read("""{"a":"lorem","b":"ipsum","c":"dolor"}""", smallSchema)
+        )
+    }
+
+    private fun <T> read(json: String, type: DataType<T>, lenient: Boolean = false): T =
+            JsonReader(StringReader(json)).also {
+                it.isLenient = lenient
+            }.read(type)
+
+    private fun <T> write(type: DataType<T>, value: T): String =
+            StringWriter().also {
+                JsonWriter(it).write(type, value)
+            }.toString()
 
 }

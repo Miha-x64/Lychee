@@ -14,7 +14,7 @@ class PropertyReader<T>(
 ) : PropertyIo {
 
     override fun <T> DataType<T>.invoke(prop: MutableProperty<T>) {
-        prop.value = read(kind, input)
+        prop.value = kind.read(input, this)
     }
 
 }

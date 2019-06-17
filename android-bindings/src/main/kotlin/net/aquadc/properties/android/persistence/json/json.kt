@@ -104,22 +104,38 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                 JsonToken.BEGIN_OBJECT -> {
                     beginObject()
                     var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
-                    var values: Array<Any?>? = null
-                    if (hasNext()) {
-                        val byName = type.schema.fieldsByName
-                        values = arrayOfNulls(byName.size)
-                        do {
-                            val field = byName[nextName()]
-                            if (field == null) skipValue() // unsupported value
-                            else {
-                                val oldFields = fields
-                                fields += field
-                                if (oldFields.bitmask == fields.bitmask) {
-                                    throw UnsupportedOperationException("duplicate name in JSON object: ${field.name}")
-                                }
-                                values[field.ordinal.toInt()] = read(field.type)
+                    var values: Any? = null
+
+                    val byName = type.schema.fieldsByName
+                    val firstField = nextField(byName)
+                    if (firstField != null) {
+                        fields += firstField
+                        values = read(firstField.type)
+
+                        var nextField = nextField(byName)
+                        if (nextField != null) {
+                            val v = values
+                            values = arrayOfNulls<Any>(byName.size)
+                            values[firstField.ordinal.toInt()] = v
+                        } else if (values is Array<*>) {
+                            values = arrayOf(values)
+                        }
+                        // if the first field is the only one (and is not an array),
+                        // we're gonna pass it to Partial factory without allocating an array
+
+                        // else proceed reading the following fields
+                        while (nextField != null) {
+                            values as Array<Any?>
+
+                            val oldFields = fields
+                            fields += nextField
+                            if (oldFields.bitmask == fields.bitmask) {
+                                throw UnsupportedOperationException("duplicate name in JSON object: ${nextField.name}")
                             }
-                        } while (hasNext())
+                            values[nextField.ordinal.toInt()] = read(nextField.type)
+
+                            nextField = nextField(byName)
+                        }
                     }
                     endObject()
                     type.load(fields, values)
@@ -131,6 +147,16 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                     error(expect.joinToString(prefix = "expected ", postfix = ", was $actual"))
                 }
             }
+
+    private fun <SCH : Schema<SCH>> JsonReader.nextField(byName: Map<String, FieldDef<SCH, *>>): FieldDef<SCH, *>? {
+        while (hasNext()) {
+            val field = byName[nextName()]
+            if (field == null) skipValue() // unsupported value
+            else return field
+        }
+        return null
+    }
+
 }
 
 /**

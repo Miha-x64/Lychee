@@ -15,7 +15,7 @@ import java.io.DataOutputStream
 fun <T> serialized(type: DataType<T>): DataType.Simple<T> = object : DataType.Simple<T>(Kind.Blob) {
 
     override fun load(value: SimpleValue): T =
-            type.read(DataStreams, DataInputStream(ByteArrayInputStream(value as ByteArray)))
+            DataStreams.read(DataInputStream(ByteArrayInputStream(value as ByteArray)), type)
 
     override fun store(value: T): SimpleValue =
             ByteArrayOutputStream().also {

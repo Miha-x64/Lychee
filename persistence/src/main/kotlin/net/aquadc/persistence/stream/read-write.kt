@@ -9,6 +9,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
+import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEach
@@ -25,9 +26,14 @@ import net.aquadc.persistence.type.match
  * Writes [struct] into [output] with help of [this].
  */
 fun <D, SCH : Schema<SCH>> BetterDataOutput<D>.write(output: D, struct: Struct<SCH>) {
-    struct.schema.fields.forEach { field ->
-        writeValueFrom(struct, field, to = output)
-    }
+    struct.schema.write(this, output, struct)
+}
+
+/**
+ * Writes [value] into [output] with help of [this].
+ */
+fun <D, T> BetterDataOutput<D>.write(output: D, type: DataType<T>, value: T) {
+    type.write(this, output, value)
 }
 
 @Suppress("NOTHING_TO_INLINE") // just capture T; assert [field] is present
@@ -113,13 +119,12 @@ class StreamWriterVisitor<D, T>(
 
 
 /**
- * Reads a [Struct] of the given [schema] from [input] with help of [this].
+ * Reads a value of the given [type] from [input] with help of [this].
  */
-fun <D, SCH : Schema<SCH>> BetterDataInput<D>.read(input: D, schema: SCH): StructSnapshot<SCH> = schema.build {
-    schema.fields.forEach { field ->
-        readValueFrom(input, field, to = it)
-    }
-}
+fun <D, T> BetterDataInput<D>.read(input: D, type: DataType<T>): T =
+    type.read(this, input)
+
+
 @Suppress("NOTHING_TO_INLINE") // single call-site, just capture T
 private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.readValueFrom(input: D, field: FieldDef<SCH, T>, to: StructBuilder<SCH>) {
     to[field] = field.type.read(this, input)
@@ -128,6 +133,7 @@ private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.readValueFrom(in
 /**
  * Reads a value of [this] type from [input] with help of [reader].
  */
+@Deprecated("public version has another signature", ReplaceWith("reader.read<D, T>(input, this)"))
 fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
         reader.readVisitor<T>().match(this, input, null)
 
@@ -178,21 +184,36 @@ class StreamReaderVisitor<D, T>(
 
     override fun <SCH : Schema<SCH>> D.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
             input.readByte(this).let { size ->
-                if (size == (-1).toByte()) {
-                    check(nullable)
-                    null as T
-                } else {
-                    var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
-                    val schema = type.schema
-                    val allFields = schema.fields
-                    val values = arrayOfNulls<Any>(allFields.size)
-                    repeat(size.toInt()) { _ ->
-                        val ordinal = input.readByte(this).toInt()
-                        val field = allFields[ordinal]
-                        fields += field
-                        values[ordinal] = field.type.read(input, this)
+                when (size.toInt()) {
+                    -1 -> {
+                        check(nullable)
+                        null as T
                     }
-                    type.load(fields, values)
+                    0 -> {
+                        type.load(emptyFieldSet(), null)
+                    }
+                    1 -> {
+                        val ordinal = input.readByte(this).toInt()
+                        val field = type.schema.fields[ordinal]
+                        val value = field.type.read(input, this)
+                        type.load(
+                                field.asFieldSet(),
+                                if (value is Array<*>) arrayOf(value) else value
+                        )
+                    }
+                    else -> {
+                        var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
+                        val schema = type.schema
+                        val allFields = schema.fields
+                        val values = arrayOfNulls<Any>(allFields.size)
+                        repeat(size.toInt()) { _ ->
+                            val ordinal = input.readByte(this).toInt()
+                            val field = allFields[ordinal]
+                            fields += field
+                            values[ordinal] = field.type.read(input, this)
+                        }
+                        type.load(fields, values)
+                    }
                 }
             }
 

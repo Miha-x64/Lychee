@@ -3,6 +3,7 @@
 
 package net.aquadc.persistence.extended
 
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
@@ -31,6 +32,17 @@ inline fun <A, B> Tuple<A, B>.build(
         build {
             it[First] = first
             it[Second] = second
+        }
+
+/**
+ * Creates a partial instance of a [Tuple] according to [this] schema.
+ */
+inline fun <A : Any, B : Any> Tuple<A, B>.buildPartial(
+        first: A? = null, second: B? = null
+): PartialStruct<Tuple<A, B>> =
+        buildPartial<Tuple<A, B>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
         }
 
 /**
@@ -73,6 +85,18 @@ inline fun <A, B, C> Tuple3<A, B, C>.build(
             it[First] = first
             it[Second] = second
             it[Third] = third
+        }
+
+/**
+ * Creates a partial instance of a [Tuple3] according to [this] schema.
+ */
+inline fun <A : Any, B : Any, C : Any> Tuple3<A, B, C>.buildPartial(
+        first: A? = null, second: B? = null, third: C? = null
+): PartialStruct<Tuple3<A, B, C>> =
+        buildPartial<Tuple3<A, B, C>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
+            if (third != null) it[Third] = third
         }
 
 /**
@@ -125,6 +149,19 @@ inline fun <A, B, C, D> Tuple4<A, B, C, D>.build(
             it[Second] = second
             it[Third] = third
             it[Fourth] = fourth
+        }
+
+/**
+ * Creates a partial instance of a [Tuple4] according to [this] schema.
+ */
+inline fun <A : Any, B : Any, C : Any, D : Any> Tuple4<A, B, C, D>.buildPartial(
+        first: A? = null, second: B? = null, third: C? = null, fourth: D? = null
+): PartialStruct<Tuple4<A, B, C, D>> =
+        buildPartial<Tuple4<A, B, C, D>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
+            if (third != null) it[Third] = third
+            if (fourth != null) it[Fourth] = fourth
         }
 
 /**
@@ -187,6 +224,20 @@ inline fun <A, B, C, D, E> Tuple5<A, B, C, D, E>.build(
             it[Third] = third
             it[Fourth] = fourth
             it[Fifth] = fifth
+        }
+
+/**
+ * Creates a partial instance of a [Tuple5] according to [this] schema.
+ */
+inline fun <A : Any, B : Any, C : Any, D : Any, E : Any> Tuple5<A, B, C, D, E>.buildPartial(
+        first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null
+): PartialStruct<Tuple5<A, B, C, D, E>> =
+        buildPartial<Tuple5<A, B, C, D, E>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
+            if (third != null) it[Third] = third
+            if (fourth != null) it[Fourth] = fourth
+            if (fifth != null) it[Fifth] = fifth
         }
 
 /**
@@ -259,6 +310,21 @@ inline fun <A, B, C, D, E, F> Tuple6<A, B, C, D, E, F>.build(
             it[Fourth] = fourth
             it[Fifth] = fifth
             it[Sixth] = sixth
+        }
+
+/**
+ * Creates a partial instance of a [Tuple6] according to [this] schema.
+ */
+inline fun <A : Any, B : Any, C : Any, D : Any, E : Any, F : Any> Tuple6<A, B, C, D, E, F>.buildPartial(
+        first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null
+): PartialStruct<Tuple6<A, B, C, D, E, F>> =
+        buildPartial<Tuple6<A, B, C, D, E, F>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
+            if (third != null) it[Third] = third
+            if (fourth != null) it[Fourth] = fourth
+            if (fifth != null) it[Fifth] = fifth
+            if (sixth != null) it[Sixth] = sixth
         }
 
 /**
@@ -341,6 +407,22 @@ inline fun <A, B, C, D, E, F, G> Tuple7<A, B, C, D, E, F, G>.build(
             it[Fifth] = fifth
             it[Sixth] = sixth
             it[Seventh] = seventh
+        }
+
+/**
+ * Creates a partial instance of a [Tuple7] according to [this] schema.
+ */
+inline fun <A : Any, B : Any, C : Any, D : Any, E : Any, F : Any, G : Any> Tuple7<A, B, C, D, E, F, G>.buildPartial(
+        first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null, seventh: G? = null
+): PartialStruct<Tuple7<A, B, C, D, E, F, G>> =
+        buildPartial<Tuple7<A, B, C, D, E, F, G>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
+            if (third != null) it[Third] = third
+            if (fourth != null) it[Fourth] = fourth
+            if (fifth != null) it[Fifth] = fifth
+            if (sixth != null) it[Sixth] = sixth
+            if (seventh != null) it[Seventh] = seventh
         }
 
 /**
@@ -433,6 +515,23 @@ inline fun <A, B, C, D, E, F, G, H> Tuple8<A, B, C, D, E, F, G, H>.build(
             it[Sixth] = sixth
             it[Seventh] = seventh
             it[Eighth] = eighth
+        }
+
+/**
+ * Creates a partial instance of a [Tuple8] according to [this] schema.
+ */
+inline fun <A : Any, B : Any, C : Any, D : Any, E : Any, F : Any, G : Any, H : Any> Tuple8<A, B, C, D, E, F, G, H>.buildPartial(
+        first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null, seventh: G? = null, eighth: H? = null
+): PartialStruct<Tuple8<A, B, C, D, E, F, G, H>> =
+        buildPartial<Tuple8<A, B, C, D, E, F, G, H>> {
+            if (first != null) it[First] = first
+            if (second != null) it[Second] = second
+            if (third != null) it[Third] = third
+            if (fourth != null) it[Fourth] = fourth
+            if (fifth != null) it[Fifth] = fifth
+            if (sixth != null) it[Sixth] = sixth
+            if (seventh != null) it[Seventh] = seventh
+            if (eighth != null) it[Eighth] = eighth
         }
 
 /**
