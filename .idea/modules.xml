@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/android-bindings/android-bindings.iml" filepath="$PROJECT_DIR$/android-bindings/android-bindings.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android-sample/android-sample.iml" filepath="$PROJECT_DIR$/android-sample/android-sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/extended-persistence.iml" filepath="$PROJECT_DIR$/.idea/modules/extended-persistence.iml" />
+      <module fileurl="file://$PROJECT_DIR$/fake-bindings/fake-bindings.iml" filepath="$PROJECT_DIR$/fake-bindings/fake-bindings.iml" />
+      <module fileurl="file://$PROJECT_DIR$/fx-bindings/fx-bindings.iml" filepath="$PROJECT_DIR$/fx-bindings/fx-bindings.iml" />
+      <module fileurl="file://$PROJECT_DIR$/fx-sample/fx-sample.iml" filepath="$PROJECT_DIR$/fx-sample/fx-sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/logic-sample/logic-sample.iml" filepath="$PROJECT_DIR$/logic-sample/logic-sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/persistence/persistence.iml" filepath="$PROJECT_DIR$/persistence/persistence.iml" />
+      <module fileurl="file://$PROJECT_DIR$/properties/properties.iml" filepath="$PROJECT_DIR$/properties/properties.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/reactive-properties.iml" filepath="$PROJECT_DIR$/.idea/reactive-properties.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sql/sql.iml" filepath="$PROJECT_DIR$/sql/sql.iml" />
+      <module fileurl="file://$PROJECT_DIR$/testing/testing.iml" filepath="$PROJECT_DIR$/testing/testing.iml" />
+    </modules>
+  </component>
+</project>
