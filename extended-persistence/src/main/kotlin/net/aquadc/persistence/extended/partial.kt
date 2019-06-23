@@ -26,10 +26,7 @@ import kotlin.contracts.contract
 
 
 fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH>, SCH> =
-        object : DataType.Partial<PartialStruct<SCH>, SCH>() {
-
-            override val schema: SCH
-                get() = schema
+        object : DataType.Partial<PartialStruct<SCH>, SCH>(schema) {
 
             override fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): PartialStruct<SCH> =
                     schema.buildPartial { builder -> fill(builder, this, fields, values) }

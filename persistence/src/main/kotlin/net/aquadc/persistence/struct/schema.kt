@@ -13,9 +13,6 @@ import net.aquadc.persistence.type.DataType
  */
 abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF>() {
 
-    override val schema: SELF
-        get() = this as SELF
-
     /**
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
      */
@@ -75,7 +72,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      */
     protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
         val fields = tmpFields()
-        val col = FieldDef.Mutable(this@Schema, this, dataType, fields.size.toByte(), default, mutableCount++)
+        val col = FieldDef.Mutable(schema, this, dataType, fields.size.toByte(), default, mutableCount++)
         fields.add(col)
         return col
     }
@@ -87,7 +84,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      */
     protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
-        val col = FieldDef.Immutable(this@Schema, this, dataType, fields.size.toByte(), (fields.size - mutableCount).toByte())
+        val col = FieldDef.Immutable(schema, this, dataType, fields.size.toByte(), (fields.size - mutableCount).toByte())
         fields.add(col)
         return col
     }
@@ -200,7 +197,7 @@ interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : Lens<SC
  * @see Immutable
  */
 sealed class FieldDef<SCH : Schema<SCH>, T>(
-        @JvmField val schema: Schema<SCH>,
+        @JvmField val schema: SCH,
         override val name: String,
         override val type: DataType<T>,
         @JvmField val ordinal: Byte,
@@ -245,7 +242,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
      * Represents a mutable field of a [Struct]: its value can be changed.
      */
     class Mutable<SCH : Schema<SCH>, T> internal constructor(
-            schema: Schema<SCH>,
+            schema: SCH,
             name: String,
             type: DataType<T>,
             ordinal: Byte,
@@ -258,7 +255,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
      */
     @Suppress("UNCHECKED_CAST")
     class Immutable<SCH : Schema<SCH>, T> internal constructor(
-            schema: Schema<SCH>,
+            schema: SCH,
             name: String,
             type: DataType<T>,
             ordinal: Byte,

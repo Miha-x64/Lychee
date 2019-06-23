@@ -122,10 +122,18 @@ sealed class DataType<T> {
      * Represents a set of optional key-value mappings, according to [schema].
      * [Schema] itself represents a special case of [Partial], where all mappings are required.
      */
-    abstract class Partial<T, SCH : Schema<SCH>> : DataType<T>() {
+    abstract class Partial<T, SCH : Schema<SCH>> : DataType<T> {
 
-        abstract val schema: SCH
-
+        @JvmField val schema: SCH
+        
+        constructor(schema: SCH) {
+            this.schema = schema
+        }
+        
+        internal constructor() { // for Schema itself
+            this.schema = this as SCH
+        }
+        
         /**
          * Converts a persistable value into its in-memory representation.
          * @param fields a set of fields provided within [values] array
