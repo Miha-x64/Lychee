@@ -1,10 +1,13 @@
 package net.aquadc.persistence.extended
 
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.plus
+import net.aquadc.persistence.type.nullable
+import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -98,22 +101,26 @@ class PartialsTest {
         )
     }
 
-    @Test fun `create sparse`() {
-        assertEquals(SomeSchema.buildPartial {
-            it[B] = 99
-        }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), arrayOf(null, 99, null)))
-    }
-
     @Test fun `create packed`() {
         assertEquals(SomeSchema.buildPartial {
             it[B] = 99
-        }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), arrayOf(99)))
+            it[C] = 100L
+        }, partial(SomeSchema).load(SomeSchema.B + SomeSchema.C, arrayOf<Any>(99, 100L)))
     }
 
     @Test fun `create single`() {
         assertEquals(SomeSchema.buildPartial {
             it[B] = 99
-        }, net.aquadc.persistence.extended.partial(SomeSchema).load(SomeSchema.B.asFieldSet(), 99))
+        }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), 99))
+    }
+
+    object CoolSchema : Schema<CoolSchema>() {
+        val Single = "single" let nullable(string)
+    }
+
+    @Test fun singleNull() {
+        val partial = CoolSchema.buildPartial { it[Single] = null }
+        assertEquals(partial, partial(CoolSchema).load(CoolSchema.Single.asFieldSet(), null))
     }
 
 }

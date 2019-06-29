@@ -7,6 +7,7 @@ import android.util.JsonToken
 import android.util.JsonWriter
 import net.aquadc.persistence.each
 import net.aquadc.persistence.fatAsList
+import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
@@ -15,7 +16,9 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.plus
+import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.single
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
@@ -88,6 +91,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                 null as T
             } else type.load(readListOf(type.elementType))
 
+    private val fieldValues = ThreadLocal<ArrayList<Any?>>()
     override fun <SCH : Schema<SCH>> JsonReader.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
             when (val actual = peek()) {
                 JsonToken.NULL -> {
@@ -98,47 +102,15 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                 JsonToken.BEGIN_ARRAY -> { // treat [] as {}, if you were unlucky to deal with PHP server-side
                     check(isLenient) { "expected object, was array. Set lenient=true to treat empty arrays as empty objects" }
                     beginArray()
-                    endArray() // crash on nonempty arrays
+                    endArray() // crash on nonempty arrays, I don't know how to interpret them as objects
                     type.load(emptyFieldSet(), null)
                 }
                 JsonToken.BEGIN_OBJECT -> {
                     beginObject()
-                    var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
-                    var values: Any? = null
-
                     val byName = type.schema.fieldsByName
-                    val firstField = nextField(byName)
-                    if (firstField != null) {
-                        fields += firstField
-                        values = read(firstField.type)
-
-                        var nextField = nextField(byName)
-                        if (nextField != null) {
-                            val v = values
-                            values = arrayOfNulls<Any>(byName.size)
-                            values[firstField.ordinal.toInt()] = v
-                        } else if (values is Array<*>) {
-                            values = arrayOf(values)
-                        }
-                        // if the first field is the only one (and is not an array),
-                        // we're gonna pass it to Partial factory without allocating an array
-
-                        // else proceed reading the following fields
-                        while (nextField != null) {
-                            values as Array<Any?>
-
-                            val oldFields = fields
-                            fields += nextField
-                            if (oldFields.bitmask == fields.bitmask) {
-                                throw UnsupportedOperationException("duplicate name in JSON object: ${nextField.name}")
-                            }
-                            values[nextField.ordinal.toInt()] = read(nextField.type)
-
-                            nextField = nextField(byName)
-                        }
-                    }
+                    val struct = readPartial(type, fieldValues, { nextField(byName) }, { read(it) })
                     endObject()
-                    type.load(fields, values)
+                    struct
                 }
                 else -> {
                     val expect = arrayListOf("object")
@@ -236,11 +208,23 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
     override fun <SCH : Schema<SCH>> JsonWriter.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
         if (nullable && arg === null) nullValue()
         else {
-            val partial = type.store(arg)
             beginObject()
-            type.schema.forEach<SCH, FieldDef<SCH, *>>(partial.fields) { field ->
-                name(field.name)
-                writeValueFrom(partial, field)
+            val fields = type.fields(arg)
+            val values = type.store(arg)
+            when (fields.size.toInt()) {
+                0 -> { } // nothing to do here
+                1 -> {
+                    val field = type.schema.single(fields)
+                    name(field.name)
+                    write(field.type as DataType<Any?>, values)
+                }
+                else -> {
+                    values as Array<*>
+                    type.schema.forEachIndexed<SCH, FieldDef<SCH, *>>(fields) { idx, field ->
+                        name(field.name)
+                        write(field.type as DataType<Any?>, values[idx])
+                    }
+                }
             }
             endObject()
         }

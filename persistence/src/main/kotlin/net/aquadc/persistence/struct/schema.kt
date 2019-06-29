@@ -1,6 +1,7 @@
 package net.aquadc.persistence.struct
 
 import net.aquadc.persistence.New
+import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.fill
 import net.aquadc.persistence.type.DataType
 
@@ -147,8 +148,11 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
     override fun load(fields: FieldSet<SELF, FieldDef<SELF, *>>, values: Any?): Struct<SELF> =
             schema.build { builder -> fill(builder, this, fields, values) }
 
-    override fun store(value: Struct<SELF>): PartialStruct<SELF> =
-            value
+    override fun fields(value: Struct<SELF>): FieldSet<SELF, FieldDef<SELF, *>> =
+            schema.allFieldSet()
+
+    override fun store(value: Struct<SELF>): Any? =
+            value.fieldValues()
 
 }
 

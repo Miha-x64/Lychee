@@ -41,6 +41,7 @@ class FieldSetTest {
         val list = ArrayList<FieldDef<SomeSchema, *>>()
         SomeSchema.forEach(SomeSchema.B.asFieldSet(), { list.add(it) })
         assertEquals(listOf(SomeSchema.B), list)
+        assertEquals(SomeSchema.B, SomeSchema.single(SomeSchema.B.asFieldSet()))
     }
     @Test fun `single contains`() {
         val set = SomeSchema.B.asFieldSet()

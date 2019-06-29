@@ -8,14 +8,18 @@ import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
-import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEachIndexed
-import net.aquadc.persistence.struct.isEmpty
+import net.aquadc.persistence.struct.indexOf
+import net.aquadc.persistence.struct.plus
+import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.AnyCollection
+import net.aquadc.persistence.type.DataType
 import java.util.Arrays
 import java.util.Collections
+import kotlin.concurrent.getOrSet
 
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -192,33 +196,111 @@ fun <SCH : Schema<SCH>> PartialStruct<SCH>.valuesOf(lenses: Array<out Lens<*, *,
 inline fun <reified T> List<T>.array(): Array<T> =
         (this as java.util.List<T>).toArray(arrayOfNulls<T>(size))
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?) {
-    when {
-        values === null -> { // empty
-            require(fields.isEmpty)
-        }
+internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?) {
+    when (fields.size.toInt()) {
+        0 -> { } // empty. Nothing to do here!
 
-        values !is Array<*> -> { // single
-            require(fields.size.toInt() == 1)
-            schema.forEach(fields) {
-                builder[it as FieldDef<SCH, Any?>] = values
-            }
-        }
+        1 ->
+            builder[schema.single(fields) as FieldDef<SCH, Any?>] = values
 
-        values.size == fields.size.toInt() -> { // 'packed'
+        (values as Array<*>).size -> { // 'packed'
             schema.forEachIndexed(fields) { idx, field ->
                 builder[field as FieldDef<SCH, Any?>] = values[idx]
             }
         }
 
-        values.size == schema.fields.size -> { // 'sparse'
-            schema.forEach(fields) { field ->
-                builder[field as FieldDef<SCH, Any?>] = values[field.ordinal.toInt()]
-            }
-        }
-
-        else ->
-            error("cannot set ${schema.toString(fields)} to ${values.realToString()}: inconsistent sizes")
+        else -> error("cannot set ${schema.toString(fields)} to ${values.realToString()}: inconsistent sizes")
     }
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> PartialStruct<SCH>.fieldValues(): Any? {
+    val fields = fields
+    return when (val fieldCount = fields.size.toInt()) {
+        0 -> null
+        1 -> getOrThrow(schema.single(fields))
+        else -> {
+            val values = arrayOfNulls<Any>(fieldCount)
+            schema.forEachIndexed(fields) { idx, field ->
+                values[idx] = getOrThrow(field)
+            }
+            values
+        }
+    }
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+inline fun <T, SCH : Schema<SCH>> readPartial(
+        type: DataType.Partial<T, SCH>, fieldValues: ThreadLocal<ArrayList<Any?>>,
+        maybeReadNextField: () -> FieldDef<SCH, *>?,
+        readNextValue: (DataType<*>) -> Any?
+): T {
+    var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
+    var values: Any? = null
+
+    val firstField = maybeReadNextField()
+    if (firstField != null) {
+        fields += firstField
+        values = readNextValue(firstField.type)
+        // if the first field is the only one,
+        // we're gonna pass it to Partial factory without allocating an array
+
+        // else proceed reading the following fields
+        var nextField = maybeReadNextField()
+        if (nextField != null) {
+            val fieldValues = fieldValues.getOrSet(::ArrayList)
+            try {
+                fieldValues.add(firstField)
+                fieldValues.add(values)
+
+                while (nextField != null) {
+                    val newFields = fields + nextField
+                    if (fields.bitmask == newFields.bitmask) {
+                        throw UnsupportedOperationException("duplicate name: ${nextField.name}")
+                    }
+                    val value = readNextValue(nextField.type)
+
+                    // nothing crashed, commit
+                    fields = newFields
+                    fieldValues.add(nextField)
+                    fieldValues.add(value)
+
+                    nextField = maybeReadNextField()
+                }
+            } catch (t: Throwable) {
+                // if something goes wrong (especially within read()),
+                // we're gonna pop everything we've pushed, saving the rest of application from memory leaks
+                fieldValues.pop(2 * fields.size.toInt())
+                throw t
+            }
+
+            values = gatherValues(fields, fieldValues)
+        }
+    }
+    return type.load(fields, values)
+}
+
+@PublishedApi
+internal fun <T> ArrayList<T>.pop(): T =
+        removeAt(size - 1)
+
+@PublishedApi
+internal fun ArrayList<*>.pop(count: Int) {
+    // yep, I don't know operators precedence :)
+    val size = size
+    for (i in (size - 1) downTo (size - count)) {
+        removeAt(i)
+    }
+}
+
+@PublishedApi
+internal fun <SCH : Schema<SCH>> gatherValues(fields: FieldSet<SCH, FieldDef<SCH, *>>, fieldValues: ArrayList<Any?>): Array<Any?> {
+    val fieldCount = fields.size.toInt()
+    val values = arrayOfNulls<Any>(fieldCount)
+    repeat(fieldCount) { _ ->
+        val value = fieldValues.pop()
+        val field = fieldValues.pop() as FieldDef<SCH, *>
+        values[fields.indexOf(field).toInt()] = value
+    }
+    return values
 }

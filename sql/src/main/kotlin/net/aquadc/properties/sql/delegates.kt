@@ -1,5 +1,6 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.NamedLens
@@ -80,7 +81,7 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
             type is DataType.Nullable<*> && previous === null -> null
             actualType is Schema<*> -> StructSnapshot(previous as Struct<TSCH>)
             actualType is DataType.Partial<*, *> -> (actualType as DataType.Partial<PartialStruct<TSCH>, TSCH>)
-                    .load((previous as PartialStruct<TSCH>).fields, previous.packedValues())
+                    .load((previous as PartialStruct<TSCH>).fields, previous.fieldValues())
             else -> throw AssertionError()
         }
         val vals = (update as PartialStruct<TSCH>?)?.valuesOf(columns, path.size)
@@ -99,14 +100,6 @@ internal class Embedded<SCH : Schema<SCH>, TSCH : Schema<TSCH>, ID : IdBound, RE
 
         check(path.size == 1) // preserve a copy of previous struct, 'cause we gonna forget its values:
         oldVals[(path as FieldDef.Mutable).ordinal.toInt()] = prev
-    }
-
-    private fun <SCH : Schema<SCH>> PartialStruct<SCH>.packedValues(): Array<Any?> {
-        val values = arrayOfNulls<Any>(fields.size.toInt())
-        schema.forEachIndexed(fields) { idx, field ->
-            values[idx] = getOrThrow(field)
-        }
-        return values
     }
 
 }

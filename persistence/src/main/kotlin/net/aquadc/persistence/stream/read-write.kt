@@ -3,17 +3,13 @@ package net.aquadc.persistence.stream
 import android.support.annotation.RestrictTo
 import net.aquadc.persistence.each
 import net.aquadc.persistence.fatAsList
+import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
-import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.struct.asFieldSet
-import net.aquadc.persistence.struct.build
-import net.aquadc.persistence.struct.emptyFieldSet
-import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.plus
+import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
@@ -34,11 +30,6 @@ fun <D, SCH : Schema<SCH>> BetterDataOutput<D>.write(output: D, struct: Struct<S
  */
 fun <D, T> BetterDataOutput<D>.write(output: D, type: DataType<T>, value: T) {
     type.write(this, output, value)
-}
-
-@Suppress("NOTHING_TO_INLINE") // just capture T; assert [field] is present
-private inline fun <D, SCH : Schema<SCH>, T> BetterDataOutput<D>.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>, to: D) {
-    field.type.write(this, to, struct.getOrThrow(field))
 }
 
 /**
@@ -105,12 +96,24 @@ class StreamWriterVisitor<D, T>(
         if (nullable && arg === null) {
             output.writeByte(this, (-1).toByte())
         } else {
-            val partial = type.store(arg)
-            val fields = partial.fields
-            output.writeByte(this, fields.size)
-            type.schema.forEach(fields) { field ->
-                output.writeByte(this, field.ordinal)
-                output.writeValueFrom(partial, field, this)
+            val values = type.store(arg)
+            val fields = type.fields(arg)
+            val size = fields.size
+            output.writeByte(this, size)
+            when (size.toInt()) {
+                0 -> { /* nothing to do here */ }
+                1 -> {
+                    val field = type.schema.single(fields)
+                    output.writeByte(this, field.ordinal)
+                    (field.type as DataType<Any?>).write(output, this, values)
+                }
+                else -> { // packed or all
+                    values as Array<*>
+                    type.schema.forEachIndexed(fields) { idx, field ->
+                        output.writeByte(this, field.ordinal)
+                        (field.type as DataType<Any?>).write(output, this, values[idx])
+                    }
+                }
             }
         }
     }
@@ -182,39 +185,24 @@ class StreamReaderVisitor<D, T>(
         }
     }
 
+    private val fieldValues = ThreadLocal<ArrayList<Any?>>()
     override fun <SCH : Schema<SCH>> D.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
-            input.readByte(this).let { size ->
-                when (size.toInt()) {
-                    -1 -> {
-                        check(nullable)
-                        null as T
-                    }
-                    0 -> {
-                        type.load(emptyFieldSet(), null)
-                    }
-                    1 -> {
-                        val ordinal = input.readByte(this).toInt()
-                        val field = type.schema.fields[ordinal]
-                        val value = field.type.read(input, this)
-                        type.load(
-                                field.asFieldSet(),
-                                if (value is Array<*>) arrayOf(value) else value
-                        )
-                    }
-                    else -> {
-                        var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
-                        val schema = type.schema
-                        val allFields = schema.fields
-                        val values = arrayOfNulls<Any>(allFields.size)
-                        repeat(size.toInt()) { _ ->
-                            val ordinal = input.readByte(this).toInt()
-                            val field = allFields[ordinal]
-                            fields += field
-                            values[ordinal] = field.type.read(input, this)
-                        }
-                        type.load(fields, values)
-                    }
+            input.readByte(this).toInt().let { size ->
+                if (size == -1) {
+                    check(nullable)
+                    null as T
+                } else {
+                    val fields = type.schema.fields
+                    var fieldsLeft = size
+                    readPartial(
+                            type, fieldValues,
+                            { if (fieldsLeft == 0) null else { fieldsLeft--; nextField(fields) } },
+                            { input.read(this, it as DataType<Any?>) }
+                    )
                 }
             }
+
+    private fun <SCH : Schema<SCH>> D.nextField(fields: Array<out FieldDef<SCH, *>>): FieldDef<SCH, *> =
+            fields[input.readByte(this).toInt()]
 
 }

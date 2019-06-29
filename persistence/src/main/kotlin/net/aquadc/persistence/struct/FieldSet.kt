@@ -202,7 +202,6 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
  * Invokes [func] on each element of the [set].
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<SCH, F>, func: (F) -> Unit) {
-    val fields = fields
     var ord = 0
     var mask = set.bitmask
     while (mask != 0L) {
@@ -213,6 +212,20 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.forEach(set: FieldSet<S
         mask = mask ushr 1
         ord++
     }
+}
+
+/**
+ * Asserts [FieldSet.size] is 1 and returns this [FieldDef].
+ */
+fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>> SCH.single(set: FieldSet<SCH, F>): F {
+    var ord = 0
+    var mask = set.bitmask
+    while ((mask and 1L) == 0L) {
+        mask = mask ushr 1
+        ord++
+    }
+    check(mask == 1L)
+    return fields[ord] as F
 }
 
 /**

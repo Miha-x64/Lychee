@@ -3,7 +3,7 @@
 package net.aquadc.persistence.extended
 
 import android.support.annotation.RestrictTo
-import net.aquadc.persistence.fill
+import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -25,14 +25,22 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 
+private val EmptyArray = emptyArray<Any?>()
 fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH>, SCH> =
         object : DataType.Partial<PartialStruct<SCH>, SCH>(schema) {
 
             override fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): PartialStruct<SCH> =
-                    schema.buildPartial { builder -> fill(builder, this, fields, values) }
+                    PartialStructSnapshot(schema, fields, when (fields.size.toInt()) {
+                        0 -> EmptyArray
+                        1 -> arrayOf(values)
+                        else -> values as Array<Any?>
+                    }, null)
 
-            override fun store(value: PartialStruct<SCH>): PartialStruct<SCH> =
-                    value
+            override fun fields(value: PartialStruct<SCH>): FieldSet<SCH, FieldDef<SCH, *>> =
+                    value.fields
+
+            override fun store(value: PartialStruct<SCH>): Any? =
+                    value.fieldValues()
 
         }
 
@@ -53,12 +61,20 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(schema: SCH, fields: FieldSet<SCH, *>, values: Array<Any?>) : super(schema) {
+    constructor(schema: SCH, fields: FieldSet<SCH, *>, sparseValues: Array<Any?>) : super(schema) {
         this.fields = fields
-        this.values = arrayOfNulls(fields.size.toInt())
-        schema.forEachIndexed<SCH, FieldDef<SCH, *>>(fields) { idx, field ->
-            this.values[idx] = values[field.ordinal.toInt()]
+        this.values = arrayOfNulls<Any>(fields.size.toInt()).also { packed ->
+            schema.forEachIndexed<SCH, FieldDef<SCH, *>>(fields) { idx, field ->
+                packed[idx] = sparseValues[field.ordinal.toInt()]
+            }
         }
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    constructor(schema: SCH, fields: FieldSet<SCH, *>, packedValues: Array<Any?>, dummy: Nothing?) : super(schema) {
+        check(fields.size.toInt() == packedValues.size)
+        this.fields = fields
+        this.values = packedValues
     }
 
     override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =

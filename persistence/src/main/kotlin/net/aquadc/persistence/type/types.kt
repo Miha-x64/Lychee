@@ -2,7 +2,6 @@ package net.aquadc.persistence.type
 
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 
@@ -112,7 +111,7 @@ sealed class DataType<T> {
          * Converts in-memory value into a persistable collection.
          * Values of output collection must be in their in-memory representation,
          * it's caller's responsibility to convert them to persistable representation.
-         * @return persistable representation of [value]
+         * @return persistable representation of [value], a collection of in-memory representations
          */
         abstract fun store(value: C): AnyCollection
 
@@ -137,22 +136,29 @@ sealed class DataType<T> {
         /**
          * Converts a persistable value into its in-memory representation.
          * @param fields a set of fields provided within [values] array
-         * @param values all values for [fields] listed, may be
-         *   not an array, [fields] expected to have size of 1, and [values] treated as a value for the single field
-         *   an array of size [net.aquadc.persistence.struct.size], field layout in [values] is assumed to be 'packed'
-         *   an array of size equal to [Schema]'s declared field count, layout is assumed to be 'sparse'
-         *   `null` if [fields] are empty
-         * @return in-memory representation of data in [values]
+         * @param values values in their in-memory representation according to [fields] size
+         *   0 -> ignored
+         *   1 -> the value for the only field
+         *   else -> 'packed' layout, no gaps between values
+         * @return in-memory representation of [fields] and their [values]
          * @see net.aquadc.persistence.struct.indexOf
          * @see net.aquadc.persistence.fill
          */
         abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): T
 
         /**
-         * Converts in-memory value into its persistable representation.
-         * @return persistable representation of [value]
+         * Returns a set of fields which have values.
+         * Required to parse data returned by [store] function.
          */
-        abstract fun store(value: T): PartialStruct<SCH>
+        abstract fun fields(value: T): FieldSet<SCH, FieldDef<SCH, *>>
+
+        /**
+         * Converts in-memory value into its persistable representation.
+         * @param value an input value to read from
+         * @return all values, using the same layouts as in [load], in their unchanged, in-memory representation
+         * @see fields to know how to interpret the return value
+         */
+        abstract fun store(value: T): Any?
 
     }
 
@@ -165,7 +171,7 @@ sealed class DataType<T> {
             is Nullable<*> -> other is Nullable<*> && actualType == other.actualType
             is Simple -> other is Simple<*> && kind === other.kind
             is Collect<*, *> -> other is Collect<*, *> && elementType == other.elementType
-            is Partial<*, *> -> other is Partial<*, *> && schema == other.schema && (this is Struct<*> == other is Struct<*>)
+            is Partial<*, *> -> other is Partial<*, *> && schema == other.schema
         }
     }
 
