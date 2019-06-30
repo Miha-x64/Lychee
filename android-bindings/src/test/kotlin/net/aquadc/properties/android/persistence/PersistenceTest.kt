@@ -6,6 +6,8 @@ import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.either.Either
+import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -50,6 +52,8 @@ class PersistenceTest {
     }
 
     object Sch : Schema<Sch>() {
+        val tupleType = Tuple("a", long, "b", double)
+
         val INT = "int" let int
         val DOUBLE = "double" let double
         val ENUM = "enum" let SomeEnum.Type
@@ -61,6 +65,7 @@ class PersistenceTest {
         val BLOB = "blob" let byteString
         val STRUCT = "struct" let nullable(Sch)
         val PART = "part" let partial(Sch)
+        val EITHER = "either" let either("left", tupleType, "right", int)
     }
 
     val instance = Sch.build {
@@ -85,10 +90,12 @@ class PersistenceTest {
             it[BLOB] = ByteString.decodeHex("B10B")
             it[STRUCT] = null
             it[PART] = Sch.buildPartial { }
+            it[EITHER] = Either.First(tupleType.build(10, 20.0))
         }
         it[PART] = Sch.buildPartial {
             it[STRING] = "I'm partial!"
         }
+        it[EITHER] = Either.Second(14)
     }
 
     @Test fun `json object`() {

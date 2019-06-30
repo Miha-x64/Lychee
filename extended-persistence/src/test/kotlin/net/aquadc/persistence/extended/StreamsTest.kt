@@ -1,10 +1,15 @@
 package net.aquadc.persistence.extended
 
+import net.aquadc.persistence.extended.either.Either
+import net.aquadc.persistence.extended.either.Either4
+import net.aquadc.persistence.extended.either.either
+import net.aquadc.persistence.extended.either.either4
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.nullable
+import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.ByteArrayInputStream
@@ -45,6 +50,32 @@ class StreamsTest {
                 partial,
                 read(partialSchema, write(partialSchema, partial))
         )
+    }
+
+    private val userType = Tuple4(
+            "name", string,
+            "surname", string,
+            "", either(
+                "second_name", string,
+                "patronymic", string
+            ),
+            "transport", either4(
+                    "preferred_public_transport", string,
+                    "bike_serial_number", string,
+                    "car_number", string,
+                    "horse_name", string
+            )
+    )
+    @Test fun either() {
+        val i = userType.build(
+                "Ivan", "Ivanov", Either.Second("Ivanovich"), Either4.Second("100500")
+        )
+        assertEquals(i, read(userType, write(userType, i)))
+
+        val j = userType.build(
+                "Jake", "Wharton", Either.First("???"), Either4.Fourth("Andrew")
+        )
+        assertEquals(j, read(userType, write(userType, j)))
     }
 
     private fun <T> read(type: DataType<T>, value: ByteArray): T =
