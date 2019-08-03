@@ -19,8 +19,8 @@ class Tuple<A, B>(
         firstName: String, firstType: DataType<A>,
         secondName: String, secondType: DataType<B>
 ) : Schema<Tuple<A, B>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
 }
 
 /**
@@ -70,9 +70,9 @@ class Tuple3<A, B, C>(
         secondName: String, secondType: DataType<B>,
         thirdName: String, thirdType: DataType<C>
 ) : Schema<Tuple3<A, B, C>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
-    val Third = thirdName mut thirdType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
+    @JvmField val Third = thirdName mut thirdType
 }
 
 /**
@@ -132,10 +132,10 @@ class Tuple4<A, B, C, D>(
         thirdName: String, thirdType: DataType<C>,
         fourthName: String, fourthType: DataType<D>
 ) : Schema<Tuple4<A, B, C, D>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
-    val Third = thirdName mut thirdType
-    val Fourth = fourthName mut fourthType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
+    @JvmField val Third = thirdName mut thirdType
+    @JvmField val Fourth = fourthName mut fourthType
 }
 
 /**
@@ -205,11 +205,11 @@ class Tuple5<A, B, C, D, E>(
         fourthName: String, fourthType: DataType<D>,
         fifthName: String, fifthType: DataType<E>
 ) : Schema<Tuple5<A, B, C, D, E>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
-    val Third = thirdName mut thirdType
-    val Fourth = fourthName mut fourthType
-    val Fifth = fifthName mut fifthType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
+    @JvmField val Third = thirdName mut thirdType
+    @JvmField val Fourth = fourthName mut fourthType
+    @JvmField val Fifth = fifthName mut fifthType
 }
 
 /**
@@ -289,12 +289,12 @@ class Tuple6<A, B, C, D, E, F>(
         fifthName: String, fifthType: DataType<E>,
         sixthName: String, sixthType: DataType<F>
 ) : Schema<Tuple6<A, B, C, D, E, F>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
-    val Third = thirdName mut thirdType
-    val Fourth = fourthName mut fourthType
-    val Fifth = fifthName mut fifthType
-    val Sixth = sixthName mut sixthType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
+    @JvmField val Third = thirdName mut thirdType
+    @JvmField val Fourth = fourthName mut fourthType
+    @JvmField val Fifth = fifthName mut fifthType
+    @JvmField val Sixth = sixthName mut sixthType
 }
 
 /**
@@ -384,13 +384,13 @@ class Tuple7<A, B, C, D, E, F, G>(
         sixthName: String, sixthType: DataType<F>,
         seventhName: String, seventhType: DataType<G>
 ) : Schema<Tuple7<A, B, C, D, E, F, G>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
-    val Third = thirdName mut thirdType
-    val Fourth = fourthName mut fourthType
-    val Fifth = fifthName mut fifthType
-    val Sixth = sixthName mut sixthType
-    val Seventh = seventhName mut seventhType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
+    @JvmField val Third = thirdName mut thirdType
+    @JvmField val Fourth = fourthName mut fourthType
+    @JvmField val Fifth = fifthName mut fifthType
+    @JvmField val Sixth = sixthName mut sixthType
+    @JvmField val Seventh = seventhName mut seventhType
 }
 
 /**
@@ -490,14 +490,14 @@ class Tuple8<A, B, C, D, E, F, G, H>(
         seventhName: String, seventhType: DataType<G>,
         eighthName: String, eighthType: DataType<H>
 ) : Schema<Tuple8<A, B, C, D, E, F, G, H>>() {
-    val First = firstName mut firstType
-    val Second = secondName mut secondType
-    val Third = thirdName mut thirdType
-    val Fourth = fourthName mut fourthType
-    val Fifth = fifthName mut fifthType
-    val Sixth = sixthName mut sixthType
-    val Seventh = seventhName mut seventhType
-    val Eighth = eighthName mut eighthType
+    @JvmField val First = firstName mut firstType
+    @JvmField val Second = secondName mut secondType
+    @JvmField val Third = thirdName mut thirdType
+    @JvmField val Fourth = fourthName mut fourthType
+    @JvmField val Fifth = fifthName mut fifthType
+    @JvmField val Sixth = sixthName mut sixthType
+    @JvmField val Seventh = seventhName mut seventhType
+    @JvmField val Eighth = eighthName mut eighthType
 }
 
 /**
