@@ -357,20 +357,25 @@ where the values of some properties depend on some other ones.
 
 * `LiveData`
   
-  Confined to `Handler`/`Looper` which limits usage and complicates testing.
-  It's also an abstract class, which leaves no way of creating different implementations.
+  Confined to `Handler`/`Looper` which limits usage to Android only and complicates testing.
+  It's also an abstract class, thus customization is limited.
 
 * XML data-binding
 
   Uses XML layouts (inflexible) and code generation (sucks in many ways).
   Ties layouts to hard-coded Java classes, which kills XML reusability.
 
-#### May I rely on source or binary compatibility?
+#### Why version is 0.0.x?
 
-Nope, not now.
-Visible API will mostly stay the same, but implementation and binary interface may be seriously changed.
-Many functions are `inline`, they return instances of `@PublishedApi internal` classes. These classes are [flyweights](https://en.wikipedia.org/wiki/Flyweight_pattern) implementing many interfaces,
-but only one interface should be publicly visible.
+1.x versions mean stable and compatible API/ABI.
+Lychee interface is not volatile, but is a subject to change, move, rename.
+This means that it can be used in production apps (migrations are easy), but not in libraries.
+
+`0.1.0` version is to be released after adding mutational and [linearization](https://github.com/Kotlin/kotlinx-lincheck) tests,
+`1.0.0` is planned after dropping workarounds for
+  [KT-24981: @JvmSynthetic for classes](https://youtrack.jetbrains.com/issue/KT-24981),
+  [KT-24067: type checking and casting of multi-arity function objects](https://youtrack.jetbrains.com/issue/KT-24067),
+  [KT-33224: overloads, @JvmName, inline class parameter](https://youtrack.jetbrains.com/issue/KT-33224), etc.
 
 #### Where and how should I dispose subscriptions?
 
@@ -410,5 +415,5 @@ It also was backported to ~~Java 6.5~~ _Android_ a long time ago.
 Note that it is distributed under 'GPL v. 2.0 with classpath exception'
 which is not as restrictive as GPL itself.
 
-You can mutate concurrent properties in the end of async computations (i. e. from CompletableFuture's Consumer),
-triggering UI state change as needed.
+You can mutate concurrent properties from background threads (e. g. in the end of async computations),
+triggering UI state change as needed and without any callbacks.

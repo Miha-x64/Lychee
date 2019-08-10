@@ -87,10 +87,16 @@ object CamelCase : NamingConvention() {
         name,
         run {
             if (outer.type is Schema<*> || nested.type is DataType.Nullable<*>) nested.type
+            //  ^^^^^^leave as is^^^^^^ or ^^^^^^^it is already nullable^^^^^^^
             else nullable(nested.type as DataType<Any>)
         } as DataType<U>
 ) {
 
+    /*
+     * nullable(Schema), partial(Schema), or any custom Partial type
+     * considered to have all fields nullable to indicate that a value may be absent.
+     * Schema is a 'magic' type with all values set.
+     */
     private inline val addNullability
         get() = outer.type !is Schema<*>
 
