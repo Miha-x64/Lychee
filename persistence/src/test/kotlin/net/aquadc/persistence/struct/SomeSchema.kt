@@ -7,6 +7,7 @@ import net.aquadc.persistence.type.string
 
 object SomeSchema : Schema<SomeSchema>() {
     val A = "a" let string
-    val B = "b" let int
+    val B = "b".mut(int, 10)
     val C = "c" mut long
+    val D = "d".let(long, 92L)
 }

@@ -122,7 +122,7 @@ class FieldSetTest {
         assertEquals(63.toByte(), Schema63.allFieldSet().size)
     }
     @Test fun `all minus`() {
-        assertEquals(SomeSchema.A + SomeSchema.B, SomeSchema.allFieldSet() - SomeSchema.C)
+        assertEquals(SomeSchema.A + SomeSchema.B + SomeSchema.D, SomeSchema.allFieldSet() - SomeSchema.C)
     }
 
     @Test fun `all64 forEach`() {
@@ -157,14 +157,14 @@ class FieldSetTest {
 
 
     @Test fun all() {
-        assertEquals(SomeSchema.allFieldSet(), SomeSchema.A + SomeSchema.B + SomeSchema.C)
-        assertEquals(3.toByte(), SomeSchema.allFieldSet().size)
+        assertEquals(SomeSchema.allFieldSet(), SomeSchema.A + SomeSchema.B + SomeSchema.C + SomeSchema.D)
+        assertEquals(4.toByte(), SomeSchema.allFieldSet().size)
 
-        assertEquals(SomeSchema.immutableFieldSet(), SomeSchema.A + SomeSchema.B)
+        assertEquals(SomeSchema.immutableFieldSet(), SomeSchema.A + SomeSchema.D)
         assertEquals(2.toByte(), SomeSchema.immutableFieldSet().size)
 
-        assertEquals(SomeSchema.mutableFieldSet(), SomeSchema.C.asFieldSet())
-        assertEquals(1.toByte(), SomeSchema.mutableFieldSet().size)
+        assertEquals(SomeSchema.mutableFieldSet(), SomeSchema.B + SomeSchema.C)
+        assertEquals(2.toByte(), SomeSchema.mutableFieldSet().size)
     }
 
     @Test fun all63() {

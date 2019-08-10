@@ -58,7 +58,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
             tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 
     /**
-     * Creates, remembers and returns a new mutable field definition without default value.
+     * Creates, remembers, and returns a new mutable field definition without default value.
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
@@ -67,7 +67,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
             this.mut(type, Unset as T)
 
     /**
-     * Creates, remembers and returns a new mutable field definition with a default value.
+     * Creates, remembers, and returns a new mutable field definition with a default value.
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
@@ -79,13 +79,24 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
     }
 
     /**
-     * Creates, remembers and returns a new immutable field definition.
+     * Creates, remembers, and returns a new immutable field definition without default value.
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
-    protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> {
+    @Suppress("UNCHECKED_CAST")
+    protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> =
+            this.let(dataType, Unset as T)
+
+    /**
+     * Creates, remembers, and returns a new immutable field definition with a default value.
+     * Default value for immutable column looks useless when building instances directly,
+     * but it is useful for maintaining compatibility of data transport format.
+     * Don't call this conditionally,
+     * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
+     */
+    protected fun <T> String.let(dataType: DataType<T>, default: T): FieldDef.Immutable<SELF, T> {
         val fields = tmpFields()
-        val col = FieldDef.Immutable(schema, this, dataType, fields.size.toByte(), (fields.size - mutableCount).toByte())
+        val col = FieldDef.Immutable(schema, this, dataType, fields.size.toByte(), default, (fields.size - mutableCount).toByte())
         fields.add(col)
         return col
     }
@@ -263,8 +274,9 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
             name: String,
             type: DataType<T>,
             ordinal: Byte,
+            default: T,
             @JvmField val immutableOrdinal: Byte
-    ) : FieldDef<SCH, T>(schema, name, type, ordinal, Unset as T)
+    ) : FieldDef<SCH, T>(schema, name, type, ordinal, default)
 
 }
 

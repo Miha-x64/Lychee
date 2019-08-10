@@ -111,6 +111,17 @@ class StructTests {
         })
     }
 
+    @Test fun defaults() {
+        val struct = SomeSchema.build {
+            it[A] = "zzz"
+            it[C] = 111L
+        }
+        assertEquals("zzz", struct[SomeSchema.A])
+        assertEquals(10, struct[SomeSchema.B])
+        assertEquals(111L, struct[SomeSchema.C])
+        assertEquals(92L, struct[SomeSchema.D])
+    }
+
     @Test fun `copy from`() {
         val aaa = SomeSchema.build {
             it[A] = "a"
