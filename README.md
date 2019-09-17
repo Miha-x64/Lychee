@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.org/Miha-x64/reactive-properties.svg?branch=master)](https://travis-ci.org/Miha-x64/reactive-properties)
+[![Build Status](https://travis-ci.org/Miha-x64/Lychee.svg?branch=master)](https://travis-ci.org/Miha-x64/Lychee)
 ![Lock-free](https://img.shields.io/badge/%E2%9A%9B-Lock--free-3399aa.svg) 
 ![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely%20Lightweight-7799cc.svg)
 [![Hits-of-Code](https://hitsofcode.com/github/Miha-x64/Lychee)](https://hitsofcode.com/view/github/Miha-x64/Lychee)
@@ -232,6 +232,8 @@ object Player : Schema<Player>() {
 }
 ```
 `let` function creates an immutable field definition, `mut` declares a mutable one.
+`Name`, `Surname` and `Score` are field definitions,
+similarly to [typed key](https://matklad.github.io/2018/05/24/typed-key-pattern.html) pattern.
 
 `Struct` is an instance carrying some data according to a certain `Schema`.
 ```kt
