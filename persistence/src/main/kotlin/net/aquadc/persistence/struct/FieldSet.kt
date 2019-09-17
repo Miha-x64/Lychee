@@ -272,6 +272,12 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *>, reified R> SCH.mapIndexed(s
  */
 inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *>>
 /*internal*/ @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) @Deprecated("Don't. Touch. This. Directly.") constructor(
+        /**
+         * A value with bits set according to fields present.
+         * A set considered to be 'containing field f' when bitmask has a bit `1 << f.ordinal` set.
+         * This value is a part of serialization ABI and has stable format
+         * as it is written to and read from persistent storages.
+         */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val bitmask: Long
 )
 
