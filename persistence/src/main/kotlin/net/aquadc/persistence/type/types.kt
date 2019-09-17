@@ -22,9 +22,22 @@ typealias AnyCollection = Any
 // @see fatMap, fatMapTo, fatAsList, don't forget to update them
 
 /**
- * Represents a way of storing a value.
- * 'Encoded' type is Any to avoid creating many different types inside a sealed class —
- * that would impede decorating existing [DataType] implementations.
+ * Describes type of stored values and underlying serialization techniques.
+ * This property is a part of serialization ABI.
+ *
+ * Replacing one DataType<T> with another DataType<T> (which is OK for source and binary compatibility)
+ * may break serialization compatibility,
+ * while replacing DataType<T1> with DataType<T2> (which may break source and binary compatibility)
+ * may not, and vice versa.
+ *
+ * Data types are compatible if
+ * * d1 is [DataType.Simple] and d2 is [DataType.Simple] and `d1.kind == d2.kind`
+ * * d1 is [DataType.Collect] and d2 is [DataType.Collect] and d1.elementType is compatible with d2.elementType
+ * * d1 is [DataType.Partial] and d2 is [DataType.Partial] and d1.schema is compatible to d2.schema
+ *   (schemas s1 and s2 are considered to be compatible when they have the same number of fields,
+ *    for each n s1.fields[n] has type compatible to s2.fields[n],
+ *    and, depending on underlying serialization machinery,
+ *    s1.fields[n] has either same name or same ordinal as s2.fields[n].)
  */
 sealed class DataType<T> {
 
@@ -44,7 +57,7 @@ sealed class DataType<T> {
         override fun hashCode(): Int =
                 actualType.hashCode() xor 0x55555555
 
-        // looks useless, but helps using assertEquals() in tests
+        // looks useless but helps using assertEquals() in tests
 
         override fun equals(other: Any?): Boolean =
                 other is Nullable<*> && actualType == other.actualType

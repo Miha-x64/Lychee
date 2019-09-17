@@ -214,8 +214,35 @@ interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : Lens<SC
 sealed class FieldDef<SCH : Schema<SCH>, T>(
         @JvmField val schema: SCH,
         override val name: String,
+
+        /**
+         * Describes type of values it can store and underlying serialization techniques.
+         * This property is a part of serialization ABI.
+         */
         override val type: DataType<T>,
+
+        /**
+         * Zero-based ordinal number of this field.
+         * Fields are getting their ordinals according to the program evaluation order.
+         * This property is a part of serialization ABI, so changing field order is a breaking change.
+         *
+         * Given a Schema
+         *     object SampleSchema : Schema<SampleSchema>() {
+         *         val First = "first" let string
+         *         val Second = "second" let string
+         *         val Third = "third" let string
+         *     }
+         * Field 'removal' in compatible fashion will look like
+         *     object SampleSchema : Schema<SampleSchema>() {
+         *         val First = "first" let string
+         *         init { "second" let string }
+         *         val Third = "third" let string
+         *     }
+         * This will guarantee that property initializers will be executed in the same order
+         * and ordinals will remain unchanged.
+         */
         @JvmField val ordinal: Byte,
+
         default: T
 ) : NamedLens<SCH, PartialStruct<SCH>, T> {
 
