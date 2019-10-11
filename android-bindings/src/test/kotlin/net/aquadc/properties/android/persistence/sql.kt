@@ -8,7 +8,7 @@ import net.aquadc.properties.sql.QueryBuilderTests
 import net.aquadc.properties.sql.Session
 import net.aquadc.properties.sql.SqlPropTest
 import net.aquadc.properties.sql.SqliteSession
-import net.aquadc.properties.sql.Tables
+import net.aquadc.properties.sql.TestTables
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -24,7 +24,7 @@ private fun sqliteDb() = object : SQLiteOpenHelper(
         RuntimeEnvironment.application, "test.db", null, 1
 ) {
     override fun onCreate(db: SQLiteDatabase) {
-        Tables.forEach {
+        TestTables.forEach {
             db.execSQL(SqliteDialect.createTable(it))
         }
     }

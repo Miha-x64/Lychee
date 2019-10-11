@@ -35,6 +35,10 @@ internal interface LowLevelSession<STMT> {
             table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
     ): Long
 
+    fun <SCH : Schema<SCH>, ID : IdBound> fetch(
+            table: Table<SCH, ID, *>, columns: Array<NamedLens<SCH, *, *>>, id: ID
+    ): Array<Any?>
+
     val transaction: RealTransaction?
 
     fun <SCH : Schema<SCH>, ID : IdBound> pkCond(table: Table<SCH, ID, out Record<SCH, ID>>, value: ID): ColCond<SCH, ID>

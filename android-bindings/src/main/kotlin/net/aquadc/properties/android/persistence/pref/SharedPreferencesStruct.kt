@@ -88,15 +88,14 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
          *   Thus, 'dirty' state is nonsensical here.
          */
 
-        override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?): T =
+        override fun <T> getDirty(column: FieldDef.Mutable<SCH, T>, id: Nothing?): T =
                 Unset as T
 
-        override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?): T =
+        override fun <T> getClean(column: FieldDef<SCH, T>, id: Nothing?): T =
                 column.get(prefs)
 
-        override fun <T> set(transaction: StructTransaction<SCH>, column: NamedLens<SCH, Struct<SCH>, T>, id: Nothing?, previous: T, update: T) {
-            column as FieldDef.Mutable<SCH, T> // all our ManagedProperty instances are created with FieldDef
-            transaction.set(column, update)
+        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, id: Nothing?, previous: T, update: T) {
+            transaction.set(field, update)
         }
 
         // `SharedPreferences` keeps a weak reference and not going to leak us

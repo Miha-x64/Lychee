@@ -1,11 +1,9 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
-
 
 /**
  * Describes which way a value of [DataType.Partial] of [Struct]/[Schema] type should be persisted in a relational database.
@@ -18,7 +16,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      * Embed a (Partial)[Struct] of type [ET] into current table.
      * @param S outer [Schema]
      */
-    class Embedded<S : Schema<S>, ID : IdBound, ES : Schema<ES>, ET : PartialStruct<ES>?> : Relation<S, ID, ET> {
+    class Embedded<S : Schema<S>, ID : IdBound, ET> : Relation<S, ID, ET> {
 
         /**
          * @param naming which will concat names
@@ -59,9 +57,6 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
             this.fieldSetColName = fieldSetColName
         }
 
-        override fun hashCode(): Int = TODO()
-        override fun equals(other: Any?): Boolean = TODO()
-
     }
 
     /**
@@ -69,6 +64,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      * @param S outer schema
      * @param FS foreign schema
      */
+    @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ToOne<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, FR : Record<FS, FID>>(
             path: Lens<S, Record<S, ID>, FR?>, foreignTable: Table<FS, *, FR>
     ) : Relation<S, ID, FR?>(path) {
@@ -84,6 +80,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      * @param FS foreign schema
      * @param FR foreign record
      */
+    @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> private constructor(
             ourTable: Table<S, ID, R>, path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, FID>, *>
     ) : Relation<S, ID, C>(path) {
@@ -95,11 +92,11 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
         companion object {
             operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> Table<S, ID, R>.invoke(
                     path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, *>
-            ): ToMany<S, ID, FS, R, FID, FR, C> =
-                    ToMany(this, path, foreignTable, joinColumn)
+            ): Nothing = TODO() // ToMany<S, ID, FS, R, FID, FR, C> = ToMany(this, path, foreignTable, joinColumn)
         }
     }
 
+    @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ManyToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>, C : Collection<FR>>(
             path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinTable: JoinTable
     ) : Relation<S, ID, C>(path) {
@@ -119,7 +116,8 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
 /**
  * A special case of a table which has no PK and consists of two columns with a composite unique index.
  */
-class JoinTable(
+typealias JoinTable = Nothing
+/*class JoinTable(
         val aName: String,
         val aType: DataType.Simple<*>,
         val bName: String,
@@ -133,7 +131,7 @@ class JoinTable(
     fun filp(): JoinTable =
             JoinTable(bName, bType, aName, aType)
 
-}
+}*/
 
 internal fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
         path: Lens<S, Record<S, ID>, *>, foreignTable: Table<FS, *, FR>) {

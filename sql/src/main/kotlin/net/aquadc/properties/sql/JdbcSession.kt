@@ -78,9 +78,10 @@ class JdbcSession(
 
         override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
             val statement = updateStatementWLocked(table, columns)
-            bindUpdateParams(table, id, columns, values) { type, idx, value ->
+            val colCount = bindValues(columns, values) { type, idx, value ->
                 type.bind(statement, idx, value)
             }
+            table.idColType.bind(statement, colCount, id)
             check(statement.executeUpdate() == 1)
         }
 
@@ -120,15 +121,15 @@ class JdbcSession(
             }
         }
 
-        private fun <ID : IdBound, SCH : Schema<SCH>> select(
-                columnName: String?,
+        private fun <SCH : Schema<SCH>, ID : IdBound> select(
                 table: Table<SCH, ID, *>,
+                columns: Array<NamedLens<SCH, *, *>>?,
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<out SCH>>
         ): ResultSet {
             val query =
-                    if (columnName == null) dialect.selectCountQuery(table, condition)
-                    else dialect.selectFieldQuery(columnName, table, condition, order)
+                    if (columns == null) dialect.selectCountQuery(table, condition)
+                    else dialect.selectQuery(table, columns, condition, order)
 
             return getDao(table)
                     .selectStatements
@@ -145,27 +146,24 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
         ): T =
-                select(column.name, table, pkCond<SCH, ID>(table, id), NoOrder).fetchSingle(column.type)
+                select<SCH, ID>(table /* fixme allocation */, arrayOf(column), pkCond<SCH, ID>(table, id), NoOrder).fetchSingle(column.type)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
-                select(table.idColName, table, condition, order)
-                        .fetchAll(table.idColType)
+                select<SCH, ID>(table /* fixme allocation */, arrayOf(table.pkColumn), condition, order)
+                        .fetchAllRows(table.idColType)
                         .array<Any>() as Array<ID>
-
-        private fun <T> ResultSet.fetchAll(type: DataType<T>): List<T> {
-            val values = ArrayList<T>()
-            while (next())
-                values.add(type.get(this, 0))
-            close()
-            return values
-        }
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
         ): Long =
-                select(null, table, condition, NoOrder).fetchSingle(long)
+                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(long)
+
+        override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
+                table: Table<SCH, ID, *>, columns: Array<NamedLens<SCH, *, *>>, id: ID
+        ): Array<Any?> =
+                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
@@ -185,14 +183,32 @@ class JdbcSession(
             return condition
         }
 
-        private fun <T> ResultSet.fetchSingle(type: DataType<T>): T {
-            try {
-                check(next())
-                return type.get(this, 0)
-            } finally {
-                close()
-            }
+        private fun <T> ResultSet.fetchAllRows(type: DataType<T>): List<T> {
+            // TODO pre-size collection && try not to box primitives
+            val values = ArrayList<T>()
+            while (next())
+                values.add(type.get(this, 0))
+            close()
+            return values
         }
+
+        private fun <T> ResultSet.fetchSingle(type: DataType<T>): T =
+                try {
+                    check(next())
+                    type.get(this, 0)
+                } finally {
+                    close()
+                }
+
+        private fun <SCH : Schema<SCH>> ResultSet.fetchColumns(columns: Array<NamedLens<SCH, *, *>>): Array<Any?> =
+                try {
+                    check(next())
+                    columns.mapIndexedToArray { index, column ->
+                        column.type.get(this, index)
+                    }
+                } finally {
+                    close()
+                }
 
         private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
             val i = 1 + index

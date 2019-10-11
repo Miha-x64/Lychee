@@ -1,7 +1,11 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.Tuple3
+import net.aquadc.persistence.extended.either.Either
+import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.long
@@ -47,18 +51,21 @@ val TableWithDeepEmbed = object : SimpleTable<DeeplyNested, Long>(DeeplyNested, 
     )
 }
 
-object GoDeeper : Schema<GoDeeper>() {
-    val First = "first" let DeeplyNested
-    val Second = "second" let DeeplyNested
-}
-val WeNeedTOGoDeeper = object : SimpleTable<GoDeeper, Long>(GoDeeper, "deeper", "_id", long) {
+typealias GoDeeper = Tuple3<Struct<DeeplyNested>, Struct<DeeplyNested>, Either<String, Int>>
+val goDeeper = GoDeeper(
+        "first", DeeplyNested,
+        "second", DeeplyNested,
+        "third", either("left", string, "right", int)
+)
+val WeNeedToGoDeeper = object : SimpleTable<GoDeeper, Long>(goDeeper, "deeper", "_id", long) {
     override fun relations(): Array<out Relation<GoDeeper, Long, *>> = arrayOf(
-            Relation.Embedded(SnakeCase, GoDeeper.First),
-            Relation.Embedded(SnakeCase, GoDeeper.First / DeeplyNested.Nested),
-            Relation.Embedded(SnakeCase, GoDeeper.First / DeeplyNested.Nested / WithNested.Nested),
-            Relation.Embedded(SnakeCase, GoDeeper.Second),
-            Relation.Embedded(SnakeCase, GoDeeper.Second / DeeplyNested.Nested),
-            Relation.Embedded(SnakeCase, GoDeeper.Second / DeeplyNested.Nested / WithNested.Nested)
+            Relation.Embedded(SnakeCase, goDeeper.First),
+            Relation.Embedded(SnakeCase, goDeeper.First / DeeplyNested.Nested),
+            Relation.Embedded(SnakeCase, goDeeper.First / DeeplyNested.Nested / WithNested.Nested),
+            Relation.Embedded(SnakeCase, goDeeper.Second),
+            Relation.Embedded(SnakeCase, goDeeper.Second / DeeplyNested.Nested),
+            Relation.Embedded(SnakeCase, goDeeper.Second / DeeplyNested.Nested / WithNested.Nested),
+            Relation.Embedded(SnakeCase, goDeeper.Third, "which")
     )
 }
 
@@ -96,12 +103,15 @@ val TableWithEverything = object : SimpleTable<WithEverything, Long>(WithEveryth
     )
 }
 
-val Tables = arrayOf(SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedTOGoDeeper, TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything)
+val TestTables = arrayOf(
+        SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedToGoDeeper,
+        TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything
+)
 
 val jdbcSession by lazy { // init only when requested, unused in Rololectric tests
     JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
         val stmt = conn.createStatement()
-        Tables.forEach {
+        TestTables.forEach {
             stmt.execute(SqliteDialect.createTable(it))
         }
         stmt.close()

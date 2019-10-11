@@ -65,6 +65,10 @@ interface Session {
  * {@implNote [Manager] supertype is used by [ManagedProperty] instances}
  */
 interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<SCH, Transaction, ID> {
+    // TODO: instead, return flexible (FetchFormat<R>) -> R
+    //  ...where FetchFormat may return StructSnapshot, Property<StructSnapshot>, Record,
+    //     List<StructSnapshot>, Property<List<StructSnapshot>>, Property<List<Reecord>>, Diffs
+
     fun find(id: ID /* TODO fields to prefetch */): REC?
     fun select(condition: WhereCondition<SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO DiffProperty | group by | having
     // TODO: selectWhole(...): Property<List<Property<StructSnapshot<SCH>>>>
@@ -122,9 +126,11 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
             insert(table, data)
 
-    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, previous: T, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T>, previous: T, value: T)
+    // TODO: update where
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
+    // TODO: delete where
 
     /**
      * Clear the whole table.
@@ -182,6 +188,8 @@ val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
     get() = Order(this, true)
 
 
+@JvmField @JvmSynthetic internal val simpleDelegate = Simple<Nothing, Nothing>()
+
 /**
  * Represents a table, i. e. defines structs which can be persisted in a database.
  * @param SCH self, i. e. this table
@@ -224,8 +232,10 @@ private constructor(
      */
     protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
-    @JvmSynthetic @JvmField internal var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate>? = null // fixme: replace with Array
-    private val _columns: Lazy<Array<out NamedLens<SCH, REC, *>>> = lazy {
+    @JvmSynthetic @JvmField internal var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate<SCH, ID>>? = null // fixme: replace with Array
+    @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
+    @JvmSynthetic @JvmField internal var _columnsMappedToFields: Array<out NamedLens<SCH, REC, *>>? = null
+    private val _columns: Lazy<Array<out NamedLens<SCH, REC, *>>> = lazy { // fixme: check usages
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }
@@ -233,13 +243,21 @@ private constructor(
         if (pkField == null) {
             columns.add(PkLens(this))
         }
-        val delegates = New.map<Lens<SCH, REC, *>, SqlPropertyDelegate>()
-        embed(rels, schema, null, null, columns, delegates)
+        val delegates = New.map<Lens<SCH, REC, *>, SqlPropertyDelegate<SCH, ID>>()
+        val recipe = ArrayList<Nesting>()
+        val ss = Nesting.StructStart(false, null, schema)
+        recipe.add(ss)
+        embed(rels, schema, null, null, columns, delegates, recipe)
+        ss.colCount = columns.size
+        recipe.add(Nesting.StructEnd)
+        this._recipe = recipe.array()
 
         if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
 
         this._delegates = delegates
-        columns.array()
+        val colsArray = columns.array()
+        _columnsMappedToFields = if (pkField == null) columns.subList(1, columns.size).array() else colsArray
+        colsArray
     }
 
     private class CheckNamesList<E : NamedLens<* , *, *>>(initialCapacity: Int) : ArrayList<E>(initialCapacity) {
@@ -255,60 +273,74 @@ private constructor(
     // some bad code with raw types here
     @Suppress("UPPER_BOUND_VIOLATED") @JvmSynthetic internal fun embed(
             rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
-            naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>?,
-            outColumns: ArrayList<NamedLens<SCH, REC, *>>, outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate>
-    ): Array<NamedLens<SCH, REC, *>>? {
+            naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, *>?,
+            outColumns: ArrayList<NamedLens<SCH, REC, *>>,
+            outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate<SCH, ID>>?,
+            outRecipe: ArrayList<Nesting>
+    ) {
         val fields = schema.fields
         val fieldCount = fields.size
-        val outLenses = naming?.let { arrayOfNulls<NamedLens<SCH, REC, *>>(fieldCount) }
         for (i in 0 until fieldCount) {
             val field = fields[i]
             val path: NamedLens<SCH, Struct<SCH>, out Any?> =
                     if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *>
                     else /* implies naming != null */ naming!!.concatErased(prefix, field) as NamedLens<SCH, Struct<SCH>, out Any?>
 
-            val type = field.type
-            val relSchema = if (type is DataType.Partial<*, *>) {
-                type.schema
-            } else if (type is DataType.Nullable<*>) {
-                val actualType = type.actualType
-                if (actualType is DataType.Partial<*, *>) actualType.schema else null
-            } else {
-                null
+            val relType = when (val type = field.type) {
+                is DataType.Partial<*, *> -> type
+                is DataType.Nullable<*> -> type.actualType as? DataType.Partial<*, *>
+                // ignore collections of (partial) structs, the can be stored only within 'real' relations while we support only Embedded ones at the moment
+                else -> null
             }
 
-            if (relSchema != null) {
+            if (relType != null) {
                 // got a struct type, a relation must be declared
                 val rel = rels.remove(path)
                         ?: throw NoSuchElementException("a Relation must be declared for table $name, path $path")
 
                 when (rel) {
-                    is Relation.Embedded<*, *, *, *> -> {
+                    is Relation.Embedded<*, *, *> -> {
                         val start = outColumns.size
                         val fieldSetCol = rel.fieldSetColName?.let { fieldSetColName ->
                             (rel.naming.concatErased(path, FieldSetLens<Schema<*>>(fieldSetColName)) as NamedLens<SCH, REC, out Long?>)
                                     .also { outColumns.add(it) }
                         }
-                        val nestedLenses = embed(rels, relSchema, rel.naming,
-                                path as NamedLens<SCH, Struct<SCH>, PartialStruct<Schema<*>>?>? /* assert it has struct type */,
-                                outColumns, outDelegates
-                        )!!
-                        val nestedCols = outColumns.subList(start, outColumns.size)
-                        check(outDelegates.put(path, Embedded<SCH, Schema<*>, ID, REC>(
-                                relSchema, nestedLenses, nestedCols.array(), fieldSetCol
-                                //     ArrayList$SubList ^^^^^^^^^^ checks for concurrent modifications and cannot be passed as is
+
+                        val relSchema = relType.schema
+                        val recipeStart = outRecipe.size
+                        val ss = Nesting.StructStart(fieldSetCol != null, field, relType)
+                        outRecipe.add(ss)
+                        /*val nestedLenses =*/ embed(rels, relSchema, rel.naming, path, outColumns, null, outRecipe)
+                        ss.colCount = outColumns.size - start
+                        outRecipe.add(Nesting.StructEnd)
+
+                        check(outDelegates?.put(path, Embedded<SCH, ID, Schema<*>>(
+                                outColumns.subList(start, outColumns.size).array(),
+                             // ArrayList$SubList checks for concurrent modifications and cannot be passed as is
+                                outRecipe.subList(recipeStart, outRecipe.size).array()
                         )) === null)
                     }
-                    is Relation.ToOne<*, *, *, *, *> -> TODO()
-                    is Relation.ToMany<*, *, *, *, *, *, *> -> TODO()
-                    is Relation.ManyToMany<*, *, *, *, *> -> TODO()
+                    else -> TODO()
+//                    is Relation.ToOne<*, *, *, *, *> ->
+//                    is Relation.ToMany<*, *, *, *, *, *, *> ->
+//                    is Relation.ManyToMany<*, *, *, *, *> ->
                 }.also { }
             } else {
                 outColumns.add(path)
             }
-            if (outLenses != null) outLenses[i] = path
         }
-        return outLenses as Array<NamedLens<SCH, REC, *>/*!!*/>?
+    }
+
+    internal sealed class Nesting {
+        class StructStart constructor(
+                @JvmField val hasFieldSet: Boolean,
+                @JvmField val myField: FieldDef<*, *>?,
+                @JvmField val unwrappedType: DataType.Partial<*, *>
+        ) : Nesting() {
+            @JvmField var colCount: Int = 0
+        }
+
+        object StructEnd : Nesting()
     }
 
     val columns: Array<out NamedLens<SCH, REC, *>>
@@ -316,6 +348,12 @@ private constructor(
 
     val pkColumn: NamedLens<SCH, REC, ID>
         get() = columns[0] as NamedLens<SCH, REC, ID>
+
+    internal val recipe: Array<out Nesting>
+        get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }
+
+    val columnsMappedToFields: Array<out NamedLens<SCH, REC, *>>
+        get() = _columnsMappedToFields ?: _columns.value.let { _ /* unwrap lazy */ -> _columnsMappedToFields!! }
 
 
     private var _columnsByName: Map<String, NamedLens<SCH, REC, *>>? = null
@@ -337,66 +375,21 @@ private constructor(
                     }
                 }.also { _columnIndices = it }
 
-    internal fun delegateFor(lens: Lens<SCH, REC, *>): SqlPropertyDelegate {
-        val delegates = _delegates ?: _columns.value.let { _ -> _delegates!! /* unwrap lazy */ }
-        return delegates[lens] ?: Simple
+    internal fun delegateFor(lens: Lens<SCH, REC, *>): SqlPropertyDelegate<SCH, ID> {
+        val delegates = _delegates ?: _columns.value.let { _ /* unwrap lazy */ -> _delegates!! }
+        return delegates[lens] ?: simpleDelegate as SqlPropertyDelegate<SCH, ID>
     }
     internal fun <T> columnByLens(lens: Lens<SCH, Record<SCH, ID>, T>): NamedLens<SCH, REC, T>? =
             (columnIndices as Map<Lens<SCH, Record<SCH, ID>, *>, Int>)[lens]?.let { columns[it] as NamedLens<SCH, REC, T> }
-    // fixme ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ looks like inference bug
 
-    internal fun preCommitValues(record: Record<SCH, ID>, columnValues: Array<Any?>, tmpSet: HashSet<Any?>) {
-        val prevFieldValues = columnValues.last() as Array<out Any?>?
-        for (i in columns.indices) {
-            val value = columnValues[i]
+    @JvmSynthetic internal fun commitValues(record: Record<SCH, ID>, mutFieldValues: Array<Any?>) {
+        val mutFields = schema.mutableFields
+        for (i in mutFields.indices) {
+            val value = mutFieldValues[i]
             if (value !== Unset) {
-                val col = columns[i]
-                // we generate lenses ourselves, so we can be sure about their types:
-                val firstLens = col[0]
-                when {
-                    col is FieldDef.Mutable -> { /* nothing to do here, will change on next pass */ }
-                    col is Telescope<*, *, *, *, *> && firstLens is FieldDef.Mutable -> {
-                        if (tmpSet.add(firstLens)) { // deduplication
-                            if (prevFieldValues !== null) {
-                                val idx = firstLens.ordinal.toInt()
-                                if (prevFieldValues[idx] !== Unset) {
-                                    val evicted = (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).swapSilentlyLocked(prevFieldValues[idx])
-                                    (evicted as PartialRecord<*, *>?)?.let {
-                                        it.isManaged = false
-                                        it.dropManagement()
-                                        // ^^ not sure whether this pair is good
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else -> throw AssertionError("column $col does not seem to be mutable")
-                }
+                (record.values[mutFields[i].ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
             }
         }
-        tmpSet.clear()
-    }
-    internal fun commitValues(record: Record<SCH, ID>, columnValues: Array<Any?>, tmpSet: HashSet<Any?>) {
-        for (i in columns.indices) {
-            val value = columnValues[i]
-            if (value !== Unset) {
-                val col = columns[i]
-                val firstLens = col[0]
-                when {
-                    col is FieldDef.Mutable -> {
-                        (record.values[col.ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
-                    }
-                    col is Telescope<*, *, *, *, *> && firstLens is FieldDef.Mutable -> {
-                        if (tmpSet.add(firstLens)) {
-                            val idx = firstLens.ordinal.toInt()
-                            (record.values[idx] as ManagedProperty<SCH, *, Any?, ID>).refreshLocked()
-                        }
-                    }
-                    else -> throw AssertionError("column $col does not seem to be mutable")
-                }
-            }
-        }
-        tmpSet.clear()
     }
 
     override fun toString(): String =
@@ -433,7 +426,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
 
     internal val _session get() = session
 
-    // overrides multi-inhrit
+    // overrides multi-inherit
 
     override val fields: FieldSet<SCH, FieldDef<SCH, *>>
         get() = schema.allFieldSet()
@@ -460,16 +453,15 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
     @Deprecated("Will become internal soon, making the whole class effectively final")
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) :
-            this(session, table, table.schema, primaryKey, table.schema.fields as Array<NamedLens<*, Record<*, ID>, *>>)
+            this(session, table as Table<SCH, ID, Record<SCH, ID>>, table.schema, primaryKey)
 
     /**
      * [fields] and [columns] are actually keys and values of a map; [fields] must be in their natural order
      */
     internal constructor(
             session: Session,
-            table: Table<*, ID, *>, schema: SCH, primaryKey: ID,
-            columns: Array<NamedLens<*, Record<*, ID>, *>>
-    ) : super(session, table, schema, primaryKey, columns, schema.allFieldSet())
+            table: Table<SCH, ID, *>, schema: SCH, primaryKey: ID
+    ) : super(session, table, schema, primaryKey, schema.allFieldSet())
 
 
     override fun <T> get(field: FieldDef<SCH, T>): T = when (field) {
@@ -480,7 +472,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
 
             if (value === Unset) {
                 @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
-                val freshValue = dao.getClean(columns[index] as NamedLens<Schema<*>, Struct<Schema<*>>, T>, primaryKey)
+                val freshValue = dao.getClean(field, primaryKey)
                 values[index] = freshValue
                 freshValue
             } else value as T
@@ -512,26 +504,24 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
 
     }
 
-open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor(
+open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( // todo kill me please
         protected val session: Session,
-        internal val table: Table<*, ID, *>, schema: SCH,
+        internal val table: Table<SCH, ID, *>,
+        schema: SCH,
         val primaryKey: ID,
-        internal val columns: Array<NamedLens<*, Record<*, ID>, *>>,
         override val fields: FieldSet<SCH, FieldDef<SCH, *>> // fixme: the field is unused by Record
 ) : BaseStruct<SCH>(schema) {
 
     @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
-    internal val dao
-        get() = session.get<Schema<*>, ID, Record<*, ID>>(table as Table<Schema<*>, ID, Record<*, ID>>)
+    internal val dao: Dao<SCH, ID, *>
+        get() = session.get(table as Table<SCH, ID, Record<SCH, ID>>)
 
     @JvmField @JvmSynthetic @Suppress("UNCHECKED_CAST")
     internal val values: Array<Any?/* = ManagedProperty<Transaction, T> | T */> =
             session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
                 schema.mapIndexed(fields) { i, field ->
                     when (field) {
-                        is FieldDef.Mutable -> ManagedProperty(
-                                dao, columns[field.ordinal.toInt()] as NamedLens<SCH, Struct<SCH>, Any?>, primaryKey, Unset
-                        )
+                        is FieldDef.Mutable -> ManagedProperty(dao, field as FieldDef<SCH, Any?>, primaryKey, Unset)
                         is FieldDef.Immutable -> Unset
                     }
                 }
@@ -549,7 +539,7 @@ open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor(
             is FieldDef.Immutable -> {
                 if (value === Unset) {
                     @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
-                    val freshValue = dao.getClean(columns[field.ordinal.toInt()] as NamedLens<Schema<*>, Struct<Schema<*>>, T>, primaryKey)
+                    val freshValue = dao.getClean(field, primaryKey)
                     values[index] = freshValue
                     freshValue
                 } else value as T

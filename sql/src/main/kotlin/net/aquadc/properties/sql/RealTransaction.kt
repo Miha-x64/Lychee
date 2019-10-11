@@ -1,14 +1,11 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.New
-import net.aquadc.persistence.each
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.internal.Unset
 import java.lang.ref.WeakReference
-import java.util.Arrays
 import java.util.BitSet
 
 
@@ -63,20 +60,15 @@ internal class RealTransaction(
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(
-            table: Table<SCH, ID, REC>, id: ID, column: NamedLens<SCH, Struct<SCH>, T>, previous: T, value: T
+            table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T>, previous: T, value: T
     ) {
         checkOpenAndThread()
-        column[column.size - 1] as FieldDef.Mutable // disallow mutating immutable
-
         val updates = (updated ?: UpdatesMap().also { updated = it })
                 .getOrPut(table, New::map)
-                .getOrPut(id) {
-                    val arr = arrayOfNulls<Any>(table.columns.size + 1)
-                    Arrays.fill(arr, 0, table.columns.size, Unset)
-                    arr // leave last cell `null`, it is for old values!
-                }
+                .getOrPut(id) { Array<Any?>(table.schema.mutableFields.size) { Unset } }
 
-        table.delegateFor(column).update(session, lowSession, table, column, id, previous, value, into = updates)
+        table.delegateFor(field).update(session, lowSession, table, field, id, previous, value)
+        updates[field.mutableOrdinal.toInt()] = value
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>) {
@@ -118,40 +110,23 @@ internal class RealTransaction(
         val del = deleted
 
         // Deletions first! Now we're not going to disturb souls of dead records & properties during this notification.
-        var unmanage: MutableMap<Table<*, *, *>, List<WeakReference<out Record<*, *>>>>? = null
+        var unmanage: ArrayList<WeakReference<out Record<*, *>>>? = null
         if (del != null) {
-            for ((table, ids) in del) { // forEach here will be unable to smart-case `unmanage` var
+            for ((table, ids) in del) { // forEach here will be unable to smart-cast `unmanage` var
                 val man = lowSession.daos[table.erased] as RealDao<*, IdBound, *, *>?
                 if (man != null) {
-                    val removed: List<WeakReference<out Record<*, *>>> = if (ids is Unit) {
-                        man.truncate()
-                    } else {
-                        ids as ArrayList<IdBound>
-                        ids.mapNotNull(man::forget)
-                    }
-                    if (removed.isNotEmpty()) {
-                        if (unmanage === null) unmanage = New.map()
-                        unmanage[table] = removed
-                    }
+                    if (unmanage == null) unmanage = ArrayList()
+                    if (ids is Unit) man.truncateLocked(removedRefsTo = unmanage)
+                    else (ids as ArrayList<IdBound>).mapNotNullTo(unmanage, man::forget)
                 }
             }
         }
 
-        val upd = updated
-        val tmpSet = HashSet<Any?>()
-        // evict nested (still deletions!)
-        upd?.forEach { (table, idToRec) ->
-            idToRec.forEach { (id, upd) ->
-                lowSession.daos[table]?.erased?.getCached(id)?.let { rec ->
-                    table.erased.preCommitValues(rec, upd, tmpSet)
-                }
-            }
-        }
         // value changes
-        upd?.forEach { (table, idToRec) ->
+        val upd = updated?.onEach { (table, idToRec) ->
             idToRec.forEach { (id, upd) ->
                 lowSession.daos[table]?.erased?.getCached(id)?.let { rec ->
-                    table.erased.commitValues(rec, upd, tmpSet)
+                    table.erased.commitValues(rec, upd)
                 }
             }
         }
@@ -169,7 +144,7 @@ internal class RealTransaction(
                     if (updatedCols === null) updatedCols = BitSet(table.columns.size)
 
                     upd[table]?.values?.forEach { values ->
-                        for (i in 0 until table.columns.size) {
+                        for (i in table.schema.mutableFields.indices) {
                             if (values[i] !== Unset) updatedCols.set(i)
                         }
                     }
@@ -182,10 +157,8 @@ internal class RealTransaction(
         }
 
         // commit 'unmanaged' status for all the properties which lost their management.
-        unmanage?.forEach { (table, refs) ->
-            refs.each { ref ->
-                ref.get()?.let(Record<*, *>::dropManagement)
-            }
+        unmanage?.forEach { ref ->
+            ref.get()?.let(Record<*, *>::dropManagement)
         }
     }
 

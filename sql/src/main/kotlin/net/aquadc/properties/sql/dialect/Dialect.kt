@@ -20,8 +20,8 @@ interface Dialect {
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
-    fun <SCH : Schema<SCH>> selectFieldQuery(
-            columnName: String, table: Table<SCH, *, *>,
+    fun <SCH : Schema<SCH>> selectQuery(
+            table: Table<SCH, *, *>, columns: Array<NamedLens<SCH, *, *>>,
             condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String
 

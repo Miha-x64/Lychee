@@ -1,7 +1,9 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.copy
+import net.aquadc.persistence.extended.either.Either
 import net.aquadc.persistence.extended.getOrDefault
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
@@ -58,9 +60,6 @@ open class EmbedRelationsTest {
                 it[Value] = "200700"
                 it[MutValue] = "mutated"
             }
-
-            assertEquals("uncommitted should be visible through mut col", "mutated", emb[SchWithId.MutValue])
-            // fixme which is not guaranteed for immutable columns, though
         }
 
         val newEmb = rec[WithNested.Nested]
@@ -179,16 +178,15 @@ open class EmbedRelationsTest {
                 it[OtherOwnField] = 0x5_2_3
             }
         }
+        val t = Either.First("strstr")
 
         val rec = session.withTransaction {
-            insert(WeNeedTOGoDeeper, GoDeeper.build {
-                it[First] = f
-                it[Second] = s
-            })
+            insert(WeNeedToGoDeeper, goDeeper.build(f, s, t))
         }
 
-        assertEquals(f, rec[GoDeeper.First])
-        assertEquals(s, rec[GoDeeper.Second])
+        assertEquals(f, rec[goDeeper.First])
+        assertEquals(s, rec[goDeeper.Second])
+        assertEquals(t, rec[goDeeper.Third])
     }
 
     @Test fun `embed nullable`() {

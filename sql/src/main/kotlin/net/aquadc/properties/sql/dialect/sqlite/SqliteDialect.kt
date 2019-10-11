@@ -26,33 +26,29 @@ import java.io.DataOutputStream
 object SqliteDialect : Dialect {
 
     override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>): String = buildString {
-        val cols = table.columns
-        val itr = cols.iterator()
-        var size = cols.size
-        if (table.pkField === null) {
-            check(cols[0] is PkLens)
-            itr.next()
-            size--
-        }
+        val cols = table.columnsMappedToFields
         append("INSERT INTO ").appendName(table.name).append(" (")
-                .appendNames(itr).append(") VALUES (").appendPlaceholders(size).append(");")
+                .appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size)
+                .append(");")
     }
 
-    override fun <SCH : Schema<SCH>> selectFieldQuery(
-            columnName: String, table: Table<SCH, *, *>, condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
+    override fun <SCH : Schema<SCH>> selectQuery(
+            table: Table<SCH, *, *>, columns: Array<NamedLens<SCH, *, *>>,
+            condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String =
-            selectQuery(columnName, table, condition, order)
+            selectQueryInternal(table, columns, condition, order)
 
     override fun <SCH : Schema<SCH>> selectCountQuery(
             table: Table<SCH, *, *>, condition: WhereCondition<SCH>
     ): String =
-            selectQuery(null, table, condition, NoOrder)
+            selectQueryInternal(table, null, condition, NoOrder)
 
-    private fun <SCH : Schema<SCH>> selectQuery(
-            columnName: String?, table: Table<SCH, *, *>, condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
+    private fun <SCH : Schema<SCH>> selectQueryInternal(
+            table: Table<SCH, *, *>, columns: Array<NamedLens<SCH, *, *>>?,
+            condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String {
         val sb = StringBuilder("SELECT ")
-                .let { if (columnName == null) it.append("COUNT(*)") else it.appendName(columnName) }
+                .let { if (columns == null) it.append("COUNT(*)") else it.appendNames(columns) }
                 .append(" FROM ").appendName(table.name)
                 .append(" WHERE ")
         sb.appendWhereClause(table, condition)
@@ -101,11 +97,11 @@ object SqliteDialect : Dialect {
     override fun StringBuilder.appendName(name: String): StringBuilder =
             append('"').append(name.replace("\"", "\"\"")).append('"')
 
-    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: Iterator<NamedLens<SCH, *, *>>): StringBuilder = apply {
-        if (cols.hasNext()) {
-            do {
-                appendName(cols.next().name).append(", ")
-            } while (cols.hasNext())
+    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: Array<out NamedLens<SCH, *, *>>): StringBuilder = apply {
+        if (cols.isNotEmpty()) {
+            cols.forEach { col ->
+                appendName(col.name).append(", ")
+            }
             setLength(length - 2) // trim comma
         }
     }
@@ -180,7 +176,7 @@ object SqliteDialect : Dialect {
             }
 
             override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>) {
-                TODO("embedded + relations")
+                throw UnsupportedOperationException() // column can't be of Partial type at this point
             }
         }.match(dataType, this, null)
     }

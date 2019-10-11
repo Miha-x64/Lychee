@@ -67,9 +67,10 @@ class SqliteSession(
 
         override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
             val statement = updateStatementWLocked(table, columns)
-            bindUpdateParams(table, id, columns, values) { type, idx, value ->
+            val colCount = bindValues(columns, values) { type, idx, value ->
                 type.bind(statement, idx, value)
             }
+            table.idColType.bind(statement, colCount, id)
             check(statement.executeUpdateDelete() == 1)
         }
 
@@ -103,9 +104,9 @@ class SqliteSession(
             }
         }
 
-        private fun <ID : IdBound, SCH : Schema<SCH>> select(
-                columnName: String?,
+        private fun <SCH : Schema<SCH>, ID : IdBound> select(
                 table: Table<SCH, ID, *>,
+                columns: Array<NamedLens<SCH, *, *>>?,
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<out SCH>>
         ): Cursor {
@@ -113,7 +114,7 @@ class SqliteSession(
                 SQLiteQueryBuilder.buildQueryString( // fixme: building SQL myself may save some allocations
                         /*distinct=*/false,
                         table.name,
-                        if (columnName == null) arrayOf("COUNT(*)") else arrayOf(columnName),
+                        if (columns == null) arrayOf("COUNT(*)") else columns.mapIndexedToArray { _, col -> col.name },
                         StringBuilder().appendWhereClause(table, condition).toString(),
                         /*groupBy=*/null,
                         /*having=*/null,
@@ -141,31 +142,22 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
         ): T =
-                select(column.name, table, pkCond<SCH, ID>(table, id), NoOrder).fetchSingle(column.type)
+                select<SCH, ID>(table, arrayOf(column) /* fixme allocation */, pkCond<SCH, ID>(table, id), NoOrder).fetchSingle(column.type)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
-                select(table.idColName, table, condition, order)
-                        .fetchAll(table.idColType)
+                select<SCH, ID>(table, arrayOf(table.pkColumn) /* fixme allocation */, condition, order)
+                        .fetchAllRows(table.idColType)
                         .array<Any>() as Array<ID>
 
-        private fun <T> Cursor.fetchAll(type: DataType<T>): List<T> {
-            if (!moveToFirst()) {
-                close()
-                return emptyList()
-            }
-
-            val values = ArrayList<Any?>()
-            do {
-                values.add(type.get(this, 0))
-            } while (moveToNext())
-            close()
-            return values as List<T>
-        }
+        override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
+                table: Table<SCH, ID, *>, columns: Array<NamedLens<SCH, *, *>>, id: ID
+        ): Array<Any?> =
+                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<SCH>): Long =
-                select(null, table, condition, NoOrder).fetchSingle(long)
+                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(long)
 
         override val transaction: RealTransaction?
             get() = this@SqliteSession.transaction
@@ -185,14 +177,37 @@ class SqliteSession(
             return condition
         }
 
-        private fun <T> Cursor.fetchSingle(type: DataType<T>): T {
-            try {
-                check(moveToFirst())
-                return type.get(this, 0)
-            } finally {
+        private fun <T> Cursor.fetchAllRows(type: DataType<T>): List<T> {
+            if (!moveToFirst()) {
                 close()
+                return emptyList()
             }
+
+            val values = ArrayList<Any?>()
+            do {
+                values.add(type.get(this, 0))
+            } while (moveToNext())
+            close()
+            return values as List<T>
         }
+
+        private fun <T> Cursor.fetchSingle(type: DataType<T>): T =
+                try {
+                    check(moveToFirst())
+                    type.get(this, 0)
+                } finally {
+                    close()
+                }
+
+        private fun <SCH : Schema<SCH>> Cursor.fetchColumns(columns: Array<NamedLens<SCH, *, *>>): Array<Any?> =
+                try {
+                    check(moveToFirst())
+                    columns.mapIndexedToArray { index, column ->
+                        column.type.get(this, index)
+                    }
+                } finally {
+                    close()
+                }
 
         internal fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
             val i = 1 + index

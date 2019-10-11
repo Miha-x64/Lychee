@@ -2,9 +2,7 @@ package net.aquadc.properties.internal
 
 import android.support.annotation.RestrictTo
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.TransactionalProperty
 
 /**
@@ -15,7 +13,7 @@ import net.aquadc.properties.TransactionalProperty
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
         private var manager: Manager<SCH, TRANSACTION, ID>?,
-        private val column: NamedLens<SCH, Struct<SCH>, T>,
+        private val field: FieldDef<SCH, T>,
         private val id: ID,
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
@@ -25,27 +23,30 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
             val manager = requireManaged()
 
             // check for uncommitted changes
-            val dirty = manager.getDirty(this.column, id)
-            if (dirty !== Unset) return dirty
+            if (this.field is FieldDef.Mutable) {
+                val dirty = manager.getDirty(this.field, id)
+                if (dirty !== Unset) return dirty
+            }
 
             // check cached
             val cached = ref
             if (cached !== Unset) return cached
 
-            val clean = manager.getClean(this.column, id)
+            val clean = manager.getClean(this.field, id)
             refUpdater().lazySet(this, clean)
             return clean
         }
 
     override fun setValue(transaction: TRANSACTION, value: T) {
+        if (field !is FieldDef.Mutable) throw UnsupportedOperationException()
         val manager = requireManaged()
 
         val _ref = ref
-        val clean = if (_ref === Unset) manager.getClean(column, id) else Unset
+        val clean = if (_ref === Unset) manager.getClean(field, id) else Unset
         // after mutating dirty state we won't be able to see the clean one,
         // so we'll preserve it later in this method
 
-        manager.set(transaction, column, id, if (clean === Unset) _ref else clean as T, value)
+        manager.set(transaction, field, id, if (clean === Unset) _ref else clean as T, value)
         // this changes 'dirty' state (and value returned by 'get'),
         // but we don't want to deliver it until it becomes clean
 
@@ -70,20 +71,6 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
         }
     }
 
-    fun swapSilentlyLocked(new: T): T {
-        requireManaged()
-
-        val prev = ref
-        refUpdater().lazySet(this, new)
-        return prev
-    }
-
-    fun refreshLocked() {
-        val oldValue = ref
-        ref = Unset as T
-        valueChanged(oldValue, value, null)
-    }
-
     fun dropManagement() {
         manager = null
     }
@@ -97,14 +84,13 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
                             if (ref !== Unset) ". Last remembered value: '$ref'" else "")
 
     override fun toString(): String =
-            "ManagedProperty(at $column)"
+            "ManagedProperty(at $field)"
 
 }
 
 
 /**
  * A manager of a property, e. g. a database DAO/session.
- * [FieldDef]s of embedded structs may belong to other [Schema], or belong to the same one and interfere with main ones.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
@@ -112,16 +98,16 @@ interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T
+    fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T
 
     /**
      * Returns clean, persisted, stable, committed value visible for all threads.
      */
-    fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T
+    fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T)
+    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: ID, previous: T, update: T)
 
 }

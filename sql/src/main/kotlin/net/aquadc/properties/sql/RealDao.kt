@@ -1,9 +1,8 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.New
-import net.aquadc.persistence.struct.NamedLens
+import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
 import net.aquadc.properties.concurrentPropertyOf
@@ -19,9 +18,6 @@ import java.util.BitSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.CopyOnWriteArraySet
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 
 internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, STMT>(
@@ -60,10 +56,9 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
     internal fun forget(id: ID): WeakReference<REC>? =
             recordRefs.remove(id)?.let(::forgetInternal)
 
-    internal fun truncate(): List<WeakReference<REC>> {
-        val clone = recordRefs.values.mapNotNull(::forgetInternal)
+    internal fun truncateLocked(removedRefsTo: ArrayList<in WeakReference<out REC>>) {
+        recordRefs.values.mapNotNullTo(removedRefsTo, ::forgetInternal)
         recordRefs.clear()
-        return clone
     }
 
     private fun forgetInternal(ref: WeakReference<REC>): WeakReference<REC>? {
@@ -192,26 +187,21 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
 
     // region Manager implementation
 
-    override fun <T> getDirty(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T {
+    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T {
         val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
-
-        val index: Int = table.columnIndices[column] ?: return unset()
-        //                           nothing to do here ^^^^^^^^^^^^^^
-        // if this lens points to a struct rather than a column
-
-        return thisRec[index] as T
+        return thisRec[field.mutableOrdinal.toInt()] as T
     }
 
-    override fun <T> getClean(column: NamedLens<SCH, Struct<SCH>, T>, id: ID): T =
-            table.delegateFor(column).fetch(session, lowSession, table, column, id)
+    override fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T =
+            table.delegateFor(field).fetch(session, lowSession, table, field, id)
 
-    override fun <T> set(transaction: Transaction, column: NamedLens<SCH, Struct<SCH>, T>, id: ID, previous: T, update: T) {
+    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, id: ID, previous: T, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact)
             error("Wrong transaction: requested $transaction, but session's is $ourTransact")
         ourTransact.checkOpenAndThread()
 
-        transaction.update(table, id, column, previous, update)
+        transaction.update(table, id, field, previous, update)
     }
 
     // endregion Manager implementation

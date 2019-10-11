@@ -185,13 +185,4 @@ class RelationSchemas {
         }
     }
 
-    private inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {
-        val array = arrayOfNulls<R>(size)
-        for (i in indices) {
-            array[i] = transform(i, this[i])
-        }
-        @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
-        return array as Array<R>
-    }
-
 }
