@@ -10,7 +10,7 @@ import net.aquadc.persistence.type.string
 import net.aquadc.properties.sql.*
 
 
-val Tables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tbl)
+val SampleTables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tbl)
 
 
 fun Transaction.insertHuman(name: String, surname: String): Human =

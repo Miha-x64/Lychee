@@ -123,7 +123,7 @@ class SqliteApp : Application() {
 
 
 private fun createNeededTables(conn: Connection, dialect: Dialect) {
-    Tables.forEach { table ->
+    SampleTables.forEach { table: Table<*, Long, *> ->
         conn.createStatement().use { statement ->
             statement.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='${table.name}'").use {
                 if (it.next()) {

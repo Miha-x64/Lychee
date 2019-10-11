@@ -29,7 +29,7 @@ import net.aquadc.properties.sql.SqliteSession
 import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
-import net.aquadc.propertiesSampleLogic.sql.Tables
+import net.aquadc.propertiesSampleLogic.sql.SampleTables
 import org.jetbrains.anko.UI
 import org.jetbrains.anko.attr
 import org.jetbrains.anko.backgroundResource
@@ -86,7 +86,7 @@ class SqliteActivity : Activity() {
     ) : SQLiteOpenHelper(context, "people", null, 1) {
 
         override fun onCreate(db: SQLiteDatabase) {
-            Tables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
+            SampleTables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
             // Tables.forEach(db::createTable)
         }
 
