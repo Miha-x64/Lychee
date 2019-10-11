@@ -1,6 +1,5 @@
 package net.aquadc.properties
 
-import javafx.application.Platform
 import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
 
@@ -33,7 +32,7 @@ interface Property<out T> {
      * Subscribe on value changes on current thread.
      * Acts like [MutableList.add]: [onChange] will be added even if it is already added.
      * Will work only on threads which can accept tasks:
-     * * JavaFX Application thread (via [Platform]), when :fx-bindings available;
+     * * JavaFX Application thread (via [javafx.application.Platform]), when :fx-bindings available;
      * * Android Looper thread, when :android-bindings available;
      * * a thread of a single-thread [ForkJoinPool].
      * @throws UnsupportedOperationException if this thread's executor cannot be identified

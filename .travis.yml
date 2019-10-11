@@ -1,5 +1,6 @@
 language: android
-jdk: oraclejdk8
+jdk: openjdk8
+# Android SDK manager won't work with newer versions
 sudo: false
 android:
   components:

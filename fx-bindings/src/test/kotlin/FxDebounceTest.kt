@@ -20,6 +20,8 @@ class FxDebounceTest {
             PlatformImpl.startup { }
         } catch (e: UnsupportedOperationException) {
             throw AssumptionViolatedException("Can't run JavaFX here.", e)
+        } catch (e: UnsupportedClassVersionError) {
+            throw AssumptionViolatedException("LOL, still using Java 1.8?", e)
         }
         test(JavaFxApplicationThreadExecutorFactory)
     }
