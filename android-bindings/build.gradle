@@ -44,7 +44,7 @@ dependencies {
     implementation project(':persistence') // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
 
     testImplementation 'junit:junit:4.12'
-    testImplementation 'com.squareup.okio:okio:1.15.0'
+    testImplementation "com.squareup.okio:okio:$okio_version"
     testImplementation project(':testing')
     testImplementation project(':extended-persistence') // partial(Struct) is here
     testImplementation 'org.robolectric:robolectric:4.2'

@@ -15,6 +15,7 @@ import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
 import okio.ByteString
+import okio.ByteString.Companion.decodeHex
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Test
@@ -58,7 +59,7 @@ class StructTests {
         it[ENUM_SET_COLLECTION] = listOf(null, emptySet(), setOf(SomeEnum.A, SomeEnum.B), null, setOf())
         it[STRING] = "forty-two"
         it[BYTES] = setOf(1, 2, 4)
-        it[BLOB] = ByteString.decodeHex("ADD1C7ED")
+        it[BLOB] = "ADD1C7ED".decodeHex()
         it[STRUCT] = Sch.build {
             it[INT] = 34
             it[DOUBLE] = 98.6
@@ -68,7 +69,7 @@ class StructTests {
             it[ENUM_SET_COLLECTION] = emptyList()
             it[STRING] = "I'm a string, info 146%"
             it[BYTES] = setOf()
-            it[BLOB] = ByteString.decodeHex("B10B")
+            it[BLOB] = "B10B".decodeHex()
             it[STRUCT] = null
         }
     }

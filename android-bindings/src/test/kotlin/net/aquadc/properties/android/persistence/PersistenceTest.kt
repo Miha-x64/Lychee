@@ -27,7 +27,7 @@ import net.aquadc.properties.android.persistence.json.read
 import net.aquadc.properties.android.persistence.json.readListOf
 import net.aquadc.properties.android.persistence.json.write
 import net.aquadc.properties.persistence.enum
-import okio.ByteString
+import okio.ByteString.Companion.decodeHex
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
@@ -77,7 +77,7 @@ class PersistenceTest {
         it[ENUM_SET_COLLECTION] = listOf(null, emptySet(), setOf(SomeEnum.A, SomeEnum.B), null, setOf())
         it[STRING] = "forty-two"
         it[BYTES] = setOf(1, 2, 4)
-        it[BLOB] = ByteString.decodeHex("ADD1C7ED")
+        it[BLOB] = "ADD1C7ED".decodeHex()
         it[STRUCT] = Sch.build {
             it[INT] = 34
             it[DOUBLE] = 98.6
@@ -87,7 +87,7 @@ class PersistenceTest {
             it[ENUM_SET_COLLECTION] = emptyList()
             it[STRING] = "I'm a string, info 146%"
             it[BYTES] = setOf()
-            it[BLOB] = ByteString.decodeHex("B10B")
+            it[BLOB] = "B10B".decodeHex()
             it[STRUCT] = null
             it[PART] = Sch.buildPartial { }
             it[EITHER] = Either.First(tupleType.build(10, 20.0))

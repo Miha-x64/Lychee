@@ -15,7 +15,7 @@ dependencies {
 
     implementation 'org.xerial:sqlite-jdbc:3.23.1'
     implementation project(':sql')
-    implementation 'com.squareup.okio:okio:1.15.0'
+    implementation "com.squareup.okio:okio:$okio_version"
 }
 
 // https://stackoverflow.com/a/21360609/3050249
