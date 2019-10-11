@@ -1,4 +1,5 @@
 @file:JvmName("TextViewBindings")
+@file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.android.bindings.widget
 
 import android.content.res.Resources
@@ -18,17 +19,25 @@ import net.aquadc.properties.android.simple.SimpleTextWatcher
  * Binds text to [textProperty] via [TextView.setText].
  */
 @Suppress("UNCHECKED_CAST")
-fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
+inline fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
         bindViewTo(textProperty, SetText as (TextView, CharSequence) -> Unit)
 
 /**
  * Binds text to [textResProperty] via [TextView.setText].
  */
-@JvmName("bindTextResTo") @Suppress("UNCHECKED_CAST")
-fun TextView.bindTextTo(textResProperty: Property<Int>): Unit =
+@Deprecated("Renamed", ReplaceWith("this.bindTextResTo(textResProperty)"))
+@JvmName("bindTextResTo_deprecated") @Suppress("UNCHECKED_CAST")
+inline fun TextView.bindTextTo(textResProperty: Property<Int>): Unit =
         bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
 
-private object SetText : (Any?, Any?) -> Any? {
+/**
+ * Binds text to [textResProperty] via [TextView.setText].
+ */
+@Suppress("UNCHECKED_CAST")
+inline fun TextView.bindTextResTo(textResProperty: Property<Int>): Unit =
+        bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
+
+@PublishedApi internal object SetText : (Any?, Any?) -> Any? {
     override fun invoke(p1: Any?, p2: Any?): Any? {
         p1 as TextView
         when (p2) {
@@ -112,17 +121,24 @@ fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
 /**
  * Binds hint to [hintProperty] via [TextView.setHint].
  */
-fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
+inline fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
         bindViewTo(hintProperty, SetHint)
 
 /**
  * Binds hint to [hintResProperty] via [TextView.setHint].
  */
-@JvmName("bindHintResTo")
-fun TextView.bindHintTo(hintResProperty: Property<Int>): Unit =
+@JvmName("bindHintResTo_deprecated")
+@Deprecated("Renamed", ReplaceWith("this.bindHintResTo(hintResProperty)"))
+inline fun TextView.bindHintTo(hintResProperty: Property<Int>): Unit =
         bindViewTo(hintResProperty, SetHint)
 
-private object SetHint : (TextView, Any) -> Unit {
+/**
+ * Binds hint to [hintResProperty] via [TextView.setHint].
+ */
+inline fun TextView.bindHintResTo(hintResProperty: Property<Int>): Unit =
+        bindViewTo(hintResProperty, SetHint)
+
+@PublishedApi internal object SetHint : (TextView, Any) -> Unit {
     override fun invoke(p1: TextView, p2: Any) = when (p2) {
         is CharSequence -> p1.hint = p2
         is Int -> p1.setHint(p2)
@@ -133,17 +149,17 @@ private object SetHint : (TextView, Any) -> Unit {
 /**
  * Binds error message to [errorProperty] via [TextView.setError].
  */
-fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>): Unit =
+inline fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>): Unit =
         bindViewTo(errorProperty, SetError)
 
 /**
  * Binds error message to [errorResProperty] via [TextView.setError].
  */
 @JvmName("bindErrorMessageResTo")
-fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
+inline fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
         bindViewTo(errorResProperty, SetError)
 
-private object SetError : (TextView, Any?) -> Unit {
+@PublishedApi internal object SetError : (TextView, Any?) -> Unit {
     override fun invoke(p1: TextView, p2: Any?) = when (p2) {
         is CharSequence? -> p1.error = p2
         is Int -> p1.error = (if (p2 == 0) null else p1.resources.getText(p2))
@@ -155,7 +171,7 @@ private object SetError : (TextView, Any?) -> Unit {
  * Binds error message and icon to [errorProperty]
  * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
  */
-fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>): Unit =
+inline fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>): Unit =
         bindViewTo(errorProperty, BindErrorMessageAndIconTo)
 
 /**
@@ -163,10 +179,10 @@ fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence
  * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
  */
 @JvmName("bindErrorMessageResAndIconTo")
-fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>): Unit =
+inline fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>): Unit =
         bindViewTo(errorResProperty, BindErrorMessageAndIconTo)
 
-private object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
+@PublishedApi internal object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
 
     override fun invoke(v: TextView, new: Any?) = when (new) {
         null -> v.setError(null, null)

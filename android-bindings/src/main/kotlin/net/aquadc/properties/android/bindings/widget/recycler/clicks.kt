@@ -40,12 +40,12 @@ inline fun RecyclerView.ViewHolder.setPositionWhenLongClicked(target: MutablePro
         private val itemTarget: MutableProperty<in T>?
 ) : View.OnClickListener, View.OnLongClickListener {
 
-    override fun onClick(v: View?) {
+    override fun onClick(ignored: View?) {
         positionTarget?.value = (holder as RecyclerView.ViewHolder).layoutPosition
         itemTarget?.value = (holder as Holder<T>).item
     }
 
-    override fun onLongClick(v: View?): Boolean {
+    override fun onLongClick(ignored: View?): Boolean {
         onClick(null)
         return true
     }
