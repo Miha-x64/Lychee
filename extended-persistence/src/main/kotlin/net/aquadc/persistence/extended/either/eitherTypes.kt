@@ -37,7 +37,7 @@ private abstract class EitherType<T : BaseEither, SCH : Schema<SCH>>(
 fun <A, B> either(
         firstName: String, firstType: DataType<A>,
         secondName: String, secondType: DataType<B>
-): DataType<Either<A, B>> =
+): DataType.Partial<Either<A, B>, Tuple<A, B>> =
         object : EitherType<Either<A, B>, Tuple<A, B>>(Tuple(firstName, firstType, secondName, secondType)) {
 
             override fun load(
@@ -58,7 +58,7 @@ fun <A, B, C> either3(
         firstName: String, firstType: DataType<A>,
         secondName: String, secondType: DataType<B>,
         thirdName: String, thirdType: DataType<C>
-): DataType<Either3<A, B, C>> =
+): DataType.Partial<Either3<A, B, C>, Tuple3<A, B, C>> =
         object : EitherType<Either3<A, B, C>, Tuple3<A, B, C>>(Tuple3(
                 firstName, firstType, secondName, secondType, thirdName, thirdType
         )) {
@@ -83,7 +83,7 @@ fun <A, B, C, D> either4(
         secondName: String, secondType: DataType<B>,
         thirdName: String, thirdType: DataType<C>,
         fourthName: String, fourthType: DataType<D>
-): DataType<Either4<A, B, C, D>> =
+): DataType.Partial<Either4<A, B, C, D>, Tuple4<A, B, C, D>> =
         object : EitherType<Either4<A, B, C, D>, Tuple4<A, B, C, D>>(Tuple4(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType
         )) {
@@ -110,7 +110,7 @@ fun <A, B, C, D, E> either5(
         thirdName: String, thirdType: DataType<C>,
         fourthName: String, fourthType: DataType<D>,
         fifthName: String, fifthType: DataType<E>
-): DataType<Either5<A, B, C, D, E>> =
+): DataType.Partial<Either5<A, B, C, D, E>, Tuple5<A, B, C, D, E>> =
         object : EitherType<Either5<A, B, C, D, E>, Tuple5<A, B, C, D, E>>(Tuple5(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType
@@ -140,7 +140,7 @@ fun <A, B, C, D, E, F> either6(
         fourthName: String, fourthType: DataType<D>,
         fifthName: String, fifthType: DataType<E>,
         sixthName: String, sixthType: DataType<F>
-): DataType<Either6<A, B, C, D, E, F>> =
+): DataType.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, B, C, D, E, F>> =
         object : EitherType<Either6<A, B, C, D, E, F>, Tuple6<A, B, C, D, E, F>>(Tuple6(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType, sixthName, sixthType
@@ -172,7 +172,7 @@ fun <A, B, C, D, E, F, G> either7(
         fifthName: String, fifthType: DataType<E>,
         sixthName: String, sixthType: DataType<F>,
         seventhName: String, seventhType: DataType<G>
-): DataType<Either7<A, B, C, D, E, F, G>> =
+): DataType.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, B, C, D, E, F, G>> =
         object : EitherType<Either7<A, B, C, D, E, F, G>, Tuple7<A, B, C, D, E, F, G>>(Tuple7(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType, sixthName, sixthType, seventhName, seventhType
@@ -206,7 +206,7 @@ fun <A, B, C, D, E, F, G, H> either8(
         sixthName: String, sixthType: DataType<F>,
         seventhName: String, seventhType: DataType<G>,
         eighthName: String, eighthType: DataType<H>
-): DataType<Either8<A, B, C, D, E, F, G, H>> =
+): DataType.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, B, C, D, E, F, G, H>> =
         object : EitherType<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, B, C, D, E, F, G, H>>(Tuple8(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType, sixthName, sixthType, seventhName, seventhType, eighthName, eighthType
