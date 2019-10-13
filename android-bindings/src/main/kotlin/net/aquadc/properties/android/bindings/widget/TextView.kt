@@ -25,7 +25,7 @@ inline fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
 /**
  * Binds text to [textResProperty] via [TextView.setText].
  */
-@Deprecated("Renamed", ReplaceWith("this.bindTextResTo(textResProperty)"))
+@Deprecated("Renamed", ReplaceWith("this.bindTextResTo(textResProperty)", "net.aquadc.properties.android.bindings.widget.bindTextResTo"))
 @JvmName("bindTextResTo_deprecated") @Suppress("UNCHECKED_CAST")
 inline fun TextView.bindTextTo(textResProperty: Property<Int>): Unit =
         bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
@@ -128,7 +128,7 @@ inline fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
  * Binds hint to [hintResProperty] via [TextView.setHint].
  */
 @JvmName("bindHintResTo_deprecated")
-@Deprecated("Renamed", ReplaceWith("this.bindHintResTo(hintResProperty)"))
+@Deprecated("Renamed", ReplaceWith("this.bindHintResTo(hintResProperty)", "net.aquadc.properties.android.bindings.widget.bindHintResTo"))
 inline fun TextView.bindHintTo(hintResProperty: Property<Int>): Unit =
         bindViewTo(hintResProperty, SetHint)
 
