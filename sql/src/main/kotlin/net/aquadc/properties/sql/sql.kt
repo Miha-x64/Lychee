@@ -126,7 +126,7 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
             insert(table, data)
 
-    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T>, previous: T, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
     // TODO: update where
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
@@ -140,7 +140,7 @@ interface Transaction : AutoCloseable {
 
     fun setSuccessful()
 
-    operator fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.set(field: FieldDef.Mutable<SCH, T>, new: T) {
+    operator fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.set(field: FieldDef.Mutable<SCH, T, *>, new: T) {
         (this prop field).setValue(this@Transaction, new)
     }
 
@@ -150,8 +150,8 @@ interface Transaction : AutoCloseable {
      *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.setFrom(
-            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
-    ): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
+            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
+    ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
             source.fields.intersectMutable(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->
                     mutateFrom(source, field) // capture type
@@ -159,7 +159,7 @@ interface Transaction : AutoCloseable {
             }
     @Suppress("NOTHING_TO_INLINE")
     private inline fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.mutateFrom(
-            source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T>
+            source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T, *>
     ) {
         this[field] = source.getOrThrow(field)
     }
@@ -167,7 +167,7 @@ interface Transaction : AutoCloseable {
 }
 
 class Order<SCH : Schema<SCH>>(
-        @JvmField internal val col: FieldDef<SCH, *>,
+        @JvmField internal val col: FieldDef<SCH, *, *>,
         @JvmField internal val desc: Boolean
 ) {
     // may become an inline-class when hashCode/equals will be allowed
@@ -181,10 +181,10 @@ class Order<SCH : Schema<SCH>>(
 
 }
 
-val <SCH : Schema<SCH>> FieldDef<SCH, *>.asc: Order<SCH>
+val <SCH : Schema<SCH>> FieldDef<SCH, *, *>.asc: Order<SCH>
     get() = Order(this, false)
 
-val <SCH : Schema<SCH>> FieldDef<SCH, *>.desc: Order<SCH>
+val <SCH : Schema<SCH>> FieldDef<SCH, *, *>.desc: Order<SCH>
     get() = Order(this, true)
 
 
@@ -202,7 +202,7 @@ private constructor(
         val name: String,
         val idColName: String,
         val idColType: DataType.Simple<ID>,
-        val pkField: FieldDef.Immutable<SCH, ID>?
+        val pkField: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>? // todo: consistent names, ID || PK
 // TODO: [unique] indices
 // TODO: auto increment
 ) {
@@ -215,10 +215,8 @@ private constructor(
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) :
             this(schema, name, idColName, idColType, null)
 
-    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID>) :
-            this(schema, name, idCol.name, idCol.type as? DataType.Simple<ID>
-                    ?: throw IllegalArgumentException("PK column must have simple type"),
-                    idCol)
+    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) :
+            this(schema, name, idCol.name, idCol.exactType, idCol)
 
     /**
      * Instantiates a record. Typically consists of a single constructor call.
@@ -283,7 +281,7 @@ private constructor(
         for (i in 0 until fieldCount) {
             val field = fields[i]
             val path: NamedLens<SCH, Struct<SCH>, out Any?> =
-                    if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *>
+                    if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *, *>
                     else /* implies naming != null */ naming!!.concatErased(prefix, field) as NamedLens<SCH, Struct<SCH>, out Any?>
 
             val relType = when (val type = field.type) {
@@ -334,7 +332,7 @@ private constructor(
     internal sealed class Nesting {
         class StructStart constructor(
                 @JvmField val hasFieldSet: Boolean,
-                @JvmField val myField: FieldDef<*, *>?,
+                @JvmField val myField: FieldDef<*, *, *>?,
                 @JvmField val unwrappedType: DataType.Partial<*, *>
         ) : Nesting() {
             @JvmField var colCount: Int = 0
@@ -410,7 +408,7 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) : super(schema, name, idColName, idColType)
 
-    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID>) : super(schema, name, idCol)
+    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) : super(schema, name, idCol)
 
     @Deprecated("Stop overriding this! Will become final.")
     override fun newRecord(session: Session, primaryKey: ID): Record<SCH, ID> =
@@ -428,10 +426,10 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
 
     // overrides multi-inherit
 
-    override val fields: FieldSet<SCH, FieldDef<SCH, *>>
+    override val fields: FieldSet<SCH, FieldDef<SCH, *, *>>
         get() = schema.allFieldSet()
 
-    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =
+    override fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T =
             get(field)
 
     // end
@@ -464,7 +462,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
     ) : super(session, table, schema, primaryKey, schema.allFieldSet())
 
 
-    override fun <T> get(field: FieldDef<SCH, T>): T = when (field) {
+    override fun <T> get(field: FieldDef<SCH, T, *>): T = when (field) {
         is FieldDef.Mutable -> prop(field).value
         is FieldDef.Immutable -> {
             val index = field.ordinal.toInt()
@@ -480,18 +478,18 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): SqlProperty<T> =
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): SqlProperty<T> =
             values[field.ordinal.toInt()] as SqlProperty<T>
 
     @Deprecated("now we have normal relations")
     @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<SCH, ForeID>.toOne(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC> =
-            (this as FieldDef.Mutable<SCH, ForeID?>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
+            FieldDef.Mutable<SCH, ForeID, *>.toOne(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC> =
+            (this as FieldDef.Mutable<SCH, ForeID?, *>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
 
     @Deprecated("now we have normal relations")
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<SCH, ForeID?>.toOneNullable(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC?> =
+            FieldDef.Mutable<SCH, ForeID?, *>.toOneNullable(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC?> =
             (this@Record prop this@toOneNullable).bind(
                     { id: ForeID? -> if (id == null) null else session[foreignTable].require(id) },
                     { it: ForeREC? -> it?.primaryKey }
@@ -499,7 +497,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
 
     @Deprecated("now we have normal relations")
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<ForeSCH, ID>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
+            FieldDef.Mutable<ForeSCH, ID, *>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)
 
     }
@@ -509,7 +507,7 @@ open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( 
         internal val table: Table<SCH, ID, *>,
         schema: SCH,
         val primaryKey: ID,
-        override val fields: FieldSet<SCH, FieldDef<SCH, *>> // fixme: the field is unused by Record
+        override val fields: FieldSet<SCH, FieldDef<SCH, *, *>> // fixme: the field is unused by Record
 ) : BaseStruct<SCH>(schema) {
 
     @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
@@ -521,13 +519,13 @@ open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( 
             session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
                 schema.mapIndexed(fields) { i, field ->
                     when (field) {
-                        is FieldDef.Mutable -> ManagedProperty(dao, field as FieldDef<SCH, Any?>, primaryKey, Unset)
+                        is FieldDef.Mutable -> ManagedProperty(dao, field as FieldDef<SCH, Any?, *>, primaryKey, Unset)
                         is FieldDef.Immutable -> Unset
                     }
                 }
             }
 
-    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T {
+    override fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T {
         val index = fields.indexOf(field).toInt()
         val value = try {
             values[index]
@@ -573,5 +571,5 @@ open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( 
 /**
  * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [SCH].
  */
-fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T>): (Record<SCH, *>) -> Property<T> =
+fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T, *>): (Record<SCH, *>) -> Property<T> =
         { it prop field }

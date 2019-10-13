@@ -29,14 +29,14 @@ private val EmptyArray = emptyArray<Any?>()
 fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH>, SCH> =
         object : DataType.Partial<PartialStruct<SCH>, SCH>(schema) {
 
-            override fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): PartialStruct<SCH> =
+            override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): PartialStruct<SCH> =
                     PartialStructSnapshot(schema, fields, when (fields.size.toInt()) {
                         0 -> EmptyArray
                         1 -> arrayOf(values)
                         else -> values as Array<Any?>
                     }, null)
 
-            override fun fields(value: PartialStruct<SCH>): FieldSet<SCH, FieldDef<SCH, *>> =
+            override fun fields(value: PartialStruct<SCH>): FieldSet<SCH, FieldDef<SCH, *, *>> =
                     value.fields
 
             override fun store(value: PartialStruct<SCH>): Any? =
@@ -49,13 +49,13 @@ fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH
  */
 class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
-    override val fields: FieldSet<SCH, FieldDef<SCH, *>>
+    override val fields: FieldSet<SCH, FieldDef<SCH, *, *>>
     private val values: Array<Any?>
 
     constructor(source: Struct<SCH>, fields: FieldSet<SCH, *>) : super(source.schema) {
         this.fields = fields
         this.values = arrayOfNulls(fields.size.toInt())
-        schema.forEachIndexed<SCH, FieldDef<SCH, *>>(fields) { idx, field ->
+        schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
             values[idx] = source[field]
         }
     }
@@ -64,7 +64,7 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
     constructor(schema: SCH, fields: FieldSet<SCH, *>, sparseValues: Array<Any?>) : super(schema) {
         this.fields = fields
         this.values = arrayOfNulls<Any>(fields.size.toInt()).also { packed ->
-            schema.forEachIndexed<SCH, FieldDef<SCH, *>>(fields) { idx, field ->
+            schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
                 packed[idx] = sparseValues[field.ordinal.toInt()]
             }
         }
@@ -77,7 +77,7 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
         this.values = packedValues
     }
 
-    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =
+    override fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T =
             try {
                 values[fields.indexOf(field).toInt()] as T
             } catch (e: ArrayIndexOutOfBoundsException) {
@@ -89,21 +89,21 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 /**
  * Returns value of the [field], or `null`, if absent.
  */
-fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrNull(field: FieldDef<SCH, T>): T? =
+fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrNull(field: FieldDef<SCH, T, *>): T? =
         if (field in fields) getOrThrow(field)
         else null
 
 /**
  * Returns value of the [field], or [defaultValue], if absent.
  */
-fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrDefault(field: FieldDef<SCH, T>, defaultValue: T): T =
+fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrDefault(field: FieldDef<SCH, T, *>, defaultValue: T): T =
         if (field in fields) getOrThrow(field)
         else defaultValue
 
 /**
  * Returns value of the [field], or evaluates and returns [defaultValue], if absent.
  */
-inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrElse(field: FieldDef<SCH, T>, defaultValue: () -> T): T {
+inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrElse(field: FieldDef<SCH, T, *>, defaultValue: () -> T): T {
     contract { callsInPlace(defaultValue, InvocationKind.AT_MOST_ONCE) }
 
     return if (field in fields) getOrThrow(field)
@@ -124,7 +124,7 @@ inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) 
 /**
  * Creates a [PartialStruct] consisting of [fields] from [this].
  */
-fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *>>): PartialStruct<SCH> =
+fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *, *>>): PartialStruct<SCH> =
         if (fields == schema.allFieldSet()) {
             if (this is StructSnapshot) this else StructSnapshot(this)
         } else {
@@ -135,7 +135,7 @@ fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *>>
  * Builds a [StructSnapshot] filled with data from [this] and applies changes via [mutate].
  */
 inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(
-        fields: FieldSet<SCH, FieldDef<SCH, *>> = schema.allFieldSet(),
+        fields: FieldSet<SCH, FieldDef<SCH, *, *>> = schema.allFieldSet(),
         mutate: SCH.(StructBuilder<SCH>) -> Unit = { }
 ): PartialStruct<SCH> {
     contract { callsInPlace(mutate, InvocationKind.EXACTLY_ONCE) }

@@ -6,7 +6,7 @@ import net.aquadc.persistence.fill
 import net.aquadc.persistence.type.DataType
 
 /**
- * Declares a struct (or DTO) schema /ˈskiː.mə/.
+ * Declares a struct (or DTO, VO, Entity) schema /ˈskiː.mə/.
  * `struct`s in C, Rust, Swift, etc, or `Object`s in JS, are similar
  * to final classes with only public fields, no methods and no supertypes.
  * @see Struct
@@ -17,7 +17,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
     /**
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
      */
-    @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *>>? = ArrayList()
+    @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *, *>>? = ArrayList()
     @JvmField @JvmSynthetic internal var mutableCount: Byte = 0
 
     /**
@@ -28,31 +28,31 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      *   so let it be synchronized (it's default [lazy] mode).
      * }
      */
-    val fields: Array<out FieldDef<SELF, *>>
+    val fields: Array<out FieldDef<SELF, *, *>>
         get() = _fields.value
     private val _fields =
-            lazy(LazyFields(0) as () -> Array<out FieldDef<SELF, *>>)
+            lazy(LazyFields(0) as () -> Array<out FieldDef<SELF, *, *>>)
 
-    val fieldsByName: Map<String, FieldDef<SELF, *>>
+    val fieldsByName: Map<String, FieldDef<SELF, *, *>>
         get() = _byName.value
     private val _byName =
-            lazy(LazyFields(1) as () -> Map<String, FieldDef<SELF, *>>)
+            lazy(LazyFields(1) as () -> Map<String, FieldDef<SELF, *, *>>)
 
-    val mutableFields: Array<out FieldDef.Mutable<SELF, *>>
+    val mutableFields: Array<out FieldDef.Mutable<SELF, *, *>>
         get() = _mutableFields.value
     private val _mutableFields =
-            lazy(LazyFields(2) as () -> Array<out FieldDef.Mutable<SELF, *>>)
+            lazy(LazyFields(2) as () -> Array<out FieldDef.Mutable<SELF, *, *>>)
 
-    val immutableFields: Array<out FieldDef.Immutable<SELF, *>>
+    val immutableFields: Array<out FieldDef.Immutable<SELF, *, *>>
         get() = _immutableFields.value
     private val _immutableFields =
-            lazy(LazyFields(3) as () -> Array<out FieldDef.Immutable<SELF, *>>)
+            lazy(LazyFields(3) as () -> Array<out FieldDef.Immutable<SELF, *, *>>)
 
     /**
-     * Gets called before this fully initialized structDef gets used for the first time.
+     * Gets called before this fully initialized struct gets used for the first time.
      */
     @Deprecated("looks useless")
-    protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *>>) { }
+    protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *, *>>) { }
 
     @JvmSynthetic internal fun tmpFields() =
             tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
@@ -63,7 +63,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     @Suppress("UNCHECKED_CAST")
-    protected infix fun <T> String.mut(type: DataType<T>): FieldDef.Mutable<SELF, T> =
+    protected infix fun <T, DT : DataType<T>> String.mut(type: DT): FieldDef.Mutable<SELF, T, DT> =
             this.mut(type, Unset as T)
 
     /**
@@ -71,7 +71,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
-    protected fun <T> String.mut(dataType: DataType<T>, default: T): FieldDef.Mutable<SELF, T> {
+    protected fun <T, DT : DataType<T>> String.mut(dataType: DT, default: T): FieldDef.Mutable<SELF, T, DT> {
         val fields = tmpFields()
         val col = FieldDef.Mutable(schema, this, dataType, fields.size.toByte(), default, mutableCount++)
         fields.add(col)
@@ -84,7 +84,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     @Suppress("UNCHECKED_CAST")
-    protected infix fun <T> String.let(dataType: DataType<T>): FieldDef.Immutable<SELF, T> =
+    protected infix fun <T, DT : DataType<T>> String.let(dataType: DT): FieldDef.Immutable<SELF, T, DT> =
             this.let(dataType, Unset as T)
 
     /**
@@ -94,7 +94,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
-    protected fun <T> String.let(dataType: DataType<T>, default: T): FieldDef.Immutable<SELF, T> {
+    protected fun <T, DT : DataType<T>> String.let(dataType: DT, default: T): FieldDef.Immutable<SELF, T, DT> {
         val fields = tmpFields()
         val col = FieldDef.Immutable(schema, this, dataType, fields.size.toByte(), default, (fields.size - mutableCount).toByte())
         fields.add(col)
@@ -111,7 +111,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
         override fun invoke(): Any? = when (mode) {
             0 -> {
                 val fieldList = tmpFields()
-                val fields = arrayOfNulls<FieldDef<SELF, *>>(fieldList.size)
+                val fields = arrayOfNulls<FieldDef<SELF, *, *>>(fieldList.size)
                 check(fieldList.isNotEmpty()) { "Struct must have at least one field." }
                 // Schema.allFieldSet() relies on field count ∈ [1; 64]
                 // and FieldDef constructor checks for ordinal ∈ [0; 63]
@@ -131,10 +131,10 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
             }
 
             1 ->
-                fields.associateByTo(New.map<String, FieldDef<SELF, *>>(fields.size), FieldDef<SELF, *>::name)
+                fields.associateByTo(New.map<String, FieldDef<SELF, *, *>>(fields.size), FieldDef<SELF, *, *>::name)
 
             2 ->
-                arrayOfNulls<FieldDef.Mutable<SELF, *>>(mutableCount.toInt()).also { mut ->
+                arrayOfNulls<FieldDef.Mutable<SELF, *, *>>(mutableCount.toInt()).also { mut ->
                     var i = 0
                     fields.forEach { field ->
                         if (field is FieldDef.Mutable) mut[i++] = field
@@ -142,7 +142,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
                 }
 
             3 ->
-                arrayOfNulls<FieldDef.Immutable<SELF, *>>(fields.size - mutableCount.toInt()).also { mut ->
+                arrayOfNulls<FieldDef.Immutable<SELF, *, *>>(fields.size - mutableCount.toInt()).also { mut ->
                     var i = 0
                     fields.forEach { field ->
                         if (field is FieldDef.Immutable) mut[i++] = field
@@ -156,10 +156,10 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
     }
 
     // todo: may be zero-copy
-    override fun load(fields: FieldSet<SELF, FieldDef<SELF, *>>, values: Any?): Struct<SELF> =
+    override fun load(fields: FieldSet<SELF, FieldDef<SELF, *, *>>, values: Any?): Struct<SELF> =
             schema.build { builder -> fill(builder, this, fields, values) }
 
-    override fun fields(value: Struct<SELF>): FieldSet<SELF, FieldDef<SELF, *>> =
+    override fun fields(value: Struct<SELF>): FieldSet<SELF, FieldDef<SELF, *, *>> =
             schema.allFieldSet()
 
     override fun store(value: Struct<SELF>): Any? =
@@ -206,20 +206,32 @@ interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : Lens<SC
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
  * When treated as a function, returns value of this [FieldDef] on a given [Struct].
  * Note: constructors are internal to guarantee correct [ordinal] values.
+ * @param SCH host schema
+ * @param T runtime type of values
+ * @param DT stored type of values
  * @see Schema
  * @see Struct
  * @see Mutable
  * @see Immutable
  */
-sealed class FieldDef<SCH : Schema<SCH>, T>(
+sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
+
+        /**
+         * A schema this field belongs to.
+         */
         @JvmField val schema: SCH,
+
+        /**
+         * A name unique among the [schema].
+         * Required for string-ish serialization like JSON and XML and useful for debugging.
+         */
         override val name: String,
 
         /**
          * Describes type of values it can store and underlying serialization techniques.
          * This property is a part of serialization ABI.
          */
-        override val type: DataType<T>,
+        @JvmField val exactType: DT,
 
         /**
          * Zero-based ordinal number of this field.
@@ -249,6 +261,17 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
     }
+
+    /**
+     * Describes type of values it can store and underlying serialization techniques.
+     * This property is a part of serialization ABI.
+     *
+     * Note: `override val type: DT` is possible and could supersede both [exactType] and [type],
+     * but `FieldDef<*, T, *>::exactType` is inferred to `DataType<*>`
+     * while `FieldDef<*, T, *>::type` is useful `DataType<T>`.
+     */
+    override val type: DataType<T>
+        get() = exactType
 
     private val _default = default
 
@@ -283,27 +306,27 @@ sealed class FieldDef<SCH : Schema<SCH>, T>(
     /**
      * Represents a mutable field of a [Struct]: its value can be changed.
      */
-    class Mutable<SCH : Schema<SCH>, T> internal constructor(
+    class Mutable<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
             schema: SCH,
             name: String,
-            type: DataType<T>,
+            type: DT,
             ordinal: Byte,
             default: T,
             @JvmField val mutableOrdinal: Byte
-    ) : FieldDef<SCH, T>(schema, name, type, ordinal, default)
+    ) : FieldDef<SCH, T, DT>(schema, name, type, ordinal, default)
 
     /**
      * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
      */
     @Suppress("UNCHECKED_CAST")
-    class Immutable<SCH : Schema<SCH>, T> internal constructor(
+    class Immutable<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
             schema: SCH,
             name: String,
-            type: DataType<T>,
+            type: DT,
             ordinal: Byte,
             default: T,
             @JvmField val immutableOrdinal: Byte
-    ) : FieldDef<SCH, T>(schema, name, type, ordinal, default)
+    ) : FieldDef<SCH, T, DT>(schema, name, type, ordinal, default)
 
 }
 

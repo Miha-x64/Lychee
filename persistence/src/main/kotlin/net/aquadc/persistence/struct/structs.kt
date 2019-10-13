@@ -13,9 +13,9 @@ import kotlin.contracts.contract
  *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
  */
 fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
-        source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
+        source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
         /* default value for [fields] may be mutableFieldSet(), but StructBuilder's default is different */
-): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
+): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
         source.fields.intersectMutable(fields).also { intersect ->
             source.schema.forEach(intersect) { field ->
                 mutateFrom(source, field) // capture type
@@ -23,7 +23,7 @@ fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
         }
 @Suppress("NOTHING_TO_INLINE")
 private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(
-        source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T>
+        source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T, *>
 ) {
     this[field] = source.getOrThrow(field)
 }

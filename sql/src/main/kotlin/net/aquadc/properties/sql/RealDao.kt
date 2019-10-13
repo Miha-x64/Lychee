@@ -187,15 +187,15 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
 
     // region Manager implementation
 
-    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T {
+    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T, *>, id: ID): T {
         val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
         return thisRec[field.mutableOrdinal.toInt()] as T
     }
 
-    override fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T =
+    override fun <T> getClean(field: FieldDef<SCH, T, *>, id: ID): T =
             table.delegateFor(field).fetch(session, lowSession, table, field, id)
 
-    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T>, id: ID, previous: T, update: T) {
+    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T, *>, id: ID, previous: T, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact)
             error("Wrong transaction: requested $transaction, but session's is $ourTransact")

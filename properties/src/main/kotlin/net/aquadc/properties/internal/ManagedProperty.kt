@@ -13,7 +13,7 @@ import net.aquadc.properties.TransactionalProperty
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
         private var manager: Manager<SCH, TRANSACTION, ID>?,
-        private val field: FieldDef<SCH, T>,
+        private val field: FieldDef<SCH, T, *>,
         private val id: ID,
         initialValue: T
 ) : `Notifier-1AtomicRef`<T, T>(true, initialValue), TransactionalProperty<TRANSACTION, T> {
@@ -92,22 +92,22 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
 /**
  * A manager of a property, e. g. a database DAO/session.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // if gonna open this API, replace <SCH, T, *> with friendlier <SCH, T, TD>
 interface Manager<SCH : Schema<SCH>, TRANSACTION, ID> {
 
     /**
      * Returns dirty transaction value for current thread, or [Unset], if none.
      */
-    fun <T> getDirty(field: FieldDef.Mutable<SCH, T>, id: ID): T
+    fun <T> getDirty(field: FieldDef.Mutable<SCH, T, *>, id: ID): T
 
     /**
      * Returns clean, persisted, stable, committed value visible for all threads.
      */
-    fun <T> getClean(field: FieldDef<SCH, T>, id: ID): T
+    fun <T> getClean(field: FieldDef<SCH, T, *>, id: ID): T
 
     /**
      * Sets 'dirty' value during [transaction].
      */
-    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T>, id: ID, previous: T, update: T)
+    fun <T> set(transaction: TRANSACTION, field: FieldDef.Mutable<SCH, T, *>, id: ID, previous: T, update: T)
 
 }

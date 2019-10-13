@@ -16,7 +16,7 @@ interface PropertyStruct<SCH : Schema<SCH>> : Struct<SCH> {
     /**
      * @return a property representing a given [field]
      */
-    infix fun <T> prop(field: FieldDef.Mutable<SCH, T>): Property<T>
+    infix fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): Property<T>
 
 }
 
@@ -28,7 +28,7 @@ interface TransactionalPropertyStruct<SCH : Schema<SCH>> : PropertyStruct<SCH>, 
     /**
      * @return a property representing a given [field]
      */
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T>
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T>
 
 }
 

@@ -34,8 +34,8 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
             (field.type as DataType<Any?>).put(ed, field.name, value)
 
             when (field) {
-                is FieldDef.Mutable<SCH, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, null, value)
-                is FieldDef.Immutable<SCH, *> -> value
+                is FieldDef.Mutable<SCH, *, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?, *>, null, value)
+                is FieldDef.Immutable<SCH, *, *> -> value
             }
         }
         ed.apply()
@@ -52,7 +52,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         this.values = Array(fields.size) {
             val field = fields[it]
             when (field) {
-                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?>, null, Unset)
+                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?, *>, null, Unset)
                 is FieldDef.Immutable -> Unset
             }
         }
@@ -61,7 +61,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
     }
 
 
-    override fun <T> get(field: FieldDef<SCH, T>): T {
+    override fun <T> get(field: FieldDef<SCH, T, *>): T {
         val ordinal = field.ordinal.toInt()
         val value = values[ordinal]
         return when (field) {
@@ -88,13 +88,13 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
          *   Thus, 'dirty' state is nonsensical here.
          */
 
-        override fun <T> getDirty(column: FieldDef.Mutable<SCH, T>, id: Nothing?): T =
+        override fun <T> getDirty(column: FieldDef.Mutable<SCH, T, *>, id: Nothing?): T =
                 Unset as T
 
-        override fun <T> getClean(column: FieldDef<SCH, T>, id: Nothing?): T =
+        override fun <T> getClean(column: FieldDef<SCH, T, *>, id: Nothing?): T =
                 column.get(prefs)
 
-        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T>, id: Nothing?, previous: T, update: T) {
+        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T, *>, id: Nothing?, previous: T, update: T) {
             transaction.set(field, update)
         }
 
@@ -112,14 +112,14 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
 
     }
 
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>) =
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>) =
             (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<SCH>, T>)
 
     override fun beginTransaction(): StructTransaction<SCH> = object : SimpleStructTransaction<SCH>() {
 
         private val ed = prefs.edit()
 
-        override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) {
+        override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) {
             field.type.put(ed, field.name, update)
         }
 

@@ -23,7 +23,7 @@ private abstract class EitherType<T : BaseEither, SCH : Schema<SCH>>(
 
     // 'load' will create new instance of the specified Either and cannot be implemented generically
 
-    final override fun fields(value: T): FieldSet<SCH, FieldDef<SCH, *>> =
+    final override fun fields(value: T): FieldSet<SCH, FieldDef<SCH, *, *>> =
             schema.fields[value._which].asFieldSet()
 
     final override fun store(value: T): Any? =
@@ -41,7 +41,7 @@ fun <A, B> either(
         object : EitherType<Either<A, B>, Tuple<A, B>>(Tuple(firstName, firstType, secondName, secondType)) {
 
             override fun load(
-                    fields: FieldSet<Tuple<A, B>, FieldDef<Tuple<A, B>, *>>, values: Any?
+                    fields: FieldSet<Tuple<A, B>, FieldDef<Tuple<A, B>, *, *>>, values: Any?
             ): Either<A, B> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either.First(values as A)
@@ -64,7 +64,7 @@ fun <A, B, C> either3(
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple3<A, B, C>, FieldDef<Tuple3<A, B, C>, *>>, values: Any?
+                    fields: FieldSet<Tuple3<A, B, C>, FieldDef<Tuple3<A, B, C>, *, *>>, values: Any?
             ): Either3<A, B, C> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either3.First(values as A)
@@ -89,7 +89,7 @@ fun <A, B, C, D> either4(
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple4<A, B, C, D>, FieldDef<Tuple4<A, B, C, D>, *>>, values: Any?
+                    fields: FieldSet<Tuple4<A, B, C, D>, FieldDef<Tuple4<A, B, C, D>, *, *>>, values: Any?
             ): Either4<A, B, C, D> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either4.First(values as A)
@@ -117,7 +117,7 @@ fun <A, B, C, D, E> either5(
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple5<A, B, C, D, E>, FieldDef<Tuple5<A, B, C, D, E>, *>>, values: Any?
+                    fields: FieldSet<Tuple5<A, B, C, D, E>, FieldDef<Tuple5<A, B, C, D, E>, *, *>>, values: Any?
             ): Either5<A, B, C, D, E> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either5.First(values as A)
@@ -147,7 +147,7 @@ fun <A, B, C, D, E, F> either6(
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple6<A, B, C, D, E, F>, FieldDef<Tuple6<A, B, C, D, E, F>, *>>, values: Any?
+                    fields: FieldSet<Tuple6<A, B, C, D, E, F>, FieldDef<Tuple6<A, B, C, D, E, F>, *, *>>, values: Any?
             ): Either6<A, B, C, D, E, F> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either6.First(values as A)
@@ -179,7 +179,7 @@ fun <A, B, C, D, E, F, G> either7(
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple7<A, B, C, D, E, F, G>, FieldDef<Tuple7<A, B, C, D, E, F, G>, *>>, values: Any?
+                    fields: FieldSet<Tuple7<A, B, C, D, E, F, G>, FieldDef<Tuple7<A, B, C, D, E, F, G>, *, *>>, values: Any?
             ): Either7<A, B, C, D, E, F, G> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either7.First(values as A)
@@ -213,7 +213,7 @@ fun <A, B, C, D, E, F, G, H> either8(
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple8<A, B, C, D, E, F, G, H>, FieldDef<Tuple8<A, B, C, D, E, F, G, H>, *>>, values: Any?
+                    fields: FieldSet<Tuple8<A, B, C, D, E, F, G, H>, FieldDef<Tuple8<A, B, C, D, E, F, G, H>, *, *>>, values: Any?
             ): Either8<A, B, C, D, E, F, G, H> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either8.First(values as A)

@@ -122,7 +122,7 @@ object SqliteDialect : Dialect {
         return sb.append(");").toString()
     }
 
-    private fun <T> StringBuilder.appendDefault(col: FieldDef<*, T>) {
+    private fun <T> StringBuilder.appendDefault(col: FieldDef<*, T, *>) {
         object : DataTypeVisitor<StringBuilder, T, T, Unit> {
             override fun StringBuilder.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
                 if (nullable && arg === null) append("NULL")

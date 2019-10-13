@@ -15,12 +15,12 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
         @JvmField @JvmSynthetic internal val record: REC
 ) : BaseStruct<SCH>(record.schema), TransactionalPropertyStruct<SCH> {
 
-    override fun <T> get(field: FieldDef<SCH, T>): T =
+    override fun <T> get(field: FieldDef<SCH, T, *>): T =
             record[field]
 
     private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(record.schema.mutableFields.size)
 
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> {
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
         val index = field.mutableOrdinal.toInt()
         return (props[index] as TransactionalProperty<StructTransaction<SCH>, T>?)
                 ?: record.prop(field).transactional(field).also { props[index] = it }
@@ -30,7 +30,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
 
         private val transaction = record._session.beginTransaction()
 
-        override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) =
+        override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) =
                 record.prop(field).setValue(transaction, update)
 
         override fun setSuccessful() {
@@ -44,7 +44,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
     }
 
     private fun <SCH : Schema<SCH>, T> SqlProperty<T>
-            .transactional(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> =
+            .transactional(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
             object : `Mapped-`<T, T>(this@transactional, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
                 override fun setValue(transaction: StructTransaction<SCH>, value: T) {
                     transaction.set<T>(field, value)

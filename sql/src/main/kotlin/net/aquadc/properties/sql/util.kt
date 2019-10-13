@@ -154,7 +154,7 @@ internal fun inflate(
     var srcPos = _srcPos
     val schema = start.unwrappedType.schema
     val fieldSet = if (start.hasFieldSet) {
-        (mutColumnValues[srcPos++] as Long?)?.let { FieldSet<Schema<*>, FieldDef<Schema<*>, *>>(it) }
+        (mutColumnValues[srcPos++] as Long?)?.let { FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>(it) }
     } else { // no fieldSet implies it's a non-partial Struct
         schema.allFieldSet<Schema<*>>()
     }
@@ -205,7 +205,7 @@ internal fun inflate(
 
     // yay! commit & push
     val t = start.unwrappedType as DataType.Partial<Any?, Any?>
-    fieldSet as FieldSet<Any?, FieldDef<Any?, *>>?
+    fieldSet as FieldSet<Any?, FieldDef<Any?, *, *>>?
     mutColumnValues[_dstPos] =
             if (fieldSet == null) null
             else t.load(fieldSet, when (fieldSet.size.toInt()) {
@@ -238,7 +238,7 @@ internal fun flatten(
 
     val fieldSet =
             if (start.hasFieldSet) erased.fields(value).bitmask.let {
-                out[dstPos++] = it; FieldSet<Schema<*>, FieldDef<Schema<*>, *>>(it)
+                out[dstPos++] = it; FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>(it)
             } else erased.schema.allFieldSet<Schema<*>>()
 
     val fields = start.unwrappedType.schema.fields
@@ -252,7 +252,7 @@ internal fun flatten(
         else -> {
             val fieldValues = erased.store(value) as Array<Any?> // fixme allocation
             flattenFieldValues(_recipeOffset, { f ->
-                fieldValues[fieldSet.indexOf<Schema<*>>(f as FieldDef<Schema<*>, *>).toInt()]
+                fieldValues[fieldSet.indexOf<Schema<*>>(f as FieldDef<Schema<*>, *, *>).toInt()]
             }, recipe, fields, fieldSet, out, dstPos)
         }
     }
@@ -260,8 +260,8 @@ internal fun flatten(
 
 @Suppress("UPPER_BOUND_VIOLATED")
 private inline fun flattenFieldValues(
-        _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *>) -> Any?, recipe: Array<out Table.Nesting>,
-        fields: Array<out FieldDef<out Schema<*>, out Any?>>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *>>,
+        _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *, *>) -> Any?, recipe: Array<out Table.Nesting>,
+        fields: Array<out FieldDef<out Schema<*>, out Any?, *>>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
         out: Array<Any?>, _dstPos: Int
 ) {
     var dstPos = _dstPos
@@ -314,5 +314,5 @@ private inline fun flattenFieldValues(
         "UPPER_BOUND_VIOLATED",
         "NOTHING_TO_INLINE" // inline: please issue a compiler error if inner contains() call is recursive
 )
-private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *>): Boolean =
-        this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *>)
+private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
+        this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)

@@ -120,7 +120,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                 }
             }
 
-    private fun <SCH : Schema<SCH>> JsonReader.nextField(byName: Map<String, FieldDef<SCH, *>>): FieldDef<SCH, *>? {
+    private fun <SCH : Schema<SCH>> JsonReader.nextField(byName: Map<String, FieldDef<SCH, *, *>>): FieldDef<SCH, *, *>? {
         while (hasNext()) {
             val field = byName[nextName()]
             if (field == null) skipValue() // unsupported value
@@ -138,7 +138,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
  */
 fun <SCH : Schema<SCH>> JsonWriter.write(
         list: List<Struct<SCH>>,
-        fields: FieldSet<SCH, FieldDef<SCH, *>> =
+        fields: FieldSet<SCH, FieldDef<SCH, *, *>> =
                 list.firstOrNull()?.schema?.allFieldSet() ?: /* otherwise it doesn't matter */ FieldSet(0)
 ) {
     beginArray()
@@ -153,7 +153,7 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
  */
 fun <SCH : Schema<SCH>> JsonWriter.write(
         struct: Struct<SCH>,
-        fields: FieldSet<SCH, FieldDef<SCH, *>> =
+        fields: FieldSet<SCH, FieldDef<SCH, *, *>> =
                 struct.schema.allFieldSet()
 ) {
     beginObject()
@@ -171,7 +171,7 @@ fun <T> JsonWriter.write(type: DataType<T>, value: T): Unit =
         (writerVis as JsonWriterVisitor<T>).match(type, this, value)
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
-private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T>) =
+private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =
         write(field.type, struct.getOrThrow(field))
 
 private val writerVis = JsonWriterVisitor<Any?>()
@@ -220,7 +220,7 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
                 }
                 else -> {
                     values as Array<*>
-                    type.schema.forEachIndexed<SCH, FieldDef<SCH, *>>(fields) { idx, field ->
+                    type.schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
                         name(field.name)
                         write(field.type as DataType<Any?>, values[idx])
                     }

@@ -22,7 +22,7 @@ class StructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH>, Struct<SCH> {
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(field: FieldDef<SCH, T>): T =
+    override fun <T> get(field: FieldDef<SCH, T, *>): T =
             values[field.ordinal.toInt()] as T
 
 }

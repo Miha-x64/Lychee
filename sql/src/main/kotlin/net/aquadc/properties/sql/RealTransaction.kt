@@ -60,7 +60,7 @@ internal class RealTransaction(
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(
-            table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T>, previous: T, value: T
+            table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T
     ) {
         checkOpenAndThread()
         val updates = (updated ?: UpdatesMap().also { updated = it })

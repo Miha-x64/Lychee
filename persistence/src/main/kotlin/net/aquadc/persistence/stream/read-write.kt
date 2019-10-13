@@ -128,11 +128,6 @@ fun <D, T> BetterDataInput<D>.read(input: D, type: DataType<T>): T =
     type.read(this, input)
 
 
-@Suppress("NOTHING_TO_INLINE") // single call-site, just capture T
-private inline fun <D, SCH : Schema<SCH>, T> BetterDataInput<D>.readValueFrom(input: D, field: FieldDef<SCH, T>, to: StructBuilder<SCH>) {
-    to[field] = field.type.read(this, input)
-}
-
 /**
  * Reads a value of [this] type from [input] with help of [reader].
  */
@@ -148,7 +143,7 @@ class StreamReaderVisitor<D, T>(
     private val boolDictionary = arrayOf(null, false, true)
 
     override fun D.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>): T {
-        val value = when (type.kind) {
+        @Suppress("IMPLICIT_CAST_TO_ANY") val value = when (type.kind) {
             DataType.Simple.Kind.Bool -> boolDictionary[input.readByte(this).toInt() + 1]
             DataType.Simple.Kind.Str -> input.readString(this)
             DataType.Simple.Kind.Blob -> input.readBytes(this)
@@ -202,7 +197,7 @@ class StreamReaderVisitor<D, T>(
                 }
             }
 
-    private fun <SCH : Schema<SCH>> D.nextField(fields: Array<out FieldDef<SCH, *>>): FieldDef<SCH, *> =
+    private fun <SCH : Schema<SCH>> D.nextField(fields: Array<out FieldDef<SCH, *, *>>): FieldDef<SCH, *, *> =
             fields[input.readByte(this).toInt()]
 
 }

@@ -38,7 +38,7 @@ class FieldSetTest {
 
 
     @Test fun `single forEach`() {
-        val list = ArrayList<FieldDef<SomeSchema, *>>()
+        val list = ArrayList<FieldDef<SomeSchema, *, *>>()
         SomeSchema.forEach(SomeSchema.B.asFieldSet(), { list.add(it) })
         assertEquals(listOf(SomeSchema.B), list)
         assertEquals(SomeSchema.B, SomeSchema.single(SomeSchema.B.asFieldSet()))
@@ -53,7 +53,7 @@ class FieldSetTest {
         assertEquals(1.toByte(), SomeSchema.B.asFieldSet().size)
     }
     @Test fun `single indexOf`() {
-        val set = SomeSchema.B.asFieldSet<SomeSchema, FieldDef<SomeSchema, *>>()
+        val set = SomeSchema.B.asFieldSet<SomeSchema, FieldDef<SomeSchema, *, *>>()
         assertEquals(-1, set.indexOf(SomeSchema.A).toInt())
         assertEquals(0, set.indexOf(SomeSchema.B).toInt())
         assertEquals(-1, set.indexOf(SomeSchema.C).toInt())
@@ -72,7 +72,7 @@ class FieldSetTest {
 
 
     @Test fun `two forEach`() {
-        val list = ArrayList<FieldDef<SomeSchema, *>>()
+        val list = ArrayList<FieldDef<SomeSchema, *, *>>()
         SomeSchema.forEach(SomeSchema.A + SomeSchema.B, { list.add(it) })
         assertEquals(listOf(SomeSchema.A, SomeSchema.B), list)
     }
@@ -86,7 +86,7 @@ class FieldSetTest {
         assertEquals(2.toByte(), (SomeSchema.A + SomeSchema.B).size)
     }
     @Test fun `two indexOf`() {
-        val set = SomeSchema.A.plus<SomeSchema, FieldDef<SomeSchema, *>>(SomeSchema.B)
+        val set = SomeSchema.A.plus<SomeSchema, FieldDef<SomeSchema, *, *>>(SomeSchema.B)
         assertEquals(0, set.indexOf(SomeSchema.A).toInt())
         assertEquals(1, set.indexOf(SomeSchema.B).toInt())
         assertEquals(-1, set.indexOf(SomeSchema.C).toInt())
@@ -108,13 +108,13 @@ class FieldSetTest {
 
 
     @Test fun `all forEach`() {
-        val list = ArrayList<FieldDef<SomeSchema, *>>()
+        val list = ArrayList<FieldDef<SomeSchema, *, *>>()
         SomeSchema.forEach(SomeSchema.A + SomeSchema.B + SomeSchema.C, { list.add(it) })
         assertEquals(listOf(SomeSchema.A, SomeSchema.B, SomeSchema.C), list)
     }
 
     @Test fun `all63 forEach`() {
-        val list = ArrayList<FieldDef<Schema63, *>>()
+        val list = ArrayList<FieldDef<Schema63, *, *>>()
         Schema63.forEach(Schema63.allFieldSet(), { list.add(it) })
         assertEquals(63, list.size)
     }
@@ -126,7 +126,7 @@ class FieldSetTest {
     }
 
     @Test fun `all64 forEach`() {
-        val list = ArrayList<FieldDef<Schema64, *>>()
+        val list = ArrayList<FieldDef<Schema64, *, *>>()
         Schema64.forEach(Schema64.allFieldSet(), { list.add(it) })
         assertEquals(64, list.size)
     }

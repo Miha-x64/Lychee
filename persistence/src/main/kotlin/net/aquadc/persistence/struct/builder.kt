@@ -33,7 +33,7 @@ fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
         StructBuilder<SCH>(Array(schema.fields.size) { Unset })
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef<SCH, *>>): StructBuilder<SCH> {
+fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>): StructBuilder<SCH> {
     val fs = source.schema.fields
     val values = Array<Any?>(fs.size) { Unset }
     source.schema.forEach(source.fields intersect fields) { field ->
@@ -58,7 +58,7 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
      *        }
      *    }
      */
-    operator fun <T> get(key: FieldDef<SCH, T>): T {
+    operator fun <T> get(key: FieldDef<SCH, T, *>): T {
         val v = values[key.ordinal.toInt()]
         if (v === Unset) throw NoSuchElementException()
         else return v as T
@@ -67,7 +67,7 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
     /**
      * Assigns the given [value] to the specified [field].
      */
-    operator fun <T> set(field: FieldDef<SCH, T>, value: T) {
+    operator fun <T> set(field: FieldDef<SCH, T, *>, value: T) {
         values[field.ordinal.toInt()] = value
     }
 
@@ -78,15 +78,15 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
      */
     fun setFrom(
             source: PartialStruct<SCH>,
-            fields: FieldSet<SCH, FieldDef<SCH, *>> = source.schema.allFieldSet()
-    ): FieldSet<SCH, FieldDef<SCH, *>> =
+            fields: FieldSet<SCH, FieldDef<SCH, *, *>> = source.schema.allFieldSet()
+    ): FieldSet<SCH, FieldDef<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->
                     mutateFrom(source, field)
                 }
             }
     // captures [T] and asserts [field] is present in [source]
-    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef<SCH, T>) {
+    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) {
         this[field] = source.getOrThrow(field)
     }
 
@@ -105,7 +105,7 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
         return StructSnapshot(schema, values)
     }
 
-    fun fieldsPresent(): FieldSet<SCH, FieldDef<SCH, *>> {
+    fun fieldsPresent(): FieldSet<SCH, FieldDef<SCH, *, *>> {
         var set = 0L
         var field = 1L
         values.forEach { value ->

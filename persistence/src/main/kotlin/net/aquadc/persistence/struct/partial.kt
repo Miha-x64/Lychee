@@ -22,12 +22,12 @@ interface PartialStruct<SCH : Schema<SCH>> {
     /**
      * Returns a set of fields which have values.
      */
-    val fields: FieldSet<SCH, FieldDef<SCH, *>>
+    val fields: FieldSet<SCH, FieldDef<SCH, *, *>>
 
     /**
      * Returns the value of the requested field, if it is present.
      * @throws NoSuchElementException if requested value is absent
      */
-    fun <T> getOrThrow(field: FieldDef<SCH, T>): T
+    fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T
 
 }

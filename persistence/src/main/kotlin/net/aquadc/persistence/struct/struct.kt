@@ -16,15 +16,15 @@ interface Struct<SCH : Schema<SCH>> : PartialStruct<SCH> {
     /**
      * Always returns a full set of fields declared in schema.
      */
-    override val fields: FieldSet<SCH, FieldDef<SCH, *>>
+    override val fields: FieldSet<SCH, FieldDef<SCH, *, *>>
         get() = schema.allFieldSet()
 
     /**
      * Returns the value of the requested field.
      */
-    operator fun <T> get(field: FieldDef<SCH, T>): T
+    operator fun <T> get(field: FieldDef<SCH, T, *>): T
 
-    override fun <T> getOrThrow(field: FieldDef<SCH, T>): T =
+    override fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T =
             get(field)
 
 }
@@ -49,7 +49,7 @@ interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
     /**
      * Sets [field] value to [update].
      */
-    operator fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T)
+    operator fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T)
 
     /**
      * Marks the whole transaction as successful.

@@ -37,8 +37,8 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
             val field = fields[i]
             val value = source[field]
             when (field) {
-                is FieldDef.Mutable<SCH, *> -> propertyOf(value, concurrent)
-                is FieldDef.Immutable<SCH, *> -> value
+                is FieldDef.Mutable<SCH, *, *> -> propertyOf(value, concurrent)
+                is FieldDef.Immutable<SCH, *, *> -> value
             }
         }
     }
@@ -52,22 +52,22 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
             val field = fields[i]
             val value = field.default
             when (field) {
-                is FieldDef.Mutable<SCH, *> -> propertyOf(value, concurrent)
+                is FieldDef.Mutable<SCH, *, *> -> propertyOf(value, concurrent)
                 is FieldDef.Immutable<SCH, *> -> value
             }
         }
     }*/
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(field: FieldDef<SCH, T>): T {
+    override fun <T> get(field: FieldDef<SCH, T, *>): T {
         val value = values[field.ordinal.toInt()]
         return when (field) {
-            is FieldDef.Mutable<SCH, T> -> (value as MutableProperty<T>).value
-            is FieldDef.Immutable<SCH, T> -> value as T
+            is FieldDef.Mutable<SCH, T, *> -> (value as MutableProperty<T>).value
+            is FieldDef.Immutable<SCH, T, *> -> value as T
         }
     }
 
-    operator fun <T> set(field: FieldDef.Mutable<SCH, T>, value: T) {
+    operator fun <T> set(field: FieldDef.Mutable<SCH, T, *>, value: T) {
         prop(field).value = value
     }
 
@@ -77,20 +77,20 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
      *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
     fun setFrom(
-            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *>>
-    ): FieldSet<SCH, FieldDef.Mutable<SCH, *>> =
+            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
+    ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
             source.fields.intersectMutable(fields).also { intersect ->
                 schema.forEach(fields) { field ->
                     mutateFrom(source, field) // capture type
                 }
             }
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T>) {
+    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T, *>) {
         this[field] = source.getOrThrow(field)
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): MutableProperty<T> =
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): MutableProperty<T> =
             (values[field.ordinal.toInt()] as MutableProperty<T>)
 
     /**
@@ -108,10 +108,10 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
     private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(observable.schema.mutableFields.size)
 
-    override fun <T> get(field: FieldDef<SCH, T>): T =
+    override fun <T> get(field: FieldDef<SCH, T, *>): T =
             observable[field]
 
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> {
+    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
         val index = field.mutableOrdinal.toInt()
         val prop = props[index] ?: observable.transactional(field).also { props[index] = it }
         return (prop as TransactionalProperty<StructTransaction<SCH>, T>)
@@ -121,7 +121,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
         private val patch = Array<Any?>(schema.mutableFields.size) { Unset }
 
-        override fun <T> set(field: FieldDef.Mutable<SCH, T>, update: T) {
+        override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) {
             patch[field.mutableOrdinal.toInt()] = update
         }
 
@@ -144,7 +144,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     }
 
     private fun <T> ObservableStruct<SCH>
-            .transactional(field: FieldDef.Mutable<SCH, T>): TransactionalProperty<StructTransaction<SCH>, T> =
+            .transactional(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
             object : `Mapped-`<T, T>(this@transactional prop field, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
                 override fun setValue(transaction: StructTransaction<SCH>, value: T) {
                     transaction[field] = value

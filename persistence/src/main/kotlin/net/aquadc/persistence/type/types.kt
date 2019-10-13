@@ -157,13 +157,13 @@ sealed class DataType<T> {
          * @see net.aquadc.persistence.struct.indexOf
          * @see net.aquadc.persistence.fill
          */
-        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?): T
+        abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): T
 
         /**
          * Returns a set of fields which have values.
          * Required to parse data returned by [store] function.
          */
-        abstract fun fields(value: T): FieldSet<SCH, FieldDef<SCH, *>>
+        abstract fun fields(value: T): FieldSet<SCH, FieldDef<SCH, *, *>>
 
         /**
          * Converts in-memory value into its persistable representation.

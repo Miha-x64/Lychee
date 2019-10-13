@@ -185,16 +185,16 @@ fun <SCH : Schema<SCH>> Struct<SCH>.values(): Array<Any?> {
 inline fun <reified T> List<T>.array(): Array<T> =
         (this as java.util.List<T>).toArray(arrayOfNulls<T>(size))
 
-internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *>>, values: Any?) {
+internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?) {
     when (fields.size.toInt()) {
         0 -> { } // empty. Nothing to do here!
 
         1 ->
-            builder[schema.single(fields) as FieldDef<SCH, Any?>] = values
+            builder[schema.single(fields) as FieldDef<SCH, Any?, *>] = values
 
         (values as Array<*>).size -> { // 'packed'
             schema.forEachIndexed(fields) { idx, field ->
-                builder[field as FieldDef<SCH, Any?>] = values[idx]
+                builder[field as FieldDef<SCH, Any?, *>] = values[idx]
             }
         }
 
@@ -221,10 +221,10 @@ fun <SCH : Schema<SCH>> PartialStruct<SCH>.fieldValues(): Any? {
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 inline fun <T, SCH : Schema<SCH>> readPartial(
         type: DataType.Partial<T, SCH>, fieldValues: ThreadLocal<ArrayList<Any?>>,
-        maybeReadNextField: () -> FieldDef<SCH, *>?,
+        maybeReadNextField: () -> FieldDef<SCH, *, *>?,
         readNextValue: (DataType<*>) -> Any?
 ): T {
-    var fields = emptyFieldSet<SCH, FieldDef<SCH, *>>()
+    var fields = emptyFieldSet<SCH, FieldDef<SCH, *, *>>()
     var values: Any? = null
 
     val firstField = maybeReadNextField()
@@ -283,12 +283,12 @@ internal fun ArrayList<*>.pop(count: Int) {
 }
 
 @PublishedApi
-internal fun <SCH : Schema<SCH>> gatherValues(fields: FieldSet<SCH, FieldDef<SCH, *>>, fieldValues: ArrayList<Any?>): Array<Any?> {
+internal fun <SCH : Schema<SCH>> gatherValues(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, fieldValues: ArrayList<Any?>): Array<Any?> {
     val fieldCount = fields.size.toInt()
     val values = arrayOfNulls<Any>(fieldCount)
     repeat(fieldCount) { _ ->
         val value = fieldValues.pop()
-        val field = fieldValues.pop() as FieldDef<SCH, *>
+        val field = fieldValues.pop() as FieldDef<SCH, *, *>
         values[fields.indexOf(field).toInt()] = value
     }
     return values
