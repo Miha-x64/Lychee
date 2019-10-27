@@ -1,7 +1,7 @@
 package net.aquadc.properties.sql
 
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import java.util.concurrent.ConcurrentHashMap
 
@@ -12,7 +12,7 @@ internal interface LowLevelSession<STMT> {
     /** [columns] : [values] is a map */
     fun <SCH : Schema<SCH>, ID : IdBound> update(
             table: Table<SCH, ID, *>, id: ID,
-            columns: Any /* = [array of] NamedLens<SCH, Struct<SCH>, *>> */, values: Any? /* = [array of] Any? */
+            columns: Any /* = [array of] StoredNamedLens<SCH, Struct<SCH>, *>> */, values: Any? /* = [array of] Any? */
     )
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID)
@@ -24,7 +24,7 @@ internal interface LowLevelSession<STMT> {
     fun onTransactionEnd(successful: Boolean)
 
     fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
+            table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
     ): T
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -36,7 +36,7 @@ internal interface LowLevelSession<STMT> {
     ): Long
 
     fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-            table: Table<SCH, ID, *>, columns: Array<NamedLens<SCH, *, *>>, id: ID
+            table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
     ): Array<Any?>
 
     val transaction: RealTransaction?

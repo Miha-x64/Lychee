@@ -19,6 +19,9 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
         return value!!
     }
 
+    // note: this debug assertion helps finding bad types in tests but will be removed by ProGuard in production.
+    // good (de)serializers must never rely on this check and pass already cast* values
+    // *cast is an irregular verb: cast | cast | cast
     private fun sanityCheck(value: Any?) {
         when (kind) {
             Kind.Bool -> value as Boolean
@@ -93,10 +96,11 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
  * Describes `T?` instances.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T : Any> nullable(type: DataType<T>): DataType.Nullable<T> =
+inline fun <T : Any, DT : DataType<T>> nullable(type: DT): DataType.Nullable<T, DT> =
         DataType.Nullable(type)
 
-internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: DataType<E>) : DataType.Collect<C, E>(elementType) {
+internal abstract class CollectBase<C : Collection<E>, E, DE : DataType<E>>(elementType: DE)
+    : DataType.Collect<C, E, DE>(elementType) {
 
     override fun store(value: C): AnyCollection =
             value
@@ -107,8 +111,8 @@ internal abstract class CollectBase<C : Collection<E>, E : Any?>(elementType: Da
  * Represents a [Collection] of [E].
  * Despite it is represented as a [List], duplicates handling depends on the underlying storage.
  */
-fun <E> collection(elementType: DataType<E>): DataType.Collect<List<E>, E> =
-        object : CollectBase<List<E>, E>(elementType) {
+fun <E, DE : DataType<E>> collection(elementType: DE): DataType.Collect<List<E>, E, DE> =
+        object : CollectBase<List<E>, E, DE>(elementType) {
             override fun load(value: AnyCollection): List<E> =
                     value.fatAsList() // almost always zero copy
         }
@@ -116,11 +120,11 @@ fun <E> collection(elementType: DataType<E>): DataType.Collect<List<E>, E> =
 /**
  * Represents a [Set] of [E].
  */
-fun <E> set(elementType: DataType<E>): DataType.Collect<Set<E>, E> =
+fun <E, DE : DataType<E>> set(elementType: DE): DataType.Collect<Set<E>, E, DE> =
         setInternal(elementType, null)
 
-@PublishedApi internal fun <E> setInternal(elementType: DataType<E>, enumType: Class<E>?): CollectBase<Set<E>, E> {
-    return object : CollectBase<Set<E>, E>(elementType) {
+@PublishedApi internal fun <E, DE : DataType<E>> setInternal(elementType: DE, enumType: Class<E>?): CollectBase<Set<E>, E, DE> {
+    return object : CollectBase<Set<E>, E, DE>(elementType) {
         override fun load(value: AnyCollection): Set<E> =
                 if (value is Set<*>) value as Set<E>
                 else value.fatTo(

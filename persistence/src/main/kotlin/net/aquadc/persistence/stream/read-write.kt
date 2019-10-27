@@ -7,7 +7,6 @@ import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.struct.size
@@ -79,7 +78,7 @@ class StreamWriterVisitor<D, T>(
         }
     }
 
-    override fun <E> D.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) {
+    override fun <E> D.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
         val arg: AnyCollection? = if (nullable && arg === null) null else type.store(arg)
         if (arg === null) {
             output.writeInt(this, -1)
@@ -88,7 +87,7 @@ class StreamWriterVisitor<D, T>(
             // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             output.writeInt(this, arg.size)
             val elementType = type.elementType
-            arg.each { /*recur*/ elementType.write(output, this, it as E) }
+            arg.each { /*recur*/ elementType.write<D, E>(output, this, it as E) }
         }
     }
 
@@ -170,7 +169,7 @@ class StreamReaderVisitor<D, T>(
         })
     }
 
-    override fun <E> D.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>): T {
+    override fun <E> D.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): T {
         return when (val count = input.readInt(this)) {
             -1 -> check(nullable).let { null as T }
             0 -> type.load(emptyList<Nothing>())

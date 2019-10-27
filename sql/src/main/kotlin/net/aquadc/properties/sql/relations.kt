@@ -2,6 +2,7 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 
@@ -9,7 +10,7 @@ import net.aquadc.persistence.type.DataType
  * Describes which way a value of [DataType.Partial] of [Struct]/[Schema] type should be persisted in a relational database.
  */
 sealed class Relation<S : Schema<S>, ID : IdBound, T>(
-        @JvmField val path: Lens<S, Record<S, ID>, T>
+        @JvmField val path: StoredLens<S, T, *>
 ) {
 
     /**
@@ -23,24 +24,24 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
          * @param path a path to a value stored as a [DataType.Partial]
          * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
          */
-        constructor(naming: NamingConvention, path: Lens<S, Record<S, ID>, ET>, fieldSetColName: String) :
+        constructor(naming: NamingConvention, path: StoredLens<S, ET, *>, fieldSetColName: String) :
                 this(naming, path, fieldSetColName, null)
 
         /**
          * @param naming which will concat names
          * @param path a path to a value stored as a struct with [Schema]
          */
-        constructor(naming: NamingConvention, path: Lens<S, Record<S, ID>, ET>) :
+        constructor(naming: NamingConvention, path: StoredLens<S, ET, *>) :
                 this(naming, path, null, null)
 
         val naming: NamingConvention
         val fieldSetColName: String?
 
-        private constructor(naming: NamingConvention, path: Lens<S, Record<S, ID>, ET>, fieldSetColName: String?, dummy: Nothing?) : super(path) {
+        private constructor(naming: NamingConvention, path: StoredLens<S, ET, *>, fieldSetColName: String?, dummy: Nothing?) : super(path) {
             val t = path.type
-            val unwrapped = if (t is DataType.Nullable<*>) t.actualType else t as DataType<*>
+            val unwrapped = if (t is DataType.Nullable<*, *>) t.actualType else t
             when {
-                t is DataType.Nullable<*> -> if (fieldSetColName == null) throw NoSuchElementException(
+                t is DataType.Nullable<*, *> -> if (fieldSetColName == null) throw NoSuchElementException(
                         "either use full (non-partial, non-nullable) type or call another constructor(naming, path, fieldSetColName)"
                 )
                 unwrapped is Schema<*> -> check(fieldSetColName == null) {
@@ -66,7 +67,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      */
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ToOne<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, FR : Record<FS, FID>>(
-            path: Lens<S, Record<S, ID>, FR?>, foreignTable: Table<FS, *, FR>
+            path: StoredLens<S, FR?, *>, foreignTable: Table<FS, *, FR>
     ) : Relation<S, ID, FR?>(path) {
         init {
             checkToOne(path, foreignTable)
@@ -82,7 +83,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      */
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> private constructor(
-            ourTable: Table<S, ID, R>, path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, FID>, *>
+            ourTable: Table<S, ID, R>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: StoredLens<FS, *, *>
     ) : Relation<S, ID, C>(path) {
         init {
             checkToMany(path, foreignTable)
@@ -91,14 +92,14 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
 
         companion object {
             operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> Table<S, ID, R>.invoke(
-                    path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, *>
+                    path: Lens<S, Record<S, ID>, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, *, *>
             ): Nothing = TODO() // ToMany<S, ID, FS, R, FID, FR, C> = ToMany(this, path, foreignTable, joinColumn)
         }
     }
 
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ManyToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>, C : Collection<FR>>(
-            path: Lens<S, Record<S, ID>, C>, foreignTable: Table<FS, *, FR>, joinTable: JoinTable
+            path: StoredLens<S, C, *>, foreignTable: Table<FS, *, FR>, joinTable: JoinTable
     ) : Relation<S, ID, C>(path) {
         init {
             checkToMany(path, foreignTable)
@@ -133,10 +134,10 @@ typealias JoinTable = Nothing
 
 }*/
 
-internal fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
-        path: Lens<S, Record<S, ID>, *>, foreignTable: Table<FS, *, FR>) {
+internal fun <S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
+        path: StoredLens<S, *, *>, foreignTable: Table<FS, *, FR>) {
     val type = path.type
-    check(type is DataType.Collect<*, *>) {
+    check(type is DataType.Collect<*, *, *>) {
         "only fields of Collection<Struct> types can be used with to-many relations"
     }
     val elType = type.elementType
@@ -148,9 +149,9 @@ internal fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>> 
     }
 }
 
-internal fun <S : Schema<S>, ID : IdBound, F : Schema<F>, R : Record<F, *>> checkToOne(path: Lens<S, Record<S, ID>, *>, foreignTable: Table<F, *, R>) {
+internal fun <S : Schema<S>, F : Schema<F>, R : Record<F, *>> checkToOne(path: StoredLens<S, *, *>, foreignTable: Table<F, *, R>) {
     val type = path.type
-    val realType = if (type is DataType.Nullable<*>) type.actualType else type
+    val realType = if (type is DataType.Nullable<*, *>) type.actualType else type
     check(realType is Schema<*>) {
         "only fields of Struct types can be used with such relations, got $realType at $path"
     }

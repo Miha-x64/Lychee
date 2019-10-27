@@ -8,9 +8,12 @@ import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.struct.Named
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredLens
+import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.forEach
@@ -230,18 +233,18 @@ private constructor(
      */
     protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
-    @JvmSynthetic @JvmField internal var _delegates: Map<Lens<SCH, REC, *>, SqlPropertyDelegate<SCH, ID>>? = null // fixme: replace with Array
+    @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null // fixme: replace with Array
     @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
-    @JvmSynthetic @JvmField internal var _columnsMappedToFields: Array<out NamedLens<SCH, REC, *>>? = null
-    private val _columns: Lazy<Array<out NamedLens<SCH, REC, *>>> = lazy { // fixme: check usages
+    @JvmSynthetic @JvmField internal var _columnsMappedToFields: Array<out StoredNamedLens<SCH, *, *>>? = null
+    private val _columns: Lazy<Array<out StoredNamedLens<SCH, *, *>>> = lazy { // fixme: check usages
         val rels = relations().let { rels ->
-            rels.associateByTo(New.map<Lens<SCH, REC, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
+            rels.associateByTo(New.map<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }
-        val columns = CheckNamesList<NamedLens<SCH, REC, *>>(schema.fields.size)
+        val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(schema.fields.size)
         if (pkField == null) {
             columns.add(PkLens(this))
         }
-        val delegates = New.map<Lens<SCH, REC, *>, SqlPropertyDelegate<SCH, ID>>()
+        val delegates = New.map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>()
         val recipe = ArrayList<Nesting>()
         val ss = Nesting.StructStart(false, null, schema)
         recipe.add(ss)
@@ -258,7 +261,7 @@ private constructor(
         colsArray
     }
 
-    private class CheckNamesList<E : NamedLens<* , *, *>>(initialCapacity: Int) : ArrayList<E>(initialCapacity) {
+    private class CheckNamesList<E : Named>(initialCapacity: Int) : ArrayList<E>(initialCapacity) {
         private val names = New.set<String>(initialCapacity)
         override fun add(element: E): Boolean {
             val name = element.name
@@ -270,23 +273,23 @@ private constructor(
 
     // some bad code with raw types here
     @Suppress("UPPER_BOUND_VIOLATED") @JvmSynthetic internal fun embed(
-            rels: MutableMap<Lens<SCH, REC, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
-            naming: NamingConvention?, prefix: NamedLens<SCH, Struct<SCH>, *>?,
-            outColumns: ArrayList<NamedLens<SCH, REC, *>>,
-            outDelegates: MutableMap<Lens<SCH, REC, *>, SqlPropertyDelegate<SCH, ID>>?,
+            rels: MutableMap<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
+            naming: NamingConvention?, prefix: StoredNamedLens<SCH, *, *>?,
+            outColumns: ArrayList<StoredNamedLens<SCH, *, *>>,
+            outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?,
             outRecipe: ArrayList<Nesting>
     ) {
         val fields = schema.fields
         val fieldCount = fields.size
         for (i in 0 until fieldCount) {
             val field = fields[i]
-            val path: NamedLens<SCH, Struct<SCH>, out Any?> =
+            val path: StoredNamedLens<SCH, out Any?, *> =
                     if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *, *>
-                    else /* implies naming != null */ naming!!.concatErased(prefix, field) as NamedLens<SCH, Struct<SCH>, out Any?>
+                    else /* implies naming != null */ naming!!.concatErased(prefix, field) as StoredNamedLens<SCH, out Any?, out DataType<Any?>>
 
             val relType = when (val type = field.type) {
                 is DataType.Partial<*, *> -> type
-                is DataType.Nullable<*> -> type.actualType as? DataType.Partial<*, *>
+                is DataType.Nullable<*, *> -> type.actualType as? DataType.Partial<*, *>
                 // ignore collections of (partial) structs, the can be stored only within 'real' relations while we support only Embedded ones at the moment
                 else -> null
             }
@@ -294,13 +297,13 @@ private constructor(
             if (relType != null) {
                 // got a struct type, a relation must be declared
                 val rel = rels.remove(path)
-                        ?: throw NoSuchElementException("a Relation must be declared for table $name, path $path")
+                        ?: throw NoSuchElementException("${this@Table} requires a Relation to be declared for path $path storing values of type $relType")
 
                 when (rel) {
                     is Relation.Embedded<*, *, *> -> {
                         val start = outColumns.size
                         val fieldSetCol = rel.fieldSetColName?.let { fieldSetColName ->
-                            (rel.naming.concatErased(path, FieldSetLens<Schema<*>>(fieldSetColName)) as NamedLens<SCH, REC, out Long?>)
+                            (rel.naming.concatErased(path, FieldSetLens<Schema<*>>(fieldSetColName)) as StoredNamedLens<SCH, out Long?, *>)
                                     .also { outColumns.add(it) }
                         }
 
@@ -341,44 +344,44 @@ private constructor(
         object StructEnd : Nesting()
     }
 
-    val columns: Array<out NamedLens<SCH, REC, *>>
+    val columns: Array<out StoredNamedLens<SCH, *, *>>
         get() = _columns.value
 
-    val pkColumn: NamedLens<SCH, REC, ID>
-        get() = columns[0] as NamedLens<SCH, REC, ID>
+    val pkColumn: NamedLens<SCH, REC, ID, out DataType.Simple<ID>>
+        get() = columns[0] as NamedLens<SCH, REC, ID, out DataType.Simple<ID>>
 
     internal val recipe: Array<out Nesting>
         get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }
 
-    val columnsMappedToFields: Array<out NamedLens<SCH, REC, *>>
+    val columnsMappedToFields: Array<out StoredNamedLens<SCH, *, *>>
         get() = _columnsMappedToFields ?: _columns.value.let { _ /* unwrap lazy */ -> _columnsMappedToFields!! }
 
 
-    private var _columnsByName: Map<String, NamedLens<SCH, REC, *>>? = null
+    private var _columnsByName: Map<String, StoredNamedLens<SCH, *, *>>? = null
 
-    val columnsByName: Map<String, NamedLens<SCH, REC, *>>
+    val columnsByName: Map<String, StoredNamedLens<SCH, *, *>>
         get() = _columnsByName
                 ?: columns.let { cols ->
-                    cols.associateByTo(New.map(cols.size), NamedLens<SCH, REC, *>::name)
+                    cols.associateByTo(New.map(cols.size), StoredNamedLens<SCH, *, *>::name)
                 }.also { _columnsByName = it }
 
 
-    private var _columnIndices: Map<NamedLens<SCH, REC, *>, Int>? = null
+    private var _columnIndices: Map<StoredNamedLens<SCH, *, *>, Int>? = null
 
-    val columnIndices: Map<NamedLens<SCH, REC, *>, Int>
+    val columnIndices: Map<StoredNamedLens<SCH, *, *>, Int>
         get() = _columnIndices
                 ?: columns.let { cols ->
-                    New.map<NamedLens<SCH, REC, *>, Int>(cols.size).also { map ->
+                    New.map<StoredNamedLens<SCH, *, *>, Int>(cols.size).also { map ->
                         columns.forEachIndexed { i, col -> map[col] = i }
                     }
                 }.also { _columnIndices = it }
 
-    internal fun delegateFor(lens: Lens<SCH, REC, *>): SqlPropertyDelegate<SCH, ID> {
+    internal fun delegateFor(lens: Lens<SCH, REC, *, *>): SqlPropertyDelegate<SCH, ID> {
         val delegates = _delegates ?: _columns.value.let { _ /* unwrap lazy */ -> _delegates!! }
         return delegates[lens] ?: simpleDelegate as SqlPropertyDelegate<SCH, ID>
     }
-    internal fun <T> columnByLens(lens: Lens<SCH, Record<SCH, ID>, T>): NamedLens<SCH, REC, T>? =
-            (columnIndices as Map<Lens<SCH, Record<SCH, ID>, *>, Int>)[lens]?.let { columns[it] as NamedLens<SCH, REC, T> }
+    internal fun <T> columnByLens(lens: StoredLens<SCH, T, *>): StoredNamedLens<SCH, T, *>? =
+            (columnIndices as Map<StoredLens<SCH, *, *>, Int>)[lens]?.let { columns[it] as StoredNamedLens<SCH, T, *> }
 
     @JvmSynthetic internal fun commitValues(record: Record<SCH, ID>, mutFieldValues: Array<Any?>) {
         val mutFields = schema.mutableFields
@@ -390,8 +393,16 @@ private constructor(
         }
     }
 
-    override fun toString(): String =
-            "Table(schema=$schema, name=$name, ${columns.size} columns)"
+    override fun toString(): String = buildString {
+        append("Table(" +
+                "schema=").append(schema)
+                .append(", name=").append(name)
+
+        // don't trigger initialization, it may be broken
+        if (_columns.isInitialized()) append(", ").append(columns.size).append(" columns")
+
+        append(')')
+    }
 
 }
 
@@ -415,6 +426,27 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
             Record(this, session, primaryKey)
 
 }
+
+// Why not just extend SimpleTable? Because this would require specifying type arguments which could be hard.
+// Let's infer them:
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>): SimpleTable<SCH, ID> =
+        SimpleTable(schema, name, idColName, idColType)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>): SimpleTable<SCH, ID> =
+        SimpleTable(schema, name, idCol)
+
+inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>, crossinline relations: () -> Array<out Relation<SCH, ID, *>>): SimpleTable<SCH, ID> =
+        object : SimpleTable<SCH, ID>(schema, name, idColName, idColType) {
+            override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke()
+        }
+
+inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>, crossinline relations: () -> Array<out Relation<SCH, ID, *>>): SimpleTable<SCH, ID> =
+        object : SimpleTable<SCH, ID>(schema, name, idCol) {
+            override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke()
+        }
 
 
 /**
@@ -451,15 +483,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
     @Deprecated("Will become internal soon, making the whole class effectively final")
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) :
-            this(session, table as Table<SCH, ID, Record<SCH, ID>>, table.schema, primaryKey)
-
-    /**
-     * [fields] and [columns] are actually keys and values of a map; [fields] must be in their natural order
-     */
-    internal constructor(
-            session: Session,
-            table: Table<SCH, ID, *>, schema: SCH, primaryKey: ID
-    ) : super(session, table, schema, primaryKey, schema.allFieldSet())
+            super(session, table as Table<SCH, ID, Record<SCH, ID>>, table.schema, primaryKey, table.schema.allFieldSet())
 
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T = when (field) {

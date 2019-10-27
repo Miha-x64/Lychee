@@ -85,7 +85,7 @@ private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T>
                 DataType.Simple.Kind.Blob -> Base64.decode(nextString(), Base64.DEFAULT)
             })
 
-    override fun <E> JsonReader.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>): T =
+    override fun <E> JsonReader.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): T =
             if (nullable && peek() === JsonToken.NULL) {
                 skipValue()
                 null as T
@@ -195,7 +195,7 @@ private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
         }
     }
 
-    override fun <E> JsonWriter.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) {
+    override fun <E> JsonWriter.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
         if (nullable && arg === null) nullValue() // Nullable.encode is null->null, skip it
         else type.elementType.let { elType ->
             beginArray()

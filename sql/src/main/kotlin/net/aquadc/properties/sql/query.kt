@@ -4,6 +4,7 @@ import net.aquadc.persistence.realHashCode
 import net.aquadc.persistence.reallyEqual
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.properties.internal.emptyArrayOf
 import net.aquadc.properties.sql.dialect.Dialect
 import net.aquadc.properties.sql.dialect.appendPlaceholders
@@ -32,7 +33,7 @@ interface WhereCondition<SCH : Schema<SCH>> {
      * Appends contained colName-value-pairs to the given [outCols] and [outColValues] lists.
      * [outColValues] has non-nullable type because you can't treat ` = ?` as `IS NULL`.
      */
-    fun setValuesTo(offset: Int, outCols: Array<in Lens<SCH, Record<SCH, *>, *>>, outColValues: Array<in Any>)
+    fun setValuesTo(offset: Int, outCols: Array<in StoredLens<SCH, *, *>>, outColValues: Array<in Any>)
 
     @Deprecated("replaced with a function", ReplaceWith("emptyCondition()"), DeprecationLevel.ERROR)
     object Empty
@@ -49,26 +50,26 @@ inline fun <SCH : Schema<SCH>> emptyCondition(): WhereCondition<SCH> =
 @PublishedApi internal object EmptyCondition : WhereCondition<Nothing> {
     override val size: Int get() = 0
     override fun appendSqlTo(context: Table<Nothing, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder = builder
-    override fun setValuesTo(offset: Int, outCols: Array<in Lens<Nothing, Record<Nothing, *>, *>>, outColValues: Array<in Any>) {}
+    override fun setValuesTo(offset: Int, outCols: Array<in StoredLens<Nothing, *, *>>, outColValues: Array<in Any>) {}
 }
 
 
 internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
 
     // mutable for internal code, he-he
-    @JvmField @JvmSynthetic internal var lens: Lens<SCH, Record<SCH, *>, T>
+    @JvmField @JvmSynthetic internal var lens: StoredLens<SCH, T, *>
     private val op: CharSequence
     private val singleValue: Boolean
     @JvmField @JvmSynthetic internal var valueOrValues: Any // if (singleValue) Any else Array<Any>
 
-    constructor(lens: Lens<SCH, Record<SCH, *>, T>, op: CharSequence, value: Any) {
+    constructor(lens: StoredLens<SCH, T, *>, op: CharSequence, value: Any) {
         this.lens = lens
         this.op = op
         this.singleValue = true
         this.valueOrValues = value
     }
 
-    constructor(lens: Lens<SCH, Record<SCH, *>, T>, op: CharSequence, values: Array<out Any>) {
+    constructor(lens: StoredLens<SCH, T, *>, op: CharSequence, values: Array<out Any>) {
         this.lens = lens
         this.op = op
         this.singleValue = false
@@ -81,7 +82,7 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
             with(dialect) { builder.appendName(context.columnByLens(lens)!!.name) }.append(op)
 
-    override fun setValuesTo(offset: Int, outCols: Array<in Lens<SCH, Record<SCH, *>, *>>, outColValues: Array<in Any>) {
+    override fun setValuesTo(offset: Int, outCols: Array<in StoredLens<SCH, *, *>>, outColValues: Array<in Any>) {
         if (singleValue) {
             outCols[offset] = lens
             outColValues[offset] = valueOrValues
@@ -109,72 +110,71 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     override fun hashCode(): Int {
         var result = lens.hashCode()
         result = 31 * result + op.hashCode()
-        result = 31 * result + singleValue.hashCode()
         result = 31 * result + valueOrValues.realHashCode()
         return result
     }
 
 }
 
-infix fun <SCH : Schema<SCH>, T> Lens<SCH, Record<SCH, *>, T>.eq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T> StoredLens<SCH, T, *>.eq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
         else ColCond(this, " = ?", value as Any)
 
-infix fun <SCH : Schema<SCH>, T> Lens<SCH, Record<SCH, *>, T>.notEq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T> StoredLens<SCH, T, *>.notEq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
         else ColCond(this, " <> ?", value as Any)
 
-infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.like(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.like(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ?", value)
 
-infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.notLike(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.notLike(value: String): WhereCondition<SCH> =
         ColCond(this, " NOT LIKE ?", value)
 
-infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.startsWith(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.startsWith(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE (? || '%')", value)
 
 // fun doesNotStartWith? startsWithout?
 
-infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.endsWith(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.endsWith(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ('%' || ?)", value)
 
 // fun doesNotEndWith? endsWithout?
 
-infix fun <SCH : Schema<SCH>, T : String?> Lens<SCH, Record<SCH, *>, T>.contains(value: String): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.contains(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ('%' || ? || '%')", value)
 
 // fun doesNotContain? notContains?
 
 // `out T?`: allow lenses to look at nullable types
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.between(range: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.between(range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.notBetween(range: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.notBetween(range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <SCH : Schema<SCH>, T : Comparable<T>> Lens<SCH, Record<SCH, *>, out T?>.between(range: ClosedRange<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Comparable<T>> StoredLens<SCH, out T?, *>.between(range: ClosedRange<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", arrayOf<Any>(range.start, range.endInclusive))
 
-infix fun <SCH : Schema<SCH>, T : Comparable<T>> Lens<SCH, Record<SCH, *>, out T?>.notBetween(range: ClosedRange<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Comparable<T>> StoredLens<SCH, out T?, *>.notBetween(range: ClosedRange<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", arrayOf<Any>(range.start, range.endInclusive))
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.isIn(values: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.isIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.notIn(values: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.notIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.greaterThan(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.greaterThan(value: T): WhereCondition<SCH> =
         ColCond(this, " > ?", value)
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.greaterOrEq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.greaterOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " >= ?", value)
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T?>.lessThan(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.lessThan(value: T): WhereCondition<SCH> =
         ColCond(this, " < ?", value)
 
-infix fun <SCH : Schema<SCH>, T : Any> Lens<SCH, Record<SCH, *>, out T>.lessOrEq(value: T): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T, *>.lessOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " <= ?", value)
 
 
@@ -195,7 +195,7 @@ internal class BiCond<SCH : Schema<SCH>>(
                 .append(')')
     }
 
-    override fun setValuesTo(offset: Int, outCols: Array<in Lens<SCH, Record<SCH, *>, *>>, outColValues: Array<in Any>) {
+    override fun setValuesTo(offset: Int, outCols: Array<in StoredLens<SCH, *, *>>, outColValues: Array<in Any>) {
         left.setValuesTo(offset, outCols, outColValues)
         right.setValuesTo(offset + left.size, outCols, outColValues)
     }

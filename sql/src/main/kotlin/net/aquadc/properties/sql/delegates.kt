@@ -1,8 +1,8 @@
 package net.aquadc.properties.sql
 
 import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredNamedLens
 
 /**
  * Responsible for fetching and updating data.
@@ -35,7 +35,7 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
 }
 
 internal class Embedded<SCH : Schema<SCH>, ID : IdBound, TSCH : Schema<TSCH>>(
-        private val columns: Array<NamedLens<SCH, *, *>>,
+        private val columns: Array<StoredNamedLens<SCH, *, *>>,
         private val recipe: Array<Table.Nesting> // contains a single start-end pair with (flattened) nesting inside
 ) : SqlPropertyDelegate<SCH, ID> {
 

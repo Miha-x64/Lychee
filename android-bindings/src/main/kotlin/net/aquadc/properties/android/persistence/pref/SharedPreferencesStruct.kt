@@ -88,11 +88,11 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
          *   Thus, 'dirty' state is nonsensical here.
          */
 
-        override fun <T> getDirty(column: FieldDef.Mutable<SCH, T, *>, id: Nothing?): T =
+        override fun <T> getDirty(field: FieldDef.Mutable<SCH, T, *>, id: Nothing?): T =
                 Unset as T
 
-        override fun <T> getClean(column: FieldDef<SCH, T, *>, id: Nothing?): T =
-                column.get(prefs)
+        override fun <T> getClean(field: FieldDef<SCH, T, *>, id: Nothing?): T =
+                field.get(prefs)
 
         override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T, *>, id: Nothing?, previous: T, update: T) {
             transaction.set(field, update)

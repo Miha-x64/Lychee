@@ -5,9 +5,9 @@ import net.aquadc.persistence.New
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.contains
@@ -48,21 +48,21 @@ internal inline val DataType<*>.erased
     get() = this as DataType<Any?>
 
 @Suppress("UPPER_BOUND_VIOLATED")
-internal inline val <SCH : Schema<SCH>, STR : PartialStruct<SCH>, T> Lens<SCH, STR, T>.erased
-    get() = this as Lens<Schema<*>, PartialStruct<*>?, Any?>
+internal inline val <SCH : Schema<SCH>, STR : PartialStruct<SCH>, T> Lens<SCH, STR, T, *>.erased
+    get() = this as Lens<Schema<*>, PartialStruct<*>?, Any?, DataType<Any?>>
 
 internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.Simple<T>) -> R): R =
         when (this) {
-            is DataType.Nullable<*> -> {
+            is DataType.Nullable<*, *> -> {
                 when (val actualType = actualType as DataType<T>) {
-                    is DataType.Nullable<*> -> throw AssertionError()
+                    is DataType.Nullable<*, *> -> throw AssertionError()
                     is DataType.Simple -> func(true, actualType)
-                    is DataType.Collect<*, *>,
+                    is DataType.Collect<*, *, *>,
                     is DataType.Partial<*, *> -> func(true, serialized(actualType))
                 }
             }
             is DataType.Simple -> func(false, this)
-            is DataType.Collect<*, *>,
+            is DataType.Collect<*, *, *>,
             is DataType.Partial<*, *> -> func(false, serialized(this))
         }
 
@@ -71,7 +71,7 @@ internal inline fun <SCH : Schema<SCH>> bindQueryParams(
 ) {
     val size = condition.size
     if (size > 0) {
-        val argCols = arrayOfNulls<Lens<SCH, *, *>>(size)
+        val argCols = arrayOfNulls<StoredLens<SCH, *, *>>(size)
         val argValues = arrayOfNulls<Any>(size)
         condition.setValuesTo(0, argCols, argValues)
         val cols = table.columns
@@ -98,14 +98,14 @@ internal inline fun <SCH : Schema<SCH>> bindInsertionParams(table: Table<SCH, *,
 internal inline fun bindValues(
         columns: Any, values: Any?, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
 ): Int = if (columns is Array<*>) {
-    columns as Array<NamedLens<*, *, *>>
+    columns as Array<StoredLens<*, *, *>>
     values as Array<*>?
     columns.forEachIndexed { i, col ->
         bind(col.type.erased, i, values?.get(i))
     }
     columns.size
 } else {
-    bind((columns as NamedLens<*, *, *>).type.erased, 0, values)
+    bind((columns as StoredLens<*, *, *>).type.erased, 0, values)
     1
 }
 
@@ -231,7 +231,7 @@ internal fun flatten(
     val type = start.myField?.type ?: start.unwrappedType // OMG, such a hack:
     // unwrappedType is a correct type for non-embedded, top-level struct
 
-    if (start.hasFieldSet && type is DataType.Nullable<*> && value === null)
+    if (start.hasFieldSet && type is DataType.Nullable<*, *> && value === null)
         return // fieldSet is null, all fields are nulls, nothing to do here -------------------------------------------
 
     val erased = start.unwrappedType as DataType.Partial<Any?, *>

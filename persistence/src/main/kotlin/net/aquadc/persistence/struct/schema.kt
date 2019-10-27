@@ -167,12 +167,17 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
 }
 
+interface Named {
+    val name: String
+}
+
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
- * [invoke] function must return [T] if input is not `null` and contains the requested field,
- * i. e. it must be safe to cast `Lens<SCH, PartialStruct<SCH>?, T>` to `(Struct<SCH>) -> T`
+ * Nesting exists in stored representation
+ * (i. e. `storedLens.dropLast(1).map(StoredLens::type).all { it is Partial || (it is Nullable && it.actualType is Partial) }`)
+ * but not guaranteed to exist in runtime representation (for this, see [Lens]).
  */
-interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : (STR) -> T? {
+interface StoredLens<SCH : Schema<SCH>, T, DT : DataType<T>> {
 
     /**
      * Type of values stored within a field/column represented by this lens.
@@ -180,13 +185,30 @@ interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : (STR) -> T? 
     val type: DataType<T>
 
     /**
+     * Exact type of values stored within a field/column represented by this lens.
+     * Note: `StoredLens<*, T, *>::exactType` is inferred to `DataType<*>`
+     * while `StoredLens<*, T, *>::type` is useful `DataType<T>`.
+     */
+    val exactType: DT
+
+    val size: Int
+    operator fun get(index: Int): NamedLens<*, *, *, *> // any lens consists of small lenses, which are always named
+
+}
+
+/**
+ * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
+ * [invoke] function must return [T] if input is not `null` and contains the requested field,
+ * i. e. it must be safe to cast `Lens<SCH, PartialStruct<SCH>?, T>` to `(Struct<SCH>) -> T`
+ */
+interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<T>> : StoredLens<SCH, T, DT>, (STR) -> T? {
+
+    /**
      * A default/initial/fallback value for a field/column represented by this lens.
      * @throws RuntimeException if no such value
      */
+    @Deprecated("does not look very useful", ReplaceWith("(this[this.size-1] as? FieldDef<SCH, T, *> ?: throw NoSuchElementException()).default"))
     val default: T
-
-    val size: Int
-    operator fun get(index: Int): NamedLens<*, *, *> // any lens consists of small lenses, which are always named
 
 }
 
@@ -194,13 +216,13 @@ interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : (STR) -> T? 
  * Returns a function which is a special case of this [Lens] for non-partial [Struct]s
  * which implies non-nullable [T] as a return type.
  */
-fun <SCH : Schema<SCH>, T> Lens<SCH, Struct<SCH>, T>.ofStruct(): (Struct<SCH>) -> T =
+fun <SCH : Schema<SCH>, T> Lens<SCH, PartialStruct<SCH>, T, *>.ofStruct(): (Struct<SCH>) -> T =
         this as (Struct<SCH>) -> T
 
 
-interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T> : Lens<SCH, STR, T> {
-    val name: String
-}
+// Damn, dear Kotlin, I just want to return an intersection-type
+interface StoredNamedLens<SCH : Schema<SCH>, T, DT : DataType<T>> : StoredLens<SCH, T, DT>, Named
+interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<T>> : StoredNamedLens<SCH, T, DT>, Lens<SCH, STR, T, DT>
 
 /**
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
@@ -231,7 +253,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
          * Describes type of values it can store and underlying serialization techniques.
          * This property is a part of serialization ABI.
          */
-        @JvmField val exactType: DT,
+        override val exactType: DT,
 
         /**
          * Zero-based ordinal number of this field.
@@ -256,7 +278,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
         @JvmField val ordinal: Byte,
 
         default: T
-) : NamedLens<SCH, PartialStruct<SCH>, T> {
+) : NamedLens<SCH, PartialStruct<SCH>, T, DT> {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
@@ -290,7 +312,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
 
     override val size: Int get() = 1
 
-    override fun get(index: Int): NamedLens<*, *, *> =
+    override fun get(index: Int): NamedLens<*, *, *, *> =
             if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
 
     override fun hashCode(): Int =

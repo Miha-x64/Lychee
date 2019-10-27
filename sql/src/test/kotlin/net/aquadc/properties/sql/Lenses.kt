@@ -2,8 +2,6 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.partial
-import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.ofStruct
@@ -62,8 +60,7 @@ class Lenses {
         val Item = "" let partial(SomeSchema)
     }
     @Test fun partial() {
-        val l: Lens<NestedPartial, PartialStruct<NestedPartial>, PartialStruct<SomeSchema>> = NestedPartial.Item
-        val lens = l / SomeSchema.A
+        val lens = NestedPartial.Item / SomeSchema.A
         val struct = NestedPartial.build {
             it[Item] = SomeSchema.buildPartial {  }
         }

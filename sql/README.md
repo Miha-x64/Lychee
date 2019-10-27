@@ -82,3 +82,4 @@ session[PlayerTable]
 * [Kwery](https://github.com/andrewoma/kwery) for the `Table` idea
 * [Anko](https://github.com/Kotlin/anko/wiki/Anko-SQLite) for the other way of thinking
 * [@y2k](https://github.com/y2k) for help in API design
+* [Andrey Antipov](https://github.com/gorttar) for type inference hints

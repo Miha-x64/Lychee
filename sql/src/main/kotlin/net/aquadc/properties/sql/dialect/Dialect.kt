@@ -2,6 +2,7 @@ package net.aquadc.properties.sql.dialect
 
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.sql.Order
 import net.aquadc.properties.sql.Table
@@ -21,7 +22,7 @@ interface Dialect {
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
     fun <SCH : Schema<SCH>> selectQuery(
-            table: Table<SCH, *, *>, columns: Array<NamedLens<SCH, *, *>>,
+            table: Table<SCH, *, *>, columns: Array<out StoredNamedLens<SCH, *, *>>,
             condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String
 
@@ -44,7 +45,7 @@ interface Dialect {
     /**
      *  Constructs an SQL query like `UPDATE <table> SET <col> = ?`
      */
-    fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<NamedLens<SCH, Struct<SCH>, *>>): String
+    fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out StoredNamedLens<SCH, *, *>>): String
 
     /**
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`

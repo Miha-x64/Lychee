@@ -2,8 +2,8 @@ package net.aquadc.properties.sql
 
 import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.long
@@ -71,8 +71,8 @@ class JdbcSession(
                         .updateStatements
                         .getOrPut(cols) {
                             val colArray =
-                                    if (cols is Array<*>) cols as Array<NamedLens<SCH, Struct<SCH>, *>>
-                                    else arrayOf(cols as NamedLens<SCH, Struct<SCH>, *>)
+                                    if (cols is Array<*>) cols as Array<out StoredNamedLens<SCH, *, *>>
+                                    else arrayOf(cols as StoredNamedLens<SCH, *, *>)
                             connection.prepareStatement(dialect.updateQuery(table, colArray))
                         }
 
@@ -123,7 +123,7 @@ class JdbcSession(
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
                 table: Table<SCH, ID, *>,
-                columns: Array<NamedLens<SCH, *, *>>?,
+                columns: Array<out StoredNamedLens<SCH, *, *>>?,
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<out SCH>>
         ): ResultSet {
@@ -144,7 +144,7 @@ class JdbcSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID, *>, column: NamedLens<SCH, *, T>, id: ID
+                table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
         ): T =
                 select<SCH, ID>(table /* fixme allocation */, arrayOf(column), pkCond<SCH, ID>(table, id), NoOrder).fetchSingle(column.type)
 
@@ -161,7 +161,7 @@ class JdbcSession(
                 select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(long)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-                table: Table<SCH, ID, *>, columns: Array<NamedLens<SCH, *, *>>, id: ID
+                table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
         ): Array<Any?> =
                 select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
@@ -176,9 +176,9 @@ class JdbcSession(
                 table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
         ): ColCond<SCH, ID> {
             val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
-                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, ID>, " = ?", value)
+                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, ID, *>, " = ?", value)
             }
-            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, ID> // unchecked: we don't mind actual types
+            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, ID, *> // unchecked: we don't mind actual types
             condition.valueOrValues = value
             return condition
         }
@@ -200,7 +200,7 @@ class JdbcSession(
                     close()
                 }
 
-        private fun <SCH : Schema<SCH>> ResultSet.fetchColumns(columns: Array<NamedLens<SCH, *, *>>): Array<Any?> =
+        private fun <SCH : Schema<SCH>> ResultSet.fetchColumns(columns: Array<out StoredNamedLens<SCH, *, *>>): Array<Any?> =
                 try {
                     check(next())
                     columns.mapIndexedToArray { index, column ->

@@ -34,14 +34,14 @@ private abstract class EitherType<T : BaseEither, SCH : Schema<SCH>>(
 
 // 2
 
-fun <A, B> either(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>
-): DataType.Partial<Either<A, B>, Tuple<A, B>> =
-        object : EitherType<Either<A, B>, Tuple<A, B>>(Tuple(firstName, firstType, secondName, secondType)) {
+fun <A, DA : DataType<A>, B, DB : DataType<B>> either(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB
+): DataType.Partial<Either<A, B>, Tuple<A, DA, B, DB>> =
+        object : EitherType<Either<A, B>, Tuple<A, DA, B, DB>>(Tuple(firstName, firstType, secondName, secondType)) {
 
             override fun load(
-                    fields: FieldSet<Tuple<A, B>, FieldDef<Tuple<A, B>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple<A, DA, B, DB>, FieldDef<Tuple<A, DA, B, DB>, *, *>>, values: Any?
             ): Either<A, B> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either.First(values as A)
@@ -54,17 +54,17 @@ fun <A, B> either(
 
 // 3
 
-fun <A, B, C> either3(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>,
-        thirdName: String, thirdType: DataType<C>
-): DataType.Partial<Either3<A, B, C>, Tuple3<A, B, C>> =
-        object : EitherType<Either3<A, B, C>, Tuple3<A, B, C>>(Tuple3(
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> either3(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB,
+        thirdName: String, thirdType: DC
+): DataType.Partial<Either3<A, B, C>, Tuple3<A, DA, B, DB, C, DC>> =
+        object : EitherType<Either3<A, B, C>, Tuple3<A, DA, B, DB, C, DC>>(Tuple3(
                 firstName, firstType, secondName, secondType, thirdName, thirdType
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple3<A, B, C>, FieldDef<Tuple3<A, B, C>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple3<A, DA, B, DB, C, DC>, FieldDef<Tuple3<A, DA, B, DB, C, DC>, *, *>>, values: Any?
             ): Either3<A, B, C> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either3.First(values as A)
@@ -78,18 +78,18 @@ fun <A, B, C> either3(
 
 // 4
 
-fun <A, B, C, D> either4(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>,
-        thirdName: String, thirdType: DataType<C>,
-        fourthName: String, fourthType: DataType<D>
-): DataType.Partial<Either4<A, B, C, D>, Tuple4<A, B, C, D>> =
-        object : EitherType<Either4<A, B, C, D>, Tuple4<A, B, C, D>>(Tuple4(
+fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D, DD : DataType<D>> either4(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB,
+        thirdName: String, thirdType: DC,
+        fourthName: String, fourthType: DD
+): DataType.Partial<Either4<A, B, C, D>, Tuple4<A, DA, B, DB, C, DC, D, DD>> =
+        object : EitherType<Either4<A, B, C, D>, Tuple4<A, DA, B, DB, C, DC, D, DD>>(Tuple4(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple4<A, B, C, D>, FieldDef<Tuple4<A, B, C, D>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple4<A, DA, B, DB, C, DC, D, DD>, FieldDef<Tuple4<A, DA, B, DB, C, DC, D, DD>, *, *>>, values: Any?
             ): Either4<A, B, C, D> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either4.First(values as A)
@@ -104,20 +104,20 @@ fun <A, B, C, D> either4(
 
 // 5
 
-fun <A, B, C, D, E> either5(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>,
-        thirdName: String, thirdType: DataType<C>,
-        fourthName: String, fourthType: DataType<D>,
-        fifthName: String, fifthType: DataType<E>
-): DataType.Partial<Either5<A, B, C, D, E>, Tuple5<A, B, C, D, E>> =
-        object : EitherType<Either5<A, B, C, D, E>, Tuple5<A, B, C, D, E>>(Tuple5(
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> either5(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB,
+        thirdName: String, thirdType: DC,
+        fourthName: String, fourthType: DD,
+        fifthName: String, fifthType: DE
+): DataType.Partial<Either5<A, B, C, D, E>, Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
+        object : EitherType<Either5<A, B, C, D, E>, Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>(Tuple5(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple5<A, B, C, D, E>, FieldDef<Tuple5<A, B, C, D, E>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>, FieldDef<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>, *, *>>, values: Any?
             ): Either5<A, B, C, D, E> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either5.First(values as A)
@@ -133,21 +133,21 @@ fun <A, B, C, D, E> either5(
 
 // 6
 
-fun <A, B, C, D, E, F> either6(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>,
-        thirdName: String, thirdType: DataType<C>,
-        fourthName: String, fourthType: DataType<D>,
-        fifthName: String, fifthType: DataType<E>,
-        sixthName: String, sixthType: DataType<F>
-): DataType.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, B, C, D, E, F>> =
-        object : EitherType<Either6<A, B, C, D, E, F>, Tuple6<A, B, C, D, E, F>>(Tuple6(
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> either6(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB,
+        thirdName: String, thirdType: DC,
+        fourthName: String, fourthType: DD,
+        fifthName: String, fifthType: DE,
+        sixthName: String, sixthType: DF
+): DataType.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
+        object : EitherType<Either6<A, B, C, D, E, F>, Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>(Tuple6(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType, sixthName, sixthType
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple6<A, B, C, D, E, F>, FieldDef<Tuple6<A, B, C, D, E, F>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>, FieldDef<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>, *, *>>, values: Any?
             ): Either6<A, B, C, D, E, F> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either6.First(values as A)
@@ -164,22 +164,22 @@ fun <A, B, C, D, E, F> either6(
 
 // 7
 
-fun <A, B, C, D, E, F, G> either7(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>,
-        thirdName: String, thirdType: DataType<C>,
-        fourthName: String, fourthType: DataType<D>,
-        fifthName: String, fifthType: DataType<E>,
-        sixthName: String, sixthType: DataType<F>,
-        seventhName: String, seventhType: DataType<G>
-): DataType.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, B, C, D, E, F, G>> =
-        object : EitherType<Either7<A, B, C, D, E, F, G>, Tuple7<A, B, C, D, E, F, G>>(Tuple7(
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> either7(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB,
+        thirdName: String, thirdType: DC,
+        fourthName: String, fourthType: DD,
+        fifthName: String, fifthType: DE,
+        sixthName: String, sixthType: DF,
+        seventhName: String, seventhType: DG
+): DataType.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
+        object : EitherType<Either7<A, B, C, D, E, F, G>, Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>(Tuple7(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType, sixthName, sixthType, seventhName, seventhType
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple7<A, B, C, D, E, F, G>, FieldDef<Tuple7<A, B, C, D, E, F, G>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>, FieldDef<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>, *, *>>, values: Any?
             ): Either7<A, B, C, D, E, F, G> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either7.First(values as A)
@@ -197,23 +197,23 @@ fun <A, B, C, D, E, F, G> either7(
 
 // 8
 
-fun <A, B, C, D, E, F, G, H> either8(
-        firstName: String, firstType: DataType<A>,
-        secondName: String, secondType: DataType<B>,
-        thirdName: String, thirdType: DataType<C>,
-        fourthName: String, fourthType: DataType<D>,
-        fifthName: String, fifthType: DataType<E>,
-        sixthName: String, sixthType: DataType<F>,
-        seventhName: String, seventhType: DataType<G>,
-        eighthName: String, eighthType: DataType<H>
-): DataType.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, B, C, D, E, F, G, H>> =
-        object : EitherType<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, B, C, D, E, F, G, H>>(Tuple8(
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> either8(
+        firstName: String, firstType: DA,
+        secondName: String, secondType: DB,
+        thirdName: String, thirdType: DC,
+        fourthName: String, fourthType: DD,
+        fifthName: String, fifthType: DE,
+        sixthName: String, sixthType: DF,
+        seventhName: String, seventhType: DG,
+        eighthName: String, eighthType: DH
+): DataType.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
+        object : EitherType<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>(Tuple8(
                 firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
                 fifthName, fifthType, sixthName, sixthType, seventhName, seventhType, eighthName, eighthType
         )) {
 
             override fun load(
-                    fields: FieldSet<Tuple8<A, B, C, D, E, F, G, H>, FieldDef<Tuple8<A, B, C, D, E, F, G, H>, *, *>>, values: Any?
+                    fields: FieldSet<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>, FieldDef<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>, *, *>>, values: Any?
             ): Either8<A, B, C, D, E, F, G, H> =
                     when (schema.single(fields).ordinal.toInt()) {
                         0 -> Either8.First(values as A)

@@ -135,9 +135,9 @@ inline fun <reified E : Enum<E>> enumSet(
  * Creates a [Set]<[Enum]> type implementation for storing enum set as a collection of values.
  * @param encodeAs underlying element data type
  */
-inline fun <reified E> enumSet(
-        encodeAs: DataType<E>
-): DataType.Collect<Set<E>, E> =
+inline fun <reified E, DE : DataType<E>> enumSet(
+        encodeAs: DE
+): DataType.Collect<Set<E>, E, DE> =
         setInternal(encodeAs, E::class.java)
 
 

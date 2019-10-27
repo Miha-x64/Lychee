@@ -3,8 +3,10 @@ package net.aquadc.properties.sql.dialect.sqlite
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.Named
 import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
@@ -33,7 +35,7 @@ object SqliteDialect : Dialect {
     }
 
     override fun <SCH : Schema<SCH>> selectQuery(
-            table: Table<SCH, *, *>, columns: Array<NamedLens<SCH, *, *>>,
+            table: Table<SCH, *, *>, columns: Array<out StoredNamedLens<SCH, *, *>>,
             condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String =
             selectQueryInternal(table, columns, condition, order)
@@ -44,7 +46,7 @@ object SqliteDialect : Dialect {
             selectQueryInternal(table, null, condition, NoOrder)
 
     private fun <SCH : Schema<SCH>> selectQueryInternal(
-            table: Table<SCH, *, *>, columns: Array<NamedLens<SCH, *, *>>?,
+            table: Table<SCH, *, *>, columns: Array<out StoredNamedLens<SCH, *, *>>?,
             condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
     ): String {
         val sb = StringBuilder("SELECT ")
@@ -77,7 +79,7 @@ object SqliteDialect : Dialect {
         setLength(length - 2)
     }
 
-    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<NamedLens<SCH, Struct<SCH>, *>>): String =
+    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out StoredNamedLens<SCH, *, *>>): String =
             buildString {
                 append("UPDATE ").appendName(table.name).append(" SET ")
 
@@ -97,7 +99,7 @@ object SqliteDialect : Dialect {
     override fun StringBuilder.appendName(name: String): StringBuilder =
             append('"').append(name.replace("\"", "\"\"")).append('"')
 
-    private fun <SCH : Schema<SCH>> StringBuilder.appendNames(cols: Array<out NamedLens<SCH, *, *>>): StringBuilder = apply {
+    private fun StringBuilder.appendNames(cols: Array<out Named>): StringBuilder = apply {
         if (cols.isNotEmpty()) {
             cols.forEach { col ->
                 appendName(col.name).append(", ")
@@ -110,7 +112,7 @@ object SqliteDialect : Dialect {
         val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
         table.columns.forEach { col ->
             sb.appendName(col.name).append(' ').appendNameOf(col.type)
-            if (col is PkLens || col === table.pkField)
+            if (col is PkLens<*, *> || col === table.pkField)
                 sb.append(" PRIMARY KEY")
 
             /* this is useless since we can store only a full struct with all fields filled:
@@ -142,7 +144,7 @@ object SqliteDialect : Dialect {
                 }
             }
 
-            override fun <E> StringBuilder.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) {
+            override fun <E> StringBuilder.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
                 if (nullable && arg === null) append("NULL")
                 else append("x'").appendHex(ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()).append('\'')
             }
@@ -170,7 +172,7 @@ object SqliteDialect : Dialect {
                 if (!nullable) append(" NOT NULL")
             }
 
-            override fun <E> StringBuilder.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E>) {
+            override fun <E> StringBuilder.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
                 append("BLOB")
                 if (!nullable) append(" NOT NULL")
             }

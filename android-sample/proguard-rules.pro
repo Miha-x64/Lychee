@@ -48,7 +48,7 @@
 -assumenosideeffects class net.aquadc.persistence.type.SimpleNoOp {
     private void sanityCheck(java.lang.Object);
 }
--assumenosideeffects class net.aquadc.persistence.extended.CollectionNoOp {
+-assumenosideeffects class net.aquadc.persistence.extended.ArrayNoOp {
     private void sanityCheck(java.lang.Object);
 }
 

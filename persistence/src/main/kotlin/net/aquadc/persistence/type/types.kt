@@ -47,12 +47,16 @@ sealed class DataType<T> {
      * (However, some non-standard [Simple], [Collect], or [Partial] implementations
      * may have nullable in-memory representation, and thus cannot be wrapped into [Nullable])
      */
-    class Nullable<T : Any>(
+    class Nullable<T : Any, DT : DataType<T>>(
             /**
              * Wrapped non-nullable type.
              */
-            @JvmField val actualType: DataType<T>
+            @JvmField val actualType: DT
     ) : DataType<T?>() {
+
+        init {
+            if (actualType is Nullable<*, *>) throw ClassCastException() // unchecked cast?..
+        }
 
         override fun hashCode(): Int =
                 actualType.hashCode() xor 0x55555555
@@ -60,7 +64,7 @@ sealed class DataType<T> {
         // looks useless but helps using assertEquals() in tests
 
         override fun equals(other: Any?): Boolean =
-                other is Nullable<*> && actualType == other.actualType
+                other is Nullable<*, *> && actualType == other.actualType
 
     }
 
@@ -78,7 +82,7 @@ sealed class DataType<T> {
             Bool,
             I8, I16, I32, I64,
             F32, F64,
-            Str, Blob
+            Str, Blob,
         }
 
         /**
@@ -106,11 +110,11 @@ sealed class DataType<T> {
      * Collection DataType handles only converting from/to a specified collection type,
      * leaving values untouched.
      */
-    abstract class Collect<C, E>(
+    abstract class Collect<C, E, DE : DataType<E>>(
             /**
              * [DataType] of all the elements in such collections.
              */
-            @JvmField val elementType: DataType<E>
+            @JvmField val elementType: DE
     ) : DataType<C>() {
 
         /**
@@ -181,24 +185,24 @@ sealed class DataType<T> {
         // class identity equality   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ guarantees the same behaviour
 
         return when (this) {
-            is Nullable<*> -> other is Nullable<*> && actualType == other.actualType
+            is Nullable<*, *> -> other is Nullable<*, *> && actualType as DataType<*> == other.actualType
             is Simple -> other is Simple<*> && kind === other.kind
-            is Collect<*, *> -> other is Collect<*, *> && elementType == other.elementType
+            is Collect<*, *, *> -> other is Collect<*, *, *> && elementType == other.elementType
             is Partial<*, *> -> other is Partial<*, *> && schema == other.schema
         }
     }
 
     override fun hashCode(): Int = when (this) {
-        is Nullable<*> -> 13 * actualType.hashCode()
+        is Nullable<*, *> -> 13 * actualType.hashCode()
         is Simple -> 31 * kind.hashCode()
-        is Collect<*, *> -> 63 * elementType.hashCode()
+        is Collect<*, *, *> -> 63 * elementType.hashCode()
         is Partial<*, *> -> (if (this is Struct<*>) 1 else 127) * schema.hashCode()
     }
 
     override fun toString(): String = when (this) {
-        is Nullable<*> -> "nullable($actualType)"
+        is Nullable<*, *> -> "nullable($actualType)"
         is Simple -> kind.toString()
-        is Collect<*, *> -> "collection($elementType)"
+        is Collect<*, *, *> -> "collection($elementType)"
         is Partial<*, *> -> "partial($schema)" // overridden in Schema itself
     }
 
@@ -216,23 +220,23 @@ sealed class DataType<T> {
 )
 inline fun <PL, ARG, T, R> DataTypeVisitor<PL, ARG, T, R>.match(dataType: DataType<T>, payload: PL, arg: ARG): R =
     when (dataType) {
-        is DataType.Nullable<*> -> {
+        is DataType.Nullable<*, *> -> {
             when (val actualType = dataType.actualType as DataType<T/*!!*/>) {
-                is DataType.Nullable<*> -> throw AssertionError()
+                is DataType.Nullable<*, *> -> throw AssertionError()
                 is DataType.Simple -> payload.simple(arg, true, actualType)
-                is DataType.Collect<*, *> -> payload.collection(arg, true, actualType as DataType.Collect<T, *>)
+                is DataType.Collect<*, *, *> -> payload.collection(arg, true, actualType as DataType.Collect<T, Any?, DataType<Any?>>)
                 is DataType.Partial<T, *> -> @Suppress("UPPER_BOUND_VIOLATED")
                         payload.partial<Schema<*>>(arg, true, actualType as DataType.Partial<T, Schema<*>>)
             }
         }
         is DataType.Simple -> payload.simple(arg, false, dataType)
-        is DataType.Collect<T, *> -> payload.collection(arg, false, dataType)
+        is DataType.Collect<T, *, *> -> payload.collection(arg, false, dataType as DataType.Collect<T, Any, out DataType<Any>>)
         is DataType.Partial<T, *> -> @Suppress("UPPER_BOUND_VIOLATED")
                 payload.partial<Schema<*>>(arg, false, dataType as DataType.Partial<T, Schema<*>>)
     }
 
 interface DataTypeVisitor<PL, ARG, T, R> {
     fun PL.simple(arg: ARG, nullable: Boolean, type: DataType.Simple<T>): R
-    fun <E> PL.collection(arg: ARG, nullable: Boolean, type: DataType.Collect<T, E>): R
+    fun <E> PL.collection(arg: ARG, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): R
     fun <SCH : Schema<SCH>> PL.partial(arg: ARG, nullable: Boolean, type: DataType.Partial<T, SCH>): R
 }

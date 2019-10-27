@@ -3,7 +3,7 @@ package net.aquadc.properties.android.persistence.pref
 import android.content.SharedPreferences
 import android.util.Base64
 import net.aquadc.persistence.fatMapTo
-import net.aquadc.persistence.struct.NamedLens
+import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
@@ -16,7 +16,7 @@ import java.util.EnumSet
 import java.lang.Double as JavaLangDouble
 
 
-internal fun <T> NamedLens<*, *, T>.get(prefs: SharedPreferences): T {
+internal fun <T> FieldDef<*, T, *>.get(prefs: SharedPreferences): T {
     val value = type.get(prefs, name)
     return if (value === Unset) default else value
 }
@@ -65,7 +65,7 @@ private class PrefReaderVisitor<T> : DataTypeVisitor<Nothing?, Any, T, T> {
                     DataType.Simple.Kind.Blob -> Base64.decode(arg as String, Base64.DEFAULT)
                 })
 
-    override fun <E> Nothing?.collection(arg: Any, nullable: Boolean, type: DataType.Collect<T, E>): T =
+    override fun <E> Nothing?.collection(arg: Any, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): T =
             if (nullable && arg == false)
                 null as T
             else
@@ -108,7 +108,7 @@ private class PrefWriterVisitor<T>(
                 }
             }.let { }
 
-    override fun <E> SharedPreferences.Editor.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E>) =
+    override fun <E> SharedPreferences.Editor.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) =
             if (nullable && arg === null) {
                 putBoolean(key, false)
             } else {
