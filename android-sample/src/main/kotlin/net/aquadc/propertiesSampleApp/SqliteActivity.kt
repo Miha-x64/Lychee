@@ -24,9 +24,9 @@ import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.android.bindings.widget.bindToText
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.set
-import net.aquadc.properties.sql.SqliteSession
-//import net.aquadc.properties.sql.createTable FIXME looks like Kotlin bug
-import net.aquadc.properties.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.sql.SqliteSession
+//import net.aquadc.persistence.sql.createTable FIXME looks like Kotlin bug
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import net.aquadc.propertiesSampleLogic.sql.SampleTables

@@ -2,12 +2,12 @@
 
 package net.aquadc.propertiesSampleLogic.sql
 
+import net.aquadc.persistence.sql.*
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
-import net.aquadc.properties.sql.*
 
 
 val SampleTables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friendship.Tbl)
