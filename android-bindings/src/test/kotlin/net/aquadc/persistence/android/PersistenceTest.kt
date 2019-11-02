@@ -7,6 +7,8 @@ import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.either.Either
+import net.aquadc.persistence.extended.either.EitherLeft
+import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
@@ -90,12 +92,12 @@ class PersistenceTest {
             it[BLOB] = "B10B".decodeHex()
             it[STRUCT] = null
             it[PART] = Sch.buildPartial { }
-            it[EITHER] = Either.First(tupleType.build(10, 20.0))
+            it[EITHER] = EitherLeft(tupleType.build(10, 20.0))
         }
         it[PART] = Sch.buildPartial {
             it[STRING] = "I'm partial!"
         }
-        it[EITHER] = Either.Second(14)
+        it[EITHER] = EitherRight(14)
     }
 
     @Test fun `json object`() {

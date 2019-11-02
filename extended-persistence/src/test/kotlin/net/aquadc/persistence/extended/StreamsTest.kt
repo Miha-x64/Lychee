@@ -2,6 +2,9 @@ package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.extended.either.Either
 import net.aquadc.persistence.extended.either.Either4
+import net.aquadc.persistence.extended.either.EitherFourth
+import net.aquadc.persistence.extended.either.EitherLeft
+import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.either.either4
 import net.aquadc.persistence.stream.DataStreams
@@ -68,12 +71,12 @@ class StreamsTest {
     )
     @Test fun either() {
         val i = userType.build(
-                "Ivan", "Ivanov", Either.Second("Ivanovich"), Either4.Second("100500")
+                "Ivan", "Ivanov", EitherRight("Ivanovich"), EitherRight("100500")
         )
         assertEquals(i, read(userType, write(userType, i)))
 
         val j = userType.build(
-                "Jake", "Wharton", Either.First("???"), Either4.Fourth("Andrew")
+                "Jake", "Wharton", EitherLeft("???"), EitherFourth("Andrew")
         )
         assertEquals(j, read(userType, write(userType, j)))
     }

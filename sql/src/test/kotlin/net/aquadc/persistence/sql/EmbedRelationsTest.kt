@@ -4,6 +4,7 @@ import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.copy
 import net.aquadc.persistence.extended.either.Either
+import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.getOrDefault
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
@@ -175,7 +176,7 @@ open class EmbedRelationsTest {
             }
             it[OtherOwnField] = 0x5_2_3
         }
-        val t = Either.First("strstr")
+        val t = EitherLeft("strstr")
 
         val rec = session.withTransaction {
             insert(WeNeedToGoDeeper, goDeeper.build(f, s, t))

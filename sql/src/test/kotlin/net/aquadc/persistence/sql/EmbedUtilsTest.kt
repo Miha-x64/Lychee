@@ -3,6 +3,7 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.either.Either
+import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
@@ -60,7 +61,7 @@ class EmbedUtilsTest {
                         }
                         it[OtherOwnField] = "MN".toLong(36)
                     },
-                    Either.Second(SomeSchema.build {
+                    EitherRight(SomeSchema.build {
                         it[A] = "OP"
                         it[B] = "QR".toInt(36)
                         it[C] = "ST".toLong(36)
