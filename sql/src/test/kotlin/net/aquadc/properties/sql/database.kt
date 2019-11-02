@@ -1,10 +1,15 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
+import net.aquadc.persistence.extended.either.Either
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.StoredLens
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.long
 import net.aquadc.persistence.type.nullable
@@ -51,8 +56,11 @@ val TableWithDeepEmbed = tableOf(DeeplyNested, "deep", "_id", long) {
 
 val goDeeper = Tuple3(
         "first", DeeplyNested,
-        "second", DeeplyNested,
-        "third", either("left", string, "right", int)
+        "second", WithNullableNested,
+        "third", either(
+                "left", string,
+                "right", SomeSchema
+        )
 )
 
 val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", long) {
@@ -61,9 +69,9 @@ val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", long) {
           , Relation.Embedded(SnakeCase, goDeeper.First / DeeplyNested.Nested)
           , Relation.Embedded(SnakeCase, goDeeper.First / DeeplyNested.Nested / WithNested.Nested)
           , Relation.Embedded(SnakeCase, goDeeper.Second)
-          , Relation.Embedded(SnakeCase, goDeeper.Second / DeeplyNested.Nested)
-          , Relation.Embedded(SnakeCase, goDeeper.Second / DeeplyNested.Nested / WithNested.Nested)
+          , Relation.Embedded(SnakeCase, goDeeper.Second / WithNullableNested.Nested, "fieldSet")
           , Relation.Embedded(SnakeCase, goDeeper.Third, "which")
+          , Relation.Embedded(SnakeCase, goDeeper.Third % goDeeper.Third.type.schema.Second, "fieldSet")
     )
 }
 

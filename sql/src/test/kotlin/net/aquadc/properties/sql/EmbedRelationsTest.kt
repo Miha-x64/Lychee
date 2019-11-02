@@ -166,17 +166,14 @@ open class EmbedRelationsTest {
                 it[OtherOwnField] = 0xF_2_3
             }
         }
-        val s = DeeplyNested.build {
-            it[OwnField] = "s1"
-            it[Nested] = WithNested.build {
-                it[OwnField] = "s2.1"
-                it[Nested] = SchWithId.build {
-                    it[Id] = 0x5_2_2_1
-                    it[Value] = "s2.2.2"
-                    it[MutValue] = "s2.2.3"
-                }
-                it[OtherOwnField] = 0x5_2_3
+        val s = WithNullableNested.build {
+            it[OwnField] = "s2.1"
+            it[Nested] = SchWithId.build {
+                it[Id] = 0x5_2_2_1
+                it[Value] = "s2.2.2"
+                it[MutValue] = "s2.2.3"
             }
+            it[OtherOwnField] = 0x5_2_3
         }
         val t = Either.First("strstr")
 

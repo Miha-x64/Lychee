@@ -51,25 +51,30 @@ class EmbedUtilsTest {
                             it[OtherOwnField] = 0xABL
                         }
                     },
-                    DeeplyNested.build {
-                        it[OwnField] = "CD"
-                        it[Nested] = WithNested.build {
-                            it[OwnField] = "EF"
-                            it[Nested] = SchWithId.build {
-                                it[Id] = "GH".toLong(36)
-                                it[Value] = "IJ"
-                                it[MutValue] = "KL"
-                            }
-                            it[OtherOwnField] = "MN".toLong(36)
+                    WithNullableNested.build {
+                        it[OwnField] = "EF"
+                        it[Nested] = SchWithId.build {
+                            it[Id] = "GH".toLong(36)
+                            it[Value] = "IJ"
+                            it[MutValue] = "KL"
                         }
+                        it[OtherOwnField] = "MN".toLong(36)
                     },
-                    Either.Second("OP".toInt(36))
+                    Either.Second(SomeSchema.build {
+                        it[A] = "OP"
+                        it[B] = "QR".toInt(36)
+                        it[C] = "ST".toLong(36)
+                    })
             ),
             arrayOf(
-                    "01", "23", 45L, "67", "89", 0xABL, "CD", "EF", "GH".toLong(36), "IJ", "KL", "MN".toLong(36),
+                    "01", "23", 45L, "67", "89", 0xABL,
+                    "EF",
+                    7L, // fieldSet
+                    "GH".toLong(36), "IJ", "KL", "MN".toLong(36),
                     2L, // fieldSet
                     null, // First
-                    "OP".toInt(36) // Second
+                    7L, // fieldSet
+                    "OP", "QR".toInt(36), "ST".toLong(36) // Second
             )
     )
 

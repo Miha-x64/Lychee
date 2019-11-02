@@ -60,7 +60,7 @@ abstract class NamingConvention {
         US : Schema<US>, UD : DataType.Partial<PartialStruct<US>, US>,
         V : Any, VD : DataType.Nullable<V, *>
         >
-        Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div( // todo test me
+        Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, V?, VD>
 ): Lens<TS, PartialStruct<TS>, V?, VD> =
         Telescope(null, nested.type, this, nested, true)
@@ -80,11 +80,62 @@ abstract class NamingConvention {
         US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.Partial<UR, US>>,
         V : Any, VD : DataType.Nullable<V, *>
         >
-        Lens<TS, PartialStruct<TS>, UR?, UD>.div( // todo test me
+        Lens<TS, PartialStruct<TS>, UR?, UD>.div(
         nested: Lens<US, PartialStruct<US>, V?, VD>
 ): Lens<TS, PartialStruct<TS>, V?, VD> =
         Telescope(null, nested.type, this, nested, true)
 
+
+/* This overload makes no sense: 'Schema' is the only 'magic' Partial with all fields set, and T is obviously not 'Schema'
+@JvmName("structLens") inline operator fun <
+        TS : Schema<TS>, T,
+        US : Schema<US>,
+        V, VD : DataType<V>
+        >
+        StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
+        nested: StoredLens<US, V, VD>
+): StoredLens<TS, V, VD> =
+        Telescope(null, nested.type, this, nested, false)*/
+
+@JvmName("partialToNonNullableLens") inline operator fun <
+        TS : Schema<TS>, T,
+        US : Schema<US>,
+        V : Any, VD : DataType<V>
+        >
+        StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
+        nested: StoredLens<US, V, VD>
+): StoredLens<TS, V?, DataType.Nullable<V, VD>> =
+        Telescope(null, nullable(nested.type), this, nested, true)
+
+@JvmName("partialToNullableLens") inline operator fun <
+        TS : Schema<TS>, T,
+        US : Schema<US>,
+        V : Any, VD : DataType.Nullable<V, *>
+        >
+        StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
+        nested: StoredLens<US, V?, VD>
+): StoredLens<TS, V?, VD> =
+        Telescope(null, nested.type, this, nested, true)
+
+@JvmName("nullablePartialToNonNullableLens") inline operator fun <
+        TS : Schema<TS>, T : Any,
+        US : Schema<US>,
+        V : Any, VD : DataType<V>
+        >
+        StoredLens<TS, T?, out DataType.Nullable<T, out DataType.Partial<T, US>>>.rem(
+        nested: StoredLens<US, V, VD>
+): StoredLens<TS, V?, DataType.Nullable<V, VD>> =
+        Telescope(null, nullable(nested.type), this, nested, true)
+
+@JvmName("nullablePartialToNullableLens") inline operator fun <
+        TS : Schema<TS>, T : Any,
+        US : Schema<US>,
+        V : Any, VD : DataType.Nullable<V, *>
+        >
+        StoredLens<TS, T?, out DataType.Nullable<T, out DataType.Partial<T, US>>>.rem(
+        nested: StoredLens<US, V?, VD>
+): StoredLens<TS, V?, VD> =
+        Telescope(null, nested.type, this, nested, true)
 
 
 @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")

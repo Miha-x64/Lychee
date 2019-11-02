@@ -1,10 +1,15 @@
 package net.aquadc.properties.sql
 
+import net.aquadc.persistence.extended.Tuple
+import net.aquadc.persistence.extended.Tuple4
 import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.ofStruct
+import net.aquadc.persistence.type.nullable
+import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -21,8 +26,8 @@ class Lenses {
     }
 
     @Test fun `eq despite names`() = assertEquals(
-            with(SnakeCase) { NestedSchema.Items / SomeSchema.A },
-            with(CamelCase) { NestedSchema.Items / SomeSchema.A }
+            SnakeCase.concatErased(NestedSchema.Items, SomeSchema.A),
+            CamelCase.concatErased(NestedSchema.Items, SomeSchema.A)
     )
 
     @Test fun `nest eq`() {
@@ -66,6 +71,36 @@ class Lenses {
         }
         val value = lens.ofStruct()(struct)
         assertEquals(null, value)
+    }
+
+    @Test fun `struct nullability propagation`() {
+        val nested = Tuple("a", string, "b", nullable(string))
+        val schema = Tuple4(
+                "1", nested,
+                "2", nullable(nested),
+                "3", partial(nested),
+                "4", nullable(partial(nested))
+        )
+        assertEquals(string, (schema.First / nested.First).type)
+        assertEquals(nullable(string), (schema.First / nested.Second).type)
+        assertEquals(nullable(string), (schema.Second / nested.First).type)
+        assertEquals(nullable(string), (schema.Second / nested.Second).type)
+        assertEquals(nullable(string), (schema.Third / nested.First).type)
+        assertEquals(nullable(string), (schema.Third / nested.Second).type)
+        assertEquals(nullable(string), (schema.Fourth / nested.First).type)
+        assertEquals(nullable(string), (schema.Fourth / nested.Second).type)
+    }
+
+    @Test fun `non-struct nullability propagation`() {
+        val nested = either("a", string, "b", nullable(string))
+        val schema = Tuple(
+                "1", nested,
+                "2", nullable(nested)
+        )
+        assertEquals(nullable(string), (schema.First % nested.schema.First).type)
+        assertEquals(nullable(string), (schema.First % nested.schema.Second).type)
+        assertEquals(nullable(string), (schema.Second % nested.schema.First).type)
+        assertEquals(nullable(string), (schema.Second % nested.schema.Second).type)
     }
 
 }
