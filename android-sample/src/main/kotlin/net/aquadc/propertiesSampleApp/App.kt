@@ -4,7 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.preference.PreferenceManager
 import com.squareup.leakcanary.LeakCanary
-import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
+import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.propertiesSampleLogic.User
 
 

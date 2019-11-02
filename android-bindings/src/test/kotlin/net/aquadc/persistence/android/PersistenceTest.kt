@@ -25,9 +25,9 @@ import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
-import net.aquadc.properties.android.persistence.json.read
-import net.aquadc.properties.android.persistence.json.readListOf
-import net.aquadc.properties.android.persistence.json.write
+import net.aquadc.persistence.android.json.read
+import net.aquadc.persistence.android.json.readListOf
+import net.aquadc.persistence.android.json.write
 import net.aquadc.properties.persistence.enum
 import okio.ByteString.Companion.decodeHex
 import org.junit.Assert.assertEquals

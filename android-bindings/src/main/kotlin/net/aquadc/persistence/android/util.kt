@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.persistence
+package net.aquadc.persistence.android
 
 
 internal fun Int.assertFitsByte(): Byte {

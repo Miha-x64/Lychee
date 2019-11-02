@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.persistence.parcel
+package net.aquadc.persistence.android.parcel
 
 import android.os.Parcel
 import net.aquadc.persistence.stream.BetterDataInput
@@ -6,7 +6,7 @@ import net.aquadc.persistence.stream.BetterDataOutput
 import net.aquadc.persistence.stream.StreamReaderVisitor
 import net.aquadc.persistence.stream.StreamWriterVisitor
 import net.aquadc.persistence.type.DataTypeVisitor
-import net.aquadc.properties.android.persistence.assertFitsShort
+import net.aquadc.persistence.android.assertFitsShort
 
 /**
  * Adapts several [Parcel] methods to conform [BetterDataInput] and [BetterDataOutput].

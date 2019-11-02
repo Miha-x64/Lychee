@@ -2,7 +2,7 @@ package net.aquadc.propertiesSampleApp
 
 import android.app.Activity
 import android.os.Bundle
-import net.aquadc.properties.android.persistence.parcel.ParcelPropertiesMemento
+import net.aquadc.persistence.android.parcel.ParcelPropertiesMemento
 import net.aquadc.properties.android.bindings.view.bindEnabledTo
 import net.aquadc.properties.android.bindings.view.setWhenClicked
 import net.aquadc.properties.android.bindings.widget.bindErrorMessageTo

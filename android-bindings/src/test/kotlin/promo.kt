@@ -9,8 +9,8 @@ import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.bindings.widget.bindTextTo
-import net.aquadc.properties.android.persistence.json.read
-import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
+import net.aquadc.persistence.android.json.read
+import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.properties.function.CharSequencez
 import net.aquadc.properties.map
 import java.io.StringReader

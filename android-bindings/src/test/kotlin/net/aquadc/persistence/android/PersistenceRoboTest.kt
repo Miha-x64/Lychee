@@ -8,9 +8,9 @@ import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.persistence.type.string
-import net.aquadc.properties.android.persistence.parcel.ParcelIo
-import net.aquadc.properties.android.persistence.parcel.ParcelPropertiesMemento
-import net.aquadc.properties.android.persistence.pref.SharedPreferencesStruct
+import net.aquadc.persistence.android.parcel.ParcelIo
+import net.aquadc.persistence.android.parcel.ParcelPropertiesMemento
+import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.properties.getValue
 import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.enum

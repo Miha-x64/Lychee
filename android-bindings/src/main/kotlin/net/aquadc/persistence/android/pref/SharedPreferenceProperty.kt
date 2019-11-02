@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.persistence.pref
+package net.aquadc.persistence.android.pref
 
 import android.content.SharedPreferences
 import net.aquadc.persistence.type.DataType

@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.persistence.pref
+package net.aquadc.persistence.android.pref
 
 import android.content.SharedPreferences
 import android.util.Base64
@@ -10,8 +10,8 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
 import net.aquadc.persistence.type.serialized
-import net.aquadc.properties.android.persistence.assertFitsByte
-import net.aquadc.properties.android.persistence.assertFitsShort
+import net.aquadc.persistence.android.assertFitsByte
+import net.aquadc.persistence.android.assertFitsShort
 import net.aquadc.properties.internal.Unset
 import java.util.EnumSet
 import java.lang.Double as JavaLangDouble
