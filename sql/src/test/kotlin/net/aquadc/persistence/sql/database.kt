@@ -1,5 +1,6 @@
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
@@ -104,9 +105,18 @@ val TableWithEverything = tableOf(WithEverything, "with_everything", "_id", long
     )
 }
 
+val stringOrNullableString = either("a", string, "b", nullable(string))
+val schemaWithNullableEither = Tuple("1", stringOrNullableString, "2", nullable(stringOrNullableString))
+val TableWithNullableEither = tableOf(schemaWithNullableEither, "tableContainingEither","_id", long) {
+    arrayOf(
+            Relation.Embedded(SnakeCase, schemaWithNullableEither.First, "which"),
+            Relation.Embedded(SnakeCase, schemaWithNullableEither.Second, "whetherAndWhich")
+    )
+}
+
 val TestTables = arrayOf(
         SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedToGoDeeper,
-        TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything
+        TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything, TableWithNullableEither
 )
 
 val jdbcSession by lazy { // init only when requested, unused in Rololectric tests

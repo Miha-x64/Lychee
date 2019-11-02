@@ -92,15 +92,11 @@ class Lenses {
     }
 
     @Test fun `non-struct nullability propagation`() {
-        val nested = either("a", string, "b", nullable(string))
-        val schema = Tuple(
-                "1", nested,
-                "2", nullable(nested)
-        )
-        assertEquals(nullable(string), (schema.First % nested.schema.First).type)
-        assertEquals(nullable(string), (schema.First % nested.schema.Second).type)
-        assertEquals(nullable(string), (schema.Second % nested.schema.First).type)
-        assertEquals(nullable(string), (schema.Second % nested.schema.Second).type)
+        val schema = schemaWithNullableEither
+        assertEquals(nullable(string), (schema.First % schema.First.type.schema.First).type)
+        assertEquals(nullable(string), (schema.First % schema.First.type.schema.Second).type)
+        assertEquals(nullable(string), (schema.Second % schema.First.type.schema.First).type)
+        assertEquals(nullable(string), (schema.Second % schema.First.type.schema.Second).type)
     }
 
 }

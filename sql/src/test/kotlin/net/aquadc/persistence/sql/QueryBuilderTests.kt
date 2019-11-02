@@ -1,5 +1,8 @@
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.extended.build
+import net.aquadc.persistence.extended.either.EitherLeft
+import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.struct.build
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -90,6 +93,35 @@ open class QueryBuilderTests {
                 truncate(SomeTable)
             }
         }
+    }
+
+    @Test fun either() {
+        session.withTransaction {
+            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherLeft("left"), null))
+            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherRight("right"), null))
+            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherLeft("left"), EitherLeft("left")))
+            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherLeft("left"), EitherRight("right")))
+            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherRight("right"), EitherLeft("left")))
+            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherRight("right"), EitherRight("right")))
+        }
+
+        val dao = session[TableWithNullableEither]
+        assertEquals(
+                listOf(1L, 3L, 4L),
+                dao.select(schemaWithNullableEither.First % stringOrNullableString.schema.First eq "left").value.map(Record<*, *>::primaryKey)
+        )
+        assertEquals(
+                listOf(2L, 5L, 6L),
+                dao.select(schemaWithNullableEither.First % stringOrNullableString.schema.Second eq "right").value.map(Record<*, *>::primaryKey)
+        )
+        assertEquals(
+                listOf(3L, 5L),
+                dao.select(schemaWithNullableEither.Second % stringOrNullableString.schema.First eq "left").value.map(Record<*, *>::primaryKey)
+        )
+        assertEquals(
+                listOf(4L, 6L),
+                dao.select(schemaWithNullableEither.Second % stringOrNullableString.schema.Second eq "right").value.map(Record<*, *>::primaryKey)
+        )
     }
 
 }
