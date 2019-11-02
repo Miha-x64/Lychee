@@ -120,7 +120,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         private val ed = prefs.edit()
 
         override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) {
-            field.type.put(ed, field.name, update)
+            field.approxType.put(ed, field.name, update)
         }
 
         override fun close() {

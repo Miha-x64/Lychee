@@ -21,14 +21,14 @@ abstract class NamingConvention {
     abstract fun concatNames(outer: String, nested: String): String
 
     @JvmName("0") @Deprecated("not perfectly correct and does not look useful")
-    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U> NamedLens<TS, TR, out T?, *>.div(
-            nested: NamedLens<US, T, U, *>
+    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, U> NamedLens<TS, TR, out PartialStruct<US>?, *>.div(
+            nested: NamedLens<US, PartialStruct<US>, U, *>
     ): NamedLens<TS, TR, U?, *> =
             Telescope(concatNames(this.name, nested.name), this, nested)
 
     @JvmName("1") @Deprecated("not perfectly correct and does not look useful")
-    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : Struct<US>, U> NamedLens<TS, TR, T, *>.div(
-            nested: NamedLens<US, T, U, *>
+    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, U> NamedLens<TS, TR, out Struct<US>, *>.div(
+            nested: NamedLens<US, PartialStruct<US>, U, *>
     ): NamedLens<TS, TR, U, *> =
             Telescope(concatNames(this.name, nested.name), this, nested)
 
@@ -43,7 +43,7 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, Struct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, V, VD>
 ): Lens<TS, PartialStruct<TS>, V, VD> =
-        Telescope(null, nested.exactType, this, nested, false)
+        Telescope(null, nested.type, this, nested, false)
 
 @JvmName("partialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
@@ -53,17 +53,17 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, V, VD>
 ): Lens<TS, PartialStruct<TS>, V?, DataType.Nullable<V, VD>> =
-        Telescope(null, nullable(nested.exactType), this, nested, true)
+        Telescope(null, nullable(nested.type), this, nested, true)
 
 @JvmName("partialToNullableLens") inline operator fun <
         TS : Schema<TS>,
         US : Schema<US>, UD : DataType.Partial<PartialStruct<US>, US>,
         V : Any, VD : DataType.Nullable<V, *>
         >
-        Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div(
+        Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div( // todo test me
         nested: Lens<US, PartialStruct<US>, V?, VD>
 ): Lens<TS, PartialStruct<TS>, V?, VD> =
-        Telescope(null, nested.exactType, this, nested, true)
+        Telescope(null, nested.type, this, nested, true)
 
 @JvmName("nullablePartialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
@@ -73,17 +73,18 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, UR?, UD>.div(
         nested: Lens<US, PartialStruct<US>, V, VD>
 ): Lens<TS, PartialStruct<TS>, V?, DataType.Nullable<V, VD>> =
-        Telescope(null, nullable(nested.exactType), this, nested, true)
+        Telescope(null, nullable(nested.type), this, nested, true)
 
 @JvmName("nullablePartialToNullableLens") inline operator fun <
         TS : Schema<TS>,
         US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.Partial<UR, US>>,
         V : Any, VD : DataType.Nullable<V, *>
         >
-        Lens<TS, PartialStruct<TS>, UR?, UD>.div(
+        Lens<TS, PartialStruct<TS>, UR?, UD>.div( // todo test me
         nested: Lens<US, PartialStruct<US>, V?, VD>
 ): Lens<TS, PartialStruct<TS>, V?, VD> =
-        Telescope(null, nested.exactType, this, nested, true)
+        Telescope(null, nested.type, this, nested, true)
+
 
 
 @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
@@ -125,7 +126,8 @@ object CamelCase : NamingConvention() {
 }
 
 @PublishedApi internal class
-Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialStruct<US>, U, UD : DataType<U>>(
+Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T, U, UD : DataType<U>>
+@PublishedApi internal constructor(
         name: String?,
         exactType: UD,
         private val outer: StoredLens<TS, out T?, *>,
@@ -137,12 +139,12 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialS
             name: String?,
             exactType: UD,
             outer: Lens<TS, TR, out T?, *>,
-            nested: Lens<US, T, out U, *>,
+            nested: Lens<US, PartialStruct<US>, out U, *>,
             outerMayReturnNull: Boolean?
     ) : this(name, exactType, outer as StoredLens<TS, out T?, *>, nested as StoredLens<US, out U, *>, outerMayReturnNull)
 
     @PublishedApi
-    internal constructor(name: String?, outer: Lens<TS, TR, out T?, *>, nested: Lens<US, T, out U, *>) : this(
+    internal constructor(name: String?, outer: Lens<TS, TR, out T?, *>, nested: Lens<US, PartialStruct<US>, out U, *>) : this(
             name,
             Unit.run {
                 if (outer.type is Schema<*> || nested.type is DataType.Nullable<*, *>) nested.type
@@ -156,11 +158,11 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T : PartialS
 
     override fun invoke(p1: TR): U? {
         val a = (outer as Lens<TS, TR, out T?, *>)(p1)
-        return if (a == null && outerMayReturnNull!!) null else (nested as Lens<US, T, out U, *>)(a as T)
+        return if (a == null && outerMayReturnNull!!) null else (nested as Lens<US, PartialStruct<US>, out U, *>)(a as PartialStruct<US>)
     }
 
     override val default: U
-        get() = (nested as Lens<US, T, out U, *>).default
+        get() = (nested as Lens<US, PartialStruct<US>, out U, *>).default
 
     override val size: Int
         get() = outer.size + nested.size
@@ -246,8 +248,8 @@ internal class FieldSetLens<S : Schema<S>>(
 
     override fun toString(): String = buildString {
         append(name).append(" (")
-        val nullable = exactType is DataType.Nullable<*, *>
-        val actual: DataType<*> = if (exactType is DataType.Nullable<*, *>) exactType.actualType else exactType
+        val nullable = type is DataType.Nullable<*, *>
+        val actual: DataType<*> = if (type is DataType.Nullable<*, *>) type.actualType else type
         val partial = actual !is Schema<*>
         if (nullable) append("nullability info")
         if (nullable && partial) append(", ")
@@ -260,14 +262,11 @@ internal class FieldSetLens<S : Schema<S>>(
 // ugly class for minimizing method count / vtable size
 internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>, T, DT : DataType<T>>(
         private val _name: String?,
-        final override val exactType: DT
+        final override val type: DT
 ) : NamedLens<SCH, STR, T, DT> {
 
     final override val name: String
         get() = _name!! // give this instance as Lens, not NamedLens, when _name is null
-
-    final override val type: DataType<T>
-        get() = exactType
 
     override val default: T // PK and synthetic lenses don't have & don't need it
         get() = throw UnsupportedOperationException()

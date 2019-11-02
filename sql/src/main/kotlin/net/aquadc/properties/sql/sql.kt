@@ -219,7 +219,7 @@ private constructor(
             this(schema, name, idColName, idColType, null)
 
     constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) :
-            this(schema, name, idCol.name, idCol.exactType, idCol)
+            this(schema, name, idCol.name, idCol.type, idCol)
 
     /**
      * Instantiates a record. Typically consists of a single constructor call.

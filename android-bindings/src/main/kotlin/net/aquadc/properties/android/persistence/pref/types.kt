@@ -5,6 +5,7 @@ import android.util.Base64
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
@@ -17,7 +18,7 @@ import java.lang.Double as JavaLangDouble
 
 
 internal fun <T> FieldDef<*, T, *>.get(prefs: SharedPreferences): T {
-    val value = type.get(prefs, name)
+    val value = approxType.get(prefs, name)
     return if (value === Unset) default else value
 }
 

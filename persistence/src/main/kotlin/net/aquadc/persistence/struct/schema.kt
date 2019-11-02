@@ -1,5 +1,6 @@
 package net.aquadc.persistence.struct
 
+import android.support.annotation.RestrictTo
 import net.aquadc.persistence.New
 import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.fill
@@ -182,19 +183,17 @@ interface StoredLens<SCH : Schema<SCH>, T, DT : DataType<T>> {
     /**
      * Type of values stored within a field/column represented by this lens.
      */
-    val type: DataType<T>
-
-    /**
-     * Exact type of values stored within a field/column represented by this lens.
-     * Note: `StoredLens<*, T, *>::exactType` is inferred to `DataType<*>`
-     * while `StoredLens<*, T, *>::type` is useful `DataType<T>`.
-     */
-    val exactType: DT
+    val type: DT
 
     val size: Int
     operator fun get(index: Int): NamedLens<*, *, *, *> // any lens consists of small lenses, which are always named
 
 }
+
+@Suppress("UNCHECKED_CAST") // we know that DT : DataType<T>
+@get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // hope you're not gonna need it
+inline val <T> StoredLens<*, T, *>.approxType: DataType<T>
+    get() = type as DataType<T>
 
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
@@ -253,7 +252,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
          * Describes type of values it can store and underlying serialization techniques.
          * This property is a part of serialization ABI.
          */
-        override val exactType: DT,
+        override val type: DT,
 
         /**
          * Zero-based ordinal number of this field.
@@ -283,17 +282,6 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
     }
-
-    /**
-     * Describes type of values it can store and underlying serialization techniques.
-     * This property is a part of serialization ABI.
-     *
-     * Note: `override val type: DT` is possible and could supersede both [exactType] and [type],
-     * but `FieldDef<*, T, *>::exactType` is inferred to `DataType<*>`
-     * while `FieldDef<*, T, *>::type` is useful `DataType<T>`.
-     */
-    override val type: DataType<T>
-        get() = exactType
 
     private val _default = default
 

@@ -4,10 +4,9 @@ import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Named
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
-import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
@@ -152,7 +151,7 @@ object SqliteDialect : Dialect {
             override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
                 error("unsupported²")
             }
-        }.match(col.type, this, col.default)
+        }.match(col.approxType, this, col.default)
     }
 
     private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {

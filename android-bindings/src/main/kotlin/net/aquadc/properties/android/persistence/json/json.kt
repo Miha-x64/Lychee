@@ -14,6 +14,7 @@ import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.allFieldSet
+import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.forEachIndexed
@@ -172,7 +173,7 @@ fun <T> JsonWriter.write(type: DataType<T>, value: T): Unit =
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =
-        write(field.type, struct.getOrThrow(field))
+        write(field.approxType, struct.getOrThrow(field))
 
 private val writerVis = JsonWriterVisitor<Any?>()
 
