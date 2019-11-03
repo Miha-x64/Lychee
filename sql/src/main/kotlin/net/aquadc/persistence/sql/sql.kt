@@ -124,6 +124,8 @@ interface Transaction : AutoCloseable {
      * Insert [data] into a [table].
      */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
+    // TODO insert(Iterator)
+    // TODO emulate slow storage!
 
     @Deprecated("this cannot be done safely, with respect to mutability", ReplaceWith("insert(table, data)"))
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
@@ -206,7 +208,7 @@ private constructor(
         val idColName: String,
         val idColType: DataType.Simple<ID>,
         val pkField: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>? // todo: consistent names, ID || PK
-// TODO: [unique] indices
+// TODO: [unique] indices https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/greendao-api/src/main/java/org/greenrobot/greendao/annotation/Index.java
 // TODO: auto increment
 ) {
 
@@ -452,19 +454,24 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, 
 /**
  * Represents an active record — a container with some values and properties backed by an RDBMS row.
  */
-open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, PropertyStruct<SCH> {
+open class Record<SCH : Schema<SCH>, ID : IdBound>
+/**
+ * Creates new record.
+ * Note that such a record is managed and alive (will receive updates) only if created by [Dao].
+ */
+@Deprecated("Will become internal soon, making the whole class effectively final")
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+constructor(
+        internal val table: Table<SCH, ID, *>,
+        private val session: Session,
+        val primaryKey: ID
+) : BaseStruct<SCH>(table.schema), PropertyStruct<SCH> {
 
     internal val _session get() = session
 
-    // overrides multi-inherit
-
-    override val fields: FieldSet<SCH, FieldDef<SCH, *, *>>
-        get() = schema.allFieldSet()
-
-    override fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T =
-            get(field)
-
-    // end
+    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+    internal val dao: Dao<SCH, ID, *>
+        get() = session.get(table as Table<SCH, ID, Record<SCH, ID>>)
 
     internal fun copyValues(): Array<Any?> {
         val size = values.size
@@ -475,16 +482,6 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
         }
         return out
     }
-
-    /**
-     * Creates new record.
-     * Note that such a record is managed and alive (will receive updates) only if created by [Dao].
-     */
-    @Deprecated("Will become internal soon, making the whole class effectively final")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(table: Table<SCH, ID, *>, session: Session, primaryKey: ID) :
-            super(session, table as Table<SCH, ID, Record<SCH, ID>>, table.schema, primaryKey, table.schema.allFieldSet())
-
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T = when (field) {
         is FieldDef.Mutable -> prop(field).value
@@ -524,20 +521,6 @@ open class Record<SCH : Schema<SCH>, ID : IdBound> : PartialRecord<SCH, ID>, Pro
             FieldDef.Mutable<ForeSCH, ID, *>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
             session[foreignTable].select(this eq primaryKey)
 
-    }
-
-open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( // todo kill me please
-        protected val session: Session,
-        internal val table: Table<SCH, ID, *>,
-        schema: SCH,
-        val primaryKey: ID,
-        override val fields: FieldSet<SCH, FieldDef<SCH, *, *>> // fixme: the field is unused by Record
-) : BaseStruct<SCH>(schema) {
-
-    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
-    internal val dao: Dao<SCH, ID, *>
-        get() = session.get(table as Table<SCH, ID, Record<SCH, ID>>)
-
     @JvmField @JvmSynthetic @Suppress("UNCHECKED_CAST")
     internal val values: Array<Any?/* = ManagedProperty<Transaction, T> | T */> =
             session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
@@ -548,26 +531,6 @@ open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( 
                     }
                 }
             }
-
-    override fun <T> getOrThrow(field: FieldDef<SCH, T, *>): T {
-        val index = fields.indexOf(field).toInt()
-        val value = try {
-            values[index]
-        } catch (_: ArrayIndexOutOfBoundsException) {
-            throw NoSuchElementException(field.toString())
-        }
-        return when (field) {
-            is FieldDef.Mutable -> (value as SqlProperty<T>).value
-            is FieldDef.Immutable -> {
-                if (value === Unset) {
-                    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
-                    val freshValue = dao.getClean(field, primaryKey)
-                    values[index] = freshValue
-                    freshValue
-                } else value as T
-            }
-        }
-    }
 
     var isManaged: Boolean = true
         @JvmSynthetic internal set // cleared **before** real property unmanagement occurs
@@ -585,7 +548,7 @@ open class PartialRecord<SCH : Schema<SCH>, ID : IdBound> internal constructor( 
     override fun toString(): String =
             if (isManaged) super.toString()
             else buildString {
-                append(this@PartialRecord.javaClass.simpleName).append(':')
+                append(this@Record.javaClass.simpleName).append(':')
                         .append(schema.javaClass.simpleName).append("(isManaged=false)")
             }
 
