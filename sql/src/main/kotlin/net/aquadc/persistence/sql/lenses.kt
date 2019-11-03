@@ -43,7 +43,7 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, Struct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, V, VD>
 ): Lens<TS, PartialStruct<TS>, V, VD> =
-        Telescope(null, nested.type, this, nested, false)
+        Telescope(null, nested.type, this, nested)
 
 @JvmName("partialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
@@ -53,7 +53,7 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, V, VD>
 ): Lens<TS, PartialStruct<TS>, V?, DataType.Nullable<V, VD>> =
-        Telescope(null, nullable(nested.type), this, nested, true)
+        Telescope(null, nullable(nested.type), this, nested)
 
 @JvmName("partialToNullableLens") inline operator fun <
         TS : Schema<TS>,
@@ -63,7 +63,7 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, PartialStruct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, V?, VD>
 ): Lens<TS, PartialStruct<TS>, V?, VD> =
-        Telescope(null, nested.type, this, nested, true)
+        Telescope(null, nested.type, this, nested)
 
 @JvmName("nullablePartialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
@@ -73,7 +73,7 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, UR?, UD>.div(
         nested: Lens<US, PartialStruct<US>, V, VD>
 ): Lens<TS, PartialStruct<TS>, V?, DataType.Nullable<V, VD>> =
-        Telescope(null, nullable(nested.type), this, nested, true)
+        Telescope(null, nullable(nested.type), this, nested)
 
 @JvmName("nullablePartialToNullableLens") inline operator fun <
         TS : Schema<TS>,
@@ -83,7 +83,7 @@ abstract class NamingConvention {
         Lens<TS, PartialStruct<TS>, UR?, UD>.div(
         nested: Lens<US, PartialStruct<US>, V?, VD>
 ): Lens<TS, PartialStruct<TS>, V?, VD> =
-        Telescope(null, nested.type, this, nested, true)
+        Telescope(null, nested.type, this, nested)
 
 
 /* This overload makes no sense: 'Schema' is the only 'magic' Partial with all fields set, and T is obviously not 'Schema'
@@ -95,7 +95,7 @@ abstract class NamingConvention {
         StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
         nested: StoredLens<US, V, VD>
 ): StoredLens<TS, V, VD> =
-        Telescope(null, nested.type, this, nested, false)*/
+        Telescope(null, nested.type, this, nested)*/
 
 @JvmName("partialToNonNullableLens") inline operator fun <
         TS : Schema<TS>, T,
@@ -105,7 +105,7 @@ abstract class NamingConvention {
         StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
         nested: StoredLens<US, V, VD>
 ): StoredLens<TS, V?, DataType.Nullable<V, VD>> =
-        Telescope(null, nullable(nested.type), this, nested, true)
+        Telescope(null, nullable(nested.type), this, nested)
 
 @JvmName("partialToNullableLens") inline operator fun <
         TS : Schema<TS>, T,
@@ -115,7 +115,7 @@ abstract class NamingConvention {
         StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
         nested: StoredLens<US, V?, VD>
 ): StoredLens<TS, V?, VD> =
-        Telescope(null, nested.type, this, nested, true)
+        Telescope(null, nested.type, this, nested)
 
 @JvmName("nullablePartialToNonNullableLens") inline operator fun <
         TS : Schema<TS>, T : Any,
@@ -125,7 +125,7 @@ abstract class NamingConvention {
         StoredLens<TS, T?, out DataType.Nullable<T, out DataType.Partial<T, US>>>.rem(
         nested: StoredLens<US, V, VD>
 ): StoredLens<TS, V?, DataType.Nullable<V, VD>> =
-        Telescope(null, nullable(nested.type), this, nested, true)
+        Telescope(null, nullable(nested.type), this, nested)
 
 @JvmName("nullablePartialToNullableLens") inline operator fun <
         TS : Schema<TS>, T : Any,
@@ -135,7 +135,7 @@ abstract class NamingConvention {
         StoredLens<TS, T?, out DataType.Nullable<T, out DataType.Partial<T, US>>>.rem(
         nested: StoredLens<US, V?, VD>
 ): StoredLens<TS, V?, VD> =
-        Telescope(null, nested.type, this, nested, true)
+        Telescope(null, nested.type, this, nested)
 
 
 @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
@@ -182,17 +182,15 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T, U, UD : D
         name: String?,
         exactType: UD,
         private val outer: StoredLens<TS, out T?, *>,
-        private val nested: StoredLens<US, out U, *>,
-        private val outerMayReturnNull: Boolean? // todo break 'dis shit with a test
+        private val nested: StoredLens<US, out U, *>
 ) : BaseLens<TS, TR, U, UD>(name, exactType) {
 
     @PublishedApi internal constructor(
             name: String?,
             exactType: UD,
             outer: Lens<TS, TR, out T?, *>,
-            nested: Lens<US, PartialStruct<US>, out U, *>,
-            outerMayReturnNull: Boolean?
-    ) : this(name, exactType, outer as StoredLens<TS, out T?, *>, nested as StoredLens<US, out U, *>, outerMayReturnNull)
+            nested: Lens<US, PartialStruct<US>, out U, *>
+    ) : this(name, exactType, outer as StoredLens<TS, out T?, *>, nested as StoredLens<US, out U, *>)
 
     @PublishedApi
     internal constructor(name: String?, outer: Lens<TS, TR, out T?, *>, nested: Lens<US, PartialStruct<US>, out U, *>) : this(
@@ -203,14 +201,17 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T, U, UD : D
                 else nullable(nested.type as DataType<Any>)
             } as UD,
             outer,
-            nested,
-            outerMayReturnNull = outer.type !is Schema<*>
+            nested
     )
 
-    override fun invoke(p1: TR): U? {
-        val a = (outer as Lens<TS, TR, out T?, *>)(p1)
-        return if (a == null && outerMayReturnNull!!) null else (nested as Lens<US, PartialStruct<US>, out U, *>)(a as PartialStruct<US>)
-    }
+    override fun hasValue(struct: TR): Boolean =
+            (outer as Lens<TS, TR, out T?, *>).hasValue(struct) &&
+                    (nested as Lens<US, PartialStruct<US>, out U, *>).hasValue(outer.invoke(struct) as PartialStruct<US>)
+
+    override fun invoke(struct: TR): U? =
+            if ((outer as Lens<TS, TR, out T?, *>).hasValue(struct))
+                (nested as Lens<US, PartialStruct<US>, out U, *>)((outer as Lens<TS, TR, out T?, *>)(struct) as PartialStruct<US>)
+            else null
 
     override val default: U
         get() = (nested as Lens<US, PartialStruct<US>, out U, *>).default
@@ -245,7 +246,7 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T, U, UD : D
 
     override fun toString(): String = buildString {
         append(outer)
-        if (outerMayReturnNull == true) append('?')
+        if (outer.type !is Schema<*>) append('?')
         append('.').append(nested)
     }
 
@@ -260,6 +261,9 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
 ) : BaseLens<S, Record<S, ID>, ID, DataType.Simple<ID>>(
         table.idColName, table.idColType
 ) {
+
+    override fun hasValue(struct: Record<S, ID>): Boolean =
+            true
 
     override fun get(index: Int): NamedLens<*, *, *, *> =
             if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
@@ -282,6 +286,9 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
 internal class FieldSetLens<S : Schema<S>>(
         name: String
 ) : BaseLens<S, PartialStruct<S>, Long, DataType.Simple<Long>>(name, long) {
+
+    override fun hasValue(struct: PartialStruct<S>): Boolean =
+            true
 
     override fun invoke(p1: PartialStruct<S>): Long? =
             p1.fields.bitmask

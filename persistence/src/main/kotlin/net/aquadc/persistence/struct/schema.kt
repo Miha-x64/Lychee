@@ -203,6 +203,13 @@ inline val <T> StoredLens<*, T, *>.approxType: DataType<T>
 interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<T>> : StoredLens<SCH, T, DT>, (STR) -> T? {
 
     /**
+     * Checks whether [struct] has a value which can be returned by [invoke].
+     * `true` means that [invoke] will return [T], not `T?`
+     * always `true` for [Struct]s
+     */
+    fun hasValue(struct: STR): Boolean
+
+    /**
      * A default/initial/fallback value for a field/column represented by this lens.
      * @throws RuntimeException if no such value
      */
@@ -290,6 +297,9 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
 
     val hasDefault: Boolean
         @JvmName("hasDefault") get() = _default !== Unset
+
+    override fun hasValue(struct: PartialStruct<SCH>): Boolean =
+            this in struct.fields
 
     /**
      * Returns value of [this] field for the given [struct], or `null`, if it is absent.
