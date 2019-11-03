@@ -1,7 +1,7 @@
 @file:JvmName("Internal\$Utils")
 package net.aquadc.properties.internal
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 

@@ -2,7 +2,7 @@
 
 package net.aquadc.persistence.struct
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 
 
 /**

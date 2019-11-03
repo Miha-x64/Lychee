@@ -5,8 +5,8 @@ package net.aquadc.properties.android.bindings.widget
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
 import android.os.Build
-import android.support.annotation.DrawableRes
-import android.support.annotation.StringRes
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import android.text.Editable
 import android.text.SpannedString
 import android.widget.TextView

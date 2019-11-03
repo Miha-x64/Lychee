@@ -1,9 +1,8 @@
 package net.aquadc.persistence
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
-import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct

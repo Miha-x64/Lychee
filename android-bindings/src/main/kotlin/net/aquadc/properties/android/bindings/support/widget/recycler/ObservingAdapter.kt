@@ -1,4 +1,4 @@
-package net.aquadc.properties.android.bindings.widget.recycler
+package net.aquadc.properties.android.bindings.support.widget.recycler
 
 import android.support.annotation.CallSuper
 import android.support.v7.widget.RecyclerView

@@ -1,6 +1,6 @@
 package net.aquadc.persistence.struct
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.New
 import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.fill

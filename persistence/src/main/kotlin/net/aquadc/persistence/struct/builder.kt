@@ -1,7 +1,7 @@
 @file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.struct
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract

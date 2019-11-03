@@ -17,20 +17,15 @@ import org.junit.Test
 typealias ShallowSchema = Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>
 val shallowSchema = Tuple("a", string, "b", long)
 
-typealias DupeEmbed = Tuple<String, DataType.Simple<String>, Struct<ShallowSchema>, ShallowSchema>
 val dupeEmbed = Tuple("a_b", string, "a", shallowSchema)
 
-typealias EmbedSchema = Tuple<String, DataType.Simple<String>, Struct<ShallowSchema>, ShallowSchema>
 val embedSchema = Tuple("a", string, "b", shallowSchema)
 
-typealias EmbedPartial = Tuple<String, DataType.Simple<String>, PartialStruct<ShallowSchema>, DataType.Partial<PartialStruct<ShallowSchema>, ShallowSchema>>
 val embedPartial = Tuple("a", string, "b", partial(shallowSchema))
 
-typealias EmbedNullable = Tuple<String, DataType.Simple<String>, Struct<ShallowSchema>?, DataType.Nullable<Struct<ShallowSchema>, ShallowSchema>>
 val embedNullable = Tuple("a", string, "b", nullable(shallowSchema))
 
 val embedNullablePartial = Tuple("a", string, "b", nullable(partial(shallowSchema)))
-typealias EmbedNullablePartial = Tuple<String, DataType.Simple<String>, PartialStruct<ShallowSchema>?, DataType.Nullable<PartialStruct<ShallowSchema>, DataType.Partial<PartialStruct<ShallowSchema>, ShallowSchema>>>
 
 class RelationSchemas {
 
@@ -102,7 +97,7 @@ class RelationSchemas {
         }.columns
     }
     @Test fun `embed partial`() {
-        val table: SimpleTable<EmbedPartial, Long> = tableOf(embedPartial, "zzz", "_id", long) {
+        val table = tableOf(embedPartial, "zzz", "_id", long) {
             arrayOf(
                     Relation.Embedded(SnakeCase, embedPartial.Second, "fieldsSet")
             )

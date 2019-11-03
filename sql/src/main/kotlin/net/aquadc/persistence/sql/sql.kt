@@ -1,7 +1,7 @@
 @file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.sql
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.New
 import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.BaseStruct
@@ -233,10 +233,10 @@ private constructor(
      */
     protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
 
-    @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null // fixme: replace with Array
+    @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null
     @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
     @JvmSynthetic @JvmField internal var _columnsMappedToFields: Array<out StoredNamedLens<SCH, *, *>>? = null
-    private val _columns: Lazy<Array<out StoredNamedLens<SCH, *, *>>> = lazy { // fixme: check usages
+    private val _columns: Lazy<Array<out StoredNamedLens<SCH, *, *>>> = lazy {
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }

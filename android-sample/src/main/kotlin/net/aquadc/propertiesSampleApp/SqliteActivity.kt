@@ -9,8 +9,6 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.os.Bundle
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -18,27 +16,29 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import net.aquadc.persistence.sql.SqliteSession
+import net.aquadc.persistence.sql.createTable
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.SetWhenClicked
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.android.bindings.widget.bindToText
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.set
-import net.aquadc.persistence.sql.SqliteSession
-//import net.aquadc.persistence.sql.createTable FIXME looks like Kotlin bug
-import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.propertiesSampleLogic.sql.Human
-import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import net.aquadc.propertiesSampleLogic.sql.SampleTables
-import org.jetbrains.anko.UI
-import org.jetbrains.anko.attr
-import org.jetbrains.anko.backgroundResource
-import org.jetbrains.anko.dip
-import org.jetbrains.anko.editText
-import org.jetbrains.anko.frameLayout
-import org.jetbrains.anko.matchParent
-import org.jetbrains.anko.textAppearance
-import org.jetbrains.anko.wrapContent
+import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
+import splitties.dimensions.dip
+import splitties.resources.styledDrawable
+import splitties.resources.withStyledAttributes
+import splitties.views.dsl.core.editText
+import splitties.views.dsl.core.frameLayout
+import splitties.views.dsl.core.lParams
+import splitties.views.dsl.core.matchParent
+import splitties.views.dsl.core.wrapContent
+import splitties.views.setPaddingDp
+import splitties.views.textAppearance
 
 
 class SqliteActivity : Activity() {
@@ -86,8 +86,7 @@ class SqliteActivity : Activity() {
     ) : SQLiteOpenHelper(context, "people", null, 1) {
 
         override fun onCreate(db: SQLiteDatabase) {
-            SampleTables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
-            // Tables.forEach(db::createTable)
+            SampleTables.forEach { db.createTable(it) } // function reference does not work here. WTF?
         }
 
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -98,18 +97,18 @@ class SqliteActivity : Activity() {
 
     class SimpleHolder(
             view: TextView,
-            clickListener: ((Int) -> Unit)?,
-            longClickListener: ((Int) -> Unit)?
+            onClick: ((Int) -> Unit)?,
+            onLongClick: ((Int) -> Unit)?
     ) : RecyclerView.ViewHolder(view) {
 
         val textProp = propertyOf("")
 
         init {
-            if (clickListener != null)
-                view.setOnClickListener { clickListener(adapterPosition) }
+            if (onClick != null)
+                view.setOnClickListener { onClick(adapterPosition) }
 
-            if (longClickListener != null)
-                view.setOnLongClickListener { longClickListener(adapterPosition); true }
+            if (onLongClick != null)
+                view.setOnLongClickListener { onLongClick(adapterPosition); true }
 
             view.bindTextTo(textProp)
         }
@@ -145,9 +144,9 @@ class SqliteActivity : Activity() {
                             SimpleHolder(
                                     TextView(parent.context).apply {
                                         layoutParams = RecyclerView.LayoutParams(matchParent, wrapContent)
-                                        setPadding(dip(16), dip(8), dip(16), dip(8))
-                                        backgroundResource = attr(android.R.attr.selectableItemBackground).resourceId
-                                        textAppearance = attr(android.R.attr.textAppearanceListItemSmall).resourceId
+                                        setPaddingDp(16, 8, 16, 8)
+                                        background = styledDrawable(android.R.attr.selectableItemBackground)
+                                        textAppearance = context.withStyledAttributes(android.R.attr.textAppearanceListItemSmall) { getResourceId(it, 0) }
                                     },
                                     { vm.selectedProp.value = list.value[it] },
                                     null
@@ -184,23 +183,23 @@ class SqliteActivity : Activity() {
         val vm: SqlViewModel
             get() = (activity as SqliteActivity).vm
 
-        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
-                AlertDialog.Builder(activity)
-                        .setTitle("Edit")
-                        .setView(UI {
+        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = with(activity) {
+            AlertDialog.Builder(activity)
+                    .setTitle("Edit")
+                    .setView(
                             frameLayout {
-                                editText {
+                                addView(editText {
                                     bindTextTo(vm.nameProp)
                                     bindToText(vm.editableNameProp)
-                                }.lparams(matchParent, wrapContent) {
+                                }, lParams(matchParent, wrapContent) {
                                     leftMargin = dip(8)
                                     rightMargin = dip(8)
-                                }
-                            }
-                        }.view)
-                        .setPositiveButton("Ok", null)
-                        .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
-                        .create()
+                                })
+                            })
+                    .setPositiveButton("Ok", null)
+                    .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
+                    .create()
+        }
 
     }
 

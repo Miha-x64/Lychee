@@ -1,6 +1,6 @@
 package net.aquadc.persistence.stream
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.each
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.readPartial

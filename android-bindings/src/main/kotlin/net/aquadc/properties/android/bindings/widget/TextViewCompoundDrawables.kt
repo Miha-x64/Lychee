@@ -5,8 +5,8 @@ import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.graphics.drawable.Drawable
 import android.os.Build
-import android.support.annotation.DrawableRes
-import android.support.annotation.IntDef
+import androidx.annotation.DrawableRes
+import androidx.annotation.IntDef
 import android.view.Gravity.*
 import android.view.View
 import android.widget.TextView
@@ -22,7 +22,7 @@ import kotlin.annotation.AnnotationTarget.*
 @SuppressLint("RtlHardcoded")
 @Target(VALUE_PARAMETER, FUNCTION, LOCAL_VARIABLE, PROPERTY)
 @Retention(SOURCE)
-@IntDef(LEFT.toLong(), TOP.toLong(), RIGHT.toLong(), BOTTOM.toLong(), START.toLong(), END.toLong())
+@IntDef(LEFT, TOP, RIGHT, BOTTOM, START, END)
 annotation class CompoundDrawablePosition
 
 

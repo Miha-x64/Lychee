@@ -2,7 +2,7 @@
 package net.aquadc.properties.android.bindings
 
 import android.os.Build
-import android.support.annotation.RequiresApi
+import androidx.annotation.RequiresApi
 import android.view.View
 import net.aquadc.properties.Property
 import net.aquadc.properties.android.observeStartedIf

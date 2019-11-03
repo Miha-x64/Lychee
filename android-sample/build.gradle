@@ -13,8 +13,7 @@ android {
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -56,11 +55,12 @@ android {
 dependencies {
     testImplementation 'junit:junit:4.12'
 
-    implementation "com.android.support:recyclerview-v7:$support_version"
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    
-    implementation 'org.jetbrains.anko:anko-sdk21:0.10.8'
-    implementation 'org.jetbrains.anko:anko-recyclerview-v7:0.10.8'
+
+    implementation "com.louiscad.splitties:splitties-views-dsl:$splitties_version"
+    implementation "com.louiscad.splitties:splitties-resources:$splitties_version"
+    implementation "com.louiscad.splitties:splitties-views-dsl-recyclerview:$splitties_version"
     
     implementation project(':properties')
     implementation project(':android-bindings')
@@ -68,6 +68,5 @@ dependencies {
     implementation project(':persistence') // required for saving state — ParcelPropertiesMemento is there
     implementation project(':logic-sample') // ViewModels are here
 
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.2'
-    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-3'
 }

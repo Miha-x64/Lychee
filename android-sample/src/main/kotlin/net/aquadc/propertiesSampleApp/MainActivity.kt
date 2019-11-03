@@ -1,7 +1,9 @@
 package net.aquadc.propertiesSampleApp
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import net.aquadc.persistence.android.parcel.ParcelPropertiesMemento
 import net.aquadc.properties.android.bindings.view.bindEnabledTo
 import net.aquadc.properties.android.bindings.view.setWhenClicked
@@ -11,7 +13,14 @@ import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.map
 import net.aquadc.properties.persistence.memento.restoreTo
 import net.aquadc.propertiesSampleLogic.MainVm
-import org.jetbrains.anko.*
+import splitties.dimensions.dip
+import splitties.views.dsl.core.button
+import splitties.views.dsl.core.editText
+import splitties.views.dsl.core.horizontalLayout
+import splitties.views.dsl.core.lParams
+import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.verticalLayout
+import splitties.views.padding
 
 /**
  * Sample MVVm view for Android.
@@ -29,60 +38,72 @@ class MainActivity : Activity() {
         // restore ViewModel's state in case of process death
         savedInstanceState?.getParcelable<ParcelPropertiesMemento>("vm")?.restoreTo(vm)
 
-        verticalLayout {
+        setContentView(verticalLayout {
             padding = dip(16)
 
-            editText {
+            addView(editText {
                 id = 1
                 hint = "Email"
                 bindTextBidirectionally(vm.emailProp)
                 bindErrorMessageTo(vm.emailValidProp.map {
                     if (it) null else "E-mail is invalid"
                 })
-            }
+            })
 
-            editText {
+            addView(editText {
                 id = 2
                 hint = "Name"
                 bindTextBidirectionally(vm.nameProp)
-            }
+            })
 
-            editText {
+            addView(editText {
                 id = 3
                 hint = "Surname"
                 bindTextBidirectionally(vm.surnameProp)
-            }
+            })
 
-            button {
+            addView(button {
                 bindEnabledTo(vm.buttonEnabledProp)
                 bindTextTo(vm.buttonEnabledProp.map {
                     if (it) "Save changes" else "Nothing changed"
                 })
                 setWhenClicked(vm.buttonClickedProp)
-            }
+            })
 
-            textView {
+            addView(textView {
                 bindTextTo(vm.debouncedEmail)
-            }
+            })
 
-            view().lparams(weight = 1f)
+            addView(View(this@MainActivity), lParams(weight = 1f))
 
-            textView("Other samples")
-            linearLayout {
-                button("RecyclerView") {
-                    setOnClickListener { startActivity(intentFor<RecyclerViewActivity>()) }
-                }.lparams(weight = 1f)
+            addView(textView {
+                text ="Other samples"
+            })
 
-                button("SQLite") {
-                    setOnClickListener { startActivity(intentFor<SqliteActivity>()) }
-                }.lparams(weight = 1f)
+            addView(horizontalLayout {
+                addView(button {
+                    text = "RecyclerView"
+                    startWhenClicked<RecyclerViewActivity>()
+                }, lParams(weight = 1f))
 
-                button("Monolithic Activity") {
-                    setOnClickListener { startActivity(intentFor<MonolithicActivity>()) }
-                }.lparams(weight = 1f)
-            }
-        }
+                addView(button {
+                    text = "SQLite"
+                    startWhenClicked<SqliteActivity>()
+                }, lParams(weight = 1f))
+
+                addView(button {
+                    text = "Monolithic Activity"
+                    startWhenClicked<MonolithicActivity>()
+                }, lParams(weight = 1f))
+            })
+        })
     }
+
+    private inline fun <reified A : Activity> View.startWhenClicked(): Unit =
+            startWhenClicked(A::class.java)
+
+    private fun View.startWhenClicked(klass: Class<out Activity>): Unit =
+            setOnClickListener { startActivity(Intent(it.context, klass)) }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

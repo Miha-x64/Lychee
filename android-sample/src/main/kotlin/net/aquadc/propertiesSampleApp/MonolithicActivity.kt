@@ -10,10 +10,17 @@ import android.widget.TextView
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.android.simple.SimpleTextWatcher
 import net.aquadc.propertiesSampleLogic.User
-import org.jetbrains.anko.*
+import splitties.dimensions.dip
+import splitties.views.dsl.core.button
+import splitties.views.dsl.core.editText
+import splitties.views.dsl.core.verticalLayout
+import splitties.views.padding
 
 class MonolithicActivity : Activity() {
 
+    // Oops! You have to store references to views.
+    // And make them nullable/lateinit vars.
+    // And null them out in Fragments!
     private lateinit var emailInput: EditText
     private lateinit var nameInput: EditText
     private lateinit var surnameInput: EditText
@@ -24,31 +31,38 @@ class MonolithicActivity : Activity() {
 
         val user = app.user
 
-        verticalLayout {
+        setContentView(verticalLayout {
             padding = dip(16)
 
-            emailInput = editText(user[User.Email]) {
+            addView(editText {
                 id = 1
+                setText(user[User.Email])
                 hint = "Email"
-            }
+                emailInput = this // Oops! Assignments are not expressions
+            })
 
-            nameInput = editText(user[User.Name]) {
+            addView(editText {
                 id = 2
+                setText(user[User.Name])
                 hint = "Name"
-            }
+                nameInput = this
+            })
 
-            surnameInput = editText(user[User.Surname]) {
+            addView(editText {
                 id = 3
+                setText(user[User.Surname])
                 hint = "Surname"
-            }
+                surnameInput = this
+            })
 
-            saveButton = button {
+            addView(button {
                 setOnClickListener {
                     saveButtonClicked()
                 }
-            }
+                saveButton = this
+            })
 
-        }
+        })
 
         val watcher = object : SimpleTextWatcher() {
             override fun afterTextChanged(s: Editable) = textChanged()
@@ -78,7 +92,7 @@ class MonolithicActivity : Activity() {
     private fun gatherUser() =
             listOf(emailInput.text.toString(), nameInput.text.toString(), surnameInput.text.toString())
 
-}
+    @Suppress("NOTHING_TO_INLINE")
+    private inline operator fun TextView.plusAssign(watcher: TextWatcher) = addTextChangedListener(watcher)
 
-@Suppress("NOTHING_TO_INLINE")
-private inline operator fun TextView.plusAssign(watcher: TextWatcher) = addTextChangedListener(watcher)
+}

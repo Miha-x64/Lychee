@@ -2,7 +2,7 @@
 @file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.extended
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef

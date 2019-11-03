@@ -1,6 +1,6 @@
 package net.aquadc.properties.internal
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.executor.ConfinedChangeListener
 import net.aquadc.properties.executor.PlatformExecutors

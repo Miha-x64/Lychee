@@ -3,16 +3,16 @@ package net.aquadc.propertiesSampleApp
 import android.app.Activity
 import android.os.Bundle
 import android.os.Handler
-import android.support.v7.util.DiffUtil
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.WorkerOnExecutor
 import net.aquadc.properties.propertyOf
-import org.jetbrains.anko.recyclerview.v7.recyclerView
+import splitties.views.dsl.recyclerview.recyclerView
 import java.util.concurrent.Executors
 
 
@@ -38,7 +38,7 @@ class RecyclerViewActivity : Activity() {
                     })
                 }
 
-        recyclerView {
+        setContentView(recyclerView {
             layoutManager = LinearLayoutManager(this@RecyclerViewActivity)
             adapter = object : RecyclerView.Adapter<StringHolder>() {
 
@@ -64,7 +64,7 @@ class RecyclerViewActivity : Activity() {
                 }
 
             }
-        }
+        })
 
         handler.postDelayed({ data.value += "second" }, 1000)
         handler.postDelayed({ data.value += "third" }, 2000)

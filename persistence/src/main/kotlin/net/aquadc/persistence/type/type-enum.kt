@@ -1,7 +1,7 @@
 @file:JvmName("EnumTypes")
 package net.aquadc.persistence.type
 
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.New
 import java.util.EnumSet
 import kotlin.collections.HashSet

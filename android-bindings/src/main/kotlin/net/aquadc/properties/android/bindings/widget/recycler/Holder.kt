@@ -1,6 +1,6 @@
 package net.aquadc.properties.android.bindings.widget.recycler
 
-import android.support.v7.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView
 
 /**
  * A simple mutable holder of [T] object.

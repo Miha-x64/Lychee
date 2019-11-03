@@ -16,10 +16,10 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation project(':properties')
     implementation project(':persistence')
-    compileOnly "com.android.support:support-annotations:$support_version"
+    compileOnly 'androidx.annotation:annotation:1.1.0'
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
-    testImplementation 'org.xerial:sqlite-jdbc:3.23.1'
+    testImplementation 'org.xerial:sqlite-jdbc:3.25.2'
     testImplementation project(':testing')
     testImplementation project(':extended-persistence')
 }
