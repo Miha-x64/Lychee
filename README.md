@@ -3,6 +3,8 @@
 ![Lock-free](https://img.shields.io/badge/%E2%9A%9B-Lock--free-3399aa.svg) 
 ![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely%20Lightweight-7799cc.svg)
 [![Hits-of-Code](https://hitsofcode.com/github/Miha-x64/Lychee)](https://hitsofcode.com/view/github/Miha-x64/Lychee)
+[![Channel at Kotlin Slack](https://img.shields.io/static/v1?label=kotlinlang&message=Lychee&color=brightgreen&logo=slack)](https://app.slack.com/client/T09229ZC6/CPVLZ7LBT)
+[![Telegram chat](https://img.shields.io/static/v1?label=chat&message=Lychee&color=brightgreen&logo=telegram)](https://t.me/kotlin_lychee)
 
 <!-- abandoned [![Codacy Badge](https://api.codacy.com/project/badge/Grade/89813e3ee28441b3937a76f09e906aef)](https://www.codacy.com/app/Miha-x64/Lychee?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Miha-x64/Lychee&amp;utm_campaign=Badge_Grade) -->
 <!-- abandoned [![codecov](https://codecov.io/gh/Miha-x64/Lychee/branch/master/graph/badge.svg)](https://codecov.io/gh/Miha-x64/Lychee) in module `:properties`, excluding inline functions -->
