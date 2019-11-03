@@ -19,7 +19,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import net.aquadc.persistence.sql.SqliteSession
-import net.aquadc.persistence.sql.createTable
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.SetWhenClicked
 import net.aquadc.properties.android.bindings.widget.bindTextTo
@@ -86,7 +86,7 @@ class SqliteActivity : Activity() {
     ) : SQLiteOpenHelper(context, "people", null, 1) {
 
         override fun onCreate(db: SQLiteDatabase) {
-            SampleTables.forEach { db.createTable(it) } // function reference does not work here. WTF?
+            SampleTables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
         }
 
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {

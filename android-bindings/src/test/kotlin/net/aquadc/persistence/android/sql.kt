@@ -24,9 +24,7 @@ private fun sqliteDb() = object : SQLiteOpenHelper(
         RuntimeEnvironment.application, "test.db", null, 1
 ) {
     override fun onCreate(db: SQLiteDatabase) {
-        TestTables.forEach {
-            db.execSQL(SqliteDialect.createTable(it))
-        }
+        TestTables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
     }
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
         throw UnsupportedOperationException()
