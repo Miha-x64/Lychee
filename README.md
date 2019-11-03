@@ -15,6 +15,8 @@
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Apersistence/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Apersistence/_latestVersion) Persistence
 
+[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aextended-persistence/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aextended-persistence/_latestVersion) Extended Persistence
+
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) Android Bindings
 
 ```
@@ -26,10 +28,10 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    implementation 'net.aquadc.properties:properties:0.0.9' // core, both for JVM and Android
-    implementation 'net.aquadc.properties:persistence:0.0.9' // persistence for JVM and Android
-    implementation 'net.aquadc.properties:extended-persistence:0.0.9' // Partial Structs, unsigned types, primitive arrays
-    implementation 'net.aquadc.properties:android-bindings:0.0.9' // Android-only AAR package
+    implementation 'net.aquadc.properties:properties:0.0.10' // core, both for JVM and Android
+    implementation 'net.aquadc.properties:persistence:0.0.10' // persistence for JVM and Android
+    implementation 'net.aquadc.properties:extended-persistence:0.0.10' // Partial Structs, unsigned types, primitive arrays
+    implementation 'net.aquadc.properties:android-bindings:0.0.10' // Android-only AAR package
 }
 ```
 

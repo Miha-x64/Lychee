@@ -302,7 +302,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
             this in struct.fields
 
     /**
-     * Returns value of [this] field for the given [struct], or `null`, if it is absent.
+     * Returns value of this field for the given [struct], or `null`, if it is absent.
      */
     override fun invoke(struct: PartialStruct<SCH>): T? =
             if (this in struct.fields) struct.getOrThrow(this)

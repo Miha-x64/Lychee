@@ -52,11 +52,13 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
     /**
      * Asserts that the given field is set and gets its value.
      * Useful for patching structures deeply:
-     *    struct.copy {
-     *        it[Nested] = it[Nested].copy {
-     *            it[SomeField] = newValue
-     *        }
-     *    }
+     * ```
+     * struct.copy {
+     *     it[Nested] = it[Nested].copy {
+     *         it[SomeField] = newValue
+     *     }
+     * }
+     * ```
      */
     operator fun <T> get(key: FieldDef<SCH, T, *>): T {
         val v = values[key.ordinal.toInt()]
