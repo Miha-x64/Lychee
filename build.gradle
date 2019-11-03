@@ -20,7 +20,6 @@ buildscript {
 
         // comment out the following to disable Android modules and work normally with Java modules
         classpath 'com.android.tools.build:gradle:3.5.1'
-        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3'
         classpath 'org.jetbrains.dokka:dokka-android-gradle-plugin:0.9.18'
 
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.18'

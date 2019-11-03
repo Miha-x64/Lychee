@@ -42,7 +42,7 @@ dependencies {
     compileOnly 'com.google.android.material:material:1.0.0'
     compileOnly 'androidx.cardview:cardview:1.0.0'
     compileOnly 'androidx.recyclerview:recyclerview:1.0.0'
-    
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation project(':properties') // subscriptions & reactivity
     implementation project(':persistence') // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
