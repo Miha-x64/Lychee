@@ -34,9 +34,6 @@ interface WhereCondition<SCH : Schema<SCH>> {
      */
     fun setValuesTo(offset: Int, outCols: Array<in StoredLens<SCH, *, *>>, outColValues: Array<in Any>)
 
-    @Deprecated("replaced with a function", ReplaceWith("emptyCondition()"), DeprecationLevel.ERROR)
-    object Empty
-
 }
 
 /**

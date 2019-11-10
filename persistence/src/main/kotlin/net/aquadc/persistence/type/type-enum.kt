@@ -27,18 +27,6 @@ inline fun <reified E : Any, U : Any> enum(
         enumInternal(values, encodeAs, encode, fallback)
 
 /**
- * Special overload for the case when [E] is a real Java [Enum] type.
- * Finds an array of values automatically.
- */
-@Deprecated("Use another overload.", ReplaceWith("enum<E, U>(enumValues<E>(), encodeAs, encode, fallback)"), DeprecationLevel.ERROR)
-inline fun <reified E : Enum<E>, U : Any> enum(
-        encodeAs: DataType.Simple<U>,
-        noinline encode: (E) -> U,
-        noinline fallback: (U) -> E = throw UnsupportedOperationException()
-): DataType.Simple<E> =
-        throw UnsupportedOperationException()
-
-/**
  * Represents values of [E] type like [U] values.
  * [values] sample: `E.values()`
  * [encodeAs] sample: [string]

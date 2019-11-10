@@ -124,14 +124,14 @@ class StreamWriterVisitor<D, T>(
  * Reads a value of the given [type] from [input] with help of [this].
  */
 fun <D, T> BetterDataInput<D>.read(input: D, type: DataType<T>): T =
-    type.read(this, input)
+        this.readVisitor<T>().match(type, input, null)
 
 
 /**
  * Reads a value of [this] type from [input] with help of [reader].
  */
-@Deprecated("public version has another signature", ReplaceWith("reader.read<D, T>(input, this)"))
-fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
+@Deprecated("public version has another signature", ReplaceWith("reader.read<D, T>(input, this)"), DeprecationLevel.ERROR)
+private fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
         reader.readVisitor<T>().match(this, input, null)
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -174,7 +174,7 @@ class StreamReaderVisitor<D, T>(
             -1 -> check(nullable).let { null as T }
             0 -> type.load(emptyList<Nothing>())
             else -> type.load(type.elementType.let { elementType ->
-                List(count) { /*recur*/ elementType.read(input, this) } // TODO: when [type] is primitive, use specialized collections
+                List(count) { /*recur*/ input.read(this, elementType) } // TODO: when [type] is primitive, use specialized collections
             })
         }
     }

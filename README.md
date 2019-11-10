@@ -28,10 +28,10 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    implementation 'net.aquadc.properties:properties:0.0.10' // core, both for JVM and Android
-    implementation 'net.aquadc.properties:persistence:0.0.10' // persistence for JVM and Android
-    implementation 'net.aquadc.properties:extended-persistence:0.0.10' // Partial Structs, unsigned types, primitive arrays
-    implementation 'net.aquadc.properties:android-bindings:0.0.10' // Android-only AAR package
+    implementation 'net.aquadc.properties:properties:0.0.11' // core, both for JVM and Android
+    implementation 'net.aquadc.properties:persistence:0.0.11' // persistence for JVM and Android
+    implementation 'net.aquadc.properties:extended-persistence:0.0.11' // Partial Structs, unsigned types, primitive arrays
+    implementation 'net.aquadc.properties:android-bindings:0.0.11' // Android-only AAR package
 }
 ```
 

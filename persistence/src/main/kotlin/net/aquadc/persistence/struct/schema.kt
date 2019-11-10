@@ -52,7 +52,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
     /**
      * Gets called before this fully initialized struct gets used for the first time.
      */
-    @Deprecated("looks useless")
+    @Deprecated("looks useless", level = DeprecationLevel.ERROR)
     protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *, *>>) { }
 
     @JvmSynthetic internal fun tmpFields() =
@@ -126,7 +126,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
                     fields[i] = field
                 }
 
-                beforeFreeze(nameSet, fieldList)
                 tmpFields = null
                 fields
             }
@@ -209,13 +208,6 @@ interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<
      */
     fun hasValue(struct: STR): Boolean
 
-    /**
-     * A default/initial/fallback value for a field/column represented by this lens.
-     * @throws RuntimeException if no such value
-     */
-    @Deprecated("does not look very useful", ReplaceWith("(this[this.size-1] as? FieldDef<SCH, T, *> ?: throw NoSuchElementException()).default"))
-    val default: T
-
 }
 
 /**
@@ -292,7 +284,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
 
     private val _default = default
 
-    override val default: T
+    val default: T
         get() = if (_default === Unset) throw NoSuchElementException("no default value for $this") else _default
 
     val hasDefault: Boolean

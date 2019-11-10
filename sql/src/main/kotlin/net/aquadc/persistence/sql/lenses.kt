@@ -20,13 +20,13 @@ abstract class NamingConvention {
 
     abstract fun concatNames(outer: String, nested: String): String
 
-    @JvmName("0") @Deprecated("not perfectly correct and does not look useful")
+    @JvmName("0") @Deprecated("not perfectly correct and does not look useful", level = DeprecationLevel.ERROR)
     inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, U> NamedLens<TS, TR, out PartialStruct<US>?, *>.div(
             nested: NamedLens<US, PartialStruct<US>, U, *>
     ): NamedLens<TS, TR, U?, *> =
             Telescope(concatNames(this.name, nested.name), this, nested)
 
-    @JvmName("1") @Deprecated("not perfectly correct and does not look useful")
+    @JvmName("1") @Deprecated("not perfectly correct and does not look useful", level = DeprecationLevel.ERROR)
     inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, U> NamedLens<TS, TR, out Struct<US>, *>.div(
             nested: NamedLens<US, PartialStruct<US>, U, *>
     ): NamedLens<TS, TR, U, *> =
@@ -213,9 +213,6 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, T, U, UD : D
                 (nested as Lens<US, PartialStruct<US>, out U, *>)((outer as Lens<TS, TR, out T?, *>)(struct) as PartialStruct<US>)
             else null
 
-    override val default: U
-        get() = (nested as Lens<US, PartialStruct<US>, out U, *>).default
-
     override val size: Int
         get() = outer.size + nested.size
 
@@ -325,9 +322,6 @@ internal abstract class BaseLens<SCH : Schema<SCH>, STR : PartialStruct<SCH>, T,
 
     final override val name: String
         get() = _name!! // give this instance as Lens, not NamedLens, when _name is null
-
-    override val default: T // PK and synthetic lenses don't have & don't need it
-        get() = throw UnsupportedOperationException()
 
     override val size: Int
         get() = 1 // true for FieldSetLens and PkLens, but overridden in Telescope

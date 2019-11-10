@@ -127,7 +127,7 @@ interface Transaction : AutoCloseable {
     // TODO insert(Iterator)
     // TODO emulate slow storage!
 
-    @Deprecated("this cannot be done safely, with respect to mutability", ReplaceWith("insert(table, data)"))
+    @Deprecated("this cannot be done safely, with respect to mutability", ReplaceWith("insert(table, data)"), DeprecationLevel.ERROR) // TODO find great replacement
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
             insert(table, data)
 
@@ -213,7 +213,7 @@ private constructor(
 ) {
 
     @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
-            ReplaceWith("Table(schema, name, idColName, idColType)"))
+            ReplaceWith("Table(schema, name, idColName, idColType)"), DeprecationLevel.ERROR)
     constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) :
             this(schema, name, idColName, idColType, null)
 
@@ -416,7 +416,7 @@ private constructor(
 open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<SCH, ID>> {
 
     @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
-            ReplaceWith("SimpleTable(schema, name, idColName, idColType)"))
+            ReplaceWith("SimpleTable(schema, name, idColName, idColType)"), DeprecationLevel.ERROR)
     constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) : super(schema, name, idColName, idColType)
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) : super(schema, name, idColName, idColType)
