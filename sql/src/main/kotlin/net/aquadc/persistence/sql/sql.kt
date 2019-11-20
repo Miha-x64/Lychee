@@ -395,13 +395,24 @@ private constructor(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (other !is Table<*, *, *> || other.name != name) return false
+        require(this === other) { "tables have same name but different instances: '$this' and '$other" }
+        return true
+    }
+
+    override fun hashCode(): Int =
+            name.hashCode()
+
     override fun toString(): String = buildString {
         append("Table(" +
                 "schema=").append(schema)
                 .append(", name=").append(name)
+                .append(", ")
 
         // don't trigger initialization, it may be broken
-        if (_columns.isInitialized()) append(", ").append(columns.size).append(" columns")
+        if (_columns.isInitialized()) append(columns.size).append(" columns")
+        else append("uninitialized")
 
         append(')')
     }
