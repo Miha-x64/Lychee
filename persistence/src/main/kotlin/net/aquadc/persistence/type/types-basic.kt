@@ -46,12 +46,14 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 /**
  * Describes [Byte] instances.
  */
-@JvmField val byte: DataType.Simple<Byte> = SimpleNoOp(DataType.Simple.Kind.I8)
+@JvmField @Deprecated("does not look very useful")
+val byte: DataType.Simple<Byte> = SimpleNoOp(DataType.Simple.Kind.I8)
 
 /**
  * Describes [Short] instances.
  */
-@JvmField val short: DataType.Simple<Short> = SimpleNoOp(DataType.Simple.Kind.I16)
+@JvmField @Deprecated("does not look very useful")
+val short: DataType.Simple<Short> = SimpleNoOp(DataType.Simple.Kind.I16)
 
 /**
  * Describes [Int] instances.

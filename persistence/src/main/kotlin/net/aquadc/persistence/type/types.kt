@@ -80,7 +80,9 @@ sealed class DataType<T> {
 
         enum class Kind {
             Bool,
-            I8, I16, I32, I64,
+            @Deprecated("does not look very useful") I8,
+            @Deprecated("does not look very useful") I16,
+            I32, I64,
             F32, F64,
             Str, Blob,
         }

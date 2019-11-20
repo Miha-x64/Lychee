@@ -14,13 +14,13 @@ import net.aquadc.persistence.type.short
 /**
  * Stores [ByteArray] instances as collections of [Byte]s.
  */
-@JvmField
+@JvmField @Deprecated("does not look very useful")
 val byteCollection: DataType.Collect<ByteArray, Byte, DataType.Simple<Byte>> = ArrayNoOp(byte)
 
 /**
  * Stores [ShortArray] instances as collections of [Short]s.
  */
-@JvmField
+@JvmField @Deprecated("does not look very useful")
 val shortCollection: DataType.Collect<ShortArray, Short, DataType.Simple<Short>> = ArrayNoOp(short)
 
 /**
