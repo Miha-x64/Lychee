@@ -20,6 +20,7 @@ import splitties.views.dsl.core.horizontalLayout
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
+import splitties.views.dsl.core.wrapInScrollView
 import splitties.views.padding
 
 /**
@@ -90,13 +91,8 @@ class MainActivity : Activity() {
                     text = "SQLite"
                     startWhenClicked<SqliteActivity>()
                 }, lParams(weight = 1f))
-
-                addView(button {
-                    text = "Monolithic Activity"
-                    startWhenClicked<MonolithicActivity>()
-                }, lParams(weight = 1f))
             })
-        })
+        }.wrapInScrollView())
     }
 
     private inline fun <reified A : Activity> View.startWhenClicked(): Unit =
