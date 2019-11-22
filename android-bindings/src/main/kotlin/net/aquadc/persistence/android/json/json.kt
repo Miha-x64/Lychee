@@ -1,3 +1,4 @@
+@file:JvmMultifileClass
 @file:JvmName("Json")
 package net.aquadc.persistence.android.json
 

@@ -1,8 +1,8 @@
 @file:Suppress("unused", "PublicApiImplicitType")
 
 import android.content.SharedPreferences
-import android.util.JsonReader
 import android.widget.TextView
+import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.persistence.struct.Schema
@@ -14,7 +14,6 @@ import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.function.CharSequencez
 import net.aquadc.properties.map
-import java.io.StringReader
 
 
 object Player : Schema<Player>() {
@@ -28,9 +27,9 @@ val inMemoryPlayer: StructSnapshot<Player> = Player.build { p ->
     p[Surname] = "Galt"
 }
 
-val jsonPlayer = JsonReader(StringReader(
-        """{"name":"Hank","surname":"Rearden"}"""
-)).tokens().readAs(Player)
+val jsonPlayer = """{"name":"Hank","surname":"Rearden"}"""
+        .reader().json()
+        .tokens().readAs(Player)
 
 val prefPlayer =
         SharedPreferencesStruct(jsonPlayer, getSharedPreferences())

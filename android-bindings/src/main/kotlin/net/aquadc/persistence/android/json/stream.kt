@@ -1,3 +1,6 @@
+@file:Suppress("NOTHING_TO_INLINE")
+@file:JvmMultifileClass
+@file:JvmName("Json")
 package net.aquadc.persistence.android.json
 
 import android.util.Base64
@@ -13,12 +16,26 @@ import net.aquadc.persistence.hasFraction
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenPath
 import net.aquadc.persistence.tokens.TokenStream
+import java.io.Reader
+import java.io.Writer
 
+
+/**
+ * Create a [JsonReader] for this [Reader].
+ */
+inline fun Reader.json(): JsonReader =
+        JsonReader(this)
+
+/**
+ * Create a [JsonWriter] for this [Writer].
+ */
+inline fun Writer.json(): JsonWriter =
+        JsonWriter(this)
 
 /**
  * Create a [TokenStream] of this JSON.
  */
-fun JsonReader.tokens(): TokenStream =
+inline fun JsonReader.tokens(): TokenStream =
         JsonTokenStream(this)
 
 /**
@@ -27,7 +44,7 @@ fun JsonReader.tokens(): TokenStream =
 fun TokenStream.writeTo(writer: JsonWriter): Unit =
         writeBracketSequenceTo(writer, poll())
 
-private class JsonTokenStream(
+@PublishedApi internal class JsonTokenStream(
         private val reader: JsonReader
 ) : TokenStream {
 

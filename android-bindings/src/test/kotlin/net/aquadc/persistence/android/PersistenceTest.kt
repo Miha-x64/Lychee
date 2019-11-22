@@ -1,9 +1,7 @@
 package net.aquadc.persistence.android
 
-import android.util.JsonReader
-import android.util.JsonWriter
+import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
-import net.aquadc.persistence.android.json.write
 import net.aquadc.persistence.android.json.writeTo
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
@@ -19,6 +17,7 @@ import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.readListOf
 import net.aquadc.persistence.tokens.tokens
+import net.aquadc.persistence.tokens.tokensFrom
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.byteString
 import net.aquadc.persistence.type.collection
@@ -36,7 +35,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Test
-import java.io.StringReader
 import java.io.StringWriter
 import java.util.EnumSet
 
@@ -103,21 +101,21 @@ class PersistenceTest {
     }
 
     @Test fun `json object`() {
-        val json = StringWriter().also { instance.tokens().writeTo(JsonWriter(it)) }.toString()
-        val deserialized = JsonReader(StringReader(json)).tokens().readAs(Sch)
+        val json = StringWriter().also { instance.tokens().writeTo(it.json()) }.toString()
+        val deserialized = json.reader().json().tokens().readAs(Sch)
         assertEqualToOriginal(deserialized, true)
     }
 
     @Test fun `empty json array`() {
-        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).tokens().readListOf(string))
-        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).tokens().readAs(collection(string)))
+        assertSame(emptyList<Nothing>(), "[]".reader().json().tokens().readListOf(string))
+        assertSame(emptyList<Nothing>(), "[]".reader().json().tokens().readAs(collection(string)))
     }
 
     @Test fun `json string list`() {
-        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).tokens().readListOf(string))
-        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).tokens().readAs(collection(string)))
+        assertEquals(listOf("1", "22", "ttt"), """["1", "22", "ttt"]""".reader().json().tokens().readListOf(string))
+        assertEquals(listOf("1", "22", "ttt"), """["1", "22", "ttt"]""".reader().json().tokens().readAs(collection(string)))
 
-        assertEquals("""["1","22","ttt"]""", StringWriter().also { JsonWriter(it).write(collection(string), listOf("1", "22", "ttt")) }.toString())
+        assertEquals("""["1","22","ttt"]""", StringWriter().also { collection(string).tokensFrom(listOf("1", "22", "ttt")).writeTo(it.json()) }.toString())
     }
 
     fun assertEqualToOriginal(deserialized: Struct<Sch>, assertNotSame: Boolean) {
@@ -138,7 +136,7 @@ class PersistenceTest {
     }
 
     @Test(expected = UnsupportedOperationException::class) fun `fail on dupe JSON names`() {
-        JsonReader(StringReader("""{"int":1, "int": 2}""")).tokens().readAs(partial(Sch))
+        """{"int":1, "int": 2}""".reader().json().tokens().readAs(partial(Sch))
     }
 
     @Test fun renaming() {
@@ -147,10 +145,11 @@ class PersistenceTest {
 
         assertEquals(
                 """{"first":"lorem","second":{"a":"ipsum","b":"dolor"}}""",
-                StringWriter().also { JsonWriter(it).write(
-                        Tuple("first", string, "second", Tuple("a", string, "b", string)),
-                        schema.build("lorem", innerSchema.build("ipsum", "dolor"))
-                ) }.toString()
+                StringWriter().also {
+                    Tuple("first", string, "second", Tuple("a", string, "b", string))
+                            .tokensFrom(schema.build("lorem", innerSchema.build("ipsum", "dolor")))
+                            .writeTo(it.json())
+                }.toString()
         )
     }
 
@@ -240,13 +239,13 @@ class PersistenceTest {
     }
 
     private fun <T> read(json: String, type: DataType<T>, lenient: Boolean = false): T =
-            JsonReader(StringReader(json)).also {
+            json.reader().json().also {
                 it.isLenient = lenient
             }.tokens().readAs(type)
 
     private fun <T> write(type: DataType<T>, value: T): String =
             StringWriter().also {
-                JsonWriter(it).write(type, value)
+                type.tokensFrom(value).writeTo(it.json())
             }.toString()
 
 }
