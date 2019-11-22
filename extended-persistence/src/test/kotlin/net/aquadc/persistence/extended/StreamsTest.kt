@@ -1,7 +1,5 @@
 package net.aquadc.persistence.extended
 
-import net.aquadc.persistence.extended.either.Either
-import net.aquadc.persistence.extended.either.Either4
 import net.aquadc.persistence.extended.either.EitherFourth
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight

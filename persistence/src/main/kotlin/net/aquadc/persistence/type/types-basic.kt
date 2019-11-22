@@ -116,7 +116,7 @@ internal abstract class CollectBase<C : Collection<E>, E, DE : DataType<E>>(elem
 fun <E, DE : DataType<E>> collection(elementType: DE): DataType.Collect<List<E>, E, DE> =
         object : CollectBase<List<E>, E, DE>(elementType) {
             override fun load(value: AnyCollection): List<E> =
-                    value.fatAsList() // almost always zero copy
+                    value.fatAsList() as List<E> // almost always zero copy
         }
 
 /**

@@ -16,7 +16,7 @@ dependencies {
     implementation project(':persistence')
     implementation project(':properties')
 
-    implementation 'org.xerial:sqlite-jdbc:3.23.1'
+    implementation 'org.xerial:sqlite-jdbc:3.25.2'
     implementation project(':sql')
     implementation "com.squareup.okio:okio:$okio_version"
 }

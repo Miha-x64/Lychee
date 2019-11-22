@@ -2,11 +2,13 @@ package net.aquadc.persistence.android
 
 import android.util.JsonReader
 import android.util.JsonWriter
+import net.aquadc.persistence.android.json.tokens
+import net.aquadc.persistence.android.json.write
+import net.aquadc.persistence.android.json.writeTo
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
-import net.aquadc.persistence.extended.either.Either
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
@@ -14,6 +16,9 @@ import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.tokens.readAs
+import net.aquadc.persistence.tokens.readListOf
+import net.aquadc.persistence.tokens.tokens
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.byteString
 import net.aquadc.persistence.type.collection
@@ -25,9 +30,6 @@ import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
-import net.aquadc.persistence.android.json.read
-import net.aquadc.persistence.android.json.readListOf
-import net.aquadc.persistence.android.json.write
 import net.aquadc.properties.persistence.enum
 import okio.ByteString.Companion.decodeHex
 import org.junit.Assert.assertEquals
@@ -101,19 +103,19 @@ class PersistenceTest {
     }
 
     @Test fun `json object`() {
-        val json = StringWriter().also { JsonWriter(it).write(instance) }.toString()
-        val deserialized = JsonReader(StringReader(json)).read(Sch)
+        val json = StringWriter().also { instance.tokens().writeTo(JsonWriter(it)) }.toString()
+        val deserialized = JsonReader(StringReader(json)).tokens().readAs(Sch)
         assertEqualToOriginal(deserialized, true)
     }
 
     @Test fun `empty json array`() {
-        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).readListOf(string))
-        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).read(collection(string)))
+        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).tokens().readListOf(string))
+        assertSame(emptyList<Nothing>(), JsonReader(StringReader("[]")).tokens().readAs(collection(string)))
     }
 
     @Test fun `json string list`() {
-        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).readListOf(string))
-        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).read(collection(string)))
+        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).tokens().readListOf(string))
+        assertEquals(listOf("1", "22", "ttt"), JsonReader(StringReader("""["1", "22", "ttt"]""")).tokens().readAs(collection(string)))
 
         assertEquals("""["1","22","ttt"]""", StringWriter().also { JsonWriter(it).write(collection(string), listOf("1", "22", "ttt")) }.toString())
     }
@@ -136,7 +138,7 @@ class PersistenceTest {
     }
 
     @Test(expected = UnsupportedOperationException::class) fun `fail on dupe JSON names`() {
-        JsonReader(StringReader("""{"int":1, "int": 2}""")).read(partial(Sch))
+        JsonReader(StringReader("""{"int":1, "int": 2}""")).tokens().readAs(partial(Sch))
     }
 
     @Test fun renaming() {
@@ -240,7 +242,7 @@ class PersistenceTest {
     private fun <T> read(json: String, type: DataType<T>, lenient: Boolean = false): T =
             JsonReader(StringReader(json)).also {
                 it.isLenient = lenient
-            }.read(type)
+            }.tokens().readAs(type)
 
     private fun <T> write(type: DataType<T>, value: T): String =
             StringWriter().also {

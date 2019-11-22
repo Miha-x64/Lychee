@@ -8,6 +8,8 @@ repositories {
 
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+    implementation 'net.aquadc.collections:Collection-utils-jvm:1.0-alpha03'
+
     compileOnly 'androidx.annotation:annotation:1.1.0'
     compileOnly 'com.squareup.okio:okio:1.0.0' // don't use $okio_version here, let's compile against 1.0
     compileOnly "com.google.android:android:$android_artifact_version"

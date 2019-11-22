@@ -83,7 +83,7 @@ class StreamWriterVisitor<D, T>(
         if (arg === null) {
             output.writeInt(this, -1)
         } else {
-            val arg = arg.fatAsList<Any?>() // maybe small allocation
+            val arg = arg.fatAsList() // maybe small allocation
             // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
             output.writeInt(this, arg.size)
             val elementType = type.elementType

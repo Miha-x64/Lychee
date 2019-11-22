@@ -1,13 +1,9 @@
 @file:JvmName("Json")
 package net.aquadc.persistence.android.json
 
-import android.util.Base64
 import android.util.JsonReader
-import android.util.JsonToken
 import android.util.JsonWriter
 import net.aquadc.persistence.each
-import net.aquadc.persistence.fatAsList
-import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
@@ -15,44 +11,23 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.approxType
-import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.forEachIndexed
-import net.aquadc.persistence.struct.single
-import net.aquadc.persistence.struct.size
+import net.aquadc.persistence.tokens.readAs
+import net.aquadc.persistence.tokens.readListOf
+import net.aquadc.persistence.tokens.tokens
+import net.aquadc.persistence.tokens.tokensFrom
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.DataTypeVisitor
-import net.aquadc.persistence.type.match
-import net.aquadc.persistence.android.assertFitsByte
-import net.aquadc.persistence.android.assertFitsShort
 
 
 /**
  * Reads a JSON 'array' of values denoted by [type] as a list of [T]s,
  * consuming both opening and closing square braces.
- * Each value is read using [read].
+ * Each value is read using [readAs].
  */
-fun <T> JsonReader.readListOf(type: DataType<T>): List<T> {
-    // TODO: when [type] is primitive, use specialized collections
-
-    beginArray()
-    val list = if (!hasNext()) emptyList() else {
-        val first = read(type)
-
-        if (!hasNext()) listOf(first) else {
-            val list = ArrayList<T>()
-            list.add(first)
-
-            do list.add(read(type))
-            while (hasNext())
-
-            list
-        }
-    }
-    endArray()
-
-    return list
-}
+@Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readListOf(type)",
+        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readListOf"))
+fun <T> JsonReader.readListOf(type: DataType<T>): List<T> =
+        tokens().readListOf(type)
 
 /**
  * Reads a JSON value denoted by [type] as [T].
@@ -63,80 +38,18 @@ fun <T> JsonReader.readListOf(type: DataType<T>): List<T> {
  * Throws an exception if there was no value for any [FieldDef] without a default value,
  * or if [JsonReader] met unexpected token for the given [FieldDef.type].
  */
+@Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readAs(type)",
+        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readAs"))
 fun <T> JsonReader.read(type: DataType<T>): T =
-        (readerVis as JsonReaderVisitor<T>).match(type, this, null)
+        tokens().readAs(type)
 
-private val readerVis = JsonReaderVisitor<Any?>()
-
-private class JsonReaderVisitor<T> : DataTypeVisitor<JsonReader, Nothing?, T, T> {
-
-    override fun JsonReader.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>): T =
-            if (nullable && peek() === JsonToken.NULL) {
-                skipValue()
-                null as T
-            } else type.load(when (type.kind) {
-                DataType.Simple.Kind.Bool -> nextBoolean()
-                DataType.Simple.Kind.I8 -> nextInt().assertFitsByte()
-                DataType.Simple.Kind.I16 -> nextInt().assertFitsShort()
-                DataType.Simple.Kind.I32 -> nextInt()
-                DataType.Simple.Kind.I64 -> nextLong()
-                DataType.Simple.Kind.F32 -> nextDouble().toFloat()
-                DataType.Simple.Kind.F64 -> nextDouble()
-                DataType.Simple.Kind.Str -> nextString()
-                DataType.Simple.Kind.Blob -> Base64.decode(nextString(), Base64.DEFAULT)
-            })
-
-    override fun <E> JsonReader.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): T =
-            if (nullable && peek() === JsonToken.NULL) {
-                skipValue()
-                null as T
-            } else type.load(readListOf(type.elementType))
-
-    private val fieldValues = ThreadLocal<ArrayList<Any?>>()
-    override fun <SCH : Schema<SCH>> JsonReader.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
-            when (val actual = peek()) {
-                JsonToken.NULL -> {
-                    check(nullable)
-                    skipValue()
-                    null as T
-                }
-                JsonToken.BEGIN_ARRAY -> { // treat [] as {}, if you were unlucky to deal with PHP server-side
-                    check(isLenient) { "expected object, was array. Set lenient=true to treat empty arrays as empty objects" }
-                    beginArray()
-                    endArray() // crash on nonempty arrays, I don't know how to interpret them as objects
-                    type.load(emptyFieldSet(), null)
-                }
-                JsonToken.BEGIN_OBJECT -> {
-                    beginObject()
-                    val byName = type.schema.fieldsByName
-                    val struct = readPartial(type, fieldValues, { nextField(byName) }, { read(it) })
-                    endObject()
-                    struct
-                }
-                else -> {
-                    val expect = arrayListOf("object")
-                    if (isLenient) expect.add("empty array")
-                    if (nullable) expect.add("null")
-                    error(expect.joinToString(prefix = "expected ", postfix = ", was $actual"))
-                }
-            }
-
-    private fun <SCH : Schema<SCH>> JsonReader.nextField(byName: Map<String, FieldDef<SCH, *, *>>): FieldDef<SCH, *, *>? {
-        while (hasNext()) {
-            val field = byName[nextName()]
-            if (field == null) skipValue() // unsupported value
-            else return field
-        }
-        return null
-    }
-
-}
 
 /**
  * Writes a list of [Struct]s as a JSON 'array' of 'objects',
  * including both opening and closing square braces.
- * Each object is written using [write] ([Struct]) overload`.
+ * Each object is written using [write] ([Struct], [FieldSet]) overload`.
  */
+// TODO: filter stream instead
 fun <SCH : Schema<SCH>> JsonWriter.write(
         list: List<Struct<SCH>>,
         fields: FieldSet<SCH, FieldDef<SCH, *, *>> =
@@ -152,10 +65,10 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
  * including [FieldDef]s where value is equal to the default one,
  * writing both opening and closing curly braces.
  */
+// TODO: filter stream instead
 fun <SCH : Schema<SCH>> JsonWriter.write(
         struct: Struct<SCH>,
-        fields: FieldSet<SCH, FieldDef<SCH, *, *>> =
-                struct.schema.allFieldSet()
+        fields: FieldSet<SCH, FieldDef<SCH, *, *>>
 ) {
     beginObject()
     struct.schema.forEach(fields) { field ->
@@ -165,69 +78,20 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
     endObject()
 }
 
+@Deprecated("use tokens() directly instead", ReplaceWith("struct.tokens().writeTo(this)",
+        "net.aquadc.persistence.tokens.tokens", "net.aquadc.persistence.android.json.writeTo"))
+fun <SCH : Schema<SCH>> JsonWriter.write(struct: Struct<SCH>): Unit =
+        struct.tokens().writeTo(this)
+
 /**
  * Writes a value denoted by [type].
  */
+@Deprecated("use tokens() directly instead", ReplaceWith("type.tokensFrom(value).writeTo(this)",
+        "net.aquadc.persistence.tokens.tokensFrom", "net.aquadc.persistence.android.json.writeTo"))
 fun <T> JsonWriter.write(type: DataType<T>, value: T): Unit =
-        (writerVis as JsonWriterVisitor<T>).match(type, this, value)
+        type.tokensFrom(value).writeTo(this)
+
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =
         write(field.approxType, struct.getOrThrow(field))
-
-private val writerVis = JsonWriterVisitor<Any?>()
-
-private class JsonWriterVisitor<T> : DataTypeVisitor<JsonWriter, T, T, Unit> {
-    override fun JsonWriter.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
-        if (nullable && arg === null) nullValue()
-        else {
-            val arg = type.store(arg)
-            when (type.kind) {
-                DataType.Simple.Kind.Bool -> value(arg as Boolean)
-                DataType.Simple.Kind.I8 -> value((arg as Byte).toInt())
-                DataType.Simple.Kind.I16 -> value((arg as Short).toInt())
-                DataType.Simple.Kind.I32 -> value(arg as Int)
-                DataType.Simple.Kind.I64 -> value(arg as Long)
-                DataType.Simple.Kind.F32 -> value(arg as Float)
-                DataType.Simple.Kind.F64 -> value(arg as Double)
-                DataType.Simple.Kind.Str -> value(arg as String)
-                DataType.Simple.Kind.Blob -> value(Base64.encodeToString(arg as ByteArray, Base64.DEFAULT))
-            }.also { }
-        }
-    }
-
-    override fun <E> JsonWriter.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
-        if (nullable && arg === null) nullValue() // Nullable.encode is null->null, skip it
-        else type.elementType.let { elType ->
-            beginArray()
-            type.store(arg).fatAsList<Any?>().each { write(elType, it as E) }
-            // TODO: when [type] is primitive and [arg] is a primitive array, avoid boxing
-            endArray()
-        }
-    }
-
-    override fun <SCH : Schema<SCH>> JsonWriter.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
-        if (nullable && arg === null) nullValue()
-        else {
-            beginObject()
-            val fields = type.fields(arg)
-            val values = type.store(arg)
-            when (fields.size.toInt()) {
-                0 -> { } // nothing to do here
-                1 -> {
-                    val field = type.schema.single(fields)
-                    name(field.name)
-                    write(field.type as DataType<Any?>, values)
-                }
-                else -> {
-                    values as Array<*>
-                    type.schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
-                        name(field.name)
-                        write(field.type as DataType<Any?>, values[idx])
-                    }
-                }
-            }
-            endObject()
-        }
-    }
-}

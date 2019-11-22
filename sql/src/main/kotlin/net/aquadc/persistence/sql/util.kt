@@ -246,7 +246,6 @@ internal fun flatten(
         0 -> { /* nothing to do here */ }
         1 -> {
             val fieldValue = erased.store(value)
-            var called = false
             flattenFieldValues(_recipeOffset, { fieldValue }, recipe, fields, fieldSet, out, dstPos)
         }
         else -> {

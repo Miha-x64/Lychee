@@ -3,14 +3,15 @@
 import android.content.SharedPreferences
 import android.util.JsonReader
 import android.widget.TextView
+import net.aquadc.persistence.android.json.tokens
+import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.bindings.widget.bindTextTo
-import net.aquadc.persistence.android.json.read
-import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.properties.function.CharSequencez
 import net.aquadc.properties.map
 import java.io.StringReader
@@ -29,7 +30,7 @@ val inMemoryPlayer: StructSnapshot<Player> = Player.build { p ->
 
 val jsonPlayer = JsonReader(StringReader(
         """{"name":"Hank","surname":"Rearden"}"""
-)).read(Player)
+)).tokens().readAs(Player)
 
 val prefPlayer =
         SharedPreferencesStruct(jsonPlayer, getSharedPreferences())

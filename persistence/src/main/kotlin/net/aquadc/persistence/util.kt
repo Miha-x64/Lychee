@@ -1,5 +1,6 @@
 package net.aquadc.persistence
 
+import android.annotation.SuppressLint
 import androidx.annotation.RestrictTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -79,7 +80,13 @@ fun Any?.realToString(): String = when (this) {
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 object New {
 
-    private val kitKat: Boolean = try {
+    private val andro: Boolean = try {
+        android.os.Build.VERSION.SDK_INT >= 0; true
+    } catch (ignored: NoClassDefFoundError) {
+        false
+    }
+
+    private val kitKat: Boolean = andro && try {
         android.os.Build.VERSION.SDK_INT >= 19
     } catch (ignored: NoClassDefFoundError) {
         false
@@ -107,6 +114,16 @@ object New {
     fun <E> set(copyFrom: Collection<E>): MutableSet<E> =
             if (kitKat) Collections.newSetFromMap(android.util.ArrayMap<E, Boolean>(copyFrom.size)).also { it.addAll(copyFrom) }
             else HashSet(copyFrom)
+
+    @SuppressLint("NewApi") // false-positive: we won't use java.util.Base64 branch on Android
+    fun fromBase64(str: String): ByteArray =
+            if (andro) android.util.Base64.decode(str, android.util.Base64.DEFAULT)
+            else java.util.Base64.getDecoder().decode(str)
+
+    @SuppressLint("NewApi")
+    fun toBase64(bytes: ByteArray): String =
+            if (andro) android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+            else java.util.Base64.getEncoder().encodeToString(bytes)
 
 }
 
@@ -154,16 +171,16 @@ internal fun <C : MutableCollection<T>, T> AnyCollection.fatTo(dest: C): C {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <E> AnyCollection.fatAsList(): List<E> = when (this) {
-    is List<*> -> this as List<E>
-    is Collection<*> -> (this as Collection<E>).toList()
-    is Array<*> -> (this as Array<E>).asList()
-    is ByteArray -> this.asList() as List<E>
-    is ShortArray -> this.asList() as List<E>
-    is IntArray -> this.asList() as List<E>
-    is LongArray -> this.asList() as List<E>
-    is FloatArray -> this.asList() as List<E>
-    is DoubleArray -> this.asList() as List<E>
+fun AnyCollection.fatAsList(): List<Any?> = when (this) {
+    is List<*> -> this
+    is Collection<*> -> (this).toList()
+    is Array<*> -> this.asList()
+    is ByteArray -> this.asList()
+    is ShortArray -> this.asList()
+    is IntArray -> this.asList()
+    is LongArray -> this.asList()
+    is FloatArray -> this.asList()
+    is DoubleArray -> this.asList()
     else -> throw AssertionError()
 }
 
@@ -291,4 +308,28 @@ internal fun <SCH : Schema<SCH>> gatherValues(fields: FieldSet<SCH, FieldDef<SCH
         values[fields.indexOf(field).toInt()] = value
     }
     return values
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun hasFraction(nextNumber: String): Boolean {
+    val delimiter = nextNumber.indexOf('.')
+    if (delimiter < 0) return false // no fractional part
+    var fractionDigits = 0
+    var lastMeaningfulFractionAt = -1
+    val firstFractionDigit = delimiter + 1
+    var i = firstFractionDigit
+    while (i < nextNumber.length) {
+        fractionDigits++
+        @Suppress("ControlFlowWithEmptyBody") if (nextNumber[i] == '0') {} // this empty `if` is just great
+        else if (nextNumber[i] in '1'..'9') lastMeaningfulFractionAt = i
+        else if (nextNumber[i] == 'e' || nextNumber[i] == 'E') {
+            fractionDigits-- // exponent is not a digit, rollback increment
+            fractionDigits -= nextNumber.substring(i+1).toInt() // e. g. 1.34e+3: fractionDigits=2, exp=3, number 1340 is not fractional
+            break
+        } else throw NumberFormatException("malformed number $nextNumber")
+        i++
+    }
+
+    fractionDigits -= (lastMeaningfulFractionAt - i) // 1.00001000 -> 1.00001
+    return fractionDigits > 0
 }
