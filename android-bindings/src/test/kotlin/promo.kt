@@ -2,9 +2,13 @@
 
 import android.content.SharedPreferences
 import android.widget.TextView
+import junit.framework.Assert.assertEquals
 import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
+import net.aquadc.persistence.android.json.writeTo
 import net.aquadc.persistence.android.pref.SharedPreferencesStruct
+import net.aquadc.persistence.extended.tokens.MergeStrategy
+import net.aquadc.persistence.extended.tokens.inline
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.build
@@ -13,7 +17,11 @@ import net.aquadc.persistence.type.int
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.function.CharSequencez
+import net.aquadc.properties.function.identity
+import net.aquadc.properties.function.isEqualTo
 import net.aquadc.properties.map
+import org.junit.Test
+import java.io.StringWriter
 
 
 object Player : Schema<Player>() {
@@ -46,3 +54,18 @@ private fun getSharedPreferences(): SharedPreferences =
 
 private fun getTextView(): TextView =
         throw NotImplementedError()
+
+class Transforms {
+
+    @Test fun sample() =
+            assertEquals(
+                    """{"a":"whatever","b":"extra 1","c":"extra 2"}""",
+                    StringWriter().also {
+                        """{"a":"whatever","extras":{"b":"extra 1","c":"extra 2"}}"""
+                                .reader().json().tokens()
+                                .inline(arrayOf(), isEqualTo("extras"), identity(), MergeStrategy.Fail)
+                                .writeTo(it.json())
+                    }.toString()
+            )
+
+}

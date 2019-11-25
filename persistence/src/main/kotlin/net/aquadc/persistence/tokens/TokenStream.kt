@@ -91,6 +91,21 @@ enum class Token(internal val delta: Int) {
         val Floats: InlineEnumSet<Token> = F32 + F64
         val Numbers: InlineEnumSet<Token> = Integers + Floats
         val ControlTokens: InlineEnumSet<Token> = BeginSequence + EndSequence + BeginDictionary + EndDictionary
+
+        fun ofValue(value: Any?): Token? = when (value) {
+            null -> Null
+            is Boolean -> Bool
+            is Byte -> I8
+            is Short -> I16
+            is Int -> I32
+            is Long -> I64
+            is Float -> F32
+            is Double -> F64
+            is String -> Str
+            is ByteArray -> Blob
+            is Token -> if (value in ControlTokens) value else null
+            else -> null
+        }
     }
 }
 

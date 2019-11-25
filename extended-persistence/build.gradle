@@ -9,6 +9,7 @@ repositories {
 
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+    implementation 'net.aquadc.collections:Collection-utils-jvm:1.0-alpha03'
     implementation project(':persistence')
     compileOnly 'androidx.annotation:annotation:1.1.0'
 
