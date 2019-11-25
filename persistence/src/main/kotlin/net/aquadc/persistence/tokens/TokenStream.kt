@@ -135,7 +135,7 @@ interface TokenStream : Iterator<Any?> {
         do {
             val token = poll()
             if (token is Token) depth += token.delta
-        } while (depth != 0)
+        } while (depth > 0) // `while (depth != 0)` is a cause of Gson JsonReader bug: https://github.com/google/gson/issues/605
     }
 
 }

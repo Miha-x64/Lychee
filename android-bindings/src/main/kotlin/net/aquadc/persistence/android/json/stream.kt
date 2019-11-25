@@ -183,13 +183,19 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
             nextNumber = null
             nextLong = Long.MIN_VALUE
             _path.afterValue()
-        } else {
-            val skipping = reader.peek()
-            reader.skipValue()
-            when (skipping) {
-                JsonToken.END_ARRAY -> _path.endArray()
-                JsonToken.END_OBJECT -> _path.endObject()
-                else -> _path.afterValue()
+        } else when (reader.peek()) {
+            // nope, I'm not gonna call skipValue here: https://github.com/google/gson/issues/605
+            JsonToken.END_ARRAY -> {
+                reader.endArray()
+                _path.endArray()
+            }
+            JsonToken.END_OBJECT -> {
+                reader.endObject()
+                _path.endObject()
+            }
+            else -> {
+                reader.skipValue()
+                _path.afterValue()
             }
         }
     }
