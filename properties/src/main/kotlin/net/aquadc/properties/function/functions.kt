@@ -67,6 +67,18 @@ class Objectz private constructor(
         @JvmField val IsNotNull: (Any?) -> Boolean =
                 `AppliedFunc1-`(null, 6) as (Any?) -> Boolean
 
+        /**
+         * A function which ignores its argument and always returns true.
+         */
+        @JvmField val Any: (Any?) -> Boolean =
+                `AppliedFunc1-`(true, 7) as (Any?) -> Boolean
+
+        /**
+         * A function which ignores its argument and always returns false.
+         */
+        @JvmField val None: (Any?) -> Boolean =
+                `AppliedFunc1-`(false, 7) as (Any?) -> Boolean
+
     }
 
 }
@@ -374,6 +386,7 @@ internal class `AppliedFunc1-`(
         4 -> p1 === value
         5 -> p1 != value
         6 -> p1 !== value
+        7 -> value
         else -> throw AssertionError()
     }
 
@@ -384,7 +397,7 @@ internal class `AppliedFunc1-`(
 //
 
 @PublishedApi
-internal object Just : (Any?) -> Any? {
+internal object Identity : (Any?) -> Any? {
     override fun invoke(p1: Any?): Any? = p1
 }
 
