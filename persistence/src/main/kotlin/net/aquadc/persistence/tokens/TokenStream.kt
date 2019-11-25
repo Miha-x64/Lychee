@@ -148,7 +148,7 @@ class Index(value: Int) {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class TokenPath : ArrayList<Any?>() {
+open class TokenPath : ArrayList<Any?>() {
     fun beginArray() { add(Index(0)) }
     fun endArray() { removeAt(lastIndex) as Index; afterValue() }
     fun beginObject() { add(null) } // inside object; name was not read yet
@@ -169,4 +169,66 @@ class TokenPath : ArrayList<Any?>() {
             append(']')
         }
     }
+}
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+class NameTracingTokenPath : TokenPath() {
+    val expectingName = ArrayList<Boolean?>()
+
+    fun skip() {
+        afterValue(null)
+    }
+    fun afterToken(value: Any?) {
+        when (value) {
+            Token.BeginSequence -> {
+                check(expectingName.lastOrNull() != true) { "names of type '${Token.BeginSequence}' are not supported" }
+                beginArray()
+                expectingName.add(null)
+            }
+            Token.EndSequence -> {
+                endArray()
+                check(expectingName.removeAt(expectingName.lastIndex) == null)
+                flipExpectName()
+            }
+            Token.BeginDictionary -> {
+                check(expectingName.lastOrNull() != true) { "names of type '${Token.BeginDictionary}' are not supported" }
+                beginObject()
+                expectingName.add(true)
+            }
+            Token.EndDictionary -> {
+                endObject()
+                check(expectingName.removeAt(expectingName.lastIndex) == true) {
+                    "dangling name. Expected a value but was '${Token.EndDictionary}'"
+                }
+                flipExpectName()
+            }
+            else -> {
+                afterValue(value)
+            }
+        }
+    }
+
+    private fun afterValue(value: Any?) {
+        if (expectingName.isNotEmpty()) {
+            val en = expectingName.last()
+            if (en == null) {
+                afterValue()
+            } else {
+                if (en) onName(value) else afterValue()
+                expectingName[expectingName.lastIndex] = !en
+            }
+        } // else we're at the root element, nothing to do here
+    }
+
+    private fun flipExpectName() {
+        if (expectingName.isNotEmpty()) {
+            val li = expectingName.lastIndex
+            expectingName[li]?.let { expectingName[li] = !it }
+        }
+    }
+
+    override fun clear() {
+        super.clear()
+        expectingName.clear()
+    }
+
 }

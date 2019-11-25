@@ -1,13 +1,7 @@
-package net.aquadc.persistence.extended.tokens
+package net.aquadc.persistence.tokens
 
-import net.aquadc.persistence.tokens.Index
-import net.aquadc.persistence.tokens.Token
-import net.aquadc.persistence.tokens.tokens
-import net.aquadc.persistence.tokens.yieldDictionary
-import net.aquadc.persistence.tokens.yieldInt
-import net.aquadc.persistence.tokens.yieldSequence
-import net.aquadc.persistence.tokens.yieldString
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Test
 
 class TokenStreamTest {

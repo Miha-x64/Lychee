@@ -15,12 +15,6 @@ fun tokens(block: suspend TokenStreamScope.() -> Unit): TokenStream =
             it.nextOfferOrYieldAll = block.createCoroutineUnintercepted(receiver = it, completion = it)
         }
 
-suspend inline fun TokenStreamScope.yieldNull(compute: () -> Unit): Unit =
-        offer(Token.Null).let { coerceTo -> if (coerceTo != false) {
-            compute()
-            yield((coerceTo as Token?).coerce(null))
-        } }
-
 suspend inline fun TokenStreamScope.yieldNull(): Unit =
         offer(Token.Null).let { coerceTo -> if (coerceTo != false) {
             yield((coerceTo as Token?).coerce(null))
@@ -98,7 +92,7 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
 
     var yieldAll: TokenStream? = null
 
-    private val _path = TokenPath()
+    private val _path = NameTracingTokenPath()
     override val path: List<Any?>
         get() = _path
 
@@ -124,7 +118,7 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         yieldAll?.let {
             val value = it.poll(coerceTo)
             if (!it.hasNext()) yieldAll = null // free(consumedStream)
-            afterToken(value)
+            _path.afterToken(value)
             return value
         }
 
@@ -137,7 +131,7 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         nextToken = null
         nextValue.let {
             nextValue = null
-            afterToken(it)
+            _path.afterToken(it)
             return it
         }
     }
@@ -157,9 +151,9 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         }
 
         if (skipping == Token.EndSequence || skipping == Token.EndDictionary)
-            afterToken(skipping) // skipped a closing brace, handle nesting change
+            _path.afterToken(skipping) // skipped a closing brace, handle nesting change
         else
-            afterValue(null) // skipped either a primitive or the whole object or array
+            _path.skip()
     }
 
     override fun hasNext(): Boolean {
@@ -193,7 +187,6 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         }
     }
 
-    private val expectingName = ArrayList<Boolean?>()
     override suspend fun yield(value: Any?) {
         check(nextToken != null)
         check(yieldAll == null)
@@ -201,55 +194,6 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         return suspendCoroutineUninterceptedOrReturn { c ->
             nextOfferOrYieldAll = c
             COROUTINE_SUSPENDED
-        }
-    }
-
-    private fun afterToken(value: Any?) {
-        when (value) {
-            Token.BeginSequence -> {
-                check(expectingName.lastOrNull() != true) { "sequences as keys are unsupported" }
-                _path.beginArray()
-                expectingName.add(null)
-            }
-            Token.EndSequence -> {
-                _path.endArray()
-                check(expectingName.removeAt(expectingName.lastIndex) == null)
-                flipExpectName()
-            }
-            Token.BeginDictionary -> {
-                check(expectingName.lastOrNull() != true) { "dictionaries as keys are unsupported" }
-                _path.beginObject()
-                expectingName.add(true)
-            }
-            Token.EndDictionary -> {
-                _path.endObject()
-                check(expectingName.removeAt(expectingName.lastIndex) == true) {
-                    "dangling name. Expected a value but was '${Token.EndDictionary}' at $path"
-                }
-                flipExpectName()
-            }
-            else -> {
-                afterValue(value)
-            }
-        }
-    }
-
-    private fun afterValue(value: Any?) {
-        if (expectingName.isNotEmpty()) {
-            val en = expectingName.last()
-            if (en == null) {
-                _path.afterValue()
-            } else {
-                if (en) _path.onName(value)
-                else _path.afterValue()
-                expectingName[expectingName.lastIndex] = !en
-            }
-        } // else we're at the root element, nothing to do here
-    }
-    private fun flipExpectName() {
-        if (expectingName.isNotEmpty()) {
-            val li = expectingName.lastIndex
-            expectingName[li]?.let { expectingName[li] = !it }
         }
     }
 
