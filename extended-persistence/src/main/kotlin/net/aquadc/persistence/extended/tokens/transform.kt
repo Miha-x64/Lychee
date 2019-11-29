@@ -7,18 +7,26 @@ import net.aquadc.persistence.type.DataType
 
 typealias Predicate = (Any?) -> Boolean
 
+// region inlining and outlining
+
 /**
  * Outline key-value pairs matching [what]
  * located inside dictionaries at [path]
  * to a nested dictionary with name [destName]
  * and rename keys with [rename].
  * {k: v, ...} -> {destName:{renamedK: v}, ...}
+ * @see inline which does the opposite
  */
 inline fun TokenStream.outline(path: Array<Predicate>, noinline what: Predicate, destName: Any, noinline rename: (Any?) -> Any?): TokenStream =
         OutlineTokens(this, path, what, destName, rename)
 
 /**
+ * Inline key-value pairs from [isVictim] dictionary
+ * to the outer dictionary at [path]
+ * and rename inlined keys with [rename].
  * {victimName:{k: v}, ...} -> {k: v, ...}
+ * @see MergeStrategy for ways of merging mappings into the root
+ * @see outline which does the opposite
  */
 inline fun TokenStream.inline(path: Array<Predicate>, noinline isVictim: Predicate, noinline rename: (Any?) -> Any?,
                               noinline merge: (target: MutableMap<Any?, Any?>, key: Any?, value: Any?) -> Unit,
@@ -53,3 +61,5 @@ class MergeStrategy private constructor(
     }
 
 }
+
+// endregion inlining and outlining

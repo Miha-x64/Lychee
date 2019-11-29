@@ -1,7 +1,5 @@
 package net.aquadc.persistence.extended.tokens
 
-import net.aquadc.persistence.tokens.Index
-import net.aquadc.persistence.tokens.NameTracingTokenPath
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenStream
 import net.aquadc.persistence.tokens.coerce
@@ -14,16 +12,12 @@ import net.aquadc.persistence.tokens.coerce
         private val rename: (Any?) -> Any?,
         private val merge: (target: MutableMap<Any?, Any?>, key: Any?, value: Any?) -> Unit,
         private val buffer: MutableMap<Any?, Any?>
-) : InOutLine(pathMatcher, source) {
+) : Transform(source, pathMatcher) {
 
     private var tokensToInline: ArrayList<Any?>? = null
     private var inlinedMappings: Iterator<Map.Entry<Any?, Any?>>? = null
     private var inlinedMapping: Map.Entry<Any?, Any?>? = null
     private var inlineIndex = -1
-
-    private var _path: NameTracingTokenPath? = null
-    override val path: List<Any?>
-        get() = _path ?: source.path
 
     override fun peek(): Token =
             inlinedMapping?.let { entry ->
@@ -75,8 +69,7 @@ import net.aquadc.persistence.tokens.coerce
 
         if (v == Token.BeginDictionary && matches()) {
             check(buffer.isEmpty())
-            (NameTracingTokenPath().also { _path = it })
-                    .addAll(source.path)
+            copyPath()
             check(inlinedMapping == null)
             check(inlinedMappings == null)
             check(inlineIndex == -1)
@@ -84,8 +77,7 @@ import net.aquadc.persistence.tokens.coerce
                     ?: ArrayList<Any?>().also { tokensToInline = it }
             // let's gather dictionary contents
             while (source.peek() != Token.EndDictionary) {
-                val name = source.poll()
-                check(name !is Token) { "names of type '$name' are not supported" }
+                val name = source.poll().checkName()
                 if (isVictim(name)) {
                     // gather tokens to inline them later
                     source.poll(Token.BeginDictionary)
@@ -95,8 +87,7 @@ import net.aquadc.persistence.tokens.coerce
                             check(inlineName == Token.EndDictionary)
                             break
                         }
-                        check(inlineName !is Token) { "names of type '$name' are not supported" }
-                        tokensToInline.add(rename(inlineName))
+                        tokensToInline.add(rename(inlineName.checkName()))
                         tokensToInline.add(source.pollValue())
                     }
                 } else {
@@ -135,11 +126,7 @@ import net.aquadc.persistence.tokens.coerce
         private val what: Predicate,
         private val newName: Any,
         private val rename: (Any?) -> Any?
-) : InOutLine(pathMatcher, source) {
-
-    private var _path: NameTracingTokenPath? = null
-    override val path: List<Any?>
-        get() = _path ?: source.path
+) : Transform(source, pathMatcher) {
 
     private var outlining = -3
 
@@ -221,8 +208,7 @@ import net.aquadc.persistence.tokens.coerce
 
     private fun startOutlining() {
         outlining = 0
-        _path = NameTracingTokenPath().also {
-            it.addAll(source.path)
+        copyPath().also {
             it.expectingName.add(true)
             it.afterToken(newName)
         }
@@ -241,8 +227,7 @@ import net.aquadc.persistence.tokens.coerce
                 return
             }
 
-            val name = source.poll()
-            check(name !is Token) { "names of type '$name' are not supported" }
+            val name = source.poll().checkName()
             if (what(name)) {
                 // bufferize both key and value
                 buffer.add(rename(name))
@@ -289,26 +274,5 @@ import net.aquadc.persistence.tokens.coerce
             super.skip() // within buffer, just traverse in-memory objects
         }
     }
-
-}
-
-internal abstract class InOutLine(
-        @JvmField protected val pathMatcher: Array<Predicate>,
-        @JvmField protected val source: TokenStream
-) : TokenStream {
-
-    protected fun matches(): Boolean {
-        val path = source.path
-        if (path.size != pathMatcher.size + 1) return false
-        pathMatcher.forEachIndexed { idx, it ->
-            val segment = path[idx]
-            if (!it(if (segment is Index) segment.value else segment)) return false
-        }
-        return true
-    }
-
-    override fun hasNext(): Boolean =
-            source.hasNext()
-    // we count on correct bracket sequences. Then, no matter which state we are in, this will be correct
 
 }
