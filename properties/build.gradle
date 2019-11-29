@@ -4,6 +4,7 @@ apply plugin: 'kotlin'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation "net.aquadc.collections:Collection-utils-jvm:1.0-$collection_utils_version"
     compileOnly project(':fake-bindings')
     compileOnly project(':persistence') // ManagedProperty uses FieldDef from :persistence
     compileOnly 'androidx.annotation:annotation:1.1.0'
