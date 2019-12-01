@@ -63,3 +63,41 @@ class MergeStrategy private constructor(
 }
 
 // endregion inlining and outlining
+
+// region dictionary entries
+
+/**
+ * {1: x, 2: y, ...} -> [{id: 1, val: x}, {id: 2, val: y}, ...] or
+ * {1: x, 2: y, ...} -> [[1, x], [2, y], ...]
+ * @see com.google.gson.GsonBuilder.enableComplexMapKeySerialization is the latter one
+ * @see associate which does the opposite
+ */
+inline fun TokenStream.entries(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream =
+        TODO()
+
+/**
+ * [{id: 1, val: x}, {id: 2, val: y}, ...] -> {1: x, 2: y, ...} or
+ * [[1, x], [2, y], ...] -> {1: x, 2: y, ...}
+ * @see com.google.gson.GsonBuilder.enableComplexMapKeySerialization is the opposite of the latter one
+ * @see entries which does the opposite
+ */
+inline fun TokenStream.associate(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream =
+        AssociateTokens(this, path, nameKey, valueKey)
+
+/** A hint which makes [entries] easier to find */
+@Deprecated(
+        "use entries()",
+        ReplaceWith("this.entries(path, nameKey, valueKey)", "net.aquadc.persistence.extended.tokens.entries"),
+        DeprecationLevel.ERROR
+)
+fun TokenStream.dissociate(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream = throw AssertionError()
+
+/** A hint which makes [entries] easier to find */
+@Deprecated(
+        "use entries()",
+        ReplaceWith("this.entries(path, nameKey, valueKey)", "net.aquadc.persistence.extended.tokens.entries"),
+        DeprecationLevel.ERROR
+)
+fun TokenStream.mappings(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream = throw AssertionError()
+
+// endregion dictionary entries

@@ -16,9 +16,10 @@ internal abstract class Transform(
     final override val path: List<Any?>
         get() = _path ?: source.path
 
-    protected fun matches(): Boolean {
+    protected fun matches(plusNesting: Int): Boolean {
         val path = source.path
-        if (path.size != pathMatcher.size + 1) return false
+        if (path.size != pathMatcher.size + plusNesting) return false
+
         pathMatcher.forEachIndexed { idx, it ->
             val segment = path[idx]
             if (!it(if (segment is Index) segment.value else segment)) return false
@@ -27,7 +28,7 @@ internal abstract class Transform(
         return true
     }
 
-    protected fun copyPath(): NameTracingTokenPath =
+    protected open fun copyPath(): NameTracingTokenPath =
             NameTracingTokenPath().also {
                 it.addAll(source.path)
                 _path = it

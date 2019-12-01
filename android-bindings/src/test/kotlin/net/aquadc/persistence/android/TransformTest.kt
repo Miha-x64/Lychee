@@ -5,8 +5,11 @@ import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.json.writeTo
 import net.aquadc.persistence.extended.tokens.MergeStrategy
+import net.aquadc.persistence.extended.tokens.associate
+import net.aquadc.persistence.extended.tokens.entries
 import net.aquadc.persistence.extended.tokens.inline
 import net.aquadc.persistence.extended.tokens.outline
+import net.aquadc.persistence.tokens.Index
 import net.aquadc.persistence.tokens.TokenStream
 import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.function.isEqualTo
@@ -68,6 +71,17 @@ private fun TokenStream.inlined(): TokenStream =
                 merge = MergeStrategy.Fail
         )
 
+
+val associated = """{"q":"y","w":2,"e":{"zzz":["xxx"]},"r":[1,2,3]}"""
+val entries = "[" + // 1
+        """{"k":"q","v":"y"},""" + // 19
+        """{"k":"w","v":2},""" +
+        """{"k":"e","v":{"zzz":["xxx"]}},""" +
+        """{"k":"r","v":[1,2,3]}""" +
+        "]"
+val tuples = """[["q","y"],["w",2],["e",{"zzz":["xxx"]}],["r",[1,2,3]]]"""
+val flippedTuples = """[["y","q"],[2,"w"],[{"zzz":["xxx"]},"e"],[[1,2,3],"r"]]"""
+
 class TransformTest {
     @Test fun outline() =
             assertEquals(outlined, StringWriter().also { flat.reader().json().tokens().outlined().writeTo(it.json()) }.toString())
@@ -77,6 +91,47 @@ class TransformTest {
 
     @Test fun `outline+inline`() =
             assertEquals(inlined, StringWriter().also { flat.reader().json().tokens().outlined().inlined().writeTo(it.json()) }.toString())
+
+
+    @Test fun associate() =
+            assertEquals(associated, StringWriter().also {
+                entries.reader().json().tokens().associate(emptyArray(), "k", "v").writeTo(it.json())
+            }.toString())
+
+    /*@Test*/ fun entries() =
+            assertEquals(entries, StringWriter().also {
+                associated.reader().json().tokens().entries(emptyArray(), "k", "v").writeTo(it.json())
+            }.toString())
+
+    /*@Test*/ fun `associate+entries`() =
+            assertEquals(associated, StringWriter().also {
+                associated.reader().json().tokens().entries(emptyArray(), "k", "v").associate(emptyArray(), "k", "v").writeTo(it.json())
+            }.toString())
+
+    @Test fun associateTuples() =
+            assertEquals(associated, StringWriter().also {
+                tuples.reader().json().tokens().associate(emptyArray(), Index.First, Index.Second).writeTo(it.json())
+            }.toString())
+
+    @Test fun associateFlippedTuples() =
+            assertEquals(associated, StringWriter().also {
+                flippedTuples.reader().json().tokens().associate(emptyArray(), Index.Second, Index.First).writeTo(it.json())
+            }.toString())
+
+    /*@Test*/ fun tuples() =
+            assertEquals(tuples, StringWriter().also {
+                associated.reader().json().tokens().entries(emptyArray(), Index.First, Index.Second).writeTo(it.json())
+            }.toString())
+
+    /*@Test*/ fun `associateTuples+entries`() =
+            assertEquals(associated, StringWriter().also {
+                associated.reader().json().tokens()
+                        .entries(emptyArray(), Index.First, Index.Second)
+                        .associate(emptyArray(), Index.First, Index.Second).writeTo(it.json())
+            }.toString())
+
+    /*@Test*/ fun flip(): Unit =
+            TODO()
 }
 
 @RunWith(Parameterized::class)
@@ -93,7 +148,39 @@ class TransformTestWParams(
     @Test fun `outline+inline`() =
             assertStreamsEqual(inlined, flat.reader().json().tokens().outlined().inlined())
 
-    // gonna trigger different scenarios because every method of TokenStream may change its internal state
+
+    @Test fun associate() =
+            assertStreamsEqual(associated, entries.reader().json().tokens().associate(emptyArray(), "k", "v"))
+
+    /*@Test*/ fun entries() =
+            assertStreamsEqual(entries, associated.reader().json().tokens().entries(emptyArray(), "k", "v"))
+
+    /*@Test*/ fun `associate+entries`() =
+            assertStreamsEqual(
+                    entries,
+                    entries.reader().json().tokens()
+                            .associate(emptyArray(), "k", "v")
+                            .entries(emptyArray(), "k", "v")
+            )
+
+    @Test fun associateTuples() =
+            assertStreamsEqual(associated, tuples.reader().json().tokens().associate(emptyArray(), Index.First, Index.Second))
+
+    @Test fun associateFlippedTuples() =
+            assertStreamsEqual(associated, flippedTuples.reader().json().tokens().associate(emptyArray(), Index.Second, Index.First))
+
+    /*@Test*/ fun tuples() =
+            assertStreamsEqual(tuples, associated.reader().json().tokens().entries(emptyArray(), Index.First, Index.Second))
+
+    /*@Test*/ fun `associateTuples+entries`() =
+            assertStreamsEqual(
+                    tuples,
+                    tuples.reader().json().tokens()
+                            .associate(emptyArray(), Index.First, Index.Second)
+                            .entries(emptyArray(), Index.First, Index.Second)
+            )
+
+    // gonna trigger different scenarios because both poll() and peek() could change TokenStream internal state
     private fun assertStreamsEqual(expected: String, actual: TokenStream) {
         val r = Random(seed)
         val exReader = expected.reader().json()

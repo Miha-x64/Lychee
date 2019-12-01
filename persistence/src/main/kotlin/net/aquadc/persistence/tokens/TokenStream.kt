@@ -156,10 +156,15 @@ interface TokenStream : Iterator<Any?> {
 }
 
 class Index(value: Int) {
-    var value: Int = value; internal set
+    var value: Int = value; @JvmSynthetic internal set
     override fun hashCode(): Int = value
     override fun equals(other: Any?): Boolean = other is Index && value == other.value
     override fun toString(): String = "#$value"
+
+    companion object {
+        @JvmField val First = Index(0)
+        @JvmField val Second = Index(1)
+    }
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
