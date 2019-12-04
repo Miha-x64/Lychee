@@ -98,12 +98,12 @@ class TransformTest {
                 entries.reader().json().tokens().associate(emptyArray(), "k", "v").writeTo(it.json())
             }.toString())
 
-    /*@Test*/ fun entries() =
+    @Test fun entries() =
             assertEquals(entries, StringWriter().also {
                 associated.reader().json().tokens().entries(emptyArray(), "k", "v").writeTo(it.json())
             }.toString())
 
-    /*@Test*/ fun `associate+entries`() =
+    @Test fun `associate+entries`() =
             assertEquals(associated, StringWriter().also {
                 associated.reader().json().tokens().entries(emptyArray(), "k", "v").associate(emptyArray(), "k", "v").writeTo(it.json())
             }.toString())
@@ -118,20 +118,38 @@ class TransformTest {
                 flippedTuples.reader().json().tokens().associate(emptyArray(), Index.Second, Index.First).writeTo(it.json())
             }.toString())
 
-    /*@Test*/ fun tuples() =
+    @Test fun tuples() =
             assertEquals(tuples, StringWriter().also {
                 associated.reader().json().tokens().entries(emptyArray(), Index.First, Index.Second).writeTo(it.json())
             }.toString())
 
-    /*@Test*/ fun `associateTuples+entries`() =
+    @Test fun `associateTuples+entries`() =
             assertEquals(associated, StringWriter().also {
                 associated.reader().json().tokens()
                         .entries(emptyArray(), Index.First, Index.Second)
                         .associate(emptyArray(), Index.First, Index.Second).writeTo(it.json())
             }.toString())
 
-    /*@Test*/ fun flip(): Unit =
-            TODO()
+    @Test fun flip() {
+        assertEquals(
+            """[["q","y"],["w",2],["e",true],["r",null]]""",
+            StringWriter().also {
+                """[["y","q"],[2,"w"],[true,"e"],[null,"r"]]""".reader().json().tokens()
+                    .associate(emptyArray(), Index.First, Index.Second)
+                    .entries(emptyArray(), Index.Second, Index.First)
+                    .writeTo(it.json())
+            }.toString()
+        )
+        assertEquals(
+            """[["q","y"],["w",2],["e",true],["r",null]]""",
+            StringWriter().also {
+                """[["y","q"],[2,"w"],[true,"e"],[null,"r"]]""".reader().json().tokens()
+                    .associate(emptyArray(), Index.Second, Index.First)
+                    .entries(emptyArray(), Index.First, Index.Second)
+                    .writeTo(it.json())
+            }.toString()
+        )
+    }
 }
 
 @RunWith(Parameterized::class)
@@ -152,10 +170,10 @@ class TransformTestWParams(
     @Test fun associate() =
             assertStreamsEqual(associated, entries.reader().json().tokens().associate(emptyArray(), "k", "v"))
 
-    /*@Test*/ fun entries() =
+    @Test fun entries() =
             assertStreamsEqual(entries, associated.reader().json().tokens().entries(emptyArray(), "k", "v"))
 
-    /*@Test*/ fun `associate+entries`() =
+    @Test fun `associate+entries`() =
             assertStreamsEqual(
                     entries,
                     entries.reader().json().tokens()
@@ -169,16 +187,42 @@ class TransformTestWParams(
     @Test fun associateFlippedTuples() =
             assertStreamsEqual(associated, flippedTuples.reader().json().tokens().associate(emptyArray(), Index.Second, Index.First))
 
-    /*@Test*/ fun tuples() =
+    @Test fun tuples() =
             assertStreamsEqual(tuples, associated.reader().json().tokens().entries(emptyArray(), Index.First, Index.Second))
 
-    /*@Test*/ fun `associateTuples+entries`() =
+    @Test fun `associateTuples+entries`() =
             assertStreamsEqual(
                     tuples,
                     tuples.reader().json().tokens()
                             .associate(emptyArray(), Index.First, Index.Second)
                             .entries(emptyArray(), Index.First, Index.Second)
             )
+
+    @Test fun `entries backwards`() {
+        assertStreamsEqual(
+            """[["y","q"],[2,"w"],[true,"e"],[null,"r"]]""",
+            """{"q":"y","w":2,"e":true,"r":null}""".reader().json().tokens()
+                .entries(emptyArray(), Index.Second, Index.First)
+        )
+    }
+
+    @Test fun `flip a`() {
+        assertStreamsEqual(
+            """[["q","y"],["w",2],["e",true],["r",null]]""",
+            """[["y","q"],[2,"w"],[true,"e"],[null,"r"]]""".reader().json().tokens()
+                    .associate(emptyArray(), Index.First, Index.Second)
+                    .entries(emptyArray(), Index.Second, Index.First)
+        )
+    }
+
+    @Test fun `flip b`() {
+        assertStreamsEqual(
+            """[["q","y"],["w",2],["e",true],["r",null]]""",
+            """[["y","q"],[2,"w"],[true,"e"],[null,"r"]]""".reader().json().tokens()
+                    .associate(emptyArray(), Index.Second, Index.First)
+                    .entries(emptyArray(), Index.First, Index.Second)
+        )
+    }
 
     // gonna trigger different scenarios because both poll() and peek() could change TokenStream internal state
     private fun assertStreamsEqual(expected: String, actual: TokenStream) {

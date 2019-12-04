@@ -73,7 +73,7 @@ class MergeStrategy private constructor(
  * @see associate which does the opposite
  */
 inline fun TokenStream.entries(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream =
-        TODO()
+        DissociateTokens(this, path, nameKey, valueKey)
 
 /**
  * [{id: 1, val: x}, {id: 2, val: y}, ...] -> {1: x, 2: y, ...} or

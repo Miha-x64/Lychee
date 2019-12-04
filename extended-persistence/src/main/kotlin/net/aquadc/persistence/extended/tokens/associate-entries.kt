@@ -219,16 +219,6 @@ import net.aquadc.persistence.tokens.TokenStream
         }
     }
 
-    private fun pollBuffered(): Any? {
-        val valueBuf = valueBuffer
-        val value = valueBuf.set(state++, null)
-
-        if (valueBuf.size == state) {
-            exitMapping()
-        }
-        return value
-    }
-
     private fun exitMapping() {
         valueBuffer.clear()
 
@@ -266,12 +256,239 @@ import net.aquadc.persistence.tokens.TokenStream
 
 }
 
+@PublishedApi internal class DissociateTokens(
+        source: TokenStream, pathMatcher: Array<Predicate>, nameKey: Any?, valueKey: Any?
+) : AssociateEntries(source, pathMatcher, nameKey, valueKey) {
+
+    private var state = 0
+    private var bufferedNameToken: Token? = null
+    private var bufferedName: Any? = null
+
+    override fun peek(): Token = when (state) {
+
+        // nothing interesting here, just looking for BeginDictionary and an opportunity to emit our BeginSequence
+        0 -> {
+            val token = source.peek()
+            if (token == Token.BeginDictionary && matches(0)) Token.BeginSequence else token
+        }
+
+        // standing before key, gonna emit beginWrap
+        1 -> beginWrap
+
+        // standing before key, gonna emit its name
+        2 -> Token.ofValue(nameKey) ?: throw IllegalArgumentException("bad value: $nameKey")
+
+        // standing before key and gonna emit either key or value, depending on nameFirstInTuple
+        3 -> when (nameFirstInTuple) {
+            true -> source.peek()
+            false -> {
+                if (bufferedNameToken == null) bufferName()
+                source.peek()
+            }
+            null -> source.peek()
+        }
+
+        // standing before value, gonna emit its name
+        4 -> Token.ofValue(valueKey) ?: throw IllegalArgumentException("bad value: $valueKey")
+
+        // standing either before value and gonna emit it, or after value and gonna emit buffered key
+        5 -> when (nameFirstInTuple) {
+            true -> source.peek()
+            false -> bufferedNameToken!!
+            null -> source.peek()
+        }
+
+        // standing after value and gonna emit endWrap
+        6 -> endWrap
+
+        // the end, gonna emit EndSequence
+        7 -> Token.EndSequence
+
+        else -> throw AssertionError()
+    }
+
+    override fun poll(coerceTo: Token?): Any? = when (state) {
+        0 -> {
+            val token = source.poll(if (coerceTo == Token.BeginSequence) Token.BeginDictionary else coerceTo)
+            if (token == Token.BeginDictionary && matches(1)) { // we've polled BeginSequence, no we're inside it, so plusNesting = 1
+                copyPath().afterToken(Token.BeginSequence)
+                state = if (source.peek() == Token.EndDictionary) 7 else 1
+
+                Token.BeginSequence
+            } else {
+                token
+            }
+        }
+
+        1 -> {
+            state = when (nameFirstInTuple) {
+                true -> 3
+                false -> 3
+                null -> 2
+            }
+            coerceTo.coerce(beginWrap).also(_path!!::afterToken)
+        }
+
+        2 -> {
+            state = 3
+            coerceTo.coerce(nameKey).also(_path!!::afterToken)
+        }
+
+        3 -> when (nameFirstInTuple) {
+            true -> {
+                state = 5
+                source.poll(coerceTo).also(_path!!::afterToken)
+            }
+            false -> {
+                if (bufferedNameToken == null) bufferName()
+                emitValueToken(coerceTo, 5)
+            }
+            null -> {
+                state = 4
+                source.poll(coerceTo).also(_path!!::afterToken)
+            }
+        }
+
+        4 -> {
+            state = 5
+            coerceTo.coerce(valueKey).also(_path!!::afterToken)
+        }
+
+        5 -> when (nameFirstInTuple) {
+            true -> {
+                emitValueToken(coerceTo, 6)
+            }
+            false -> {
+                check(bufferedNameToken != null)
+                state = 6
+                coerceTo.coerce(bufferedName).also {
+                    bufferedName = null
+                    bufferedNameToken = null
+                    _path!!.afterToken(it)
+                }
+            }
+            null -> {
+                emitValueToken(coerceTo, 6)
+            }
+        }
+
+        6 -> {
+            state = if (source.peek() == Token.EndDictionary) 7 else 1
+            coerceTo.coerce(endWrap).also(_path!!::afterToken)
+        }
+
+        7 -> {
+            state = 0
+            source.poll(Token.EndDictionary)
+            coerceTo.coerce(Token.EndSequence).also(_path!!::afterToken)
+        }
+
+        else -> {
+            throw AssertionError()
+        }
+    }
+
+    override fun skip(): Unit = when (state) {
+        0 -> {
+            source.skip()
+        }
+        1 -> { // skipping our beginWrap, i. e. the whole dictionary/tuple
+            source.skip()
+            source.skip()
+            _path!!.skip()
+            if (source.peek() == Token.EndDictionary) state = 7 // skipped last entry
+            Unit
+        }
+        2 -> {
+            _path!!.afterToken(nameKey)
+            state = 3
+        }
+        3 -> {
+            state = when (nameFirstInTuple) {
+                true -> 5
+                false -> 5.also { if (bufferedNameToken == null) bufferName() }
+                null -> 4
+            }
+            _path!!.skip()
+            source.skip()
+        }
+        4 -> {
+            _path!!.afterToken(valueKey)
+            state = 5
+        }
+        5 -> {
+            when (nameFirstInTuple) {
+                true -> {
+                    skipValueToken(6)
+                }
+                false -> {
+                    bufferedName.let {
+                        bufferedName = null
+                        bufferedNameToken = null
+                        _path!!.afterToken(it)
+                    }
+                    state = 6
+                }
+                null -> {
+                    skipValueToken(6)
+                }
+            }
+        }
+        6 -> {
+            state = if (source.peek() == Token.EndDictionary) 7 else 1
+            _path!!.afterToken(endWrap)
+        }
+        7 -> {
+            source.poll(Token.EndDictionary)
+            _path!!.afterToken(Token.EndSequence)
+            state = 0
+        }
+        else -> {
+            throw AssertionError()
+        }
+    }
+
+    private fun bufferName() {
+        check(bufferedNameToken == null)
+        bufferedNameToken = source.peek()
+        bufferedName = source.poll()
+    }
+
+    private fun emitValueToken(coerceTo: Token?, nextState: Int): Any? {
+        val value = source.poll(coerceTo)
+        _path!!.afterToken(value)
+        if (_path!!.size == pathMatcher.size + 2) {
+            if (value !is Token || value.let { it == Token.EndSequence || it == Token.EndDictionary }) {
+                state = nextState
+            }
+        }
+        return value
+    }
+
+    private fun skipValueToken(nextState: Int) {
+        val skipping = source.peek()
+        if (skipping == Token.EndDictionary || skipping == Token.EndSequence) _path!!.afterToken(skipping)
+        else _path!!.skip()
+
+        source.skip()
+        if (_path!!.size == pathMatcher.size + 2) {
+            state = nextState
+        }
+    }
+
+    override fun copyPath(): NameTracingTokenPath = // pop BeginSequence, we're representing sequences as dictionaries
+        super.copyPath().also {
+            check(it.removeAt(it.lastIndex) !is Index) // don't mind expectingName state, we don't use its outer part
+        }
+
+}
+
 internal abstract class AssociateEntries(
         source: TokenStream,
         pathMatcher: Array<Predicate>,
         @JvmField protected val nameKey: Any?,
         @JvmField protected val valueKey: Any?
-): Transform(source, pathMatcher) {
+) : Transform(source, pathMatcher) {
 
     @JvmField protected val beginWrap: Token
     @JvmField protected val endWrap: Token
