@@ -24,6 +24,7 @@ import kotlin.concurrent.getOrSet
  * Represents a connection with an [SQLiteDatabase].
  */
 // TODO: use simpleQueryForLong and simpleQueryForString with compiled statements where possible
+@ExperimentalSql
 class SqliteSession(
         @JvmSynthetic @JvmField internal val connection: SQLiteDatabase
 ) : Session {

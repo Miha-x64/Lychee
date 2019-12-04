@@ -22,6 +22,7 @@ import kotlin.concurrent.getOrSet
 /**
  * Represents a database connection through JDBC.
  */
+@ExperimentalSql
 class JdbcSession(
         @JvmField @JvmSynthetic internal val connection: Connection,
         @JvmField @JvmSynthetic internal val dialect: Dialect

@@ -7,6 +7,10 @@ import net.aquadc.persistence.type.DataType
 
 typealias Predicate = (Any?) -> Boolean
 
+@Retention(AnnotationRetention.BINARY)
+@Experimental(Experimental.Level.WARNING)
+annotation class ExperimentalTransforms
+
 // region inlining and outlining
 
 /**
@@ -17,6 +21,7 @@ typealias Predicate = (Any?) -> Boolean
  * {k: v, ...} -> {destName:{renamedK: v}, ...}
  * @see inline which does the opposite
  */
+@ExperimentalTransforms
 inline fun TokenStream.outline(path: Array<Predicate>, noinline what: Predicate, destName: Any, noinline rename: (Any?) -> Any?): TokenStream =
         OutlineTokens(this, path, what, destName, rename)
 
@@ -28,6 +33,7 @@ inline fun TokenStream.outline(path: Array<Predicate>, noinline what: Predicate,
  * @see MergeStrategy for ways of merging mappings into the root
  * @see outline which does the opposite
  */
+@ExperimentalTransforms
 inline fun TokenStream.inline(path: Array<Predicate>, noinline isVictim: Predicate, noinline rename: (Any?) -> Any?,
                               noinline merge: (target: MutableMap<Any?, Any?>, key: Any?, value: Any?) -> Unit,
                               buffer: MutableMap<Any?, Any?> = LinkedHashMap()
@@ -72,6 +78,7 @@ class MergeStrategy private constructor(
  * @see com.google.gson.GsonBuilder.enableComplexMapKeySerialization is the latter one
  * @see associate which does the opposite
  */
+@ExperimentalTransforms
 inline fun TokenStream.entries(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream =
         DissociateTokens(this, path, nameKey, valueKey)
 
@@ -81,6 +88,7 @@ inline fun TokenStream.entries(path: Array<Predicate>, nameKey: Any?, valueKey: 
  * @see com.google.gson.GsonBuilder.enableComplexMapKeySerialization is the opposite of the latter one
  * @see entries which does the opposite
  */
+@ExperimentalTransforms
 inline fun TokenStream.associate(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream =
         AssociateTokens(this, path, nameKey, valueKey)
 

@@ -44,6 +44,10 @@ typealias IdBound = Any // Serializable in some frameworks
  */
 typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
+@Retention(AnnotationRetention.BINARY)
+@Experimental(Experimental.Level.WARNING)
+annotation class ExperimentalSql
+
 /**
  * A gateway into RDBMS.
  */
