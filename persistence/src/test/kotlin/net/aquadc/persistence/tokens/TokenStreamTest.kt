@@ -1,12 +1,23 @@
 package net.aquadc.persistence.tokens
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.fail
+import org.junit.Assert.*
 import org.junit.Test
+import java.util.*
+import kotlin.NoSuchElementException
 
 class TokenStreamTest {
 
     @Test fun generate() {
+        val delegate = tokens {
+            yieldSequence {
+                yieldString { "" }
+                yieldDictionary {
+                    yieldString { fail(); "" }; yieldBlob { byteArrayOf(1, 0, 0, 5, 0, 0) }
+                }
+            }
+        }
+        delegate.poll(Token.BeginSequence)
+        delegate.poll(Token.Str)
         val stream = tokens {
             yieldSequence {
                 yieldInt { 1 }
@@ -33,6 +44,7 @@ class TokenStreamTest {
                 yieldAll(tokens {})
                 yieldAll(tokens {})
                 yieldAll(tokens { yieldString { "sub" } })
+                yieldBracketSequence(delegate)
             }
         }
 
@@ -99,10 +111,17 @@ class TokenStreamTest {
         assertEquals(listOf(Index(6)), stream.path)
         assertEquals("sub", stream.poll())
 
-        assertEquals(Token.EndSequence, stream.peek())
         assertEquals(listOf(Index(7)), stream.path)
+        stream.poll(Token.BeginDictionary)
+        stream.skip()
+        assertEquals(Base64.getEncoder().encodeToString(byteArrayOf(1, 0, 0, 5, 0, 0)), stream.poll(Token.Str))
+        assertEquals(Token.EndDictionary, stream.poll())
+
+        assertEquals(Token.EndSequence, stream.peek())
+        assertEquals(listOf(Index(8)), stream.path)
         assertEquals(Token.EndSequence, stream.poll())
 
+        assertFalse(stream.hasNext())
         try {
             stream.peek()
             fail()

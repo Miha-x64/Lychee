@@ -1,5 +1,5 @@
 @file:Suppress("NOTHING_TO_INLINE")
-
+@file:JvmName("EmitTokens")
 package net.aquadc.persistence.tokens
 
 import net.aquadc.collections.get
@@ -23,7 +23,7 @@ inline fun <SCH : Schema<SCH>> Struct<SCH>.tokens(): TokenStream =
 @Suppress("UPPER_BOUND_VIOLATED", "UNCHECKED_CAST")
 private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
     val type = if (type is DataType.Nullable<*, *>) {
-        if (value == null) return yieldNull()
+        if (value == null) yieldNull().also { return }
         type.actualType
     } else type
 

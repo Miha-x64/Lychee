@@ -4,17 +4,23 @@ This module contains some utility methods to work with persistence and I/O strea
 ### [.type package](/persistence/src/main/kotlin/net/aquadc/persistence/type)
 
 Simplifies and generalises Java and Kotlin type systems.
-Provides APIs to represent types as objects.
+Provides APIs to represent (reify) types as objects.
 
 ### [.stream package](/persistence/src/main/kotlin/net/aquadc/persistence/stream)
 
 Contains `BetterDataInput/Output` — interfaces which enhance Java's `DataInput/Output`,
 `DataStreams` — implementations for `DataInput/OutputStream`;
-there's also `ParcelIo` in `:android-bindings` module`.
+there's also `ParcelIo` in `:android-bindings` module.
 
 ### [.struct package](/persistence/src/main/kotlin/net/aquadc/persistence/struct)
 
-Contains tools for defining `struct`s — data bags which can be easily introspected.
+Contains tools for defining `Struct`s — data bags
+which can be easily introspected and (de)serialized.
+
+### [.tokens package](/persistence/src/main/kotlin/net/aquadc/persistence/tokens)
+
+`TokenStream` interface and tools to generate streams
+and to bind them to `Struct`s or other `DataType`s.
 
 #### Goals
 
