@@ -113,11 +113,11 @@ import net.aquadc.persistence.tokens.coerce
         v
     }
 
-    override fun skip(): Unit =
+    override fun skipValue(): Unit =
             if (inlinedMapping == null) {
                 _path = null
-                source.skip()
-            } else super.skip() // just poll next value, it is already parsed & in memory
+                source.skipValue()
+            } else super.skipValue() // just poll next value, it is already parsed & in memory
 
 }
 
@@ -244,9 +244,9 @@ import net.aquadc.persistence.tokens.coerce
     }
 
 
-    override fun skip(): Unit = when (outlining) {
+    override fun skipValue(): Unit = when (outlining) {
         -3 -> {
-            source.skip()
+            source.skipValue()
             _path = null
         }
         -2 -> {
@@ -262,7 +262,7 @@ import net.aquadc.persistence.tokens.coerce
                 }
                 // else source EndDictionary reached, outlining now
                 startOutlining()
-            } else source.skip()
+            } else source.skipValue()
         }
         -1 -> {
             startOutlining() // they've skipped our nested name
@@ -272,7 +272,7 @@ import net.aquadc.persistence.tokens.coerce
             outlining = -3
         }
         else -> {
-            super.skip() // within buffer, just traverse in-memory objects
+            super.skipValue() // within buffer, just traverse in-memory objects
         }
     }
 

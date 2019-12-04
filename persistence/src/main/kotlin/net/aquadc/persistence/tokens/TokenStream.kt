@@ -114,6 +114,9 @@ fun Token?.coerce(value: Any?): Any? =
 
 /**
  * A consumable Iterator/Stream/Sequence of tokens.
+ * Must consist of a single value which could be a primitive, a sequence, or a dictionary.
+ * Dictionaries are effectively collections of pairs, e. g. have even number of values.
+ * Only primitive names (dictionary values at odd positions) are supported by most of operations.
  */
 interface TokenStream : Iterator<Any?> {
 
@@ -132,6 +135,7 @@ interface TokenStream : Iterator<Any?> {
      * Consume and return the next token.
      * @param coerceTo expected token type, or null to retrieve any
      * @return null|Boolean|Byte|Short|Int|Long|Float|Double|String|ByteArray|Token.(Begin|End)(Sequence|Dictionary)
+     *         **must** conform the type specified by [coerceTo]
      */
     fun poll(coerceTo: Token? = null): Any?
 
@@ -143,9 +147,12 @@ interface TokenStream : Iterator<Any?> {
             poll(null)
 
     /**
-     * Skip and consume the next token and nesting associated with it
+     * Skip and consume the next value.
+     * A value is either a 'primitive' or a whole bracket sequence
+     * from the [Token.BeginSequence] or [Token.BeginDictionary] and until
+     * [Token.EndSequence] or [Token.BeginSequence].
      */
-    fun skip() {
+    fun skipValue() {
         var depth = 0
         do {
             val token = poll()

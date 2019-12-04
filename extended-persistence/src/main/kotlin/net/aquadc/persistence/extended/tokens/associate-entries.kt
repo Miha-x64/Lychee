@@ -112,18 +112,18 @@ import net.aquadc.persistence.tokens.TokenStream
         }
     }
 
-    override fun skip(): Unit = when (state) {
+    override fun skipValue(): Unit = when (state) {
         -4 -> {
-            source.skip()
+            source.skipValue()
         }
         -3 -> {
             approachName()
-            source.skip()
+            source.skipValue()
             _path!!.skip()
             state = -1
         }
         -2 -> {
-            source.skip()
+            source.skipValue()
             _path!!.skip()
             when (nameFirstInTuple) {
                 true -> state = 0
@@ -135,7 +135,7 @@ import net.aquadc.persistence.tokens.TokenStream
             when (nameFirstInTuple) {
                 true -> throw AssertionError()
                 false -> throw AssertionError() // the value was already buffered
-                null -> approachValue().also { skip() }
+                null -> approachValue().also { skipValue() }
             }
         }
         Int.MAX_VALUE -> {
@@ -145,7 +145,7 @@ import net.aquadc.persistence.tokens.TokenStream
         else -> when (valueBuffer.size) {
             0 -> {
                 val token = source.peek()
-                source.skip()
+                source.skipValue()
 
                 // pass nesting change to path
                 if (token.let { it == Token.EndSequence || it == Token.EndDictionary }) _path!!.afterToken(token)
@@ -162,7 +162,7 @@ import net.aquadc.persistence.tokens.TokenStream
                     _path!!.skip()
                     exitMapping()
                 } else {
-                    super.skip()
+                    super.skipValue()
                 }
             }
         }
@@ -190,7 +190,7 @@ import net.aquadc.persistence.tokens.TokenStream
                         throw IllegalArgumentException("unexpected token '$name', nesting problem at ${source.path}")
 
                     else ->
-                        source.skip() // TODO should we fail here?
+                        source.skipValue() // TODO should we fail here?
                 }
             }
         }
@@ -213,7 +213,7 @@ import net.aquadc.persistence.tokens.TokenStream
                         throw IllegalArgumentException("unexpected token '$name', nesting problem at ${source.path}")
 
                     else ->
-                        source.skip() // TODO should we fail here?
+                        source.skipValue() // TODO should we fail here?
                 }
             }
         }
@@ -228,7 +228,7 @@ import net.aquadc.persistence.tokens.TokenStream
             next.checkName()
 
             // TODO should we fail here?
-            if (nameFirstInTuple == null) source.skip() // skipped a name, skip according value then
+            if (nameFirstInTuple == null) source.skipValue() // skipped a name, skip according value then
         }
 
         // endWrap is consumed now, we're standing either before next mapping or the end of sequence
@@ -388,13 +388,13 @@ import net.aquadc.persistence.tokens.TokenStream
         }
     }
 
-    override fun skip(): Unit = when (state) {
+    override fun skipValue(): Unit = when (state) {
         0 -> {
-            source.skip()
+            source.skipValue()
         }
         1 -> { // skipping our beginWrap, i. e. the whole dictionary/tuple
-            source.skip()
-            source.skip()
+            source.skipValue()
+            source.skipValue()
             _path!!.skip()
             if (source.peek() == Token.EndDictionary) state = 7 // skipped last entry
             Unit
@@ -410,7 +410,7 @@ import net.aquadc.persistence.tokens.TokenStream
                 null -> 4
             }
             _path!!.skip()
-            source.skip()
+            source.skipValue()
         }
         4 -> {
             _path!!.afterToken(valueKey)
@@ -470,7 +470,7 @@ import net.aquadc.persistence.tokens.TokenStream
         if (skipping == Token.EndDictionary || skipping == Token.EndSequence) _path!!.afterToken(skipping)
         else _path!!.skip()
 
-        source.skip()
+        source.skipValue()
         if (_path!!.size == pathMatcher.size + 2) {
             state = nextState
         }

@@ -178,7 +178,7 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
         }
     }
 
-    override fun skip() {
+    override fun skipValue() {
         if (nextNumber != null) {
             nextNumber = null
             nextLong = Long.MIN_VALUE

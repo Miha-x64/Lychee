@@ -46,7 +46,7 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
 private fun TokenStream.nextField(byName: Map<String, FieldDef<*, *, *>>): FieldDef<*, *, *>? {
     while (peek() != Token.EndDictionary) {
         val field = byName[poll(Token.Str) as String]
-        if (field == null) skip() // unsupported value
+        if (field == null) skipValue() // unsupported value
         else return field
     }
     return null

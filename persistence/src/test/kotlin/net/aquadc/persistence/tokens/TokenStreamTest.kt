@@ -85,15 +85,15 @@ class TokenStreamTest {
         assertEquals(Token.EndSequence, stream.poll())
         assertEquals(Token.EndDictionary, stream.peek())
         assertEquals(listOf(Index(2), "b"), stream.path)
-        stream.skip()
+        stream.skipValue()
 
         assertEquals(Token.BeginDictionary, stream.peek())
         assertEquals(listOf(Index(3)), stream.path)
-        stream.skip()
+        stream.skipValue()
 
         assertEquals(Token.BeginSequence, stream.peek())
         assertEquals(listOf(Index(4)), stream.path)
-        stream.skip()
+        stream.skipValue()
 
         assertEquals(Token.BeginSequence, stream.peek())
         assertEquals(listOf(Index(5)), stream.path)
@@ -105,7 +105,7 @@ class TokenStreamTest {
 
         assertEquals(Token.EndSequence, stream.peek())
         assertEquals(listOf(Index(5), Index(1)), stream.path)
-        stream.skip()
+        stream.skipValue()
 
         assertEquals(Token.Str, stream.peek())
         assertEquals(listOf(Index(6)), stream.path)
@@ -113,7 +113,7 @@ class TokenStreamTest {
 
         assertEquals(listOf(Index(7)), stream.path)
         stream.poll(Token.BeginDictionary)
-        stream.skip()
+        stream.skipValue()
         assertEquals(Base64.getEncoder().encodeToString(byteArrayOf(1, 0, 0, 5, 0, 0)), stream.poll(Token.Str))
         assertEquals(Token.EndDictionary, stream.poll())
 

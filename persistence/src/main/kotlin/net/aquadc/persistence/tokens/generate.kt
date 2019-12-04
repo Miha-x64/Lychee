@@ -210,11 +210,11 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         }
     }
 
-    override fun skip() {
+    override fun skipValue() {
         val skipping = peek()
 
         yieldAll?.let {
-            it.skip()
+            it.skipValue()
             if (!it.hasNext()) yieldAll = null
         } ?: nextYield!!.let {
             nextYield = null
@@ -272,7 +272,7 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
     override suspend fun yieldBracketSequence(source: TokenStream): Boolean =
         offer(source.peek()).let { coerceTo ->
             if (coerceTo != false) yieldBracketSequence(source, source.poll(coerceTo as Token)).let { true }
-            else source.skip().let { false }
+            else source.skipValue().let { false }
         }
 
     private suspend fun yieldBracketSequence(source: TokenStream, token: Any?) {

@@ -238,7 +238,7 @@ class TransformTestWParams(
                 }
                 1 -> {
                     assertEquals(exTokens.peek(), actual.peek())
-                    if (exReader.peek() == JsonToken.NAME) { exTokens.poll(); actual.poll() } else { exTokens.skip(); actual.skip() }
+                    if (exReader.peek() == JsonToken.NAME) { exTokens.poll(); actual.poll() } else { exTokens.skipValue(); actual.skipValue() }
                     // don't skip names, this leads to nondeterministic paths
                     assertEquals(exTokens.path, actual.path)
                 }
@@ -247,7 +247,7 @@ class TransformTestWParams(
                     assertEquals(exTokens.path, actual.path)
                 }
                 3 -> {
-                    if (exReader.peek() == JsonToken.NAME) { exTokens.poll(); actual.poll() } else { exTokens.skip(); actual.skip() }
+                    if (exReader.peek() == JsonToken.NAME) { exTokens.poll(); actual.poll() } else { exTokens.skipValue(); actual.skipValue() }
                     assertEquals(exTokens.path, actual.path)
                 }
             }
