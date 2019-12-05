@@ -67,7 +67,7 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
         val tokToJson = enumMapOf(
                 Token.Null, JsonToken.NULL,
                 Token.Bool, JsonToken.BOOLEAN,
-                /*Token.I8, Token.I16, Token.I32, Token.I64, Token.F32, Token.F64, Token.Str, Token.Blob,*/
+                // Token.I8, Token.I16, Token.I32, Token.I64, Token.F32, Token.F64, Token.Str, Token.Blob,
                 Token.BeginSequence, JsonToken.BEGIN_ARRAY,
                 Token.EndSequence, JsonToken.END_ARRAY,
                 Token.BeginDictionary, JsonToken.BEGIN_OBJECT,
@@ -118,7 +118,14 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
             return Token.EndDictionary
         }
 
-        val nextTok = if (coerceTo == null) nextToken else tokToJson[coerceTo]
+        val nextTok = if (coerceTo == null) nextToken else {
+            if (nextToken == JsonToken.NAME && coerceTo != Token.Str)
+                // JsonReader can't coerce names to other types, let's do it ourselves
+                return coerceTo.coerce(reader.nextName().also(_path::onName))
+
+            tokToJson[coerceTo]
+        }
+
         return if (nextTok == null) {
             val value = when (coerceTo!!) {
                 Token.I8 -> reader.nextInt().assertFitsByte()

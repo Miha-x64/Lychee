@@ -14,6 +14,7 @@ import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.readListOf
 import net.aquadc.persistence.tokens.tokens
@@ -31,11 +32,13 @@ import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.persistence.enum
 import okio.ByteString.Companion.decodeHex
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Test
 import java.io.StringWriter
+import java.util.Base64
 import java.util.EnumSet
 
 
@@ -153,8 +156,8 @@ class PersistenceTest {
         )
     }
 
-    val smallSchema = Tuple3("a", string, "b", string, "c", string)
-    val partialSmallSchema = partial(smallSchema)
+    private val smallSchema = Tuple3("a", string, "b", string, "c", string)
+    private val partialSmallSchema = partial(smallSchema)
 
     @Test fun `json empty partial`() {
         assertEquals(
@@ -236,6 +239,27 @@ class PersistenceTest {
                 smallSchema.buildPartial("lorem", "ipsum", "dolor"),
                 read("""{"a":"lorem","b":"ipsum","c":"dolor"}""", smallSchema)
         )
+    }
+
+    @Test fun coercions() {
+        val blob = byteArrayOf(1, 2, 3)
+        val base = Base64.getEncoder().encodeToString(blob)
+        val tokens = """{"1":"456.789","$base":"123"}""".reader().json().tokens()
+
+        tokens.poll(Token.BeginDictionary)
+
+        assertEquals(Token.Str, tokens.peek())
+        assertEquals(1, tokens.poll(Token.I32))
+
+        assertEquals(Token.Str, tokens.peek())
+        assertEquals(456.789, tokens.poll(Token.F64))
+
+        assertEquals(Token.Str, tokens.peek())
+        assertArrayEquals(blob, tokens.poll(Token.Blob) as ByteArray)
+
+        assertEquals(Token.Str, tokens.peek())
+        assertEquals(123, tokens.poll(Token.I32))
+
     }
 
     private fun <T> read(json: String, type: DataType<T>, lenient: Boolean = false): T =
