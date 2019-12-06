@@ -50,7 +50,7 @@ or `LiveData` in Android Arch.
 * Provides MVVM / data-binding for Android and JavaFX
 * Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
   and [TornadoFX](https://github.com/edvin/tornadofx)
-* Depends only on Kotlin-stdlib
+* Depends only on Kotlin-stdlib and [Kotlin-MPP Collection utils](https://github.com/Miha-x64/Kotlin-MPP_Collection_utils) for overheadless `EnumSet`s
 * [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
    — problem statement, explanations
 
