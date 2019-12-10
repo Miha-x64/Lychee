@@ -11,7 +11,7 @@
 
 ## Adding to a project
 
-[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Reactive Properties
+[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Properties
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Apersistence/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Apersistence/_latestVersion) Persistence
 
@@ -28,10 +28,10 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    implementation 'net.aquadc.properties:properties:0.0.11' // core, both for JVM and Android
+    implementation 'net.aquadc.properties:properties:0.0.11' // observables for both JVM and Android
     implementation 'net.aquadc.properties:persistence:0.0.11' // persistence for JVM and Android
-    implementation 'net.aquadc.properties:extended-persistence:0.0.11' // Partial Structs, unsigned types, primitive arrays
-    implementation 'net.aquadc.properties:android-bindings:0.0.11' // Android-only AAR package
+    implementation 'net.aquadc.properties:extended-persistence:0.0.11' // partial structs, tuples, either, unsigned, primitive[], token transforms
+    implementation 'net.aquadc.properties:android-bindings:0.0.11' // AAR for Android(x): View bindings, Parcel, JsonReader as TokenStream, SharedPreferences as Struct, Handler as Executor
 }
 ```
 
@@ -44,41 +44,42 @@ A `Property` provides functionality similar to
 or `LiveData` in Android Arch.
 
 * Simple and easy-to-use
-* Lightweight: core + android-bindings are <1000 methods, also highly optimized for runtime
+* Lightweight: persistence + properties + android-bindings define <1500 methods, many of them are `inline fun`s
 * Extensible: not confined to Android, JavaFX or whatever
-* Contains both single-threaded and concurrent (lock-free) implementations
-* Provides MVVM / data-binding for Android and JavaFX
-* Sweeter with [Anko-layouts](https://github.com/Kotlin/anko#anko-layouts-wiki) 
+* Single-threaded and concurrent (lock-free) properties are supported
+* Ready to use MVVM/data-binding for Android and JavaFX
+* Sweet with View DSLs like
+  [Splitties](https://github.com/LouisCAD/Splitties/) 
   and [TornadoFX](https://github.com/edvin/tornadofx)
-* Depends only on Kotlin-stdlib and [Kotlin-MPP Collection utils](https://github.com/Miha-x64/Kotlin-MPP_Collection_utils) for overheadless `EnumSet`s
+* Depends only on Kotlin-stdlib and
+  [Kotlin-MPP Collection utils](https://github.com/Miha-x64/Kotlin-MPP_Collection_utils) for overheadless `EnumSet`s
 * [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
-   — problem statement, explanations
+  about properties: initial problem statement and some explanations
 
 ## Alternatives
 
-* [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT) — similar to this,
+* [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT): similar to this,
   Observable-based, Android-only, depends on kotlinx.coroutines
 
-* [BennyWang/KBinding](https://github.com/BennyWang/KBinding) (no license) —
-  Android-only, based on annotation processing, depends on RXJava 1.3
+* [BennyWang/KBinding](https://github.com/BennyWang/KBinding) (no license):
+   Android-only, uses annotation processing, depends on RXJava 1.3
 
-* [LewisRhine/AnkoDataBindingTest](https://github.com/LewisRhine/AnkoDataBindingTest)
-   (no license) 
-   — theoretical solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
-   article, Android-only, depends on Anko and AppCompat
+* [LewisRhine/AnkoDataBindingTest](https://github.com/LewisRhine/AnkoDataBindingTest) (no license):
+  proof of concept solution from [Data binding in Anko](https://medium.com/lewisrhine/data-binding-in-anko-77cd11408cf9)
+  article, Android-only, depends on Anko and AppCompat
 
-* [lightningkite/kotlin-anko-observable](https://github.com/lightningkite/kotlin-anko-observable) (no license),
+* [lightningkite/kotlin-anko-observable](https://github.com/lightningkite/kotlin-anko-observable) (no license):
   Android-only,
   supports easy creation of RecyclerView adapters along with data-binding,
   based on [lightningkite/kotlin-anko](https://github.com/lightningkite/kotlin-anko) (depends on Anko and AppCompat)
   and [lightningkite/kotlin-observable](https://github.com/lightningkite/kotlin-observable)
   (`ObservableProperty<T>` and `ObservableList<T>`);
-  [UnknownJoe796/kotlin-components-starter](https://github.com/UnknownJoe796/kotlin-components-starter)
+  [UnknownJoe796/kotlin-components-starter](https://github.com/UnknownJoe796/kotlin-components-starter) (MIT)
 
-* [MarcinMoskala/KotlinAndroidViewBindings](https://github.com/MarcinMoskala/KotlinAndroidViewBindings)
-  — property delegation to view by id
+* [MarcinMoskala/KotlinAndroidViewBindings](https://github.com/MarcinMoskala/KotlinAndroidViewBindings):
+  delegates properties of Views-by-id to to Kotlin properties
 
-## Sample
+## Properties sample
 
 ```kt
 val prop: MutableProperty<Int> = propertyOf(1)
@@ -165,7 +166,7 @@ Common ViewModel:
 
 ```kt
 class MainVm(
-        // 'user' is backed by whatever data source — in-memory, database, file, ...
+        // 'user' is backed by whatever data source — in-memory, database, SharedPreferences, …
         private val user: TransactionalPropertyStruct<User>
 ) : PersistableProperties {
 
@@ -179,23 +180,29 @@ class MainVm(
     val nameProp get() = editableUser prop User.Name
     val surnameProp get() = editableUser prop User.Surname
 
-    val buttonClickedProp = propertyOf(false).also {
+    // handle actions
+
+    val buttonClickedProp = propertyOf(false).clearEachAnd {
         // reset flag and perform action — patch 'user' with values from memory
-        it.clearEachAnd {
-            user.transaction { t ->
-                t.setFrom(editableUser, User.Email + User.Name + User.Surname)
-            }
+        user.transaction { t ->
+            t.setFrom(editableUser, User.Email + User.Name + User.Surname)
         }
     }
 
     // preserve/restore state of this ViewModel (for Android)
     override fun saveOrRestore(io: PropertyIo) {
+        /*
+        When saving state, property values are written to io which is PropertyOutput.
+        When restoring, property values are assigned from io which is PropertyInput.
+        
+        Infix function calls:
+        */
         io x emailProp
         io x nameProp
         io x surnameProp
     }
 
-    // a feedback for user actions
+    // some feedback for user actions
 
     val emailValidProp = emailProp.map { it.contains("@") }
 
@@ -218,7 +225,7 @@ without declaring symmetrical, bolierplate and error-prone `writeToParcel` and `
 
 ```kt
 override fun saveOrRestore(io: PropertyIo) {
-    // infix function calls
+    
     io x prop1
     io x prop2
     io x prop3
@@ -273,10 +280,10 @@ observablePlayer[Player.Score] = 20
 `SharedPreferencesStruct` (Android) has very similar interface, but can be mutated only inside a transaction:
 ```kt
 // this will copy data from player into the given SharedPreferences instance
-val storedPlayer = SharedPreferencesStruct(player, getSharedPreferences(...))
+val storedPlayer = SharedPreferencesStruct(player, getSharedPreferences(…))
 val scoreProp = storedPlayer prop Player.Score
 val score = storedPlayer[Player.Score]
-// ans this is different:
+// and this is different:
 storedPlayer.transaction { p ->
     p[Score] = 100500
 }
@@ -284,16 +291,22 @@ storedPlayer.transaction { p ->
 
 There is JSON support built on top of `android.util.JsonReader/Writer`:
 ```kt
-val jsonPlayer = JsonReader(StringReader(
-        """{"name":"Hank","surname":"Rearden"}"""
-)).read(Player)
+// reading
+val jsonPlayer = """{"name":"Hank","surname":"Rearden"}"""
+        .reader() // StringReader
+        .json() // JsonReader
+        .tokens() // TokenStream
+        .readAs(Player) // StructSnapshot<Player>
 
-val jsonPlayers = JsonReader(StringReader(
-        """[ {"name":"Hank","surname":"Rearden"}, ... ]"""
-)).readListOf(Player)
+val jsonPlayers = """[ {"name":"Hank","surname":"Rearden"}, ... ]"""
+        .reader().json().tokens().readListOf(Player)
 
-JsonWriter(...).write(value)
+// writing
+type.tokensFrom(value).writeTo(JsonWriter(…))
 ```
+
+`TokenStream` abstraction is helpful for changing schema of provided data (instead of using 'mappers'), see
+[sample transform usage](https://github.com/Miha-x64/Lychee/blob/master/android-bindings/src/test/kotlin/promo.kt#L61-L69).
 
 Also, [SQLite support](/sql/) is currently being developed.
 
@@ -306,6 +319,7 @@ Also, [SQLite support](/sql/) is currently being developed.
 -dontwarn android.support.annotation.**
 -dontwarn android.support.v7.widget.**
 -dontwarn android.support.design.widget.**
+-dontwart androidx.**
 -dontwarn okio.**
 
 # required by EnumSet
@@ -338,7 +352,7 @@ Also, [SQLite support](/sql/) is currently being developed.
 
 #### What's the purpose of this library?
 
-The main purpose is MVVM/DataBinding, especially in Android,
+The main purpose is MVVM/DataBinding, especially in Android
 where preserving ViewModel state may be quirky.
 ViewModel/ViewState can be declared as a set of mappings,
 where the values of some properties depend on some other ones.
@@ -353,13 +367,13 @@ where the values of some properties depend on some other ones.
   
 * `android.util.Property`
 
-  A very simple, single-threaded, non-observable thing for animation. Has `ReflectiveProperty` subclass,
-  which is close to JavaFX concept (every property is a `Property`), but reflective and thus sad.
+  A very trivial thing for animation. Has `ReflectiveProperty` subclass which is close to JavaFX concept
+  (every property is a `Property`) not observable and reflective (and thus sad).
 
 * `io.reactivex.BehaviorSubject`
   
   Has no read-only interface. You can either expose an `Observable` (without `get`) or a `BehaviorSubject` (with `get` and `set`).
-  Has no single-threaded version.
+  Has no single-threaded version. Part of non-modular, poorly designed RxJava.
 
 * `LiveData`
   
@@ -368,8 +382,8 @@ where the values of some properties depend on some other ones.
 
 * XML data-binding
 
-  Uses XML layouts (inflexible) and code generation (sucks in many ways).
-  Ties layouts to hard-coded Java classes, which kills XML reusability.
+  Uses XML layouts (inflexible) and code generation (sucks in many ways, still breaks regularly).
+  Ties layouts to hard-coded Java classes thus killing XML reusability.
 
 #### Why version is 0.0.x?
 
@@ -381,7 +395,10 @@ This means that it can be used in production apps (migrations are easy), but not
 `1.0.0` is planned after dropping workarounds for
   [KT-24981: @JvmSynthetic for classes](https://youtrack.jetbrains.com/issue/KT-24981),
   [KT-24067: type checking and casting of multi-arity function objects](https://youtrack.jetbrains.com/issue/KT-24067),
-  [KT-33224: overloads, @JvmName, inline class parameter](https://youtrack.jetbrains.com/issue/KT-33224), etc.
+  and when `inline` classes come more stable (e. g.
+    [KT-31431 JVM backend failure on inline functions of inline classes](https://youtrack.jetbrains.com/issue/KT-31431),
+    [KT-33224: @JvmName for function with inline class parameter](https://youtrack.jetbrains.com/issue/KT-33224)
+  ).
 
 #### Where and how should I dispose subscriptions?
 
