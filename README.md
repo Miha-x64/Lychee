@@ -45,7 +45,8 @@ or `LiveData` in Android Arch.
 
 * Simple and easy-to-use
 * Lightweight: persistence + properties + android-bindings define <1500 methods, many of them are `inline fun`s
-* Extensible: not confined to Android, JavaFX or whatever
+* zero reflection <small>([the only use of kotlin.reflect](https://github.com/Miha-x64/Lychee/blob/ccea2e165f0da5dbaedac2d3562c4a843614241f/properties/src/main/kotlin/net/aquadc/properties/operatorsInline.kt#L168-L179) is required if you delegate your Kotlin property to a Lychee `Property` and [eliminated by Kotlin 1.3.70+ compiler](https://youtrack.jetbrains.com/issue/KT-14513))</small>
+* Extensible: not confined to Android, JavaFX or whatever (want MPP? File an issue with sample use-cases)
 * Single-threaded and concurrent (lock-free) properties are supported
 * Ready to use MVVM/data-binding for Android and JavaFX
 * Sweet with View DSLs like
@@ -97,39 +98,39 @@ assertEquals(false, fals.value)
 
 ## Sample usage in GUI application
 
-Anko layout for Android:
+Android layout ([Splitties Views DSL](https://github.com/LouisCAD/Splitties/tree/master/modules/views-dsl)):
 
 ```kt
-verticalLayout {
+setContentView(verticalLayout {
     padding = dip(16)
 
-    editText {
+    addView(editText {
         id = 1 // let view save its state, focus, etc
         hint = "Email"
         bindTextBidirectionally(vm.emailProp)
         bindErrorMessageTo(vm.emailValidProp.map { if (it) null else "E-mail is invalid" })
-    }
+    })
 
-    editText {
+    addView(editText {
         id = 2
         hint = "Name"
         bindTextBidirectionally(vm.nameProp)
-    }
+    })
 
-    editText {
+    addView(editText {
         id = 3
         hint = "Surname"
         bindTextBidirectionally(vm.surnameProp)
-    }
+    })
 
-    button {
+    addView(button {
         bindEnabledTo(vm.buttonEnabledProp)
-        bindTextTo(vm.buttonTextProp)
+        bindTextTo(vm.buttonEnabledProp.map { if (it) "Save changes" else "Nothing changed" })
         setWhenClicked(vm.buttonClickedProp)
         // ^ set flag on action
-    }
+    })
 
-}
+}.wrapInScrollView())
 ```
 
 JavaFx layout (using JFoenix):
@@ -389,7 +390,9 @@ where the values of some properties depend on some other ones.
 
 1.x versions mean stable and compatible API/ABI.
 Lychee interface is not volatile, but is a subject to change, move, rename.
-This means that it can be used in production apps (migrations are easy), but not in libraries.
+This means that it can be used in production apps (migrations are easy), but libraries should update as fast as Lychee does.
+If your library does (or going to) depend on Lychee, file an issue:
+I will take into account which APIs do you use and maybe add a link to your library.
 
 `0.1.0` version is to be released after adding mutational and [linearization](https://github.com/Kotlin/kotlinx-lincheck) tests,
 `1.0.0` is planned after dropping workarounds for
