@@ -41,7 +41,7 @@ open class QueryBuilderTests {
                 insert(TableWithEmbed, WithNested.build {
                     it[OwnField] = i.toString()
                     it[Nested] = SchWithId.build {
-                        it[Id] = i.toLong()
+                        it[Id] = i.toInt()
                         it[Value] = i.toString()
                         it[MutValue] = i.toString()
                     }
@@ -54,7 +54,7 @@ open class QueryBuilderTests {
             val list = session[TableWithEmbed]
                     .select(WithNested.Nested / SchWithId.Value isIn arrayOf("1", "3", "5", "7")).value
             assertEquals(listOf("1", "3", "5", "7"), list.map(WithNested.OwnField))
-            assertEquals(listOf(1L, 3L, 5L, 7L), list.map(WithNested.Nested / SchWithId.Id))
+            assertEquals(listOf(1, 3, 5, 7), list.map(WithNested.Nested / SchWithId.Id))
             assertEquals(listOf("1", "3", "5", "7"), list.map(WithNested.Nested / SchWithId.Value))
             assertEquals(listOf("1", "3", "5", "7"), list.map(WithNested.Nested / SchWithId.MutValue))
             assertEquals(listOf(1L, 3L, 5L, 7L), list.map(WithNested.OtherOwnField))

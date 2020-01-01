@@ -28,13 +28,13 @@ class EmbedUtilsTest {
             WithNested.build {
                 it[OwnField] = "123"
                 it[Nested] = SchWithId.build {
-                    it[Id] = 456L
+                    it[Id] = 456
                     it[Value] = "789"
                     it[MutValue] = "ABC"
                 }
                 it[OtherOwnField] = 0xDEFL
             },
-            arrayOf("123", 456L, "789", "ABC", 0xDEFL)
+            arrayOf("123", 456, "789", "ABC", 0xDEFL)
     )
 
     @Test fun goDeeper() = assertWorks(
@@ -45,7 +45,7 @@ class EmbedUtilsTest {
                         it[Nested] = WithNested.build {
                             it[OwnField] = "23"
                             it[Nested] = SchWithId.build {
-                                it[Id] = 45L
+                                it[Id] = 45
                                 it[Value] = "67"
                                 it[MutValue] = "89"
                             }
@@ -55,7 +55,7 @@ class EmbedUtilsTest {
                     WithNullableNested.build {
                         it[OwnField] = "EF"
                         it[Nested] = SchWithId.build {
-                            it[Id] = "GH".toLong(36)
+                            it[Id] = "GH".toInt(36)
                             it[Value] = "IJ"
                             it[MutValue] = "KL"
                         }
@@ -68,10 +68,10 @@ class EmbedUtilsTest {
                     })
             ),
             arrayOf(
-                    "01", "23", 45L, "67", "89", 0xABL,
+                    "01", "23", 45, "67", "89", 0xABL,
                     "EF",
                     7L, // fieldSet
-                    "GH".toLong(36), "IJ", "KL", "MN".toLong(36),
+                    "GH".toInt(36), "IJ", "KL", "MN".toLong(36),
                     2L, // fieldSet
                     null, // First
                     7L, // fieldSet
@@ -98,7 +98,7 @@ class EmbedUtilsTest {
             WithNullableNested.build {
                 it[OwnField] = "wat"
                 it[Nested] = SchWithId.build {
-                    it[Id] = 123L
+                    it[Id] = 123
                     it[Value] = "456"
                     it[MutValue] = "789"
                 }
@@ -106,7 +106,7 @@ class EmbedUtilsTest {
             },
             arrayOf(
                     "wat",
-                    7L, 123L, "456", "789", // fieldSet, 3 fields
+                    7L, 123, "456", "789", // fieldSet, 3 fields
                     0xABCL
             )
     )
@@ -127,12 +127,12 @@ class EmbedUtilsTest {
             TableWithPartialEmbed,
             WithPartialNested.build {
                 it[Nested] = SchWithId.buildPartial {
-                    it[Id] = 123L
+                    it[Id] = 123
                 }
                 it[OwnField] = "zzz"
             },
             arrayOf(
-                    1L, 123L, null, null, // fieldSet, 3 fields
+                    1L, 123, null, null, // fieldSet, 3 fields
                     "zzz"
             )
     )
@@ -169,13 +169,13 @@ class EmbedUtilsTest {
             TableWithPartialEmbed,
             WithPartialNested.build {
                 it[Nested] = SchWithId.buildPartial {
-                    it[Id] = 111L
+                    it[Id] = 111
                     it[Value] = "222"
                 }
                 it[OwnField] = "xxx"
             },
             arrayOf(
-                    3L, 111L, "222", null, // fieldSet, 3 fields
+                    3L, 111, "222", null, // fieldSet, 3 fields
                     "xxx"
             )
     )
@@ -184,13 +184,13 @@ class EmbedUtilsTest {
             TableWithPartialEmbed,
             WithPartialNested.build {
                 it[Nested] = SchWithId.buildPartial {
-                    it[Id] = 111L
+                    it[Id] = 111
                     it[MutValue] = "222"
                 }
                 it[OwnField] = "xxx"
             },
             arrayOf(
-                    5L, 111L, null, "222", // fieldSet, 3 fields
+                    5L, 111, null, "222", // fieldSet, 3 fields
                     "xxx"
             )
     )
@@ -214,19 +214,19 @@ class EmbedUtilsTest {
             TableWithPartialEmbed,
             WithPartialNested.build {
                 it[Nested] = SchWithId.buildPartial {
-                    it[Id] = 111L
+                    it[Id] = 111
                     it[Value] = "222"
                     it[MutValue] = "333"
                 }
                 it[OwnField] = "xxx"
             },
             arrayOf(
-                    7L, 111L, "222", "333", // fieldSet, 3 fields
+                    7L, 111, "222", "333", // fieldSet, 3 fields
                     "xxx"
             )
     )
 
-    private fun <SCH : Schema<SCH>> assertWorks(table: SimpleTable<SCH, Long>, value: Struct<SCH>, flatExpect: Array<out Any?>) {
+    private fun <SCH : Schema<SCH>> assertWorks(table: SimpleTable<SCH, *>, value: Struct<SCH>, flatExpect: Array<out Any?>) {
         val dest = arrayOfNulls<Any>(table.columnsMappedToFields.size)
         flatten(table.recipe, dest, value, 0, 0)
         assertArrayEquals(flatExpect, dest)

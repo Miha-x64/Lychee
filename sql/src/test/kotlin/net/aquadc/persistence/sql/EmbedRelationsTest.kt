@@ -241,7 +241,7 @@ open class EmbedRelationsTest {
 
             assertSame(rec[WithPartialNested.Nested], rec[WithPartialNested.Nested])
             assertEquals(SchWithId.Value.asFieldSet(), rec[WithPartialNested.Nested].fields)
-            assertEquals(-1L, rec[WithPartialNested.Nested].getOrDefault(SchWithId.Id, -1L))
+            assertEquals(-1, rec[WithPartialNested.Nested].getOrDefault(SchWithId.Id, -1))
             assertEquals("I'm another String!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.Value, ""))
             assertEquals("!!!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.MutValue, "!!!"))
             assertEquals("I'm a String!", rec[WithPartialNested.OwnField])
@@ -250,7 +250,7 @@ open class EmbedRelationsTest {
         }
         assertSame(rec[WithPartialNested.Nested], rec[WithPartialNested.Nested])
         assertEquals(SchWithId.Value.asFieldSet(), rec[WithPartialNested.Nested].fields)
-        assertEquals(-1L, rec[WithPartialNested.Nested].getOrDefault(SchWithId.Id, -1L))
+        assertEquals(-1, rec[WithPartialNested.Nested].getOrDefault(SchWithId.Id, -1))
         assertEquals("I'm another String!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.Value, ""))
         assertEquals("!!!", rec[WithPartialNested.Nested].getOrDefault(SchWithId.MutValue, "!!!"))
         assertEquals("I'm a String!", rec[WithPartialNested.OwnField])
@@ -267,7 +267,7 @@ open class EmbedRelationsTest {
 
     @Test fun `embed nullable partial`() {
         val nest2 = SchWithId.build {
-            it[Id] = 111L
+            it[Id] = 111
             it[Value] = "yyy"
             it[MutValue] = "zzz"
         }

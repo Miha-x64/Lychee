@@ -54,7 +54,23 @@ class SqliteSession(
             }
             val id = statement.executeInsert()
             check(id != -1L)
-            return id as ID
+            return table.idColType.let {
+                it.load(when (it.kind) {
+                    DataType.Simple.Kind.Bool -> throw IllegalArgumentException() // O RLY?! Boolean primary key?..
+                    DataType.Simple.Kind.I8 -> id.chkIn(Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt(), Byte::class.java).toByte()
+                    DataType.Simple.Kind.I16 -> id.chkIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt(), Short::class.java).toShort()
+                    DataType.Simple.Kind.I32 -> id.chkIn(Int.MIN_VALUE, Int.MAX_VALUE, Int::class.java).toInt()
+                    DataType.Simple.Kind.I64 -> id
+                    DataType.Simple.Kind.F32 -> throw IllegalArgumentException() // O RLY?! Floating primary key?..
+                    DataType.Simple.Kind.F64 -> throw IllegalArgumentException()
+                    DataType.Simple.Kind.Str -> id.toString()
+                    DataType.Simple.Kind.Blob -> throw IllegalArgumentException() // Possible but unclear what do you want
+                })
+            }
+        }
+        private fun Long.chkIn(min: Int, max: Int, klass: Class<*>): Long {
+            check(this in min..max) { "value $this cannot be fit into ${klass.simpleName}" }
+            return this
         }
 
         private fun <SCH : Schema<SCH>, ID : IdBound> updateStatementWLocked(table: Table<SCH, ID, *>, cols: Any): SQLiteStatement =

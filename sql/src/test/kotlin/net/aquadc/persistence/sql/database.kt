@@ -19,10 +19,10 @@ object SomeSchema : Schema<SomeSchema>() {
     val B = "b" let int
     val C = "c" mut long
 }
-val SomeTable = tableOf(SomeSchema, "some_table", "_id", long)
+val SomeTable = tableOf(SomeSchema, "some_table", "_id", int)
 
 object SchWithId : Schema<SchWithId>() {
-    val Id = "_id" let long
+    val Id = "_id" let int
     val Value = "value" let string
     val MutValue = "mutValue".mut(string, default = "")
 }
