@@ -92,7 +92,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
 
         companion object {
             operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> Table<S, ID, R>.invoke(
-                    path: Lens<S, Record<S, ID>, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, *, *>
+                    path: Lens<S, Record<S, ID>, Record<S, ID>, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, Record<FS, *>, *, *>
             ): Nothing = TODO() // ToMany<S, ID, FS, R, FID, FR, C> = ToMany(this, path, foreignTable, joinColumn)
         }
     }

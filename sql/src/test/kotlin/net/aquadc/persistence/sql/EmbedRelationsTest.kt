@@ -11,7 +11,6 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.copy
-import net.aquadc.persistence.struct.ofStruct
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.distinct
 import net.aquadc.properties.function.Objectz
@@ -134,8 +133,8 @@ open class EmbedRelationsTest {
 
         var called = 0
         rec.prop(DeeplyNested.Nested)
-                .map(WithNested.Nested.ofStruct())
-                .map(SchWithId.MutValue.ofStruct())
+                .map(WithNested.Nested)
+                .map(SchWithId.MutValue)
                 .distinct(dropIfValues = Objectz.Same)
                 .addUnconfinedChangeListener { old, new ->
                     assertEquals("hey", old)

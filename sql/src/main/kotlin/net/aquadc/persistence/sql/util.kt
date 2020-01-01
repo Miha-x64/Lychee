@@ -48,8 +48,8 @@ internal inline val DataType<*>.erased
     get() = this as DataType<Any?>
 
 @Suppress("UPPER_BOUND_VIOLATED")
-internal inline val <SCH : Schema<SCH>, STR : PartialStruct<SCH>, T> Lens<SCH, STR, T, *>.erased
-    get() = this as Lens<Schema<*>, PartialStruct<*>?, Any?, DataType<Any?>>
+internal inline val <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>, T> Lens<SCH, PRT, STR, T, *>.erased
+    get() = this as Lens<Schema<*>, PartialStruct<*>?, Struct<*>?, Any?, DataType<Any?>>
 
 internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.Simple<T>) -> R): R =
         when (this) {

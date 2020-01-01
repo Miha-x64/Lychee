@@ -179,9 +179,9 @@ class JdbcSession(
                 table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
         ): ColCond<SCH, ID> {
             val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
-                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, ID, *>, " = ?", value)
+                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *>, " = ?", value)
             }
-            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, ID, *> // unchecked: we don't mind actual types
+            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *> // unchecked: we don't mind actual types
             condition.valueOrValues = value
             return condition
         }

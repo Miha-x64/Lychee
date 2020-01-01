@@ -7,7 +7,6 @@ import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
-import net.aquadc.persistence.struct.ofStruct
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
@@ -69,7 +68,7 @@ class Lenses {
         val struct = NestedPartial.build {
             it[Item] = SomeSchema.buildPartial {  }
         }
-        val value = lens.ofStruct()(struct)
+        val value = lens(struct)
         assertEquals(null, value)
     }
 

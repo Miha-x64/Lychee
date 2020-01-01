@@ -344,8 +344,8 @@ private constructor(
     val columns: Array<out StoredNamedLens<SCH, *, *>>
         get() = _columns.value
 
-    val pkColumn: NamedLens<SCH, REC, ID, out DataType.Simple<ID>>
-        get() = columns[0] as NamedLens<SCH, REC, ID, out DataType.Simple<ID>>
+    val pkColumn: NamedLens<SCH, REC, REC, ID, out DataType.Simple<ID>>
+        get() = columns[0] as NamedLens<SCH, REC, REC, ID, out DataType.Simple<ID>>
 
     internal val recipe: Array<out Nesting>
         get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }
@@ -373,7 +373,7 @@ private constructor(
                     }
                 }.also { _columnIndices = it }
 
-    internal fun delegateFor(lens: Lens<SCH, REC, *, *>): SqlPropertyDelegate<SCH, ID> {
+    internal fun delegateFor(lens: Lens<SCH, REC, REC, *, *>): SqlPropertyDelegate<SCH, ID> {
         val delegates = _delegates ?: _columns.value.let { _ /* unwrap lazy */ -> _delegates!! }
         return delegates[lens] ?: simpleDelegate as SqlPropertyDelegate<SCH, ID>
     }

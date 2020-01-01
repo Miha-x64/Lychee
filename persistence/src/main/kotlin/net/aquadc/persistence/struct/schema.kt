@@ -179,7 +179,7 @@ interface StoredLens<SCH : Schema<SCH>, T, DT : DataType<T>> {
     val type: DT
 
     val size: Int
-    operator fun get(index: Int): NamedLens<*, *, *, *> // any lens consists of small lenses, which are always named
+    operator fun get(index: Int): NamedLens<*, *, *, *, *> // any lens consists of small lenses, which are always named
 
 }
 
@@ -190,17 +190,29 @@ inline val <T> StoredLens<*, T, *>.approxType: DataType<T>
 
 /**
  * A field on a struct (`someStruct\[Field]`), potentially nested (`someStruct\[F1]\[F2]\[F3]`).
- * [invoke] function must return [T] if input is not `null` and contains the requested field,
- * i. e. it must be safe to cast `Lens<SCH, PartialStruct<SCH>?, T>` to `(Struct<SCH>) -> T`
  */
-interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<T>> : StoredLens<SCH, T, DT>, (STR) -> T? {
+interface Lens<SCH : Schema<SCH>,
+        in PRT : PartialStruct<SCH>, in STR : Struct<SCH>,
+        T, DT : DataType<T>
+        > : StoredLens<SCH, T, DT>, (STR) -> T {
 
     /**
-     * Checks whether [struct] has a value which can be returned by [invoke].
-     * `true` means that [invoke] will return [T], not `T?`
+     * Checks whether [struct] has a value which can be returned by [ofPartial].
+     * `true` means that [ofPartial] will return [T], not `T?`
      * always `true` for [Struct]s
      */
-    fun hasValue(struct: STR): Boolean
+    fun hasValue(struct: PRT): Boolean
+
+    /**
+     * Get value of this lens on the given [partial], or null, if absent.
+     */
+    fun ofPartial(partial: PRT): T?
+
+    /**
+     * Get value of this lens on the given [struct].
+     */
+    override fun invoke(struct: STR): T
+    // re-abstracted for KDoc
 
 }
 
@@ -208,13 +220,14 @@ interface Lens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<
  * Returns a function which is a special case of this [Lens] for non-partial [Struct]s
  * which implies non-nullable [T] as a return type.
  */
-fun <SCH : Schema<SCH>, T> Lens<SCH, PartialStruct<SCH>, T, *>.ofStruct(): (Struct<SCH>) -> T =
-        this as (Struct<SCH>) -> T
+@Deprecated("not needed anymore", ReplaceWith("this"))
+fun <SCH : Schema<SCH>, T> Lens<SCH, PartialStruct<SCH>, Struct<SCH>, T, *>.ofStruct(): (Struct<SCH>) -> T =
+        this
 
 
 // Damn, dear Kotlin, I just want to return an intersection-type
 interface StoredNamedLens<SCH : Schema<SCH>, T, DT : DataType<T>> : StoredLens<SCH, T, DT>, Named
-interface NamedLens<SCH : Schema<SCH>, in STR : PartialStruct<SCH>, T, DT : DataType<T>> : StoredNamedLens<SCH, T, DT>, Lens<SCH, STR, T, DT>
+interface NamedLens<SCH : Schema<SCH>, in PRT : PartialStruct<SCH>, in STR : Struct<SCH>, T, DT : DataType<T>> : StoredNamedLens<SCH, T, DT>, Lens<SCH, PRT, STR, T, DT>
 
 /**
  * Struct field is a single key-value mapping. FieldDef represents a key with name and type.
@@ -270,7 +283,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
         @JvmField val ordinal: Byte,
 
         default: T
-) : NamedLens<SCH, PartialStruct<SCH>, T, DT> {
+) : NamedLens<SCH, PartialStruct<SCH>, Struct<SCH>, T, DT> {
 
     init {
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
@@ -287,16 +300,16 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
     override fun hasValue(struct: PartialStruct<SCH>): Boolean =
             this in struct.fields
 
-    /**
-     * Returns value of this field for the given [struct], or `null`, if it is absent.
-     */
-    override fun invoke(struct: PartialStruct<SCH>): T? =
-            if (this in struct.fields) struct.getOrThrow(this)
+    override fun ofPartial(partial: PartialStruct<SCH>): T? =
+            if (this in partial.fields) partial.getOrThrow(this)
             else null
+
+    override fun invoke(struct: Struct<SCH>): T =
+            struct[this]
 
     override val size: Int get() = 1
 
-    override fun get(index: Int): NamedLens<*, *, *, *> =
+    override fun get(index: Int): NamedLens<*, *, *, *, *> =
             if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
 
     override fun hashCode(): Int =
