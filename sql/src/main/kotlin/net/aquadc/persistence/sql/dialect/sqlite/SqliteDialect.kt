@@ -108,7 +108,7 @@ object SqliteDialect : Dialect {
     }
 
     override fun createTable(table: Table<*, *, *>): String {
-        val sb = StringBuilder("CREATE TABLE ").append(table.name).append(" (")
+        val sb = StringBuilder("CREATE TABLE ").appendName(table.name).append(" (")
         table.columns.forEach { col ->
             sb.appendName(col.name).append(' ').appendNameOf(col.type)
             if (col is PkLens<*, *> || col === table.pkField)
