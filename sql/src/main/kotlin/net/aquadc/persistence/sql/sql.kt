@@ -131,10 +131,6 @@ interface Transaction : AutoCloseable {
     // TODO insert(Iterator)
     // TODO emulate slow storage!
 
-    @Deprecated("this cannot be done safely, with respect to mutability", ReplaceWith("insert(table, data)"), DeprecationLevel.ERROR) // TODO find great replacement
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> replace(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC =
-            insert(table, data)
-
     fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
     // TODO: update where
 
@@ -215,11 +211,6 @@ private constructor(
 // TODO: [unique] indices https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/greendao-api/src/main/java/org/greenrobot/greendao/annotation/Index.java
 // TODO: auto increment
 ) {
-
-    @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
-            ReplaceWith("Table(schema, name, idColName, idColType)"), DeprecationLevel.ERROR)
-    constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) :
-            this(schema, name, idColName, idColType, null)
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) :
             this(schema, name, idColName, idColType, null)
@@ -429,10 +420,6 @@ private constructor(
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
  */
 open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<SCH, ID>> {
-
-    @Deprecated("this constructor uses Javanese order for id col — 'type name', use Kotlinese 'name type'",
-            ReplaceWith("SimpleTable(schema, name, idColName, idColType)"), DeprecationLevel.ERROR)
-    constructor(schema: SCH, name: String, idColType: DataType.Simple<ID>, idColName: String) : super(schema, name, idColName, idColType)
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) : super(schema, name, idColName, idColType)
 

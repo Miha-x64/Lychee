@@ -49,12 +49,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
     private val _immutableFields =
             lazy(LazyFields(3) as () -> Array<out FieldDef.Immutable<SELF, *, *>>)
 
-    /**
-     * Gets called before this fully initialized struct gets used for the first time.
-     */
-    @Deprecated("looks useless", level = DeprecationLevel.ERROR)
-    protected open fun beforeFreeze(nameSet: Set<String>, fields: List<FieldDef<SELF, *, *>>) { }
-
     @JvmSynthetic internal fun tmpFields() =
             tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 

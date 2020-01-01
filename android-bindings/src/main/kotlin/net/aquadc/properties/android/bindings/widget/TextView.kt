@@ -25,14 +25,6 @@ inline fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
 /**
  * Binds text to [textResProperty] via [TextView.setText].
  */
-@Deprecated("Renamed", ReplaceWith("this.bindTextResTo(textResProperty)", "net.aquadc.properties.android.bindings.widget.bindTextResTo"), DeprecationLevel.ERROR)
-@JvmName("bindTextResTo_deprecated") @Suppress("UNCHECKED_CAST")
-inline fun TextView.bindTextTo(textResProperty: Property<Int>): Unit =
-        bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
-
-/**
- * Binds text to [textResProperty] via [TextView.setText].
- */
 @Suppress("UNCHECKED_CAST")
 inline fun TextView.bindTextResTo(textResProperty: Property<Int>): Unit =
         bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
@@ -123,14 +115,6 @@ fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
  */
 inline fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
         bindViewTo(hintProperty, SetHint)
-
-/**
- * Binds hint to [hintResProperty] via [TextView.setHint].
- */
-@JvmName("bindHintResTo_deprecated")
-@Deprecated("Renamed", ReplaceWith("this.bindHintResTo(hintResProperty)", "net.aquadc.properties.android.bindings.widget.bindHintResTo"), DeprecationLevel.ERROR)
-inline fun TextView.bindHintTo(hintResProperty: Property<Int>): Unit =
-        bindViewTo(hintResProperty, SetHint)
 
 /**
  * Binds hint to [hintResProperty] via [TextView.setHint].

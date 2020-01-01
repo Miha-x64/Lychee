@@ -127,13 +127,6 @@ fun <D, T> BetterDataInput<D>.read(input: D, type: DataType<T>): T =
         this.readVisitor<T>().match(type, input, null)
 
 
-/**
- * Reads a value of [this] type from [input] with help of [reader].
- */
-@Deprecated("public version has another signature", ReplaceWith("reader.read<D, T>(input, this)"), DeprecationLevel.ERROR)
-private fun <D, T> DataType<T>.read(reader: BetterDataInput<D>, input: D): T =
-        reader.readVisitor<T>().match(this, input, null)
-
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 class StreamReaderVisitor<D, T>(
         private val input: BetterDataInput<D>

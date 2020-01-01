@@ -16,22 +16,8 @@ import net.aquadc.persistence.type.nullable
 /**
  * String concatenation factory to build names for nested lenses.
  */
-abstract class NamingConvention {
-
-    abstract fun concatNames(outer: String, nested: String): String
-
-    @JvmName("0") @Deprecated("not perfectly correct and does not look useful", level = DeprecationLevel.ERROR)
-    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, U> NamedLens<TS, TR, out PartialStruct<US>?, *>.div(
-            nested: NamedLens<US, PartialStruct<US>, U, *>
-    ): NamedLens<TS, TR, U?, *> =
-            Telescope(concatNames(this.name, nested.name), this, nested)
-
-    @JvmName("1") @Deprecated("not perfectly correct and does not look useful", level = DeprecationLevel.ERROR)
-    inline operator fun <TS : Schema<TS>, TR : PartialStruct<TS>, US : Schema<US>, U> NamedLens<TS, TR, out Struct<US>, *>.div(
-            nested: NamedLens<US, PartialStruct<US>, U, *>
-    ): NamedLens<TS, TR, U, *> =
-            Telescope(concatNames(this.name, nested.name), this, nested)
-
+interface NamingConvention {
+    fun concatNames(outer: String, nested: String): String
 }
 
 
@@ -150,7 +136,7 @@ internal fun <SCH : Schema<SCH>, STR : PartialStruct<SCH>> NamingConvention?.con
 /**
  * Generates lenses whose names are concatenated with snake_case
  */
-object SnakeCase : NamingConvention() {
+object SnakeCase : NamingConvention {
 
     override fun concatNames(outer: String, nested: String): String = buildString(outer.length + 1 + nested.length) {
         append(outer).append('_').append(nested)
@@ -161,7 +147,7 @@ object SnakeCase : NamingConvention() {
 /**
  * Generates lenses whose names are concatenated with camelCase
  */
-object CamelCase : NamingConvention() {
+object CamelCase : NamingConvention {
 
     override fun concatNames(outer: String, nested: String): String = buildString(outer.length + nested.length) {
         append(outer)

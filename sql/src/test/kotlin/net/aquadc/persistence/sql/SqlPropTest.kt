@@ -143,8 +143,8 @@ open class SqlPropTest {
                 it[Value] = "zzz"
             })
         }
-        assertEquals(19L, rec.primaryKey)
-        assertEquals(19L, rec[SchWithId.Id])
+        assertEquals(19, rec.primaryKey)
+        assertEquals(19, rec[SchWithId.Id])
         assertEquals("zzz", rec[SchWithId.Value])
     }
 
