@@ -323,11 +323,6 @@ Also, [SQLite support](/sql/) is currently being developed.
 -dontwart androidx.**
 -dontwarn okio.**
 
-# required by EnumSet
--keepclassmembers enum * {
-  public static **[] values();
-}
-
 # bindings to Java(FX)
 -dontwarn net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
 -assumenosideeffects class net.aquadc.properties.executor.PlatformExecutors {

@@ -25,11 +25,6 @@
   public static final android.os.Parcelable$Creator CREATOR;
 }
 
-# required by EnumSet
--keepclassmembers enum * {
-  public static **[] values();
-}
-
 # libs with compileOnly scope
 -dontwarn android.support.annotation.**
 -dontwarn android.support.v7.widget.**

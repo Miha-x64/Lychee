@@ -2,6 +2,8 @@ package net.aquadc.persistence.android.pref
 
 import android.content.SharedPreferences
 import android.util.Base64
+import net.aquadc.collections.contains
+import net.aquadc.collections.plus
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
@@ -13,7 +15,6 @@ import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.android.assertFitsByte
 import net.aquadc.persistence.android.assertFitsShort
 import net.aquadc.properties.internal.Unset
-import java.util.EnumSet
 import java.lang.Double as JavaLangDouble
 
 
@@ -33,8 +34,7 @@ internal fun <T> DataType<T>.get(prefs: SharedPreferences, name: String, default
  * we store 'null' ourselves. If a field has String type, 'null' is stored as Boolean 'false'.
  * Otherwise 'null' is stored as a String "null".
  */
-@JvmSynthetic internal val storedAsString =
-        EnumSet.of(DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob)
+@JvmSynthetic internal val storedAsString = DataType.Simple.Kind.Str + DataType.Simple.Kind.Blob
 
 @Suppress("UNCHECKED_CAST")
 private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
