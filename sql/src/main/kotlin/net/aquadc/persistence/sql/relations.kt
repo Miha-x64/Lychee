@@ -13,52 +13,48 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
         @JvmField val path: StoredLens<S, T, *>
 ) {
 
-    /**
-     * Embed a (Partial)[Struct] of type [ET] into current table.
-     * @param S outer [Schema]
-     */
-    class Embedded<S : Schema<S>, ID : IdBound, ET> : Relation<S, ID, ET> {
-
+    @Suppress("NOTHING_TO_INLINE")
+    companion object {
+        // looks like constructor to preserve source compatibility
         /**
          * @param naming which will concat names
          * @param path a path to a value stored as a [DataType.Partial]
          * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
          */
-        constructor(naming: NamingConvention, path: StoredLens<S, ET, *>, fieldSetColName: String) :
-                this(naming, path, fieldSetColName, null)
-
+        @JvmName("embeddedNullable")
+        inline fun <S : Schema<S>, ID : IdBound, ET : Any, EDT : DataType.Nullable<ET, out DataType.Partial<ET, *>>>
+                Embedded(naming: NamingConvention, path: StoredLens<S, ET?, EDT>, fieldSetColName: String): Embedded<S, ID, ET?> =
+                Embedded<S, ID, ET?>(naming, path, fieldSetColName, null)
+        /**
+         * @param naming which will concat names
+         * @param path a path to a value stored as a [DataType.Partial]
+         * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
+         */
+        @JvmName("embeddedPartial")
+        inline fun <S : Schema<S>, ID : IdBound, ET, EDT : DataType.Partial<ET, *>>
+                Embedded(naming: NamingConvention, path: StoredLens<S, ET, EDT>, fieldSetColName: String): Embedded<S, ID, ET> =
+                Embedded<S, ID, ET>(naming, path, fieldSetColName, null)
         /**
          * @param naming which will concat names
          * @param path a path to a value stored as a struct with [Schema]
          */
-        constructor(naming: NamingConvention, path: StoredLens<S, ET, *>) :
-                this(naming, path, null, null)
-
-        val naming: NamingConvention
-        val fieldSetColName: String?
-
-        private constructor(naming: NamingConvention, path: StoredLens<S, ET, *>, fieldSetColName: String?, dummy: Nothing?) : super(path) {
-            val t = path.type
-            val unwrapped = if (t is DataType.Nullable<*, *>) t.actualType else t
-            when {
-                t is DataType.Nullable<*, *> -> if (fieldSetColName == null) throw NoSuchElementException(
-                        "either use full (non-partial, non-nullable) type or call another constructor(naming, path, fieldSetColName)"
-                )
-                unwrapped is Schema<*> -> check(fieldSetColName == null) {
-                    "either use partial/nullable type of call another constructor(naming, path)"
-                }
-                unwrapped is DataType.Partial<*, *> -> if (fieldSetColName == null) throw NoSuchElementException(
-                        "either use full (non-partial, non-nullable) type or call another constructor(naming, path, fieldSetColName)"
-                )
-                else ->
-                    error("only fields of Struct types can be used with such relations, got $unwrapped at $path")
-            }
-
-            this.naming = naming
-            this.fieldSetColName = fieldSetColName
-        }
-
+        @JvmName("embeddedStruct")
+        inline fun <S : Schema<S>, ID : IdBound, ES : Schema<ES>>
+                Embedded(naming: NamingConvention, path: StoredLens<S, Struct<ES>, ES>): Embedded<S, ID, Struct<ES>> =
+                Embedded<S, ID, Struct<ES>>(naming, path, null, null)
     }
+
+    /**
+     * Embed a (Partial)[Struct] of type [ET] into current table.
+     * @param S outer [Schema]
+     */
+    class Embedded<S : Schema<S>, ID : IdBound, ET>
+    @PublishedApi internal constructor(
+            val naming: NamingConvention,
+            path: StoredLens<S, ET, *>,
+            val fieldSetColName: String?,
+            iAmConstructor: Nothing?
+    ) : Relation<S, ID, ET>(path)
 
     /**
      * Reference a single entity by its primary key.

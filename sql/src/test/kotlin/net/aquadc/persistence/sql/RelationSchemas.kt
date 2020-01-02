@@ -88,14 +88,6 @@ class RelationSchemas {
         )
     }
 
-    @Test(expected = NoSuchElementException::class)
-    fun `fieldSetCol required for partial`() {
-        tableOf(embedPartial, "zzz", "_id", long) {
-            arrayOf(
-                    Relation.Embedded(SnakeCase, embedPartial.Second)
-            )
-        }.columns
-    }
     @Test fun `embed partial`() {
         val table = tableOf(embedPartial, "zzz", "_id", long) {
             arrayOf(
@@ -115,14 +107,6 @@ class RelationSchemas {
         )
     }
 
-    @Test(expected = NoSuchElementException::class)
-    fun `fieldSetCol required for nullable`() {
-        tableOf(embedNullable, "zzz", "_id", long) {
-            arrayOf(
-                    Relation.Embedded(SnakeCase, embedNullable.Second)
-            )
-        }.columns
-    }
     @Test fun `embed nullable`() {
         val table = tableOf(embedNullable, "zzz", "_id", long) {
             arrayOf(
@@ -142,14 +126,6 @@ class RelationSchemas {
         )
     }
 
-    @Test(expected = NoSuchElementException::class)
-    fun `fieldSetCol required for partial nullable`() {
-        tableOf(embedNullablePartial, "zzz", "_id", long) {
-            arrayOf(
-                    Relation.Embedded(SnakeCase, embedNullablePartial.Second)
-            )
-        }.columns
-    }
     @Test fun `embed nullable partial`() {
         val table = tableOf(embedNullablePartial, "zzz", "_id", long) {
             arrayOf(
