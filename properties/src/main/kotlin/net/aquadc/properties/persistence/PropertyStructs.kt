@@ -48,3 +48,9 @@ fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> {
         })
     }
 }
+
+/**
+ * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [SCH].
+ */
+fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T, *>): (PropertyStruct<SCH>) -> Property<T> =
+        { it prop field }

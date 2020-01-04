@@ -1,34 +1,18 @@
 @file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.sql
 
-import androidx.annotation.RestrictTo
-import net.aquadc.persistence.New
-import net.aquadc.persistence.array
-import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
-import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.Named
-import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredLens
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.forEachIndexed
-import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.intersectMutable
-import net.aquadc.persistence.struct.mapIndexed
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
-import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
-import net.aquadc.properties.internal.Unset
-import net.aquadc.properties.persistence.PropertyStruct
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -171,11 +155,3 @@ interface Transaction : AutoCloseable {
 
 }
 
-
-
-
-/**
- * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [SCH].
- */
-fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T, *>): (Record<SCH, *>) -> Property<T> =
-        { it prop field }

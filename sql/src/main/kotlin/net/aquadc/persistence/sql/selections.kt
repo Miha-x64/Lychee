@@ -14,15 +14,6 @@ internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
 
 }
 
-internal class Query<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
-        private val dao: Dao<SCH, ID, REC>
-) : (Array<ID>) -> Selection<SCH, ID, REC> {
-
-    override fun invoke(primaryKeys: Array<ID>): Selection<SCH, ID, REC> =
-            Selection(dao, primaryKeys)
-
-}
-
 internal class Count<SCH : Schema<SCH>, ID : IdBound>(
         private val table: Table<SCH, ID, *>,
         private val lowSession: LowLevelSession<*>

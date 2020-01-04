@@ -1,5 +1,6 @@
 package net.aquadc.persistence.sql
 
+import androidx.annotation.Size
 import net.aquadc.persistence.realHashCode
 import net.aquadc.persistence.reallyEqual
 import net.aquadc.persistence.struct.Schema
@@ -143,10 +144,10 @@ infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.contains(value:
 
 // `out T?`: allow lenses to look at nullable types
 
-infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.between(range: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.between(@Size(2) range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
-infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.notBetween(range: Array<T>): WhereCondition<SCH> =
+infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.notBetween(@Size(2) range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
 infix fun <SCH : Schema<SCH>, T : Comparable<T>> StoredLens<SCH, out T?, *>.between(range: ClosedRange<T>): WhereCondition<SCH> =

@@ -3,6 +3,7 @@ package net.aquadc.propertiesSampleLogic.sql
 import net.aquadc.persistence.sql.*
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
+import net.aquadc.properties.persistence.propertyGetterOf
 
 
 class SqlViewModel(

@@ -167,7 +167,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
             concurrentPropertyOf(cor)
                     .map(PrimaryKeys(table, lowSession))
                     .distinct(Arrayz.Equal)
-                    .map(Query(this))
+                    .map { primaryKeys -> Selection(this, primaryKeys) }
         }) { r, p -> // ugly one ;)
             ref = r
             prop = p
