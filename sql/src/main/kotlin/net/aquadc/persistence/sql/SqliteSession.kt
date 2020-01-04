@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteProgram
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.array
-import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
@@ -18,7 +18,6 @@ import net.aquadc.persistence.type.long
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.concurrent.getOrSet
 
 /**
  * Represents a connection with an [SQLiteDatabase].
@@ -160,7 +159,7 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
         ): T =
-                select<SCH, ID>(table, arrayOf(column) /* fixme allocation */, pkCond<SCH, ID>(table, id), NoOrder)
+                select<SCH, ID>(table, arrayOf(column) /* fixme allocation */, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder)
                         .fetchSingle(column.approxType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -173,7 +172,7 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
                 table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
+                select<SCH, ID>(table, columns, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<SCH>): Long =
                 select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(long)
@@ -183,18 +182,6 @@ class SqliteSession(
 
         @Suppress("UPPER_BOUND_VIOLATED")
         private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
-
-        @Suppress("UNCHECKED_CAST")
-        override fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
-                table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
-        ): ColCond<SCH, ID> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
-                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>,  Record<SCH, *>, ID, *>, " = ?", value)
-            }
-            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *> // unchecked: we don't mind actual types
-            condition.valueOrValues = value
-            return condition
-        }
 
         private fun <T> Cursor.fetchAllRows(type: DataType<T>): List<T> {
             if (!moveToFirst()) {
@@ -278,15 +265,11 @@ class SqliteSession(
     }
 
 
-    override fun beginTransaction(): Transaction {
-        val wLock = lock.writeLock()
-        check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
-        wLock.lock()
-        connection.beginTransaction()
-        val tr = RealTransaction(this, lowLevel)
-        transaction = tr
-        return tr
-    }
+    override fun beginTransaction(): Transaction =
+        createTransaction(lock, lowLevel).also {
+            connection.beginTransaction()
+            transaction = it
+        }
 
     // endregion transactions and modifying statements
 

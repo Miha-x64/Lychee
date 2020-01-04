@@ -3,7 +3,6 @@
 package net.aquadc.persistence.extended.tokens
 
 import net.aquadc.persistence.tokens.TokenStream
-import net.aquadc.persistence.type.DataType
 
 typealias Predicate = (Any?) -> Boolean
 

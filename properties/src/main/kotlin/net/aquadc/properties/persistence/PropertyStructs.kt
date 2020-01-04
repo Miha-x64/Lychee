@@ -40,8 +40,7 @@ fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> {
     return schema.mutableFields.map { prop(it) }.mapValueList { newMutableValues ->
         StructSnapshot(schema, if (schema.immutableFields.isEmpty()) newMutableValues.array() else {
             Array(fields.size) { i ->
-                val field = fields[i]
-                when (field) {
+                when (val field = fields[i]) {
                     is FieldDef.Mutable -> newMutableValues[field.mutableOrdinal.toInt()]
                     is FieldDef.Immutable -> this@snapshots[field]
                 }

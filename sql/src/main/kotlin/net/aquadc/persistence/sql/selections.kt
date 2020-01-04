@@ -54,11 +54,11 @@ internal class ConditionAndOrder<SCH : Schema<SCH>>(
     private var hash = 0
 
     override fun hashCode(): Int =
-            if (hash == 0) (31 * condition.hashCode() + Arrays.hashCode(order)).also { hash = it }
+            if (hash == 0) (31 * condition.hashCode() + order.contentHashCode()).also { hash = it }
             else hash
 
     override fun equals(other: Any?): Boolean =
             other === this ||
-                    (other is ConditionAndOrder<*> && other.condition == condition && Arrays.equals(other.order, order))
+                    (other is ConditionAndOrder<*> && other.condition == condition && other.order.contentEquals(order))
 
 }

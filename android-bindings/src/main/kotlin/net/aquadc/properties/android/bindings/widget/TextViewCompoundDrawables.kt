@@ -2,18 +2,26 @@
 package net.aquadc.properties.android.bindings.widget
 
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
 import android.graphics.drawable.Drawable
 import android.os.Build
-import androidx.annotation.DrawableRes
-import androidx.annotation.IntDef
-import android.view.Gravity.*
+import android.view.Gravity.BOTTOM
+import android.view.Gravity.END
+import android.view.Gravity.LEFT
+import android.view.Gravity.RIGHT
+import android.view.Gravity.START
+import android.view.Gravity.TOP
 import android.view.View
 import android.widget.TextView
+import androidx.annotation.DrawableRes
+import androidx.annotation.IntDef
+import androidx.annotation.RequiresApi
 import net.aquadc.properties.Property
 import net.aquadc.properties.android.bindings.bindViewTo
 import kotlin.annotation.AnnotationRetention.SOURCE
-import kotlin.annotation.AnnotationTarget.*
+import kotlin.annotation.AnnotationTarget.FUNCTION
+import kotlin.annotation.AnnotationTarget.LOCAL_VARIABLE
+import kotlin.annotation.AnnotationTarget.PROPERTY
+import kotlin.annotation.AnnotationTarget.VALUE_PARAMETER
 
 
 /**
@@ -122,7 +130,7 @@ private class SetCompoundDrawable(
         view.setCompoundDrawablesWithIntrinsicBounds(drawables[0], drawables[1], drawables[2], drawables[3])
     }
 
-    @TargetApi(17)
+    @RequiresApi(17)
     private fun setRel(view: TextView, index: Int, drawable: Any?) {
         val drawables = view.compoundDrawablesRelative
         drawables.patch(view, index, drawable)

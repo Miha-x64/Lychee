@@ -50,8 +50,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
     constructor(type: SCH, prefs: SharedPreferences) : super(type) {
         val fields = type.fields
         this.values = Array(fields.size) {
-            val field = fields[it]
-            when (field) {
+            when (val field = fields[it]) {
                 is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?, *>, null, Unset)
                 is FieldDef.Immutable -> Unset
             }

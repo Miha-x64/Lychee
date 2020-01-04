@@ -42,8 +42,8 @@ enum class Token(internal val delta: Int) {
     BeginDictionary(+1), EndDictionary(-1),
     ;
 
-    open fun coerce(value: Any?): Any? = when {
-        this in Numbers -> {
+    open fun coerce(value: Any?): Any? = when (this) {
+        in Numbers -> {
             when (value) {
                 is Byte -> coerceToNumber(value.toLong())
                 is Short -> coerceToNumber(value.toLong())
@@ -68,7 +68,7 @@ enum class Token(internal val delta: Int) {
                 else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
             }
         }
-        this in ControlTokens -> {
+        in ControlTokens -> {
             if (value == this) value
             else throw IllegalArgumentException("value $value cannot be coerced to $this")
         }
@@ -76,7 +76,7 @@ enum class Token(internal val delta: Int) {
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    fun coerceToNumber(value: Long): Any? = when {
+    fun coerceToNumber(value: Long): Any = when {
         this == I8 && value in Byte.MIN_VALUE..Byte.MAX_VALUE -> value.toByte()
         this == I16 && value in Short.MIN_VALUE..Short.MAX_VALUE -> value.toShort()
         this == I32 && value in Int.MIN_VALUE..Int.MAX_VALUE -> value.toInt()

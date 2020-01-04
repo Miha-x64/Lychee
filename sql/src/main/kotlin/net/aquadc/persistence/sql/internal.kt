@@ -1,9 +1,12 @@
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.getOrSet
 
 
 internal interface LowLevelSession<STMT> {
@@ -41,6 +44,23 @@ internal interface LowLevelSession<STMT> {
 
     val transaction: RealTransaction?
 
-    fun <SCH : Schema<SCH>, ID : IdBound> pkCond(table: Table<SCH, ID, out Record<SCH, ID>>, value: ID): ColCond<SCH, ID>
+}
 
+@Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+internal fun <SCH : Schema<SCH>, ID : IdBound> ThreadLocal<ColCond<Any, Any?>>.pkCond(
+    table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
+): ColCond<SCH, ID> {
+    val condition = (this as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
+        ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *>, " = ?", value)
+    }
+    condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *> // unchecked: we don't mind actual types
+    condition.valueOrValues = value
+    return condition
+}
+
+internal fun Session.createTransaction(lock: ReentrantReadWriteLock, lowLevel: LowLevelSession<*>): RealTransaction {
+    val wLock = lock.writeLock()
+    check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
+    wLock.lock()
+    return RealTransaction(this, lowLevel)
 }

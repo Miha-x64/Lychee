@@ -74,7 +74,7 @@ internal object PlatformExecutors {
     internal fun requireCurrent(): Executor =
             getCurrent() ?: throw UnsupportedOperationException(
                     "Can't execute task on ${Thread.currentThread()}. " +
-                            "Executor factories available: ${Arrays.toString(executorFactories)}")
+                            "Executor factories available: ${executorFactories.contentToString()}")
 
     internal fun getCurrent(): Executor? =
             executors.getOrSet {

@@ -94,16 +94,16 @@ class Arrayz private constructor(
 ): (Any, Any) -> Any {
 
     override fun invoke(p1: Any, p2: Any): Any = when (mode) {
-        0 -> Arrays.equals(p1 as BooleanArray, p2 as BooleanArray)
-        1 -> Arrays.equals(p1 as ByteArray, p2 as ByteArray)
-        2 -> Arrays.equals(p1 as ShortArray, p2 as ShortArray)
-        3 -> Arrays.equals(p1 as CharArray, p2 as CharArray)
-        4 -> Arrays.equals(p1 as IntArray, p2 as IntArray)
-        5 -> Arrays.equals(p1 as LongArray, p2 as LongArray)
-        6 -> Arrays.equals(p1 as FloatArray, p2 as FloatArray)
-        7 -> Arrays.equals(p1 as DoubleArray, p2 as DoubleArray)
-        8 -> Arrays.equals(p1 as Array<out Any?>, p2 as Array<out Any?>)
-        9 -> Arrays.deepEquals(p1 as Array<out Any?>, p2 as Array<out Any?>)
+        0 -> (p1 as BooleanArray).contentEquals(p2 as BooleanArray)
+        1 -> (p1 as ByteArray).contentEquals(p2 as ByteArray)
+        2 -> (p1 as ShortArray).contentEquals(p2 as ShortArray)
+        3 -> (p1 as CharArray).contentEquals(p2 as CharArray)
+        4 -> (p1 as IntArray).contentEquals(p2 as IntArray)
+        5 -> (p1 as LongArray).contentEquals(p2 as LongArray)
+        6 -> (p1 as FloatArray).contentEquals(p2 as FloatArray)
+        7 -> (p1 as DoubleArray).contentEquals(p2 as DoubleArray)
+        8 -> (p1 as Array<out Any?>).contentEquals(p2 as Array<out Any?>)
+        9 -> (p1 as Array<out Any?>).contentDeepEquals(p2 as Array<out Any?>)
         else -> throw AssertionError()
     }
 

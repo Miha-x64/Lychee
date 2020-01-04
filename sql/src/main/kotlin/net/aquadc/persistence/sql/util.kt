@@ -211,7 +211,7 @@ internal fun inflate(
             else t.load(fieldSet, when (fieldSet.size.toInt()) {
                 0 -> null
                 1 -> mutColumnValues[_dstPos]
-                else -> Arrays.copyOfRange(mutColumnValues, _dstPos, _dstPos + fieldSet.size)
+                else -> mutColumnValues.copyOfRange(_dstPos, _dstPos + fieldSet.size)
             })
 }
 

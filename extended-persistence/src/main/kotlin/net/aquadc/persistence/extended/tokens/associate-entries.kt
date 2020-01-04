@@ -125,10 +125,10 @@ import net.aquadc.persistence.tokens.TokenStream
         -2 -> {
             source.skipValue()
             _path!!.skip()
-            when (nameFirstInTuple) {
-                true -> state = 0
-                false -> state = 0
-                null -> state = -1
+            state = when (nameFirstInTuple) {
+                true -> 0
+                false -> 0
+                null -> -1
             }
         }
         -1 -> {
@@ -233,16 +233,16 @@ import net.aquadc.persistence.tokens.TokenStream
 
         // endWrap is consumed now, we're standing either before next mapping or the end of sequence
 
-        return when (val next = source.poll()) {
+        state = when (val next = source.poll()) {
             beginWrap -> // next key-value pair
-                state = when (nameFirstInTuple) {
+                when (nameFirstInTuple) {
                     true -> -2
                     false -> -3
                     null -> -3
                 }
 
             Token.EndSequence -> // the end
-                state = Int.MAX_VALUE
+                Int.MAX_VALUE
 
             else ->
                 throw IllegalArgumentException("expected '$beginWrap' or ${Token.EndSequence} but was $next at ${source.path}")
@@ -496,13 +496,13 @@ internal abstract class AssociateEntries(
     init {
         if (nameKey is Index) {
             check(valueKey is Index)
-            if (nameKey.value == 0) {
+            nameFirstInTuple = if (nameKey.value == 0) {
                 check(valueKey.value == 1)
-                nameFirstInTuple = true
+                true
             } else {
                 check(valueKey.value == 0)
                 check(nameKey.value == 1)
-                nameFirstInTuple = false
+                false
             }
             beginWrap = Token.BeginSequence
             endWrap = Token.EndSequence

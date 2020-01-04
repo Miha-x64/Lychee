@@ -1,7 +1,7 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.array
-import net.aquadc.persistence.struct.Lens
+import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
@@ -148,7 +148,7 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
         ): T =
-                select<SCH, ID>(table /* fixme allocation */, arrayOf(column), pkCond<SCH, ID>(table, id), NoOrder)
+                select<SCH, ID>(table /* fixme allocation */, arrayOf(column), localReusableCond.pkCond<SCH, ID>(table, id), NoOrder)
                         .fetchSingle(column.approxType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -166,25 +166,13 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
                 table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
+                select<SCH, ID>(table, columns, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
 
         @Suppress("UPPER_BOUND_VIOLATED")
         private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
-
-        @Suppress("UNCHECKED_CAST")
-        override fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
-                table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
-        ): ColCond<SCH, ID> {
-            val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
-                ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *>, " = ?", value)
-            }
-            condition.lens = table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *> // unchecked: we don't mind actual types
-            condition.valueOrValues = value
-            return condition
-        }
 
         private fun <T> ResultSet.fetchAllRows(type: DataType<T>): List<T> {
             // TODO pre-size collection && try not to box primitives
@@ -263,14 +251,8 @@ class JdbcSession(
     }
 
 
-    override fun beginTransaction(): Transaction {
-        val wLock = lock.writeLock()
-        check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
-        wLock.lock()
-        val tr = RealTransaction(this, lowLevel)
-        transaction = tr
-        return tr
-    }
+    override fun beginTransaction(): Transaction =
+        createTransaction(lock, lowLevel).also { transaction = it }
 
     // endregion transactions and modifying statements
 
