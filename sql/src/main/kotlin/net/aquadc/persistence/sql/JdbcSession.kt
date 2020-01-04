@@ -47,7 +47,7 @@ class JdbcSession(
     // transactional things, guarded by write-lock
     @JvmField @JvmSynthetic internal var transaction: RealTransaction? = null
 
-    private val lowLevel: LowLevelSession<PreparedStatement> = object : LowLevelSession<PreparedStatement> {
+    private val lowLevel: LowLevelSession<PreparedStatement> = object : LowLevelSession<PreparedStatement>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val dao = getDao(table)
@@ -147,7 +147,7 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
         ): T =
-                select<SCH, ID>(table /* fixme allocation */, arrayOf(column), localReusableCond.pkCond<SCH, ID>(table, id), NoOrder)
+                select<SCH, ID>(table /* fixme allocation */, arrayOf(column), pkCond<SCH, ID>(table, id), NoOrder)
                         .fetchSingle(column.approxType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -165,13 +165,10 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
                 table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columns, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
+                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
-
-        @Suppress("UPPER_BOUND_VIOLATED")
-        private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
         private fun <T> ResultSet.fetchAllRows(type: DataType<T>): List<T> {
             // TODO pre-size collection && try not to box primitives

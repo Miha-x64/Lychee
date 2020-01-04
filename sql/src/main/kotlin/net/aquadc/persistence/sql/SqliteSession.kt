@@ -41,7 +41,7 @@ class SqliteSession(
     // transactional things, guarded by write-lock
     @JvmSynthetic @JvmField internal var transaction: RealTransaction? = null
 
-    private val lowLevel = object : LowLevelSession<SQLiteStatement> {
+    private val lowLevel = object : LowLevelSession<SQLiteStatement>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val dao = getDao(table)
@@ -158,7 +158,7 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
                 table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
         ): T =
-                select<SCH, ID>(table, arrayOf(column) /* fixme allocation */, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder)
+                select<SCH, ID>(table, arrayOf(column) /* fixme allocation */, pkCond<SCH, ID>(table, id), NoOrder)
                         .fetchSingle(column.approxType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -171,7 +171,7 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
                 table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columns, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
+                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<SCH>): Long =
                 select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(i64)
