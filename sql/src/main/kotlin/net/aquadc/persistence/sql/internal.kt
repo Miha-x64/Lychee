@@ -22,8 +22,6 @@ abstract internal class LowLevelSession<STMT> {
 
     abstract fun truncate(table: Table<*, *, *>)
 
-    abstract val daos: ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, STMT>>
-
     abstract fun onTransactionEnd(successful: Boolean)
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
@@ -43,6 +41,8 @@ abstract internal class LowLevelSession<STMT> {
     ): Array<Any?>
 
     abstract val transaction: RealTransaction?
+
+    @JvmField val daos: ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, STMT>> = ConcurrentHashMap()
 
     @Suppress("UPPER_BOUND_VIOLATED")
     private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()

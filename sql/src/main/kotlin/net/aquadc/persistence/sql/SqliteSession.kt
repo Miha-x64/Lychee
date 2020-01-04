@@ -15,7 +15,6 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i64
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
@@ -101,8 +100,6 @@ class SqliteSession(
             connection.execSQL(SqliteDialect.truncate(table))
         }
 
-        override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, SQLiteStatement>>()
-
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
             try {
@@ -178,9 +175,6 @@ class SqliteSession(
 
         override val transaction: RealTransaction?
             get() = this@SqliteSession.transaction
-
-        @Suppress("UPPER_BOUND_VIOLATED")
-        private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
 
         private fun <T> Cursor.fetchAllRows(type: DataType<T>): List<T> {
             if (!moveToFirst()) {

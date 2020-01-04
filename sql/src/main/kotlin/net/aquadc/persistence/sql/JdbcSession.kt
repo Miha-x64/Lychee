@@ -14,7 +14,6 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Types
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
 
@@ -101,8 +100,6 @@ class JdbcSession(
                 stmt.close()
             }
         }
-
-        override val daos = ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, PreparedStatement>>()
 
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
