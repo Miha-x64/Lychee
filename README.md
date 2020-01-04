@@ -9,6 +9,8 @@
 <!-- abandoned [![Codacy Badge](https://api.codacy.com/project/badge/Grade/89813e3ee28441b3937a76f09e906aef)](https://www.codacy.com/app/Miha-x64/Lychee?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Miha-x64/Lychee&amp;utm_campaign=Badge_Grade) -->
 <!-- abandoned [![codecov](https://codecov.io/gh/Miha-x64/Lychee/branch/master/graph/badge.svg)](https://codecov.io/gh/Miha-x64/Lychee) in module `:properties`, excluding inline functions -->
 
+# Lychee (ex. reactive-properties)
+
 ## Adding to a project
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Properties
@@ -35,9 +37,17 @@ dependencies {
 }
 ```
 
-# Lychee (ex. reactive-properties)
+### ToC
+* [Properties](#properties)
+* [Other Android data-binding libraries](#other-android-data-binding-libraries)
+* [Properties sample](#properties-sample)
+* [Sample usage in GUI application](#sample-usage-in-gui-application)
+* [Persistence](#persistence) — ui-less data-binding, even for server-side
+* [FAQ](#faq)
 
-Properties (subjects) inspired by [JavaFX](https://wiki.openjdk.java.net/display/OpenJFX/Main)
+## Properties
+
+Properties (subjects, observables) inspired by [JavaFX](https://wiki.openjdk.java.net/display/OpenJFX/Main)
 and [Vue.js](https://vuejs.org/) MVVM-like approach.
 A `Property` provides functionality similar to
 `BehaviorSubject` in RxJava, or `Property` in JavaFX,
@@ -57,7 +67,7 @@ or `LiveData` in Android Arch.
 * [Presentation](https://speakerdeck.com/gdg_rnd/mikhail-goriunov-advanced-kotlin-patterns-on-android-properties)
   about properties: initial problem statement and some explanations
 
-## Alternatives
+## Other Android data-binding libraries
 
 * [agrosner/KBinding](https://github.com/agrosner/KBinding) (MIT): similar to this,
   Observable-based, Android-only, depends on kotlinx.coroutines
@@ -309,40 +319,7 @@ type.tokensFrom(value).writeTo(JsonWriter(…))
 `TokenStream` abstraction is helpful for changing schema of provided data (instead of using 'mappers'), see
 [sample transform usage](https://github.com/Miha-x64/Lychee/blob/master/android-bindings/src/test/kotlin/promo.kt#L61-L69).
 
-Also, [SQLite support](/sql/) is currently being developed.
-
-
-## ProGuard rules for Android
-(for `:persistence`, `:properties` and `:android-bindings`)
-
-```
-# libs with compileOnly scope
--dontwarn android.support.annotation.**
--dontwarn android.support.v7.widget.**
--dontwarn android.support.design.widget.**
--dontwart androidx.**
--dontwarn okio.**
-
-# bindings to Java(FX)
--dontwarn net.aquadc.properties.fx.JavaFxApplicationThreadExecutorFactory
--assumenosideeffects class net.aquadc.properties.executor.PlatformExecutors {
-    private void findFxFactory(java.util.ArrayList); # bindings to JavaFX
-    private void findFjFactory(java.util.ArrayList); # If you're not going to addChangeListener() on ForkJoin threads
-}
-
-# debug-only assertions for enforcing type-safety
--assumenosideeffects class net.aquadc.persistence.type.SimpleNoOp {
-    private void sanityCheck(java.lang.Object);
-}
--assumenosideeffects class net.aquadc.persistence.extended.ArrayNoOp {
-    private void sanityCheck(java.lang.Object);
-}
-
-# https://sourceforge.net/p/proguard/bugs/660/
--keepclassmembernames class net.aquadc.properties.internal.** {
-  volatile <fields>;
-}
-```
+Also, [SQL support](/sql/) is currently being developed.
 
 ## FAQ
 
@@ -438,3 +415,7 @@ which is not as restrictive as GPL itself.
 
 You can mutate concurrent properties from background threads (e. g. in the end of async computations),
 triggering UI state change as needed and without any callbacks.
+
+#### ProGuard rules for Android?
+
+[Here you are.](/android-sample/proguard-rules.pro#L30-L55)

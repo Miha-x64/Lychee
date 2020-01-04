@@ -25,6 +25,8 @@
   public static final android.os.Parcelable$Creator CREATOR;
 }
 
+# mind the link from /README.md to #L30-L55
+
 # libs with compileOnly scope
 -dontwarn android.support.annotation.**
 -dontwarn android.support.v7.widget.**
