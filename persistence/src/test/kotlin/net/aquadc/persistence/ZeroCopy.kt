@@ -1,7 +1,7 @@
 package net.aquadc.persistence
 
 import net.aquadc.persistence.type.collection
-import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.set
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
@@ -11,8 +11,8 @@ import org.junit.Test
 class ZeroCopy {
 
     @Test fun encode() {
-        val c = collection(long)
-        val s = set(long)
+        val c = collection(i64)
+        val s = set(i64)
 
         val longCollection = setOf(0L)
         assertSame(longCollection, s.store(longCollection))
@@ -30,7 +30,7 @@ class ZeroCopy {
     }
 
     @Test fun decodeLongCollect() {
-        val t = collection(long)
+        val t = collection(i64)
 
         val longCollection = setOf(0L)
         assertNotSame(longCollection, t.load(longCollection)) // Set cannot be List
@@ -52,7 +52,7 @@ class ZeroCopy {
     }
 
     @Test fun decodeLongSet() {
-        val t = set(long)
+        val t = set(i64)
 
         val longCollection = setOf(0L)
         assertSame(longCollection, t.load(longCollection))

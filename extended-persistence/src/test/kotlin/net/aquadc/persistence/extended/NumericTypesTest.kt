@@ -49,35 +49,35 @@ class NumericTypesTest {
     }
 
     @Test fun uByte() {
-        assertEquals(10.toUByte(), uByte.load(10.toShort()))
-        assertEquals(100.toUByte(), uByte.load(100.toShort()))
-        assertEquals(200.toUByte(), uByte.load(200.toShort()))
-        assertEquals(200.toShort(), uByte.store(200.toUByte()))
-        assertEquals(0.toShort(), uByte.store(0.toUByte()))
+        assertEquals(10.toUByte(), u8.load(10.toShort()))
+        assertEquals(100.toUByte(), u8.load(100.toShort()))
+        assertEquals(200.toUByte(), u8.load(200.toShort()))
+        assertEquals(200.toShort(), u8.store(200.toUByte()))
+        assertEquals(0.toShort(), u8.store(0.toUByte()))
     }
 
     @Test(expected = IllegalArgumentException::class) fun `incorrect uByte`() {
-        uByte.load(256.toShort())
+        u8.load(256.toShort())
     }
 
     @Test fun uShort() {
-        assertEquals(10.toUShort(), uShort.load(10))
-        assertEquals(65535.toUShort(), uShort.load(65535))
-        assertEquals(10000, uShort.store(10000.toUShort()))
+        assertEquals(10.toUShort(), u16.load(10))
+        assertEquals(65535.toUShort(), u16.load(65535))
+        assertEquals(10000, u16.store(10000.toUShort()))
     }
 
     @Test(expected = IllegalArgumentException::class) fun `incorrect uShort`() {
-        uShort.load(65536)
+        u16.load(65536)
     }
 
     @Test fun uInt() {
-        assertEquals(10.toUInt(), uInt.load(10L))
-        assertEquals(4_000_000_000L.toUInt(), uInt.load(4_000_000_000L))
-        assertEquals(4_000_000_000L, uInt.store(4_000_000_000L.toUInt()))
+        assertEquals(10.toUInt(), u32.load(10L))
+        assertEquals(4_000_000_000L.toUInt(), u32.load(4_000_000_000L))
+        assertEquals(4_000_000_000L, u32.store(4_000_000_000L.toUInt()))
     }
 
     @Test(expected = IllegalArgumentException::class) fun `incorrect uInt`() {
-        uInt.load(5_000_000_000L)
+        u32.load(5_000_000_000L)
     }
 
 }

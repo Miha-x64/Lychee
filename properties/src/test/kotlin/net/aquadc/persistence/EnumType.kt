@@ -18,7 +18,7 @@ class EnumType {
     }
 
     @Test fun enumAsInt() {
-        val e = enum(Thread.State.values(), int, Enumz.Ordinal)
+        val e = enum(Thread.State.values(), i32, Enumz.Ordinal)
         assertEquals(0, e.store(Thread.State.NEW))
         assertEquals(2, e.store(Thread.State.BLOCKED))
         assertEquals(Thread.State.BLOCKED, e.load(2))
@@ -26,7 +26,7 @@ class EnumType {
     }
 
     @Test fun enumSetAsLong() {
-        val es = enumSet<Thread.State>(long, Enumz.Ordinal)
+        val es = enumSet<Thread.State>(i64, Enumz.Ordinal)
         assertEquals(0L, es.store(EnumSet.noneOf(Thread.State::class.java)))
         assertEquals(1L, es.store(EnumSet.of(Thread.State.NEW)))
         assertEquals(2L, es.store(EnumSet.of(Thread.State.RUNNABLE)))

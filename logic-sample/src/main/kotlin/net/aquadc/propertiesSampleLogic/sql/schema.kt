@@ -5,7 +5,7 @@ package net.aquadc.propertiesSampleLogic.sql
 import net.aquadc.persistence.sql.*
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
-import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 
@@ -32,7 +32,7 @@ class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Tbl, session, 
         val Name = "name" mut string
         val Surname = "surname" let string
     }
-    object Tbl : Table<Sch, Long, Human>(Sch, "people", "_id", long) {
+    object Tbl : Table<Sch, Long, Human>(Sch, "people", "_id", i64) {
         override fun newRecord(session: Session, primaryKey: Long): Human = Human(session, primaryKey)
     }
 }
@@ -49,10 +49,10 @@ class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) 
     val conditionerModelProp get() = this prop ConditionerModel
 
     companion object Sch : Schema<Sch>() {
-        val OwnerId = "owner_id" mut long
+        val OwnerId = "owner_id" mut i64
         val ConditionerModel = "conditioner_model".mut(nullable(string), default = null)
     }
-    object Tbl : Table<Sch, Long, Car>(Sch, "cars", "_id", long) {
+    object Tbl : Table<Sch, Long, Car>(Sch, "cars", "_id", i64) {
         override fun newRecord(session: Session, primaryKey: Long): Car = Car(session, primaryKey)
     }
 }
@@ -71,10 +71,10 @@ class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Tbl,
     val rightProp = RightId toOne Human.Tbl
 
     companion object Sch : Schema<Sch>() {
-        val LeftId = "left" mut long
-        val RightId = "right" mut long
+        val LeftId = "left" mut i64
+        val RightId = "right" mut i64
     }
-    object Tbl : Table<Sch, Long, Friendship>(Sch, "friends", "_id", long) {
+    object Tbl : Table<Sch, Long, Friendship>(Sch, "friends", "_id", i64) {
         override fun newRecord(session: Session, primaryKey: Long): Friendship = Friendship(session, primaryKey)
     }
 }

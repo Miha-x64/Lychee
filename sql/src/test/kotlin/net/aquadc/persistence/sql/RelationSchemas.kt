@@ -3,19 +3,16 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Named
-import net.aquadc.persistence.struct.NamedLens
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 typealias ShallowSchema = Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>
-val shallowSchema = Tuple("a", string, "b", long)
+val shallowSchema = Tuple("a", string, "b", i64)
 
 val dupeEmbed = Tuple("a_b", string, "a", shallowSchema)
 
@@ -30,18 +27,18 @@ val embedNullablePartial = Tuple("a", string, "b", nullable(partial(shallowSchem
 class RelationSchemas {
 
     @Test fun `no rels`() {
-        val table = tableOf(shallowSchema, "zzz", "_id", long)
+        val table = tableOf(shallowSchema, "zzz", "_id", i64)
         assertEquals(
                 arrayOf(PkLens(table), shallowSchema.First, shallowSchema.Second),
                 table.columns
         )
     }
     @Test(expected = IllegalStateException::class) fun `same name as pk`() {
-        tableOf(shallowSchema, "dupeName", "a", long).columns
+        tableOf(shallowSchema, "dupeName", "a", i64).columns
     }
 
     @Test(expected = IllegalStateException::class) fun `same name as nested`() {
-        tableOf(dupeEmbed, "", "a", long) {
+        tableOf(dupeEmbed, "", "a", i64) {
             arrayOf(
                     Relation.Embedded(SnakeCase, dupeEmbed.Second)
             )
@@ -52,7 +49,7 @@ class RelationSchemas {
         val a = "" let string
     }
     @Test(expected = IllegalStateException::class) fun `empty name`() {
-        tableOf(EmptyName, "", "id", long).columns
+        tableOf(EmptyName, "", "id", i64).columns
     }
 
     // primary key
@@ -68,10 +65,10 @@ class RelationSchemas {
 
     @Test(expected = NoSuchElementException::class)
     fun `rels required`() {
-        tableOf(embedSchema, "zzz", "_id", long).columns
+        tableOf(embedSchema, "zzz", "_id", i64).columns
     }
     @Test fun `embed struct`() {
-        val table = tableOf(embedSchema, "zzz", "_id", long) {
+        val table = tableOf(embedSchema, "zzz", "_id", i64) {
             arrayOf(
                     Relation.Embedded(SnakeCase, embedSchema.Second)
             )
@@ -89,7 +86,7 @@ class RelationSchemas {
     }
 
     @Test fun `embed partial`() {
-        val table = tableOf(embedPartial, "zzz", "_id", long) {
+        val table = tableOf(embedPartial, "zzz", "_id", i64) {
             arrayOf(
                     Relation.Embedded(SnakeCase, embedPartial.Second, "fieldsSet")
             )
@@ -108,7 +105,7 @@ class RelationSchemas {
     }
 
     @Test fun `embed nullable`() {
-        val table = tableOf(embedNullable, "zzz", "_id", long) {
+        val table = tableOf(embedNullable, "zzz", "_id", i64) {
             arrayOf(
                     Relation.Embedded(SnakeCase, embedNullable.Second, "nullability")
             )
@@ -127,7 +124,7 @@ class RelationSchemas {
     }
 
     @Test fun `embed nullable partial`() {
-        val table = tableOf(embedNullablePartial, "zzz", "_id", long) {
+        val table = tableOf(embedNullablePartial, "zzz", "_id", i64) {
             arrayOf(
                     Relation.Embedded(SnakeCase, embedNullablePartial.Second, "fieldSetAndNullability")
             )

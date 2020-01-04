@@ -1,13 +1,13 @@
 package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.type.int
-import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.string
 
 
 object SomeSchema : Schema<SomeSchema>() {
     val A = "a" let string
-    val B = "b" let int
-    val C = "c" mut long
+    val B = "b" let i32
+    val C = "c" mut i64
 }

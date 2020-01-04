@@ -7,8 +7,7 @@ import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.long
-import net.aquadc.persistence.sql.dialect.Dialect
+import net.aquadc.persistence.type.i64
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -161,7 +160,7 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
         ): Long =
-                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(long)
+                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(i64)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
                 table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID

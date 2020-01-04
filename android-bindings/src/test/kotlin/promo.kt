@@ -13,7 +13,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.tokens.readAs
-import net.aquadc.persistence.type.int
+import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.function.CharSequencez
@@ -27,7 +27,7 @@ import java.io.StringWriter
 object Player : Schema<Player>() {
     val Name = "name" let string
     val Surname = "surname" let string
-    val Score = "score".mut(int, default = 0)
+    val Score = "score".mut(i32, default = 0)
 }
 
 val inMemoryPlayer: StructSnapshot<Player> = Player.build { p ->

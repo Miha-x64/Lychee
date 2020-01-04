@@ -240,7 +240,7 @@ But the most interesting and reusable things are all around `Struct`, `Schema`, 
 object Player : Schema<Player>() {
     val Name = "name" let string
     val Surname = "surname" let string
-    val Score = "score".mut(int, default = 0)
+    val Score = "score".mut(i32, default = 0)
 }
 ```
 `let` function creates an immutable field definition, `mut` declares a mutable one.

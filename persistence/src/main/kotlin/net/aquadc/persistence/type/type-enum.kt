@@ -17,7 +17,7 @@ import kotlin.collections.HashSet
  * @param encode transform enum value [E] to underlying type [U]
  * @param fallback return a default value for unsupported [U] (or throw an exception, like default impl does)
  */
-@Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
+@JvmName("enumeration") @Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Any, U : Any> enum(
         values: Array<E>,
         encodeAs: DataType.Simple<U>,

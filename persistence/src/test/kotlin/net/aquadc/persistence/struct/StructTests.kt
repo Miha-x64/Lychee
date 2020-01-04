@@ -5,11 +5,11 @@ import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.type.byteString
 import net.aquadc.persistence.type.collection
-import net.aquadc.persistence.type.double
+import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.enum
 import net.aquadc.persistence.type.enumSet
-import net.aquadc.persistence.type.int
-import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
@@ -33,19 +33,19 @@ class StructTests {
         companion object {
             val Type = enum(enumValues(), string, SomeEnum::name)
             val SetType = enumSet(Type)
-            val BitmaskType = enumSet(long, SomeEnum::ordinal)
+            val BitmaskType = enumSet(i64, SomeEnum::ordinal)
         }
     }
 
     object Sch : Schema<Sch>() {
-        val INT = "int" let int
-        val DOUBLE = "double" let double
+        val INT = "int" let i32
+        val DOUBLE = "double" let f64
         val ENUM = "enum" let SomeEnum.Type
         val ENUM_SET = "enumSet" let SomeEnum.SetType
         val ENUM_SET_BITMASK = "enumSetBitmask" let SomeEnum.BitmaskType
         val ENUM_SET_COLLECTION = "enumSetCollection" let collection(nullable(SomeEnum.SetType))
         val STRING = "string" let string
-        val BYTES = "bytes" let serialized(set(int))
+        val BYTES = "bytes" let serialized(set(i32))
         val BLOB = "blob" let byteString
         val STRUCT = "struct" let nullable(Sch)
     }

@@ -9,7 +9,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.long
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
 
 
@@ -272,7 +272,7 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
 
 internal class FieldSetLens<S : Schema<S>>(
         name: String
-) : BaseLens<S, PartialStruct<S>,  Struct<S>, Long, DataType.Simple<Long>>(name, long) {
+) : BaseLens<S, PartialStruct<S>,  Struct<S>, Long, DataType.Simple<Long>>(name, i64) {
 
     override fun hasValue(struct: PartialStruct<S>): Boolean =
             true

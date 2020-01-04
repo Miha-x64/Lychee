@@ -14,8 +14,7 @@ import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.long
-import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.type.i64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -175,7 +174,7 @@ class SqliteSession(
                 select<SCH, ID>(table, columns, localReusableCond.pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<SCH>): Long =
-                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(long)
+                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(i64)
 
         override val transaction: RealTransaction?
             get() = this@SqliteSession.transaction

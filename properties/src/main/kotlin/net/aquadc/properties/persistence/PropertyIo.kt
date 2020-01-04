@@ -3,14 +3,14 @@ package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.bool
-import net.aquadc.persistence.type.byte
+import net.aquadc.persistence.type.i8
 import net.aquadc.persistence.type.byteArray
 import net.aquadc.persistence.type.collection
-import net.aquadc.persistence.type.double
-import net.aquadc.persistence.type.float
-import net.aquadc.persistence.type.int
-import net.aquadc.persistence.type.long
-import net.aquadc.persistence.type.short
+import net.aquadc.persistence.type.f64
+import net.aquadc.persistence.type.f32
+import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.i64
+import net.aquadc.persistence.type.i16
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.MutableProperty
 
@@ -35,28 +35,28 @@ interface PropertyIo {
         bool.invoke(prop)
 
 /** Reads or writes a [Byte] value */
-@JvmName("byte") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>): Unit =
-        byte.invoke(prop)
+@JvmName("i8") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>): Unit =
+        i8.invoke(prop)
 
 /** Reads or writes a [Short] value */
-@JvmName("short") inline infix fun PropertyIo.x(prop: MutableProperty<Short>): Unit =
-        short.invoke(prop)
+@JvmName("i16") inline infix fun PropertyIo.x(prop: MutableProperty<Short>): Unit =
+        i16.invoke(prop)
 
 /** Reads or writes an [Int] value */
-@JvmName("int") inline infix fun PropertyIo.x(prop: MutableProperty<Int>): Unit =
-        int.invoke(prop)
+@JvmName("i32") inline infix fun PropertyIo.x(prop: MutableProperty<Int>): Unit =
+        i32.invoke(prop)
 
 /** Reads or writes a [Long] value */
-@JvmName("long") inline infix fun PropertyIo.x(prop: MutableProperty<Long>): Unit =
-        long.invoke(prop)
+@JvmName("i64") inline infix fun PropertyIo.x(prop: MutableProperty<Long>): Unit =
+        i64.invoke(prop)
 
 /** Reads or writes a [Float] value */
-@JvmName("float") inline infix fun PropertyIo.x(prop: MutableProperty<Float>): Unit =
-        float.invoke(prop)
+@JvmName("f32") inline infix fun PropertyIo.x(prop: MutableProperty<Float>): Unit =
+        f32.invoke(prop)
 
 /** Reads or writes a [Double] value */
-@JvmName("double") inline infix fun PropertyIo.x(prop: MutableProperty<Double>): Unit =
-        double.invoke(prop)
+@JvmName("f64") inline infix fun PropertyIo.x(prop: MutableProperty<Double>): Unit =
+        f64.invoke(prop)
 
 /** Reads or writes a [ByteArray] */
 @JvmName("bytes") inline infix fun PropertyIo.x(prop: MutableProperty<ByteArray>): Unit =

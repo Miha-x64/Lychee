@@ -3,49 +3,49 @@ package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.byte
-import net.aquadc.persistence.type.double
-import net.aquadc.persistence.type.float
-import net.aquadc.persistence.type.int
-import net.aquadc.persistence.type.long
-import net.aquadc.persistence.type.short
+import net.aquadc.persistence.type.i8
+import net.aquadc.persistence.type.f64
+import net.aquadc.persistence.type.f32
+import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.i64
+import net.aquadc.persistence.type.i16
 
 
 /**
  * Stores [ByteArray] instances as collections of [Byte]s.
  */
 @JvmField @Deprecated("does not look very useful")
-val byteCollection: DataType.Collect<ByteArray, Byte, DataType.Simple<Byte>> = ArrayNoOp(byte)
+val byteCollection: DataType.Collect<ByteArray, Byte, DataType.Simple<Byte>> = ArrayNoOp(i8)
 
 /**
  * Stores [ShortArray] instances as collections of [Short]s.
  */
 @JvmField @Deprecated("does not look very useful")
-val shortCollection: DataType.Collect<ShortArray, Short, DataType.Simple<Short>> = ArrayNoOp(short)
+val shortCollection: DataType.Collect<ShortArray, Short, DataType.Simple<Short>> = ArrayNoOp(i16)
 
 /**
  * Stores [IntArray] instances as collections of [Int]s.
  */
 @JvmField
-val intCollection: DataType.Collect<IntArray, Int, DataType.Simple<Int>> = ArrayNoOp(int)
+val intCollection: DataType.Collect<IntArray, Int, DataType.Simple<Int>> = ArrayNoOp(i32)
 
 /**
  * Stores [LongArray] instances as collections of [Long]s.
  */
 @JvmField
-val longCollection: DataType.Collect<LongArray, Long, DataType.Simple<Long>> = ArrayNoOp(long)
+val longCollection: DataType.Collect<LongArray, Long, DataType.Simple<Long>> = ArrayNoOp(i64)
 
 /**
  * Stores [FloatArray] instances as collections of [Float]s.
  */
 @JvmField
-val floatCollection: DataType.Collect<FloatArray, Float, DataType.Simple<Float>> = ArrayNoOp(float)
+val floatCollection: DataType.Collect<FloatArray, Float, DataType.Simple<Float>> = ArrayNoOp(f32)
 
 /**
  * Stores [DoubleArray] instances as collections of [Double]s.
  */
 @JvmField
-val doubleCollection: DataType.Collect<DoubleArray, Double, DataType.Simple<Double>> = ArrayNoOp(double)
+val doubleCollection: DataType.Collect<DoubleArray, Double, DataType.Simple<Double>> = ArrayNoOp(f64)
 
 
 private class ArrayNoOp<C, E>(type: Simple<E>) : DataType.Collect<C, E, DataType.Simple<E>>(type) {
