@@ -291,6 +291,10 @@ class SqliteSession(
         }
     }
 
+    override fun rawQuery(query: String, vararg arguments: Any): Result {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
 }
 
 /**

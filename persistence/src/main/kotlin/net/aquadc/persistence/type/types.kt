@@ -21,6 +21,8 @@ typealias SimpleValue = Any
 typealias AnyCollection = Any
 // @see fatMap, fatMapTo, fatAsList, don't forget to update them
 
+typealias SimpleNullable<T> = DataType.Nullable<T, DataType.Simple<T>>
+
 /**
  * Describes type of stored values and underlying serialization techniques.
  * This property is a part of serialization ABI.

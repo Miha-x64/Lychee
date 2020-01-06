@@ -267,6 +267,8 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexe
     return out as Array<R>
 }
 
+typealias FldSet<SCH> = FieldSet<SCH, FieldDef<SCH, *, *>>
+
 /**
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
