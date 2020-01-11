@@ -227,16 +227,17 @@ class MainVm(
 
 ## Persistence
 
-The simplest intersection of persistence and databinding is `SharedPreferenceProperty` (Android):
-it implements `Property` interface, and stores data inside `SharedPreferences`.
+The simplest intersection of persistence and databinding is
+[`SharedPreferenceProperty`](/src/main/kotlin/net/aquadc/persistence/android/pref/SharedPreferenceProperty.kt)
+ (Android): it implements `Property` interface, and stores data inside `SharedPreferences`.
 
-Another thing is `PersistableProperties`: this interface allows you
-to save or restore the state of a ViewModel using `ByteArray` via a single method
-without declaring symmetrical, bolierplate and error-prone `writeToParcel` and `createFromParcel` methods.
+Another thing is [`PersistableProperties`](/src/main/kotlin/net/aquadc/properties/persistence/memento/PersistableProperties.kt):
+this interface allows you to save or restore the state of a ViewModel using `ByteArray` via a single method
+without declaring symmetrical, bolierplate and error-prone `writeToParcel` and `createFromParcel` methods
+and without any Android dependencies.
 
 ```kt
-override fun saveOrRestore(io: PropertyIo) {
-    
+override fun saveOrRestore(io: PropertyIo) {    
     io x prop1
     io x prop2
     io x prop3
@@ -245,7 +246,8 @@ override fun saveOrRestore(io: PropertyIo) {
 
 But the most interesting and reusable things are all around `Struct`, `Schema`, and `DataType`.
 
-`Schema` is a definition of a data bag with named, ordered, typed fields.
+[`Schema`](/src/main/kotlin/net/aquadc/persistence/struct/schema.kt)
+is a definition of a data bag with named, ordered, typed fields.
 ```kt
 object Player : Schema<Player>() {
     val Name = "name" let string
@@ -257,7 +259,8 @@ object Player : Schema<Player>() {
 `Name`, `Surname` and `Score` are field definitions,
 similarly to [typed key](https://matklad.github.io/2018/05/24/typed-key-pattern.html) pattern.
 
-`Struct` is an instance carrying some data according to a certain `Schema`.
+[`Struct`](/src/main/kotlin/net/aquadc/persistence/struct/struct.kt)
+is an instance carrying some data according to a certain `Schema`.
 ```kt
 val player: StructSnapshot<Player> = Player.build { p ->
     p[Name] = "John"
@@ -277,7 +280,7 @@ fun Player(name: String, surname: String) = Player.build { p ->
 ```
 
 
-Okay, the `player` instance is fully immutable, but we want a mutable observable one:
+Okay, the `player` instance is fully immutable, but what if we want a mutable observable one:
 ```kt
 val observablePlayer = ObservableStruct(player)
 val scoreProp: Property<Int> = observablePlayer prop Player.Score
@@ -288,7 +291,8 @@ scoreProp.value = 10
 observablePlayer[Player.Score] = 20
 ```
 
-`SharedPreferencesStruct` (Android) has very similar interface, but can be mutated only inside a transaction:
+[`SharedPreferencesStruct`](/src/main/kotlin/net/aquadc/persistence/android/pref/SharedPreferencesStruct.kt)
+(Android) has very similar interface, but can be mutated only inside a transaction:
 ```kt
 // this will copy data from player into the given SharedPreferences instance
 val storedPlayer = SharedPreferencesStruct(player, getSharedPreferences(…))
@@ -316,7 +320,8 @@ val jsonPlayers = """[ {"name":"Hank","surname":"Rearden"}, ... ]"""
 type.tokensFrom(value).writeTo(JsonWriter(…))
 ```
 
-`TokenStream` abstraction is helpful for changing schema of provided data (instead of using 'mappers'), see
+[`TokenStream`](/net/aquadc/persistence/tokens/TokenStream.kt)
+abstraction is helpful for changing schema of provided data (instead of using 'mappers'), see
 [sample transform usage](https://github.com/Miha-x64/Lychee/blob/master/android-bindings/src/test/kotlin/promo.kt#L61-L69).
 
 Also, [SQL support](/sql/) is currently being developed.
