@@ -1,5 +1,5 @@
 @file:JvmName("SqliteUtils")
-package net.aquadc.persistence.sql
+package net.aquadc.persistence.sql.blocking
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteCursor
@@ -8,7 +8,25 @@ import android.database.sqlite.SQLiteProgram
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.array
+import net.aquadc.persistence.sql.Dao
+import net.aquadc.persistence.sql.ExperimentalSql
+import net.aquadc.persistence.sql.IdBound
+import net.aquadc.persistence.sql.NoOrder
+import net.aquadc.persistence.sql.Order
+import net.aquadc.persistence.sql.RealDao
+import net.aquadc.persistence.sql.RealTransaction
+import net.aquadc.persistence.sql.Record
+import net.aquadc.persistence.sql.Selection
+import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.Transaction
+import net.aquadc.persistence.sql.WhereCondition
+import net.aquadc.persistence.sql.bindInsertionParams
+import net.aquadc.persistence.sql.bindQueryParams
+import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.sql.flattened
+import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
@@ -24,7 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 @ExperimentalSql
 class SqliteSession(
         @JvmSynthetic @JvmField internal val connection: SQLiteDatabase
-) : Session {
+) : Session<BlockingSession> {
 
     @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
@@ -40,7 +58,7 @@ class SqliteSession(
     // transactional things, guarded by write-lock
     @JvmSynthetic @JvmField internal var transaction: RealTransaction? = null
 
-    private val lowLevel = object : LowLevelSession<SQLiteStatement>() {
+    @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val dao = getDao(table)
@@ -291,9 +309,8 @@ class SqliteSession(
         }
     }
 
-    override fun rawQuery(query: String, vararg arguments: Any): Result {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun rawQuery(query: String, vararg arguments: Any): Selection<BlockingSession> =
+            BlockingSelection(lowLevel, query, arguments)
 
 }
 

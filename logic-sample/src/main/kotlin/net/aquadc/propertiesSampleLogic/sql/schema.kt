@@ -19,7 +19,7 @@ fun Transaction.insertHuman(name: String, surname: String): Human =
                 it[Surname] = surname
         })
 
-class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Tbl, session, id) {
+class Human(session: Session<*>, id: Long) : Record<Human.Sch, Long>(Tbl, session, id) {
 
     val nameProp get() = this prop Name
     val surname get() = this[Surname]
@@ -33,7 +33,7 @@ class Human(session: Session, id: Long) : Record<Human.Sch, Long>(Tbl, session, 
         val Surname = "surname" let string
     }
     object Tbl : Table<Sch, Long, Human>(Sch, "people", "_id", i64) {
-        override fun newRecord(session: Session, primaryKey: Long): Human = Human(session, primaryKey)
+        override fun newRecord(session: Session<*>, primaryKey: Long): Human = Human(session, primaryKey)
     }
 }
 
@@ -43,7 +43,7 @@ fun Transaction.insertCar(owner: Human): Car =
             it[OwnerId] = owner.primaryKey
         })
 
-class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) {
+class Car(session: Session<*>, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) {
 
     val ownerProp = OwnerId toOne Human.Tbl
     val conditionerModelProp get() = this prop ConditionerModel
@@ -53,7 +53,7 @@ class Car(session: Session, id: Long) : Record<Car.Sch, Long>(Tbl, session, id) 
         val ConditionerModel = "conditioner_model".mut(nullable(string), default = null)
     }
     object Tbl : Table<Sch, Long, Car>(Sch, "cars", "_id", i64) {
-        override fun newRecord(session: Session, primaryKey: Long): Car = Car(session, primaryKey)
+        override fun newRecord(session: Session<*>, primaryKey: Long): Car = Car(session, primaryKey)
     }
 }
 
@@ -65,7 +65,7 @@ fun Transaction.insertFriendship(left: Human, right: Human): Friendship =
             it[RightId] = right.primaryKey
         })
 
-class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Tbl, session, id) {
+class Friendship(session: Session<*>, id: Long) : Record<Friendship.Sch, Long>(Tbl, session, id) {
 
     val leftProp = LeftId toOne Human.Tbl
     val rightProp = RightId toOne Human.Tbl
@@ -75,6 +75,6 @@ class Friendship(session: Session, id: Long) : Record<Friendship.Sch, Long>(Tbl,
         val RightId = "right" mut i64
     }
     object Tbl : Table<Sch, Long, Friendship>(Sch, "friends", "_id", i64) {
-        override fun newRecord(session: Session, primaryKey: Long): Friendship = Friendship(session, primaryKey)
+        override fun newRecord(session: Session<*>, primaryKey: Long): Friendship = Friendship(session, primaryKey)
     }
 }

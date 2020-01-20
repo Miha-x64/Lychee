@@ -25,7 +25,7 @@ open class Record<SCH : Schema<SCH>, ID : IdBound>
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 constructor(
         internal val table: Table<SCH, ID, *>,
-        private val session: Session,
+        private val session: Session<*>,
         val primaryKey: ID
 ) : BaseStruct<SCH>(table.schema), PropertyStruct<SCH> {
 

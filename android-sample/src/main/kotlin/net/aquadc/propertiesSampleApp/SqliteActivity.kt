@@ -18,7 +18,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import net.aquadc.persistence.sql.SqliteSession
+import net.aquadc.persistence.sql.blocking.SqliteSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.SetWhenClicked

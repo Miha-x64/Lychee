@@ -7,7 +7,7 @@ import net.aquadc.persistence.sql.EmbedRelationsTest
 import net.aquadc.persistence.sql.QueryBuilderTests
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.SqlPropTest
-import net.aquadc.persistence.sql.SqliteSession
+import net.aquadc.persistence.sql.blocking.SqliteSession
 import net.aquadc.persistence.sql.TestTables
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import org.junit.After
@@ -38,7 +38,7 @@ class SqlPropRoboTest : SqlPropTest() {
 
     // Robolectric Kills SQLite DB after each test, let's recreate it
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session
+    override lateinit var session: Session<*>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)
@@ -72,7 +72,7 @@ class SqlPropRoboTest : SqlPropTest() {
 @Config(manifest = Config.NONE)
 class EmbedRelationsRoboTest : EmbedRelationsTest() {
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session
+    override lateinit var session: Session<*>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)
@@ -87,7 +87,7 @@ class EmbedRelationsRoboTest : EmbedRelationsTest() {
 @Config(manifest = Config.NONE)
 class QueryBuilderRoboTests : QueryBuilderTests() {
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session
+    override lateinit var session: Session<*>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)

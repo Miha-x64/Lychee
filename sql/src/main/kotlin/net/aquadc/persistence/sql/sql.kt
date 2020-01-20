@@ -1,7 +1,10 @@
 @file:UseExperimental(ExperimentalContracts::class)
 package net.aquadc.persistence.sql
 
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.CoroutineScope
+import net.aquadc.persistence.sql.blocking.BlockingSession
+import net.aquadc.persistence.sql.blocking.asyncStruct
+import net.aquadc.persistence.sql.blocking.asyncValue
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.FldSet
@@ -15,15 +18,12 @@ import net.aquadc.persistence.type.SimpleNullable
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
-import net.aquadc.properties.diff.DiffProperty
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
-import net.aquadc.properties.persistence.PropertyStruct
 import org.intellij.lang.annotations.Language
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.coroutines.CoroutineContext
 
 
 /**
@@ -43,7 +43,7 @@ annotation class ExperimentalSql
 /**
  * A gateway into RDBMS.
  */
-interface Session {
+interface Session<SRC> {
 
     /**
      * Lazily creates and returns DAO for the given table.
@@ -57,30 +57,37 @@ interface Session {
      */
     fun beginTransaction(): Transaction
 
-    fun rawQuery(@Language("SQL") query: String, vararg arguments: Any): Result
+    fun rawQuery(@Language("SQL") query: String, vararg arguments: Any): Selection<SRC>
     //           ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
 
 }
 
-interface Result {
-    fun <T,       V> cell(type: DataType.Simple<T>, fetch: FetchValue<T,  V, *>): V
-    fun <T : Any, V> cell(type: SimpleNullable<T>,  fetch: FetchValue<T?, V, *>): V
+interface Selection<SRC> {
+    fun <T,       R> cell(type: DataType.Simple<T>, fetch: FetchValue<SRC, T,  R, *>): R
+    fun <T : Any, R> cell(type: SimpleNullable<T>,  fetch: FetchValue<SRC, T?, R, *>): R
 
-    fun <T, L>
-            col(type: DataType.Simple<T>,           fetch: FetchValue<T,  *, L>): L
-    fun <T : Any, L>
-            col(type: SimpleNullable<T>,            fetch: FetchValue<T?, *, L>): L
+    fun <T, R>
+            col(type: DataType.Simple<T>,           fetch: FetchValue<SRC, T,  *, R>): R
+    fun <T : Any, R>
+            col(type: SimpleNullable<T>,            fetch: FetchValue<SRC, T?, *, R>): R
 
-    fun <S : Schema<S>, T>
-            row(schema: S,          bindBy: BindBy, fetch: FetchStruct<S, Nothing, FldSet<S>, T, *>): T
+    fun <SCH : Schema<SCH>, R>
+            row(schema: SCH,          bindBy: BindBy, fetch: FetchStruct<SRC, SCH, Nothing, FldSet<SCH>, R, *>): R
 
-    fun <S : Schema<S>, L, ID : IdBound>
-            grid(schema: S,         bindBy: BindBy, fetch: FetchStruct<S, ID, ListChanges<S, ID>, *, L>): L
+    fun <SCH : Schema<SCH>, R, ID : IdBound>
+            grid(schema: SCH,         bindBy: BindBy, fetch: FetchStruct<SRC, SCH, ID, ListChanges<SCH, ID>, *, R>): R
 }
 
-// I have absolutely no idea how to represent primitive list changes so there's no D parameter:
-interface FetchValue <T, VAL, LST>
-interface FetchStruct<S, ID, D, STR, LST>
+// I have absolutely no idea how to represent primitive list changes so there's no D parameter in the first interface:
+interface FetchValue <SRC, T, VAL, LST> {
+    fun cell(from: SRC, query: String, arguments: Array<out Any>, type: DataType<T>): VAL
+    fun col(from: SRC, query: String, arguments: Array<out Any>, type: DataType<T>): LST
+}
+interface FetchStruct<SRC, SCH : Schema<SCH>, ID, D, STR, LST> {
+    fun row(from: SRC, query: String, arguments: Array<out Any>, schema: SCH, bindBy: BindBy): STR
+    fun grid(from: SRC, query: String, arguments: Array<out Any>, schema: SCH, bindBy: BindBy): LST
+}
+
 enum class BindBy {
     Name,
     Position,
@@ -91,31 +98,15 @@ class ListChanges<SCH : Schema<SCH>, ID : IdBound>(
         val changes: Map<ID, FldSet<SCH>>
 )
 
-fun <T> eagerValue(): FetchValue<T, T, List<T>> = TODO()
-fun <S : Schema<S>, D> eagerStruct(): FetchStruct<S, Nothing, D, Struct<S>, List<Struct<S>>> = TODO()
-
-fun <T> lazyValue(): FetchValue<T, T, LazyList<T>> = TODO()
-fun <S : Schema<S>, D> lazyStruct(): FetchStruct<S, Nothing, D, PropertyStruct<S>, LazyList<PropertyStruct<S>>> = TODO()
-
-fun <T> observableValue(/*todo dependencies*/): FetchValue<T, Property<T>, Property<LazyList<T>>> = TODO()
-fun <S : Schema<S>, D, ID : IdBound> observableStruct(idName: String, idType: DataType.Simple<ID>/*todo dependencies*/): FetchStruct<S, ID, D, PropertyStruct<S>, DiffProperty<LazyList<PropertyStruct<S>>, D>> = TODO()
-
-fun <T> CoroutineContext.asyncValue(): FetchValue<T, Deferred<T>, Deferred<List<T>>> = TODO()
-fun <S : Schema<S>, D> CoroutineContext.asyncStruct(): FetchStruct<S, Nothing, D, Deferred<Struct<S>>, Deferred<List<Struct<S>>>> = TODO()
-
-fun <T> cellCallback(cb: (T) -> Unit): FetchValue<T, Unit, Nothing> = TODO()
-fun <T> colCallback(cb: (List<T>) -> Unit): FetchValue<T, Nothing, Unit> = TODO()
-fun <S : Schema<S>, D> rowCallback(cb: (Struct<S>) -> Unit): FetchStruct<S, Nothing, D, Unit, Nothing> = TODO()
-fun <S : Schema<S>, D> gridCallback(cb: (List<Struct<S>>) -> Unit): FetchStruct<S, Nothing, D, Nothing, Unit> = TODO()
-
 interface LazyList<out E> : List<E>
+interface AsyncStruct<SCH : Schema<SCH>> // TODO
 
-
+// TODO move these to tests
 object User : Schema<User>() {
     val Name = "nam" let string
     val Email = "email" let string
 }
-suspend fun CoroutineContext.smpl(s: Session) {
+suspend fun CoroutineScope.smpl(s: Session<BlockingSession>) {
     val name = s
             .rawQuery("SELECT nam FROM users LIMIT 1")
             .cell(string, asyncValue())
@@ -129,20 +120,16 @@ suspend fun CoroutineContext.smpl(s: Session) {
     val explicit = s
             .rawQuery("SELECT nam, email FROM users LIMIT 1")
             .row(User, BindBy.Name, asyncStruct<User, FldSet<User>>())
-    //         Remove explicit type arguments? ^^^^^^^^^^^^^^^^^^^^ Alt+Enter:
-    val infer = s
-            .rawQuery("SELECT nam, email FROM users LIMIT 1")
-            .row(User, BindBy.Name, asyncStruct())
 
-    /*val struct = s
+    val struct = s
             .rawQuery("SELECT nam, email FROM users LIMIT 1")
-            .row(user, BindBy.Name, asyncStruct())
+            .row(User, BindBy.Name, asyncStruct<User, FldSet<User>>())
             .await()
 
     val structs = s
             .rawQuery("SELECT nam, email FROM users")
-            .grid(user, BindBy.Name, asyncStruct())
-            .await()*/
+            .grid(User, BindBy.Name, asyncStruct<User, ListChanges<User, Nothing>>())
+            .await()
 }
 
 /**
@@ -161,7 +148,7 @@ interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<
  * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove [Record]s.
  * In future will retry conflicting transaction by calling [block] more than once.
  */
-inline fun <R> Session.withTransaction(block: Transaction.() -> R): R {
+inline fun <R> Session<*>.withTransaction(block: Transaction.() -> R): R {
     contract {
         callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
     }
@@ -243,3 +230,5 @@ interface Transaction : AutoCloseable {
 
 }
 
+@Deprecated("moved") typealias JdbcSession = net.aquadc.persistence.sql.blocking.JdbcSession
+@Deprecated("moved") typealias SqliteSession = net.aquadc.persistence.sql.blocking.SqliteSession

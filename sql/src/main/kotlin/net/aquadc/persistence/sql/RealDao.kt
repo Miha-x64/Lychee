@@ -1,6 +1,7 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.New
+import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.properties.MutableProperty
@@ -21,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 
 internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, STMT>(
-        private val session: Session,
+        private val session: Session<*>,
         private val lowSession: LowLevelSession<STMT>,
         private val table: Table<SCH, ID, REC>,
         private val dialect: Dialect
@@ -167,7 +168,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
             concurrentPropertyOf(cor)
                     .map(PrimaryKeys(table, lowSession))
                     .distinct(Arrayz.Equal)
-                    .map { primaryKeys -> Selection(this, primaryKeys) }
+                    .map { primaryKeys -> ListSelection(this, primaryKeys) }
         }) { r, p -> // ugly one ;)
             ref = r
             prop = p

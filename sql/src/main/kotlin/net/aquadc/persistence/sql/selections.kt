@@ -1,7 +1,7 @@
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.Schema
-import java.util.Arrays
 
 
 internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
@@ -24,7 +24,7 @@ internal class Count<SCH : Schema<SCH>, ID : IdBound>(
 
 }
 
-internal class Selection<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
+internal class ListSelection<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
         private val dao: Dao<SCH, ID, REC>,
         private val primaryKeys: Array<ID>
 ) : AbstractList<REC>() {

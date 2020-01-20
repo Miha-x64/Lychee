@@ -7,7 +7,7 @@ import net.aquadc.properties.persistence.propertyGetterOf
 
 
 class SqlViewModel(
-        private val session: Session
+        private val session: Session<*>
 ) {
 
     private val humanDao = session[Human.Tbl]

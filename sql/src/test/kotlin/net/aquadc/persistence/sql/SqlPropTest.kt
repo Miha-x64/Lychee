@@ -15,7 +15,7 @@ import java.sql.SQLException
 
 open class SqlPropTest {
 
-    open val session: Session get() = jdbcSession
+    open val session: Session<*> get() = jdbcSession
 
     private val someDao get() = session[SomeTable]
 

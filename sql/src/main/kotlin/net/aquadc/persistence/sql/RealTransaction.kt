@@ -1,6 +1,7 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.New
+import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -13,7 +14,7 @@ import java.util.BitSet
         "ReplacePutWithAssignment", "ReplaceGetOrSet" // shut up, I want to write my code in cute columns
 )
 internal class RealTransaction(
-        private val session: Session,
+        private val session: Session<*>,
         private val lowSession: LowLevelSession<*>
 ) : Transaction {
 

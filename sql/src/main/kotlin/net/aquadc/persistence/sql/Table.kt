@@ -42,7 +42,7 @@ private constructor(
      * Instantiates a record. Typically consists of a single constructor call.
      */
     @Deprecated("Stop overriding this! Will become final.")
-    abstract fun newRecord(session: Session, primaryKey: ID): REC
+    abstract fun newRecord(session: Session<*>, primaryKey: ID): REC
 
     /**
      * Returns all relations for this table.
@@ -249,7 +249,7 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
     constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) : super(schema, name, idCol)
 
     @Deprecated("Stop overriding this! Will become final.")
-    override fun newRecord(session: Session, primaryKey: ID): Record<SCH, ID> =
+    override fun newRecord(session: Session<*>, primaryKey: ID): Record<SCH, ID> =
             Record(this, session, primaryKey)
 
 }

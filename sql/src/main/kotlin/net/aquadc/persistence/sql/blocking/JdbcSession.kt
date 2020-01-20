@@ -1,7 +1,25 @@
-package net.aquadc.persistence.sql
+package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.persistence.array
+import net.aquadc.persistence.sql.Dao
+import net.aquadc.persistence.sql.ExperimentalSql
+import net.aquadc.persistence.sql.IdBound
+import net.aquadc.persistence.sql.NoOrder
+import net.aquadc.persistence.sql.Order
+import net.aquadc.persistence.sql.RealDao
+import net.aquadc.persistence.sql.RealTransaction
+import net.aquadc.persistence.sql.Record
+import net.aquadc.persistence.sql.Selection
+import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.Transaction
+import net.aquadc.persistence.sql.WhereCondition
+import net.aquadc.persistence.sql.bindInsertionParams
+import net.aquadc.persistence.sql.bindQueryParams
+import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.Dialect
+import net.aquadc.persistence.sql.flattened
+import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
@@ -24,7 +42,7 @@ import kotlin.concurrent.getOrSet
 class JdbcSession(
         @JvmField @JvmSynthetic internal val connection: Connection,
         @JvmField @JvmSynthetic internal val dialect: Dialect
-) : Session {
+) : Session<BlockingSession> {
 
     init {
         connection.autoCommit = false
@@ -274,8 +292,7 @@ class JdbcSession(
         }
     }
 
-    override fun rawQuery(query: String, vararg arguments: Any): Result {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun rawQuery(query: String, vararg arguments: Any): Selection<BlockingSession> =
+            BlockingSelection(lowLevel, query, arguments)
 
 }

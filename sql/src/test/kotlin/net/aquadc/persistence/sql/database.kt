@@ -4,6 +4,7 @@ import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.build
@@ -129,7 +130,7 @@ val jdbcSession by lazy { // init only when requested, unused in Rololectric tes
     }, SqliteDialect)
 }
 
-fun Session.createTestRecord() =
+fun Session<*>.createTestRecord() =
         withTransaction {
             insert(SomeTable, SomeSchema.build {
                 it[A] = "first"

@@ -10,7 +10,7 @@ import org.junit.Test
 
 open class QueryBuilderTests {
 
-    open val session: Session get() = jdbcSession
+    open val session: Session<*> get() = jdbcSession
 
     @Test fun between() {
         session.withTransaction {

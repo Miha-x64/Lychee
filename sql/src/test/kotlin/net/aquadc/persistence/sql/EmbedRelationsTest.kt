@@ -23,7 +23,7 @@ import org.junit.Test
 
 open class EmbedRelationsTest {
 
-    open val session: Session get() = jdbcSession
+    open val session: Session<*> get() = jdbcSession
 
     @Test fun embed() {
         val rec = session.withTransaction {

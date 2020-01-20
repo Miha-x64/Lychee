@@ -1,15 +1,58 @@
-package net.aquadc.persistence.sql
+package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.persistence.sql.BindBy
+import net.aquadc.persistence.sql.ColCond
+import net.aquadc.persistence.sql.FetchStruct
+import net.aquadc.persistence.sql.FetchValue
+import net.aquadc.persistence.sql.IdBound
+import net.aquadc.persistence.sql.ListChanges
+import net.aquadc.persistence.sql.Order
+import net.aquadc.persistence.sql.RealDao
+import net.aquadc.persistence.sql.RealTransaction
+import net.aquadc.persistence.sql.Record
+import net.aquadc.persistence.sql.Selection
+import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.WhereCondition
+import net.aquadc.persistence.struct.FldSet
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.SimpleNullable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
 
 
-abstract internal class LowLevelSession<STMT> {
+internal class BlockingSelection(
+        private val session: BlockingSession,
+        private val query: String,
+        private val arguments: Array<out Any>
+) : Selection<BlockingSession> {
+
+    override fun <T, R> cell(type: DataType.Simple<T>, fetch: FetchValue<BlockingSession, T, R, *>): R =
+            fetch.cell(session, query, arguments, type)
+
+    override fun <T : Any, R> cell(type: SimpleNullable<T>, fetch: FetchValue<BlockingSession, T?, R, *>): R =
+            fetch.cell(session, query, arguments, type)
+
+    override fun <T, R> col(type: DataType.Simple<T>, fetch: FetchValue<BlockingSession, T, *, R>): R =
+            fetch.col(session, query, arguments, type)
+
+    override fun <T : Any, R> col(type: SimpleNullable<T>, fetch: FetchValue<BlockingSession, T?, *, R>): R =
+            fetch.col(session, query, arguments, type)
+
+    override fun <S : Schema<S>, R> row(schema: S, bindBy: BindBy, fetch: FetchStruct<BlockingSession, S, Nothing, FldSet<S>, R, *>): R =
+            fetch.row(session, query, arguments, schema, bindBy)
+
+    override fun <S : Schema<S>, R, ID : IdBound> grid(schema: S, bindBy: BindBy, fetch: FetchStruct<BlockingSession, S, ID, ListChanges<S, ID>, *, R>): R =
+            fetch.grid(session, query, arguments, schema, bindBy)
+
+}
+
+internal abstract class LowLevelSession<STMT> : BlockingSession {
     abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
 
     /** [columns] : [values] is a map */
@@ -61,7 +104,7 @@ abstract internal class LowLevelSession<STMT> {
 
 }
 
-internal fun Session.createTransaction(lock: ReentrantReadWriteLock, lowLevel: LowLevelSession<*>): RealTransaction {
+internal fun Session<*>.createTransaction(lock: ReentrantReadWriteLock, lowLevel: LowLevelSession<*>): RealTransaction {
     val wLock = lock.writeLock()
     check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
     wLock.lock()
