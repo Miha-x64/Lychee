@@ -6,6 +6,7 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleValue
 
 
+@Deprecated("it was a really a bad idea to represent u8 as i16")
 @JvmField val u8: DataType.Simple<UByte> = object : DataType.Simple<UByte>(Kind.I16) {
 
     override fun load(value: SimpleValue): UByte {
@@ -22,6 +23,7 @@ import net.aquadc.persistence.type.SimpleValue
 }
 @JvmField @Deprecated("renamed", ReplaceWith("u8")) val uByte = u8
 
+@Deprecated("it was a really a bad idea to represent u16 as i32")
 @JvmField val u16: DataType.Simple<UShort> = object : DataType.Simple<UShort>(Kind.I32) {
 
     override fun load(value: SimpleValue): UShort {
@@ -38,6 +40,7 @@ import net.aquadc.persistence.type.SimpleValue
 }
 @JvmField @Deprecated("renamed", ReplaceWith("u16")) val uShort = u16
 
+@Deprecated("it was a really a bad idea to represent u32 as i64")
 @JvmField val u32: DataType.Simple<UInt> = object : DataType.Simple<UInt>(Kind.I64) {
 
     override fun load(value: SimpleValue): UInt {
