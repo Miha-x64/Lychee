@@ -5,6 +5,8 @@ package net.aquadc.persistence.extended
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleValue
 
+// TODO: make DataType sealed, introduce Number(size | var, signed, floating), String, Blob subtypes,
+// TODO: re-implement unsigned on top of it, add BigInteger and BigDecimal
 
 @Deprecated("it was a really a bad idea to represent u8 as i16")
 @JvmField val u8: DataType.Simple<UByte> = object : DataType.Simple<UByte>(Kind.I16) {
