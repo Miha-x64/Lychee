@@ -320,7 +320,7 @@ Also, [SQLite support](/sql/) is currently being developed.
 -dontwarn android.support.annotation.**
 -dontwarn android.support.v7.widget.**
 -dontwarn android.support.design.widget.**
--dontwart androidx.**
+-dontwarn androidx.**
 -dontwarn okio.**
 
 # required by EnumSet
