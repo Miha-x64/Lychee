@@ -6,7 +6,7 @@ import net.aquadc.persistence.struct.Schema
 
 internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
         private val table: Table<SCH, ID, *>,
-        private val lowSession: LowLevelSession<*>
+        private val lowSession: LowLevelSession<*, *>
 ) : (ConditionAndOrder<SCH>) -> Array<ID> {
 
     override fun invoke(cor: ConditionAndOrder<SCH>): Array<ID> =
@@ -16,7 +16,7 @@ internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
 
 internal class Count<SCH : Schema<SCH>, ID : IdBound>(
         private val table: Table<SCH, ID, *>,
-        private val lowSession: LowLevelSession<*>
+        private val lowSession: LowLevelSession<*, *>
 ): (WhereCondition<SCH>) -> Long {
 
     override fun invoke(condition: WhereCondition<SCH>): Long =

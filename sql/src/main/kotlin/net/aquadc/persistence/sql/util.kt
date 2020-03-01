@@ -2,13 +2,16 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.New
+import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
+import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.contains
 import net.aquadc.persistence.struct.indexOf
@@ -140,6 +143,7 @@ internal inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T
 
 /**
  * Transforms flat column values to in-memory instance.
+ * Puts the resulting [StructSnapshot] into [mutColumnValues] at [_dstPos].
  */
 @Suppress("UPPER_BOUND_VIOLATED")
 internal fun inflate(
@@ -315,3 +319,10 @@ private inline fun flattenFieldValues(
 )
 private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
         this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
+
+internal fun <CUR : AutoCloseable> Blocking<CUR>.row(
+        cursor: CUR, columns: Array<out StoredNamedLens<*, *, *>>, bindBy: BindBy
+): Array<Any?> = when (bindBy) {
+    BindBy.Name -> rowByName(cursor, columns)
+    BindBy.Position -> rowByPosition(cursor, columns)
+}

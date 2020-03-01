@@ -36,7 +36,7 @@ object WithNested : Schema<WithNested>() {
 }
 val TableWithEmbed = tableOf(WithNested, "with_nested", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, WithNested.Nested)
+            Relation.Embedded(SnakeCase, Nested)
     )
 }
 
@@ -46,8 +46,8 @@ object DeeplyNested : Schema<DeeplyNested>() {
 }
 val TableWithDeepEmbed = tableOf(DeeplyNested, "deep", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, DeeplyNested.Nested),
-            Relation.Embedded(SnakeCase, DeeplyNested.Nested / WithNested.Nested)
+            Relation.Embedded(SnakeCase, Nested),
+            Relation.Embedded(SnakeCase, Nested / WithNested.Nested)
     )
 }
 
@@ -62,13 +62,13 @@ val goDeeper = Tuple3(
 
 val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, goDeeper.First)
-          , Relation.Embedded(SnakeCase, goDeeper.First / DeeplyNested.Nested)
-          , Relation.Embedded(SnakeCase, goDeeper.First / DeeplyNested.Nested / WithNested.Nested)
-          , Relation.Embedded(SnakeCase, goDeeper.Second)
-          , Relation.Embedded(SnakeCase, goDeeper.Second / WithNullableNested.Nested, "fieldSet")
-          , Relation.Embedded(SnakeCase, goDeeper.Third, "which")
-          , Relation.Embedded(SnakeCase, goDeeper.Third % goDeeper.Third.type.schema.Second, "fieldSet")
+            Relation.Embedded(SnakeCase, First)
+          , Relation.Embedded(SnakeCase, First / DeeplyNested.Nested)
+          , Relation.Embedded(SnakeCase, First / DeeplyNested.Nested / WithNested.Nested)
+          , Relation.Embedded(SnakeCase, Second)
+          , Relation.Embedded(SnakeCase, Second / WithNullableNested.Nested, "fieldSet")
+          , Relation.Embedded(SnakeCase, Third, "which")
+          , Relation.Embedded(SnakeCase, Third % goDeeper.Third.type.schema.Second, "fieldSet")
     )
 }
 
@@ -80,7 +80,7 @@ object WithNullableNested : Schema<WithNullableNested>() {
 }
 val TableWithNullableEmbed = tableOf(WithNullableNested, "with_nullable_nested", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, WithNullableNested.Nested, "nested_fields")
+            Relation.Embedded(SnakeCase, Nested, "nested_fields")
     )
 }
 
@@ -90,7 +90,7 @@ object WithPartialNested : Schema<WithPartialNested>() {
 }
 val TableWithPartialEmbed = tableOf(WithPartialNested, "with_partial_nested", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, WithPartialNested.Nested, "nested_fields")
+            Relation.Embedded(SnakeCase, Nested, "nested_fields")
     )
 }
 
@@ -100,9 +100,9 @@ object WithEverything : Schema<WithEverything>() {
 }
 val TableWithEverything = tableOf(WithEverything, "with_everything", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, WithEverything.Nest1, "fields"),
-            Relation.Embedded(SnakeCase, WithEverything.Nest1 / WithPartialNested.Nested, "fields"),
-            Relation.Embedded(SnakeCase, WithEverything.Nest2)
+            Relation.Embedded(SnakeCase, Nest1, "fields"),
+            Relation.Embedded(SnakeCase, Nest1 / WithPartialNested.Nested, "fields"),
+            Relation.Embedded(SnakeCase, Nest2)
     )
 }
 
@@ -110,17 +110,26 @@ val stringOrNullableString = either("a", string, "b", nullable(string))
 val schemaWithNullableEither = Tuple("1", stringOrNullableString, "2", nullable(stringOrNullableString))
 val TableWithNullableEither = tableOf(schemaWithNullableEither, "tableContainingEither","_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, schemaWithNullableEither.First, "which"),
-            Relation.Embedded(SnakeCase, schemaWithNullableEither.Second, "whetherAndWhich")
+            Relation.Embedded(SnakeCase, First, "which"),
+            Relation.Embedded(SnakeCase, Second, "whetherAndWhich")
     )
 }
 
+// for Templates test
+val User = Tuple("name", string, "email", string)
+val UserTable = tableOf(User, "users", "_id", i64)
+
+val Contact = Tuple("value", string, "user_id", i64)
+val ContactTable = tableOf(Contact, "contacts", "_id", i64)
+
+
 val TestTables = arrayOf(
         SomeTable, TableWithId, TableWithEmbed, TableWithDeepEmbed, WeNeedToGoDeeper,
-        TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything, TableWithNullableEither
+        TableWithNullableEmbed, TableWithPartialEmbed, TableWithEverything, TableWithNullableEither,
+        UserTable, ContactTable
 )
 
-val jdbcSession by lazy { // init only when requested, unused in Rololectric tests
+val jdbcSession by lazy { // init only when requested, unused in Robolectric tests
     JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
         val stmt = conn.createStatement()
         TestTables.forEach {

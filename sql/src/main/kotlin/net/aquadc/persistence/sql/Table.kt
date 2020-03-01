@@ -133,7 +133,7 @@ private constructor(
                         ss.colCount = outColumns.size - start
                         outRecipe.add(Nesting.StructEnd)
 
-                        check(outDelegates?.put(path, Embedded<SCH, ID, Schema<*>>(
+                        check(outDelegates?.put(path, Embedded(
                                 outColumns.subList(start, outColumns.size).array(),
                                 // ArrayList$SubList checks for concurrent modifications and cannot be passed as is
                                 outRecipe.subList(recipeStart, outRecipe.size).array()

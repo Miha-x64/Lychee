@@ -8,8 +8,10 @@ import net.aquadc.persistence.sql.QueryBuilderTests
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.SqlPropTest
 import net.aquadc.persistence.sql.blocking.SqliteSession
+import net.aquadc.persistence.sql.TemplatesTest
 import net.aquadc.persistence.sql.TestTables
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.sql.blocking.Blocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -67,7 +69,6 @@ class SqlPropRoboTest : SqlPropTest() {
 
 }
 
-
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class EmbedRelationsRoboTest : EmbedRelationsTest() {
@@ -82,12 +83,25 @@ class EmbedRelationsRoboTest : EmbedRelationsTest() {
     }
 }
 
-
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class QueryBuilderRoboTests : QueryBuilderTests() {
     private lateinit var db: SQLiteDatabase
     override lateinit var session: Session<*>
+    @Before fun init() {
+        db = sqliteDb()
+        session = SqliteSession(db)
+    }
+    @After fun close() {
+        db.close()
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
+class TemplatesRoboTests : TemplatesTest() {
+    private lateinit var db: SQLiteDatabase
+    override lateinit var session: Session<out Blocking<out AutoCloseable>>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)

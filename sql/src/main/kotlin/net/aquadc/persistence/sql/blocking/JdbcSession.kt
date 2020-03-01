@@ -3,16 +3,17 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.persistence.array
 import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
+import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.NoOrder
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Record
-import net.aquadc.persistence.sql.Selection
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
+import net.aquadc.persistence.sql.VarFunc
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
@@ -26,6 +27,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i64
+import org.intellij.lang.annotations.Language
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -42,7 +44,7 @@ import kotlin.concurrent.getOrSet
 class JdbcSession(
         @JvmField @JvmSynthetic internal val connection: Connection,
         @JvmField @JvmSynthetic internal val dialect: Dialect
-) : Session<BlockingSession> {
+) : Session<Blocking<ResultSet>> {
 
     init {
         connection.autoCommit = false
@@ -64,7 +66,9 @@ class JdbcSession(
     // transactional things, guarded by write-lock
     @JvmField @JvmSynthetic internal var transaction: RealTransaction? = null
 
-    private val lowLevel: LowLevelSession<PreparedStatement> = object : LowLevelSession<PreparedStatement>() {
+    @JvmField @JvmSynthetic internal val selectStatements = ThreadLocal<MutableMap<String, PreparedStatement>>()
+
+    private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val dao = getDao(table)
@@ -147,8 +151,7 @@ class JdbcSession(
                     if (columns == null) dialect.selectCountQuery(table, condition)
                     else dialect.selectQuery(table, columns, condition, order)
 
-            return getDao(table)
-                    .selectStatements
+            return selectStatements
                     .getOrSet(::HashMap)
                     .getOrPut(query) { connection.prepareStatement(query) }
                     .also { stmt ->
@@ -237,9 +240,11 @@ class JdbcSession(
         }
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        private fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
-            val i = 1 + index
+        private /*wannabe inline*/ fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
+            return get1indexed(resultSet, 1 + index)
+        }
 
+        private fun <T> DataType<T>.get1indexed(resultSet: ResultSet, i: Int): T {
             return flattened { isNullable, simple ->
                 val v = when (simple.kind) {
                     DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
@@ -259,6 +264,43 @@ class JdbcSession(
             }
         }
 
+        override fun <T> cell(
+                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>
+        ): T {
+            val rs = select(query, argumentTypes, arguments, 1)
+            try {
+                check(rs.next())
+                val value = type.get(rs, 0)
+                check(!rs.next())
+                return value
+            } finally {
+                rs.close()
+            }
+        }
+
+        override fun select(
+                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, expectedCols: Int
+        ): ResultSet = selectStatements
+                .getOrSet(::HashMap)
+                .getOrPut(query) { connection.prepareStatement(query) }
+                .also { stmt ->
+                    for (idx in argumentTypes.indices) {
+                        (argumentTypes[idx] as DataType<Any?>).bind(stmt, idx, arguments[idx])
+                    }
+                }
+                .executeQuery()
+        override fun sizeHint(cursor: ResultSet): Int = -1
+        override fun next(cursor: ResultSet): Boolean = cursor.next()
+        override fun <T> cellAt(cursor: ResultSet, col: Int, type: DataType<T>): T = type.get(cursor, col)
+        override fun rowByName(cursor: ResultSet, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
+                Array(columns.size) { idx ->
+                    val col = columns[idx]
+                    col.type.get1indexed(cursor, cursor.findColumn(col.name))
+                }
+        override fun rowByPosition(cursor: ResultSet, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
+                Array(columns.size) { idx ->
+                    columns[idx].type.get(cursor, idx)
+                }
     }
 
 
@@ -278,7 +320,7 @@ class JdbcSession(
             dao.dump("  ", sb)
 
             sb.append("  select statements (for current thread)\n")
-            dao.selectStatements.get()?.keys?.forEach { sql ->
+            selectStatements.get()?.keys?.forEach { sql ->
                 sb.append(' ').append(sql).append("\n")
             }
 
@@ -292,7 +334,11 @@ class JdbcSession(
         }
     }
 
-    override fun rawQuery(query: String, vararg arguments: Any): Selection<BlockingSession> =
-            BlockingSelection(lowLevel, query, arguments)
+    override fun <R> rawQuery(
+            @Language("SQL") query: String,
+            argumentTypes: Array<out DataType.Simple<*>>,
+            fetch: Fetch<Blocking<ResultSet>, R>
+    ): VarFunc<Any, R> =
+            BlockingQuery(lowLevel, query, argumentTypes, fetch)
 
 }

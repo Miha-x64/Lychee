@@ -23,14 +23,10 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, STMT>(
         private val session: Session<*>,
-        private val lowSession: LowLevelSession<STMT>,
+        private val lowSession: LowLevelSession<STMT, *>,
         private val table: Table<SCH, ID, REC>,
         private val dialect: Dialect
 ) : Dao<SCH, ID, REC> {
-
-    // helpers for Sessions
-
-    internal val selectStatements = ThreadLocal<MutableMap<String, STMT>>()
 
     // these three are guarded by RW lock
     internal var insertStatement: STMT? = null

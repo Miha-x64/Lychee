@@ -3,23 +3,26 @@ package net.aquadc.persistence.sql.blocking
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteCursor
+import android.database.sqlite.SQLiteCursorDriver
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteProgram
+import android.database.sqlite.SQLiteQuery
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.array
 import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
+import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.NoOrder
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Record
-import net.aquadc.persistence.sql.Selection
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
+import net.aquadc.persistence.sql.VarFunc
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
@@ -33,6 +36,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i64
+import org.intellij.lang.annotations.Language
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
@@ -42,7 +46,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 @ExperimentalSql
 class SqliteSession(
         @JvmSynthetic @JvmField internal val connection: SQLiteDatabase
-) : Session<BlockingSession> {
+) : Session<Blocking<Cursor>> {
 
     @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
@@ -58,7 +62,7 @@ class SqliteSession(
     // transactional things, guarded by write-lock
     @JvmSynthetic @JvmField internal var transaction: RealTransaction? = null
 
-    @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement>() {
+    @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement, Cursor>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
             val dao = getDao(table)
@@ -140,9 +144,10 @@ class SqliteSession(
                 columns: Array<out StoredNamedLens<SCH, *, *>>?,
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<out SCH>>
-        ): Cursor {
-            val sql = with(SqliteDialect) {
-                SQLiteQueryBuilder.buildQueryString( // fixme: building SQL myself may save some allocations
+        ): Cursor = connection.rawQueryWithFactory(
+                CurFac(condition, table, null, null),
+                with(SqliteDialect) { SQLiteQueryBuilder.buildQueryString(
+                        // fixme: building SQL myself could save some allocations
                         /*distinct=*/false,
                         table.name,
                         if (columns == null) arrayOf("COUNT(*)") else columns.mapIndexedToArray { _, col -> col.name },
@@ -151,23 +156,37 @@ class SqliteSession(
                         /*having=*/null,
                         if (order.isEmpty()) null else StringBuilder().appendOrderClause(order).toString(),
                         /*limit=*/null
-                )
-            }
+                ) },
+                /*selectionArgs=*/null,
+                SQLiteDatabase.findEditTable(table.name), // TODO: whether it is necessary?
+                /*cancellationSignal=*/null
+        )
 
-            // a workaround for binding BLOBS, as suggested in https://stackoverflow.com/a/23159664/3050249
-            return connection.rawQueryWithFactory(
-                    { _, masterQuery, editTable, query ->
-                        bindQueryParams(condition, table) { type, idx, value ->
+        // a workaround for binding BLOBs, as suggested in https://stackoverflow.com/a/23159664/3050249
+        private inner class CurFac<ID : IdBound, SCH : Schema<SCH>>(
+                private val condition: WhereCondition<SCH>?,
+                private val table: Table<SCH, ID, *>?,
+                private val argumentTypes: Array<out DataType.Simple<*>>?,
+                private val arguments: Array<out Any>?
+        ) : SQLiteDatabase.CursorFactory {
+
+            override fun newCursor(db: SQLiteDatabase?, masterQuery: SQLiteCursorDriver?, editTable: String?, query: SQLiteQuery): Cursor {
+                when {
+                    condition != null ->
+                        bindQueryParams(condition, table!!) { type, idx, value ->
                             type.bind(query, idx, value)
                         }
+                    argumentTypes != null -> arguments!!.let { args ->
+                        argumentTypes.forEachIndexed { idx, type ->
+                            (type as DataType<Any?>).bind(query, idx, args[idx])
+                        }
+                    }
+                    else ->
+                        throw AssertionError()
+                }
 
-                        SQLiteCursor(masterQuery, editTable, query)
-                    },
-                    sql,
-                    /*selectionArgs=*/null,
-                    SQLiteDatabase.findEditTable(table.name),
-                    /*cancellationSignal=*/null
-            )
+                return SQLiteCursor(masterQuery, editTable, query)
+            }
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
@@ -273,6 +292,47 @@ class SqliteSession(
             return toByte()
         }
 
+        override fun <T> cell(query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>): T {
+            val cur = select(query, argumentTypes, arguments, 1)
+            try {
+                check(cur.moveToFirst())
+                val value = type.get(cur, 0)
+                check(!cur.moveToNext())
+                return value
+            } finally {
+                cur.close()
+            }
+        }
+        override fun select(query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, expectedCols: Int): Cursor =
+                connection.rawQueryWithFactory(
+                        CurFac<Nothing, Nothing>(null, null, argumentTypes, arguments),
+                        query,
+                        null, null, null
+                )
+        override fun sizeHint(cursor: Cursor): Int = cursor.count
+        override fun next(cursor: Cursor): Boolean = cursor.moveToNext()
+        override fun <T> cellAt(cursor: Cursor, col: Int, type: DataType<T>): T = type.get(cursor, col)
+        override fun rowByName(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
+                Array(columns.size) { idx ->
+                    val col = columns[idx]
+                    val index = try {
+                        cursor.getDamnColumnIndex(col.name) // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx>
+                    } catch (e: Exception) { // Robolectric doesn't have 'Available columns' part
+                        throw IllegalArgumentException("column '${col.name}' does not exist. " +
+                                "Available columns: ${cursor.columnNames?.contentToString()}")
+                    }
+                    col.type.get(cursor, index)
+                }
+        override fun rowByPosition(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
+                Array(columns.size) { idx ->
+                    columns[idx].type.get(cursor, idx)
+                }
+        private fun Cursor.getDamnColumnIndex(name: String): Int { // native `getColumnIndex` wrecks labels with '.'!
+            val columnNames = columnNames!!
+            val idx = columnNames.indexOfFirst { it.equals(name, ignoreCase = true) }
+            if (idx < 0) error { "$name !in ${columnNames.contentToString()}" }
+            return idx
+        }
     }
 
 
@@ -295,9 +355,6 @@ class SqliteSession(
             dao.dump("  ", sb)
 
             sb.append("  select statements (for current thread)\n")
-            dao.selectStatements.get()?.keys?.forEach { sql ->
-                sb.append(' ').append(sql).append("\n")
-            }
 
             arrayOf(
                     "insert statements" to dao.insertStatement,
@@ -309,8 +366,8 @@ class SqliteSession(
         }
     }
 
-    override fun rawQuery(query: String, vararg arguments: Any): Selection<BlockingSession> =
-            BlockingSelection(lowLevel, query, arguments)
+    override fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out DataType.Simple<*>>, fetch: Fetch<Blocking<Cursor>, R>): VarFunc<Any, R> =
+            BlockingQuery(lowLevel, query, argumentTypes, fetch)
 
 }
 

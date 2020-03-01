@@ -15,7 +15,7 @@ import java.util.BitSet
 )
 internal class RealTransaction(
         private val session: Session<*>,
-        private val lowSession: LowLevelSession<*>
+        private val lowSession: LowLevelSession<*, *>
 ) : Transaction {
 
     private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
