@@ -135,20 +135,14 @@ internal fun <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>> Na
         )
 
 /**
- * Generates lenses whose names are concatenated with snake_case
+ * Generates names concatenated with snake_case
  */
-object SnakeCase : NamingConvention {
-
-    override fun concatNames(outer: String, nested: String): String = buildString(outer.length + 1 + nested.length) {
-        append(outer).append('_').append(nested)
-    }
-
-}
+val SnakeCase: NamingConvention = ConcatConvention('_')
 
 /**
- * Generates lenses whose names are concatenated with camelCase
+ * Generates names concatenated with camelCase
  */
-object CamelCase : NamingConvention {
+val CamelCase: NamingConvention = object : NamingConvention {
 
     override fun concatNames(outer: String, nested: String): String = buildString(outer.length + nested.length) {
         append(outer)
@@ -163,6 +157,22 @@ object CamelCase : NamingConvention {
 
 }
 
+/**
+ * Generates names concatenated with a dot.
+ */
+val NestingCase: NamingConvention = ConcatConvention('.')
+
+private class ConcatConvention(private val delimiter: Char) : NamingConvention {
+    override fun concatNames(outer: String, nested: String): String =
+            buildString(outer.length + 1 + nested.length) {
+                append(outer).append(delimiter).append(nested)
+            }
+    // I could create a pre-sized char[] and use String#getChars(dest) but
+    // those Strings are identifiers, i. e. they are stored as ASCII in 99.9+% of cases.
+    // Could create special version for Java 9+ but this does not seem to be a hot place.
+}
+
+@Suppress("UNCHECKED_CAST")
 @PublishedApi internal class
 Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<US>, T, U, UD : DataType<U>>
 @PublishedApi internal constructor(
