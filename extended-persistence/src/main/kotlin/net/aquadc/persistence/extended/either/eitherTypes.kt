@@ -58,7 +58,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> either3(
                 firstName, firstType, secondName, secondType, thirdName, thirdType
         ))
 
-fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D, DD : DataType<D>> either4(
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> either4(
         firstName: String, firstType: DA,
         secondName: String, secondType: DB,
         thirdName: String, thirdType: DC,
