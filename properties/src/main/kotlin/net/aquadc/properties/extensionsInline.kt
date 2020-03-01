@@ -31,6 +31,14 @@ inline fun MutableProperty<Boolean>.set() { value = true }
 inline fun MutableProperty<Boolean>.clear() { value = false }
 
 /**
+ * A hint which makes [flip] easier to find.
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
+@Deprecated("use flip() instead", ReplaceWith("this.flip()", "net.aquadc.properties.flip"), DeprecationLevel.ERROR)
+inline fun MutableProperty<Boolean>.toggle(): Unit =
+        throw AssertionError()
+
+/**
  * Every time property becomes set (`true`),
  * it will be unset (`false`) and [action] will be performed.
  */

@@ -95,3 +95,12 @@ fun <T> MutableProperty<T>.unbind() {
     val v = value
     casValue(v, v)
 }
+
+/**
+ * Sets [this] value to its compliment.
+ */
+fun MutableProperty<Boolean>.flip() {
+    do {
+        val v = value
+    } while (!casValue(v, !v))
+}

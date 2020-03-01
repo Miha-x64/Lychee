@@ -82,4 +82,26 @@ class BooleanOperatorsTest {
         assertEquals(false, and)
     }
 
+    @Test fun concExts() = exts(true)
+    @Test fun unsExts() = exts(false)
+    private fun exts(concurrent: Boolean) {
+        val p0 = propertyOf(true, concurrent)
+        val pv by p0
+
+        p0.set() // idempotent now
+        assertEquals(true, pv)
+
+        p0.clear()
+        assertEquals(false, pv)
+
+        p0.flip()
+        assertEquals(true, pv)
+
+        p0.flip()
+        assertEquals(false, pv)
+
+        p0.set() // not idempotent now
+        assertEquals(true, pv)
+    }
+
 }

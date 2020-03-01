@@ -91,7 +91,10 @@ inline fun TokenStream.entries(path: Array<Predicate>, nameKey: Any?, valueKey: 
 inline fun TokenStream.associate(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream =
         AssociateTokens(this, path, nameKey, valueKey)
 
-/** A hint which makes [entries] easier to find */
+/**
+ * A hint which makes [entries] easier to find
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @Deprecated(
         "use entries()",
         ReplaceWith("this.entries(path, nameKey, valueKey)", "net.aquadc.persistence.extended.tokens.entries"),
@@ -99,7 +102,10 @@ inline fun TokenStream.associate(path: Array<Predicate>, nameKey: Any?, valueKey
 )
 fun TokenStream.dissociate(path: Array<Predicate>, nameKey: Any?, valueKey: Any?): TokenStream = throw AssertionError()
 
-/** A hint which makes [entries] easier to find */
+/**
+ * A hint which makes [entries] easier to find
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @Deprecated(
         "use entries()",
         ReplaceWith("this.entries(path, nameKey, valueKey)", "net.aquadc.persistence.extended.tokens.entries"),
