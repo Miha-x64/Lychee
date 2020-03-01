@@ -11,6 +11,7 @@ import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.nothing
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
 
@@ -254,11 +255,11 @@ open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<
 
 }
 
-@Suppress("NOTHING_TO_INLINE")
+@Suppress("NOTHING_TO_INLINE") // pass-through
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>): SimpleTable<SCH, ID> =
         SimpleTable(schema, name, idColName, idColType)
 
-@Suppress("NOTHING_TO_INLINE")
+@Suppress("NOTHING_TO_INLINE") // pass-through
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>): SimpleTable<SCH, ID> =
         SimpleTable(schema, name, idCol)
 
@@ -266,10 +267,10 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, 
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>,
-        crossinline relations: () -> Array<out Relation<SCH, ID, *>>
+        crossinline relations: SCH.() -> Array<out Relation<SCH, ID, *>>
 ): SimpleTable<SCH, ID> =
         object : SimpleTable<SCH, ID>(schema, name, idColName, idColType) {
-            override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke()
+            override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke(schema)
         }
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
@@ -279,3 +280,10 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         object : SimpleTable<SCH, ID>(schema, name, idCol) {
             override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke()
         }
+
+@Suppress("NOTHING_TO_INLINE") // just to be consistent with other functions
+inline fun <SCH : Schema<SCH>> projection(schema: SCH): SimpleTable<SCH, Nothing> =
+        tableOf(schema, "<anonymous>", "<none>", nothing)
+
+inline fun <SCH : Schema<SCH>> projection(schema: SCH, crossinline relations: SCH.() -> Array<out Relation<SCH, Nothing, *>>): SimpleTable<SCH, Nothing> =
+        tableOf(schema, "<anonymous>", "<none>", nothing, relations)

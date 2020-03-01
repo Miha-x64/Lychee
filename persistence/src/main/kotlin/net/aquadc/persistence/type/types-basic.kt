@@ -151,3 +151,11 @@ fun <E, DE : DataType<E>> set(elementType: DE): DataType.Collect<Set<E>, E, DE> 
 )
 fun <E> list(@Suppress("UNUSED_PARAMETER") elementType: DataType<E>): Nothing =
         throw UnsupportedOperationException()
+
+@JvmField val nothing: DataType.Simple<Nothing> = object : DataType.Simple<Nothing>(Kind.I32) {
+    override fun load(value: SimpleValue): Nothing =
+            throw UnsupportedOperationException()
+
+    override fun store(value: Nothing): SimpleValue =
+            throw UnsupportedOperationException()
+}
