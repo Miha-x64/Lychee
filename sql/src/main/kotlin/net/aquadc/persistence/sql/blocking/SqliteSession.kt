@@ -314,22 +314,18 @@ class SqliteSession(
         override fun <T> cellAt(cursor: Cursor, col: Int, type: DataType<T>): T = type.get(cursor, col)
         override fun rowByName(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
                 Array(columns.size) { idx ->
-                    val col = columns[idx]
-                    val index = try {
-                        cursor.getDamnColumnIndex(col.name) // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx>
-                    } catch (e: Exception) { // Robolectric doesn't have 'Available columns' part
-                        throw IllegalArgumentException("column '${col.name}' does not exist. " +
-                                "Available columns: ${cursor.columnNames?.contentToString()}")
-                    }
+                    val col = columns[idx] // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
+                    val index = cursor.getColIdx(idx, col.name as java.lang.String)
                     col.type.get(cursor, index)
                 }
         override fun rowByPosition(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
                 Array(columns.size) { idx ->
                     columns[idx].type.get(cursor, idx)
                 }
-        private fun Cursor.getDamnColumnIndex(name: String): Int { // native `getColumnIndex` wrecks labels with '.'!
+        private fun Cursor.getColIdx(guess: Int, name: java.lang.String): Int { // native `getColumnIndex` wrecks labels with '.'!
             val columnNames = columnNames!!
-            val idx = columnNames.indexOfFirst { it.equals(name, ignoreCase = true) }
+            if (columnNames.size > guess && name.equalsIgnoreCase(columnNames[guess])) return guess
+            val idx = columnNames.indexOfFirst { name.equalsIgnoreCase(it) }
             if (idx < 0) error { "$name !in ${columnNames.contentToString()}" }
             return idx
         }
