@@ -208,7 +208,7 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<U
     override fun ofPartial(struct: TR): U? =
             if ((outer as Lens<TS, TR, S, out T?, *>).hasValue(struct))
                 (nested as Lens<US, PartialStruct<US>, Struct<US>, out U, *>).ofPartial(
-                        (outer as Lens<TS, TR, S, out T?, *>).ofPartial(struct) as PartialStruct<US>
+                        outer.ofPartial(struct) as PartialStruct<US>
                 )
             else null
 
