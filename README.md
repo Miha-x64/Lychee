@@ -401,15 +401,16 @@ someGlobalProp.value = 1
 // mappedProp's listener was notified
 ```
 
-All Android bindings are based on [bindViewTo](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L20)
-which creates a [Binding](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L47).
-It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) implemening `View.OnAttachStateChangeListener`, `ChangeListener` and `(Boolean) -> Unit`.
+All Android bindings are based on [bindViewTo](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L23)
+ which creates a [Binding](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L50).
+It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) observing
+View attached state, Activity started state, and Property changes.
 When view gets attached to window, `Binding` is getting subscribed
 to Activity lifecycle via [Lifecycle-Watcher](/android-bindings/src/main/kotlin/net/aquadc/properties/android/Lifecycle-Watcher.kt#L17);
 when Activity is started, `Binding` listens for data source.
 When Activity gets stopped or View gets detached,
 binding unsubscribes and becomes eligible for garbage collection
-along with the whole view hierarchy.
+along with the whole View hierarchy.
 
 #### Is there anything similar to RxJava's Single?
 
@@ -418,7 +419,7 @@ It also was backported to ~~Java 6.5~~ _Android_ a long time ago.
 Note that it is distributed under 'GPL v. 2.0 with classpath exception'
 which is not as restrictive as GPL itself.
 
-You can mutate concurrent properties from background threads (e. g. in the end of async computations),
+You can mutate concurrent properties from background threads (e.g. in the end of async computations),
 triggering UI state change as needed and without any callbacks.
 
 #### ProGuard rules for Android?
