@@ -16,7 +16,7 @@ fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
         source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
         /* default value for [fields] may be mutableFieldSet(), but StructBuilder's default is different */
 ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-        source.fields.intersectMutable(fields).also { intersect ->
+        source.fields.intersect(fields).also { intersect ->
             source.schema.forEach(intersect) { field ->
                 mutateFrom(source, field) // capture type
             }

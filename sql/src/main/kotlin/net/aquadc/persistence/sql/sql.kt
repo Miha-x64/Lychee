@@ -8,7 +8,7 @@ import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.intersectMutable
+import net.aquadc.persistence.struct.intersect
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
@@ -144,7 +144,7 @@ interface Transaction : AutoCloseable {
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.setFrom(
             source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
     ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-            source.fields.intersectMutable(fields).also { intersect ->
+            source.fields.intersect(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->
                     mutateFrom(source, field) // capture type
                 }

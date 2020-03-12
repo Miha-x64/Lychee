@@ -9,7 +9,7 @@ import net.aquadc.persistence.struct.SimpleStructTransaction
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructTransaction
 import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.intersectMutable
+import net.aquadc.persistence.struct.intersect
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
@@ -79,7 +79,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     fun setFrom(
             source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
     ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-            source.fields.intersectMutable(fields).also { intersect ->
+            source.fields.intersect(fields).also { intersect ->
                 schema.forEach(fields) { field ->
                     mutateFrom(source, field) // capture type
                 }
