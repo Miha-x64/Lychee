@@ -2,9 +2,15 @@
 
 package net.aquadc.propertiesSampleLogic.sql
 
-import net.aquadc.persistence.sql.*
+import net.aquadc.persistence.sql.Record
+import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.Transaction
+import net.aquadc.persistence.sql.eq
+import net.aquadc.persistence.sql.or
+import net.aquadc.persistence.sql.select
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
@@ -14,9 +20,9 @@ val SampleTables: Array<Table<*, Long, *>> = arrayOf(Human.Tbl, Car.Tbl, Friends
 
 
 fun Transaction.insertHuman(name: String, surname: String): Human =
-        insert(Human.Tbl, Human.build {
-                it[Name] = name
-                it[Surname] = surname
+        insert(Human.Tbl, Human {
+            it[Name] = name
+            it[Surname] = surname
         })
 
 class Human(session: Session<*>, id: Long) : Record<Human.Sch, Long>(Tbl, session, id) {
@@ -39,7 +45,7 @@ class Human(session: Session<*>, id: Long) : Record<Human.Sch, Long>(Tbl, sessio
 
 
 fun Transaction.insertCar(owner: Human): Car =
-        insert(Car.Tbl, Car.build {
+        insert(Car.Tbl, Car {
             it[OwnerId] = owner.primaryKey
         })
 
@@ -60,7 +66,7 @@ class Car(session: Session<*>, id: Long) : Record<Car.Sch, Long>(Tbl, session, i
 
 
 fun Transaction.insertFriendship(left: Human, right: Human): Friendship =
-        insert(Friendship.Tbl, Friendship.build {
+        insert(Friendship.Tbl, Friendship {
             it[LeftId] = left.primaryKey
             it[RightId] = right.primaryKey
         })

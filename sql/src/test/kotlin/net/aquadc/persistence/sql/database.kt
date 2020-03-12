@@ -7,7 +7,8 @@ import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.StructBuilder
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
@@ -141,7 +142,7 @@ val jdbcSession by lazy { // init only when requested, unused in Robolectric tes
 
 fun Session<*>.createTestRecord() =
         withTransaction {
-            insert(SomeTable, SomeSchema.build {
+            insert(SomeTable, SomeSchema {
                 it[A] = "first"
                 it[B] = 2
                 it[C] = 3

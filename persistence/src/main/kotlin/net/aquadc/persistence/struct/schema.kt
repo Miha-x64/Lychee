@@ -151,7 +151,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
 
     // todo: may be zero-copy
     override fun load(fields: FieldSet<SELF, FieldDef<SELF, *, *>>, values: Any?): Struct<SELF> =
-            schema.build { builder -> fill(builder, this, fields, values) }
+            schema { builder -> fill(builder, this, fields, values) }
 
     override fun fields(value: Struct<SELF>): FieldSet<SELF, FieldDef<SELF, *, *>> =
             schema.allFieldSet()

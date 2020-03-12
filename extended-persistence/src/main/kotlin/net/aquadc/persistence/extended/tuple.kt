@@ -6,7 +6,8 @@ package net.aquadc.persistence.extended
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.StructSnapshot
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
 
 
@@ -23,13 +24,19 @@ class Tuple<A, DA : DataType<A>, B, DB : DataType<B>>(
     @JvmField val Second = secondName mut secondType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
+        Tuple<A, DA, B, DB>.build(
+        first: A, second: B
+): Struct<Tuple<A, DA, B, DB>> = this(first, second)
 /**
  * Creates an instance of a [Tuple] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>> Tuple<A, DA, B, DB>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
+        Tuple<A, DA, B, DB>.invoke(
         first: A, second: B
 ): Struct<Tuple<A, DA, B, DB>> =
-        build {
+        this {
             it[First] = first
             it[Second] = second
         }
@@ -37,7 +44,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>> Tuple<A, DA, B, DB>.build(
 /**
  * Creates a partial instance of a [Tuple] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>> Tuple<A, DA, B, DB>.buildPartial(
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
+        Tuple<A, DA, B, DB>.buildPartial(
         first: A? = null, second: B? = null
 ): PartialStruct<Tuple<A, DA, B, DB>> =
         buildPartial<Tuple<A, DA, B, DB>> {
@@ -75,13 +83,19 @@ class Tuple3<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>(
     @JvmField val Third = thirdName mut thirdType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
+        Tuple3<A, DA, B, DB, C, DC>.build(
+        first: A, second: B, third: C
+): Struct<Tuple3<A, DA, B, DB, C, DC>> = this(first, second, third)
 /**
  * Creates an instance of a [Tuple3] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> Tuple3<A, DA, B, DB, C, DC>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
+        Tuple3<A, DA, B, DB, C, DC>.invoke(
         first: A, second: B, third: C
-): Struct<Tuple3<A, DA, B, DB, C, DC>> =
-        build {
+): StructSnapshot<Tuple3<A, DA, B, DB, C, DC>> =
+        this {
             it[First] = first
             it[Second] = second
             it[Third] = third
@@ -90,7 +104,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> Tuple
 /**
  * Creates a partial instance of a [Tuple3] according to [this] schema.
  */
-inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>> Tuple3<A, DA, B, DB, C, DC>.buildPartial(
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>>
+        Tuple3<A, DA, B, DB, C, DC>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null
 ): PartialStruct<Tuple3<A, DA, B, DB, C, DC>> =
         buildPartial<Tuple3<A, DA, B, DB, C, DC>> {
@@ -138,13 +153,19 @@ class Tuple4<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
     @JvmField val Fourth = fourthName mut fourthType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
+        Tuple4<A, DA, B, DB, C, DC, D, DD>.build(
+        first: A, second: B, third: C, fourth: D
+): Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>> = this(first, second, third, fourth)
 /**
  * Creates an instance of a [Tuple4] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> Tuple4<A, DA, B, DB, C, DC, D, DD>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
+        Tuple4<A, DA, B, DB, C, DC, D, DD>.invoke(
         first: A, second: B, third: C, fourth: D
-): Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>> =
-        build {
+): StructSnapshot<Tuple4<A, DA, B, DB, C, DC, D, DD>> =
+        this {
             it[First] = first
             it[Second] = second
             it[Third] = third
@@ -154,7 +175,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 /**
  * Creates a partial instance of a [Tuple4] according to [this] schema.
  */
-inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>> Tuple4<A, DA, B, DB, C, DC, D, DD>.buildPartial(
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>>
+        Tuple4<A, DA, B, DB, C, DC, D, DD>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null
 ): PartialStruct<Tuple4<A, DA, B, DB, C, DC, D, DD>> =
         buildPartial<Tuple4<A, DA, B, DB, C, DC, D, DD>> {
@@ -212,13 +234,19 @@ class Tuple5<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
     @JvmField val Fifth = fifthName mut fifthType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
+        Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.build(
+        first: A, second: B, third: C, fourth: D, fifth: E
+): Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> = this(first, second, third, fourth, fifth)
 /**
  * Creates an instance of a [Tuple5] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
+        Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E
-): Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
-        build {
+): StructSnapshot<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
+        this {
             it[First] = first
             it[Second] = second
             it[Third] = third
@@ -229,7 +257,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 /**
  * Creates a partial instance of a [Tuple5] according to [this] schema.
  */
-inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>> Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.buildPartial(
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>>
+        Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null
 ): PartialStruct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
         buildPartial<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> {
@@ -297,13 +326,19 @@ class Tuple6<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
     @JvmField val Sixth = sixthName mut sixthType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
+        Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.build(
+        first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
+): Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> = this(first, second, third, fourth, fifth, sixth)
 /**
  * Creates an instance of a [Tuple6] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
+        Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
-): Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
-        build {
+): StructSnapshot<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
+        this {
             it[First] = first
             it[Second] = second
             it[Third] = third
@@ -315,7 +350,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 /**
  * Creates a partial instance of a [Tuple6] according to [this] schema.
  */
-inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>> Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.buildPartial(
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>>
+        Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null
 ): PartialStruct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
         buildPartial<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> {
@@ -393,13 +429,19 @@ class Tuple7<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
     @JvmField val Seventh = seventhName mut seventhType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
+        Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.build(
+        first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
+): Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> = this(first, second, third, fourth, fifth, sixth, seventh)
 /**
  * Creates an instance of a [Tuple7] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
+        Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
-): Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
-        build {
+): StructSnapshot<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
+        this {
             it[First] = first
             it[Second] = second
             it[Third] = third
@@ -412,7 +454,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 /**
  * Creates a partial instance of a [Tuple7] according to [this] schema.
  */
-inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>, G : Any, DG : DataType<G>> Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.buildPartial(
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>, G : Any, DG : DataType<G>>
+        Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null, seventh: G? = null
 ): PartialStruct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
         buildPartial<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> {
@@ -500,13 +543,19 @@ class Tuple8<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
     @JvmField val Eighth = eighthName mut eighthType
 }
 
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh, eighth)", "net.aquadc.persistence.extended.invoke"))
+inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
+        Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.build(
+        first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H
+): Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> = this(first, second, third, fourth, fifth, sixth, seventh, eighth)
 /**
  * Creates an instance of a [Tuple8] according to [this] schema.
  */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.build(
+inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
+        Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H
-): Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
-        build {
+): StructSnapshot<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
+        this {
             it[First] = first
             it[Second] = second
             it[Third] = third
@@ -520,7 +569,8 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 /**
  * Creates a partial instance of a [Tuple8] according to [this] schema.
  */
-inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>, G : Any, DG : DataType<G>, H : Any, DH : DataType<H>> Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.buildPartial(
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>, G : Any, DG : DataType<G>, H : Any, DH : DataType<H>>
+        Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null, seventh: G? = null, eighth: H? = null
 ): PartialStruct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
         buildPartial<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> {

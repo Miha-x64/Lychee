@@ -262,7 +262,7 @@ similarly to [typed key](https://matklad.github.io/2018/05/24/typed-key-pattern.
 [`Struct`](/src/main/kotlin/net/aquadc/persistence/struct/struct.kt)
 is an instance carrying some data according to a certain `Schema`.
 ```kt
-val player: StructSnapshot<Player> = Player.build { p ->
+val player: StructSnapshot<Player> = Player { p ->
     p[Name] = "John"
     p[Surname] = "Galt"
 }
@@ -273,7 +273,7 @@ assertEquals(0, player[Player.Score]) // Score is equal to the default value whi
 ```
 The builder-function is recommended for setting all required fields:
 ```kt
-fun Player(name: String, surname: String) = Player.build { p ->
+fun Player(name: String, surname: String) = Player { p ->
     p[Name] = name
     p[Surname] = surname
 }

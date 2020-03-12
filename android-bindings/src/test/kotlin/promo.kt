@@ -2,7 +2,6 @@
 
 import android.content.SharedPreferences
 import android.widget.TextView
-import junit.framework.Assert.assertEquals
 import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.json.writeTo
@@ -11,7 +10,7 @@ import net.aquadc.persistence.extended.tokens.MergeStrategy
 import net.aquadc.persistence.extended.tokens.inline
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.string
@@ -20,6 +19,7 @@ import net.aquadc.properties.function.CharSequencez
 import net.aquadc.properties.function.identity
 import net.aquadc.properties.function.isEqualTo
 import net.aquadc.properties.map
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.StringWriter
 
@@ -30,7 +30,7 @@ object Player : Schema<Player>() {
     val Score = "score".mut(i32, default = 0)
 }
 
-val inMemoryPlayer: StructSnapshot<Player> = Player.build { p ->
+val inMemoryPlayer: StructSnapshot<Player> = Player { p ->
     p[Name] = "John"
     p[Surname] = "Galt"
 }

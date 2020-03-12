@@ -1,6 +1,6 @@
 package net.aquadc.persistence
 
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.persistence.ObservableStruct
@@ -14,7 +14,7 @@ import org.junit.Test
 class PropStructTest {
 
     @Test fun snapshots() {
-        val initial = SomeSchema.build {
+        val initial = SomeSchema {
             it[A] = "first"
             it[B] = 2
             it[C] = 3
@@ -27,7 +27,7 @@ class PropStructTest {
         assertEquals(initial, snaps.value)
 
         struct[SomeSchema.C] = 10
-        assertEquals(SomeSchema.build {
+        assertEquals(SomeSchema {
             it[A] = "first"
             it[B] = 2
             it[C] = 10
@@ -35,7 +35,7 @@ class PropStructTest {
     }
 
     @Test fun transactional() {
-        val initial = ObservableStruct(SomeSchema.build {
+        val initial = ObservableStruct(SomeSchema {
             it[A] = "first"
             it[B] = 2
             it[C] = 3

@@ -1,9 +1,9 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.extended.invoke
+import net.aquadc.persistence.struct.invoke
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -15,7 +15,7 @@ open class QueryBuilderTests {
     @Test fun between() {
         session.withTransaction {
             repeat(10) { i ->
-                insert(SomeTable, SomeSchema.build {
+                insert(SomeTable, SomeSchema {
                     it[A] = i.toString()
                     it[B] = i
                     it[C] = i.toLong()
@@ -38,9 +38,9 @@ open class QueryBuilderTests {
     @Test fun nested() {
         session.withTransaction {
             repeat(10) { i ->
-                insert(TableWithEmbed, WithNested.build {
+                insert(TableWithEmbed, WithNested {
                     it[OwnField] = i.toString()
-                    it[Nested] = SchWithId.build {
+                    it[Nested] = SchWithId {
                         it[Id] = i.toInt()
                         it[Value] = i.toString()
                         it[MutValue] = i.toString()
@@ -67,12 +67,12 @@ open class QueryBuilderTests {
 
     @Test fun like() {
         session.withTransaction {
-            insert(SomeTable, SomeSchema.build {
+            insert(SomeTable, SomeSchema {
                 it[A] = "hello"
                 it[B] = 0
                 it[C] = 0L
             })
-            insert(SomeTable, SomeSchema.build {
+            insert(SomeTable, SomeSchema {
                 it[A] = "goodbye"
                 it[B] = 0
                 it[C] = 0L
@@ -97,12 +97,12 @@ open class QueryBuilderTests {
 
     @Test fun either() {
         session.withTransaction {
-            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherLeft("left"), null))
-            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherRight("right"), null))
-            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherLeft("left"), EitherLeft("left")))
-            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherLeft("left"), EitherRight("right")))
-            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherRight("right"), EitherLeft("left")))
-            insert(TableWithNullableEither, schemaWithNullableEither.build(EitherRight("right"), EitherRight("right")))
+            insert(TableWithNullableEither, schemaWithNullableEither(EitherLeft("left"), null))
+            insert(TableWithNullableEither, schemaWithNullableEither(EitherRight("right"), null))
+            insert(TableWithNullableEither, schemaWithNullableEither(EitherLeft("left"), EitherLeft("left")))
+            insert(TableWithNullableEither, schemaWithNullableEither(EitherLeft("left"), EitherRight("right")))
+            insert(TableWithNullableEither, schemaWithNullableEither(EitherRight("right"), EitherLeft("left")))
+            insert(TableWithNullableEither, schemaWithNullableEither(EitherRight("right"), EitherRight("right")))
         }
 
         val dao = session[TableWithNullableEither]

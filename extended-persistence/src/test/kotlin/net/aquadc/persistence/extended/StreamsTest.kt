@@ -68,12 +68,12 @@ class StreamsTest {
             )
     )
     @Test fun either() {
-        val i = userType.build(
+        val i = userType(
                 "Ivan", "Ivanov", EitherRight("Ivanovich"), EitherRight("100500")
         )
         assertEquals(i, read(userType, write(userType, i)))
 
-        val j = userType.build(
+        val j = userType(
                 "Jake", "Wharton", EitherLeft("???"), EitherFourth("Andrew")
         )
         assertEquals(j, read(userType, write(userType, j)))

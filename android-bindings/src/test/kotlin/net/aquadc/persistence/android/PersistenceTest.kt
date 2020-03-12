@@ -5,15 +5,15 @@ import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.json.writeTo
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
-import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
+import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.readListOf
@@ -22,8 +22,8 @@ import net.aquadc.persistence.tokens.tokensFrom
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.byteString
 import net.aquadc.persistence.type.collection
-import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.enumSet
+import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
@@ -73,7 +73,7 @@ class PersistenceTest {
         val EITHER = "either" let either("left", tupleType, "right", i32)
     }
 
-    val instance = Sch.build {
+    val instance = Sch {
         it[INT] = 42
         it[DOUBLE] = 42.0
         it[ENUM] = SomeEnum.C
@@ -83,7 +83,7 @@ class PersistenceTest {
         it[STRING] = "forty-two"
         it[BYTES] = setOf(1, 2, 4)
         it[BLOB] = "ADD1C7ED".decodeHex()
-        it[STRUCT] = Sch.build {
+        it[STRUCT] = Sch {
             it[INT] = 34
             it[DOUBLE] = 98.6
             it[ENUM] = SomeEnum.A
@@ -95,7 +95,7 @@ class PersistenceTest {
             it[BLOB] = "B10B".decodeHex()
             it[STRUCT] = null
             it[PART] = Sch.buildPartial { }
-            it[EITHER] = EitherLeft(tupleType.build(10, 20.0))
+            it[EITHER] = EitherLeft(tupleType(10, 20.0))
         }
         it[PART] = Sch.buildPartial {
             it[STRING] = "I'm partial!"
@@ -150,7 +150,7 @@ class PersistenceTest {
                 """{"first":"lorem","second":{"a":"ipsum","b":"dolor"}}""",
                 StringWriter().also {
                     Tuple("first", string, "second", Tuple("a", string, "b", string))
-                            .tokensFrom(schema.build("lorem", innerSchema.build("ipsum", "dolor")))
+                            .tokensFrom(schema.invoke("lorem", innerSchema.invoke("ipsum", "dolor")))
                             .writeTo(it.json())
                 }.toString()
         )
@@ -224,7 +224,7 @@ class PersistenceTest {
     @Test fun `full json partial`() {
         assertEquals(
                 """{"a":"lorem","b":"ipsum","c":"dolor"}""",
-                write(smallSchema, smallSchema.build("lorem", "ipsum", "dolor"))
+                write(smallSchema, smallSchema("lorem", "ipsum", "dolor"))
         )
         assertEquals(
                 """{"a":"lorem","b":"ipsum","c":"dolor"}""",
@@ -232,7 +232,7 @@ class PersistenceTest {
         )
 
         assertEquals(
-                smallSchema.build("lorem", "ipsum", "dolor"),
+                smallSchema("lorem", "ipsum", "dolor"),
                 read("""{"a":"lorem","b":"ipsum","c":"dolor"}""", smallSchema)
         )
         assertEquals(

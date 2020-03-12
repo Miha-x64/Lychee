@@ -63,7 +63,7 @@ val session = SqliteSession(object : SQLiteOpenHelper(context, "app.db", null, 1
 Inserting, updating, querying data:
 ```kt
 val playerRecord = session.withTransaction {
-    insert(PlayerTable, Player.build { ... })
+    insert(PlayerTable, Player { ... })
 }
 
 session.withTransaction {

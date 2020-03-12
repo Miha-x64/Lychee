@@ -1,6 +1,6 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.addUnconfinedChangeListener
@@ -138,7 +138,7 @@ open class SqlPropTest {
 
     @Test fun pkAsField() {
         val rec = session.withTransaction {
-            insert(TableWithId, SchWithId.build {
+            insert(TableWithId, SchWithId {
                 it[Id] = 19
                 it[Value] = "zzz"
             })
@@ -153,11 +153,11 @@ open class SqlPropTest {
     fun `can't insert twice with the same PK in one transaction`() {
         try {
             session.withTransaction {
-                insert(TableWithId, SchWithId.build {
+                insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "yyy"
                 })
-                insert(TableWithId, SchWithId.build {
+                insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "zzz"
                 })
@@ -172,13 +172,13 @@ open class SqlPropTest {
     fun `can't insert twice with the same PK in different transactions`() {
         try {
             session.withTransaction {
-                insert(TableWithId, SchWithId.build {
+                insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "yyy"
                 })
             }
             session.withTransaction {
-                insert(TableWithId, SchWithId.build {
+                insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "zzz"
                 })
@@ -195,7 +195,7 @@ open class SqlPropTest {
         // now the statement may be poisoned
 
         session.withTransaction {
-            insert(TableWithId, SchWithId.build {
+            insert(TableWithId, SchWithId {
                 it[Id] = 86
                 it[Value] = "aaa"
             })

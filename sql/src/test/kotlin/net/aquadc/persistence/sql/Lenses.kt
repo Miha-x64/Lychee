@@ -3,10 +3,9 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple4
 import net.aquadc.persistence.extended.buildPartial
-import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
@@ -65,7 +64,7 @@ class Lenses {
     }
     @Test fun partial() {
         val lens = NestedPartial.Item / SomeSchema.A
-        val struct = NestedPartial.build {
+        val struct = NestedPartial {
             it[Item] = SomeSchema.buildPartial {  }
         }
         val value = lens(struct)

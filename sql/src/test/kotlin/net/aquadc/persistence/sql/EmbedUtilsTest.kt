@@ -1,12 +1,11 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
-import net.aquadc.persistence.extended.either.Either
 import net.aquadc.persistence.extended.either.EitherRight
+import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -15,7 +14,7 @@ class EmbedUtilsTest {
 
     @Test fun someSchema() = assertWorks(
             SomeTable,
-            SomeSchema.build {
+            SomeSchema {
                 it[A] = "123"
                 it[B] = 456
                 it[C] = 789L
@@ -25,9 +24,9 @@ class EmbedUtilsTest {
 
     @Test fun withNested() = assertWorks(
             TableWithEmbed,
-            WithNested.build {
+            WithNested {
                 it[OwnField] = "123"
-                it[Nested] = SchWithId.build {
+                it[Nested] = SchWithId {
                     it[Id] = 456
                     it[Value] = "789"
                     it[MutValue] = "ABC"
@@ -39,12 +38,12 @@ class EmbedUtilsTest {
 
     @Test fun goDeeper() = assertWorks(
             WeNeedToGoDeeper,
-            goDeeper.build(
-                    DeeplyNested.build {
+            goDeeper(
+                    DeeplyNested {
                         it[OwnField] = "01"
-                        it[Nested] = WithNested.build {
+                        it[Nested] = WithNested {
                             it[OwnField] = "23"
-                            it[Nested] = SchWithId.build {
+                            it[Nested] = SchWithId {
                                 it[Id] = 45
                                 it[Value] = "67"
                                 it[MutValue] = "89"
@@ -52,16 +51,16 @@ class EmbedUtilsTest {
                             it[OtherOwnField] = 0xABL
                         }
                     },
-                    WithNullableNested.build {
+                    WithNullableNested {
                         it[OwnField] = "EF"
-                        it[Nested] = SchWithId.build {
+                        it[Nested] = SchWithId {
                             it[Id] = "GH".toInt(36)
                             it[Value] = "IJ"
                             it[MutValue] = "KL"
                         }
                         it[OtherOwnField] = "MN".toLong(36)
                     },
-                    EitherRight(SomeSchema.build {
+                    EitherRight(SomeSchema {
                         it[A] = "OP"
                         it[B] = "QR".toInt(36)
                         it[C] = "ST".toLong(36)
@@ -81,7 +80,7 @@ class EmbedUtilsTest {
 
     @Test fun nullableNested0() = assertWorks(
             TableWithNullableEmbed,
-            WithNullableNested.build {
+            WithNullableNested {
                 it[OwnField] = "wat"
                 it[Nested] = null
                 it[OtherOwnField] = 123L
@@ -95,9 +94,9 @@ class EmbedUtilsTest {
 
     @Test fun nullableNested1() = assertWorks(
             TableWithNullableEmbed,
-            WithNullableNested.build {
+            WithNullableNested {
                 it[OwnField] = "wat"
-                it[Nested] = SchWithId.build {
+                it[Nested] = SchWithId {
                     it[Id] = 123
                     it[Value] = "456"
                     it[MutValue] = "789"
@@ -113,7 +112,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNested0() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {  }
                 it[OwnField] = "zzz"
             },
@@ -125,7 +124,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedId() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Id] = 123
                 }
@@ -139,7 +138,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedValue() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Value] = "456"
                 }
@@ -153,7 +152,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedMutValue() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[MutValue] = "789"
                 }
@@ -167,7 +166,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedIdValue() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Id] = 111
                     it[Value] = "222"
@@ -182,7 +181,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedIdMutValue() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Id] = 111
                     it[MutValue] = "222"
@@ -197,7 +196,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedValueMutValue() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Value] = "111"
                     it[MutValue] = "222"
@@ -212,7 +211,7 @@ class EmbedUtilsTest {
 
     @Test fun partialNestedAll() = assertWorks(
             TableWithPartialEmbed,
-            WithPartialNested.build {
+            WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Id] = 111
                     it[Value] = "222"

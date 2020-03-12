@@ -50,7 +50,7 @@ class StructTests {
         val STRUCT = "struct" let nullable(Sch)
     }
 
-    val instance = Sch.build {
+    val instance = Sch {
         it[INT] = 42
         it[DOUBLE] = 42.0
         it[ENUM] = SomeEnum.C
@@ -60,7 +60,7 @@ class StructTests {
         it[STRING] = "forty-two"
         it[BYTES] = setOf(1, 2, 4)
         it[BLOB] = "ADD1C7ED".decodeHex()
-        it[STRUCT] = Sch.build {
+        it[STRUCT] = Sch {
             it[INT] = 34
             it[DOUBLE] = 98.6
             it[ENUM] = SomeEnum.A
@@ -75,7 +75,7 @@ class StructTests {
     }
 
     @Test(expected = NoSuchElementException::class) fun noDefault() {
-        Sch.build { }
+        Sch { }
     }
 
     @Test fun streams() {
@@ -95,7 +95,7 @@ class StructTests {
     }
 
     @Test fun copy() {
-        assertEquals(Sch.build {
+        assertEquals(Sch {
             it[INT] = 42
             it[DOUBLE] = 100500.0
             it[ENUM] = SomeEnum.C
@@ -113,7 +113,7 @@ class StructTests {
     }
 
     @Test fun defaults() {
-        val struct = SomeSchema.build {
+        val struct = SomeSchema {
             it[A] = "zzz"
             it[C] = 111L
         }
@@ -124,13 +124,13 @@ class StructTests {
     }
 
     @Test fun `copy from`() {
-        val aaa = SomeSchema.build {
+        val aaa = SomeSchema {
             it[A] = "a"
             it[B] = 1
             it[C] = 1L
         }
 
-        val bbb = SomeSchema.build {
+        val bbb = SomeSchema {
             it[A] = "b"
             it[B] = 2
             it[C] = 2L
@@ -140,7 +140,7 @@ class StructTests {
             assertEquals(A + B, it.setFrom(bbb, A + B))
         }
 
-        assertEquals(SomeSchema.build {
+        assertEquals(SomeSchema {
             it[A] = "b"
             it[B] = 2
             it[C] = 1L

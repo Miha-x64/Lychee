@@ -1,4 +1,5 @@
 @file:UseExperimental(ExperimentalContracts::class)
+@file:JvmName("Build")
 package net.aquadc.persistence.struct
 
 import androidx.annotation.RestrictTo
@@ -6,11 +7,18 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+@Deprecated("renamed", ReplaceWith("this.invoke(build)", "net.aquadc.persistence.struct.invoke"))
+inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
+    contract { callsInPlace(build, InvocationKind.EXACTLY_ONCE) }
+    return invoke(build)
+}
 /**
  * Builds a [StructSnapshot] or throws if field value neither specified explicitly nor has a default.
  */
-inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
+inline operator fun <SCH : Schema<SCH>> SCH.invoke(build: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
+/* CONTRACT_NOT_ALLOWED for operator fun
     contract { callsInPlace(build, InvocationKind.EXACTLY_ONCE) }
+ */
 
     val builder = newBuilder<SCH>(this)
     build(this, builder)

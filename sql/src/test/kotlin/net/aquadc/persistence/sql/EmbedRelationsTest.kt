@@ -1,16 +1,15 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.build
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.copy
-import net.aquadc.persistence.extended.either.Either
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.getOrDefault
+import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.asFieldSet
-import net.aquadc.persistence.struct.build
 import net.aquadc.persistence.struct.copy
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.properties.addUnconfinedChangeListener
 import net.aquadc.properties.distinct
 import net.aquadc.properties.function.Objectz
@@ -27,9 +26,9 @@ open class EmbedRelationsTest {
 
     @Test fun embed() {
         val rec = session.withTransaction {
-            val rec = insert(TableWithEmbed, WithNested.build {
+            val rec = insert(TableWithEmbed, WithNested {
                 it[OwnField] = "qwe"
-                it[Nested] = SchWithId.build {
+                it[Nested] = SchWithId {
                     it[Id] = 100500
                     it[Value] = "200700"
                 }
@@ -55,7 +54,7 @@ open class EmbedRelationsTest {
 
         val emb = rec[WithNested.Nested]
         session.withTransaction {
-            rec[WithNested.Nested] = SchWithId.build {
+            rec[WithNested.Nested] = SchWithId {
                 it[Id] = 100500
                 it[Value] = "200700"
                 it[MutValue] = "mutated"
@@ -71,9 +70,9 @@ open class EmbedRelationsTest {
 
     @Test fun `observing embed`() {
         val rec = session.withTransaction {
-            insert(TableWithEmbed, WithNested.build {
+            insert(TableWithEmbed, WithNested {
                 it[OwnField] = "qwe"
-                it[Nested] = SchWithId.build {
+                it[Nested] = SchWithId {
                     it[Id] = 100500
                     it[Value] = "200700"
                 }
@@ -96,7 +95,7 @@ open class EmbedRelationsTest {
         } // skip bouncing, may have several updates
 
         session.withTransaction {
-            rec[WithNested.Nested] = SchWithId.build {
+            rec[WithNested.Nested] = SchWithId {
                 it[Id] = 100500
                 it[Value] = "200701"
             }
@@ -104,12 +103,12 @@ open class EmbedRelationsTest {
 
         assertEquals(1, called)
 
-        assertEquals(SchWithId.build {
+        assertEquals(SchWithId {
             it[Id] = 100500
             it[Value] = "200700"
         }, oldNest)
 
-        assertEquals(SchWithId.build {
+        assertEquals(SchWithId {
             it[Id] = 100500
             it[Value] = "200701"
         }, newNest)
@@ -117,11 +116,11 @@ open class EmbedRelationsTest {
 
     @Test fun `deep embed`() {
         val rec = session.withTransaction {
-            insert(TableWithDeepEmbed, DeeplyNested.build {
+            insert(TableWithDeepEmbed, DeeplyNested {
                 it[OwnField] = "something"
-                it[Nested] = WithNested.build {
+                it[Nested] = WithNested {
                     it[OwnField] = "whatever"
-                    it[Nested] = SchWithId.build {
+                    it[Nested] = SchWithId {
                         it[Id] = -1
                         it[Value] = "zzz"
                         it[MutValue] = "hey"
@@ -154,11 +153,11 @@ open class EmbedRelationsTest {
     }
 
     @Test fun `we need to go deeper`() {
-        val f = DeeplyNested.build {
+        val f = DeeplyNested {
             it[OwnField] = "f1"
-            it[Nested] = WithNested.build {
+            it[Nested] = WithNested {
                 it[OwnField] = "f2.1"
-                it[Nested] = SchWithId.build {
+                it[Nested] = SchWithId {
                     it[Id] = 0xF_2_2_1
                     it[Value] = "f2.2.2"
                     it[MutValue] = "f2.2.3"
@@ -166,9 +165,9 @@ open class EmbedRelationsTest {
                 it[OtherOwnField] = 0xF_2_3
             }
         }
-        val s = WithNullableNested.build {
+        val s = WithNullableNested {
             it[OwnField] = "s2.1"
-            it[Nested] = SchWithId.build {
+            it[Nested] = SchWithId {
                 it[Id] = 0x5_2_2_1
                 it[Value] = "s2.2.2"
                 it[MutValue] = "s2.2.3"
@@ -178,7 +177,7 @@ open class EmbedRelationsTest {
         val t = EitherLeft("strstr")
 
         val rec = session.withTransaction {
-            insert(WeNeedToGoDeeper, goDeeper.build(f, s, t))
+            insert(WeNeedToGoDeeper, goDeeper(f, s, t))
         }
 
         assertEquals(f, rec[goDeeper.First])
@@ -188,7 +187,7 @@ open class EmbedRelationsTest {
 
     @Test fun `embed nullable`() {
         val record = session.withTransaction {
-            val rec = insert(TableWithNullableEmbed, WithNullableNested.build {
+            val rec = insert(TableWithNullableEmbed, WithNullableNested {
                 it[OwnField] = "qwe"
                 it[Nested] = null
                 it[OtherOwnField] = 16_000_000_000
@@ -207,7 +206,7 @@ open class EmbedRelationsTest {
         assertEquals(16_000_000_000, record[WithNullableNested.OtherOwnField])
 
         session.withTransaction {
-            record[WithNullableNested.Nested] = SchWithId.build {
+            record[WithNullableNested.Nested] = SchWithId {
                 it[Id] = 100500
                 it[Value] = "200700"
                 it[MutValue] = "mutated"
@@ -231,7 +230,7 @@ open class EmbedRelationsTest {
 
     @Test fun `embed partial`() {
         val rec = session.withTransaction {
-            val rec = insert(TableWithPartialEmbed, WithPartialNested.build {
+            val rec = insert(TableWithPartialEmbed, WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
                     it[Value] = "I'm another String!"
                 }
@@ -265,14 +264,14 @@ open class EmbedRelationsTest {
     }
 
     @Test fun `embed nullable partial`() {
-        val nest2 = SchWithId.build {
+        val nest2 = SchWithId {
             it[Id] = 111
             it[Value] = "yyy"
             it[MutValue] = "zzz"
         }
 
         val rec = session.withTransaction {
-            insert(TableWithEverything, WithEverything.build {
+            insert(TableWithEverything, WithEverything {
                 it[Nest1] = WithPartialNested.buildPartial {
                     it[OwnField] = "whatever"
                 }
@@ -284,7 +283,7 @@ open class EmbedRelationsTest {
         assertEquals(nest2, rec[WithEverything.Nest2])
 
         val rec2 = session.withTransaction {
-            insert(TableWithEverything, WithEverything.build {
+            insert(TableWithEverything, WithEverything {
                 it[Nest1] = null
                 it[Nest2] = nest2
             })
@@ -294,7 +293,7 @@ open class EmbedRelationsTest {
 
 
         val rec3 = session.withTransaction {
-            insert(TableWithEverything, WithEverything.build {
+            insert(TableWithEverything, WithEverything {
                 it[Nest1] = WithPartialNested.buildPartial {
                     it[Nested] = SchWithId.buildPartial {  }
                     it[OwnField] = ""
@@ -302,7 +301,7 @@ open class EmbedRelationsTest {
                 it[Nest2] = nest2
             })
         }
-        assertEquals(WithPartialNested.build {
+        assertEquals(WithPartialNested {
             it[Nested] = SchWithId.buildPartial {  }
             it[OwnField] = ""
         }, rec3[WithEverything.Nest1])

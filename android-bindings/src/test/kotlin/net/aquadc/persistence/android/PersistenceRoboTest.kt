@@ -2,15 +2,15 @@ package net.aquadc.persistence.android
 
 import android.content.Context
 import android.os.Parcel
+import net.aquadc.persistence.android.parcel.ParcelIo
+import net.aquadc.persistence.android.parcel.ParcelPropertiesMemento
+import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.persistence.extended.Tuple
-import net.aquadc.persistence.extended.build
+import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.persistence.type.string
-import net.aquadc.persistence.android.parcel.ParcelIo
-import net.aquadc.persistence.android.parcel.ParcelPropertiesMemento
-import net.aquadc.persistence.android.pref.SharedPreferencesStruct
 import net.aquadc.properties.getValue
 import net.aquadc.properties.persistence.PropertyIo
 import net.aquadc.properties.persistence.enum
@@ -56,7 +56,7 @@ class PersistenceRoboTest {
     @Test fun `prefs observability`() {
         val type = Tuple("f", string, "s", string)
         val prefs = RuntimeEnvironment.application.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-        val struct = SharedPreferencesStruct(type.build("lorem", "ipsum"), prefs)
+        val struct = SharedPreferencesStruct(type("lorem", "ipsum"), prefs)
         val first by struct prop type.First
         val second by struct prop type.Second
 
@@ -65,11 +65,11 @@ class PersistenceRoboTest {
 
         struct.transaction { it[type.First] = "whatever" }
         assertEquals("whatever", first)
-        assertEquals(type.build("whatever", "ipsum"), struct)
+        assertEquals(type("whatever", "ipsum"), struct)
 
         prefs.edit().putString("s", "something").commit()
         assertEquals("something", second)
-        assertEquals(type.build("whatever", "something"), struct)
+        assertEquals(type("whatever", "something"), struct)
     }
 
     @Test fun parcelPropsMemento() {

@@ -1,7 +1,7 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.Tuple
-import net.aquadc.persistence.extended.build
+import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eager.cell
 import net.aquadc.persistence.sql.blocking.Eager.col
@@ -46,8 +46,8 @@ open class TemplatesTest {
     @Test fun <CUR : AutoCloseable> join() {
         val session = session as Session<Blocking<CUR>>
         val johnPk = session.withTransaction {
-            val john = insert(UserTable, User.build("John", "john@doe.com"))
-            insert(ContactTable, Contact.build("@johnDoe", john.primaryKey))
+            val john = insert(UserTable, User("John", "john@doe.com"))
+            insert(ContactTable, Contact("@johnDoe", john.primaryKey))
             john.primaryKey
         }
 
@@ -65,9 +65,9 @@ open class TemplatesTest {
                 struct<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
         )
         val contact = userContact("John")
-        val expectedJohn = joined.schema.build(
-                User.build("John", "john@doe.com"),
-                Contact.build("@johnDoe", johnPk)
+        val expectedJohn = joined.schema(
+                User("John", "john@doe.com"),
+                Contact("@johnDoe", johnPk)
         )
         assertEquals(expectedJohn, contact)
 

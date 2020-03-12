@@ -4,7 +4,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.asFieldSet
-import net.aquadc.persistence.struct.build
+import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.struct.plus
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
@@ -49,7 +49,7 @@ class PartialsTest {
     }
 
     @Test fun take() {
-        val taken = SomeSchema.build {
+        val taken = SomeSchema {
             it[A] = ""
             it[B] = 1
             it[C] = 1L
@@ -62,7 +62,7 @@ class PartialsTest {
     }
 
     @Test fun `take all`() {
-        val full = SomeSchema.build {
+        val full = SomeSchema {
             it[A] = ""
             it[B] = 1
             it[C] = 1L
@@ -87,7 +87,7 @@ class PartialsTest {
     }
 
     @Test fun `copy partially`() {
-        val some = SomeSchema.build {
+        val some = SomeSchema {
             it[A] = "some"
             it[B] = 2
             it[C] = 6L
