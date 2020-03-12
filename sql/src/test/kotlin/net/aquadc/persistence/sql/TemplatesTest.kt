@@ -1,7 +1,10 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.Tuple
+import net.aquadc.persistence.extended.component1
+import net.aquadc.persistence.extended.component2
 import net.aquadc.persistence.extended.invoke
+import net.aquadc.persistence.extended.times
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eager.cell
 import net.aquadc.persistence.sql.blocking.Eager.col
@@ -35,12 +38,10 @@ open class TemplatesTest {
         val session = session as Session<Blocking<CUR>>
         val sumAndMul = session.query(
                 "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(Tuple("f", i32, "s", i32)), BindBy.Position)
+                struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
         )
-        assertEquals(
-                Pair(84, 48),
-                sumAndMul(80, 4, 6, 8).let { Pair(it[it.schema.First], it[it.schema.Second]) }
-        )
+        val (f, s) = sumAndMul(80, 4, 6, 8)
+        assertEquals(Pair(84, 48), Pair(f, s))
     }
 
     @Test fun <CUR : AutoCloseable> join() {

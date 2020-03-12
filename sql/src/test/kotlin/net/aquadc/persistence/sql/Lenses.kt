@@ -4,6 +4,7 @@ import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple4
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.extended.times
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.nullable
@@ -72,7 +73,7 @@ class Lenses {
     }
 
     @Test fun `struct nullability propagation`() {
-        val nested = Tuple("a", string, "b", nullable(string))
+        val nested = string * nullable(string)
         val schema = Tuple4(
                 "1", nested,
                 "2", nullable(nested),

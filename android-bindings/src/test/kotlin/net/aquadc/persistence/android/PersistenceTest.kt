@@ -11,6 +11,7 @@ import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.extended.times
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
@@ -57,7 +58,7 @@ class PersistenceTest {
     }
 
     object Sch : Schema<Sch>() {
-        val tupleType = Tuple("a", i64, "b", f64)
+        val tupleType = i64 * f64
 
         val INT = "int" let i32
         val DOUBLE = "double" let f64
