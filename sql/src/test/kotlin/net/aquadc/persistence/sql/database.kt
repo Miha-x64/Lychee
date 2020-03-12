@@ -2,7 +2,7 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
-import net.aquadc.persistence.extended.either.either
+import net.aquadc.persistence.extended.either.plus
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
@@ -54,10 +54,7 @@ val TableWithDeepEmbed = tableOf(DeeplyNested, "deep", "_id", i64) {
 val goDeeper = Tuple3(
         "first", DeeplyNested,
         "second", WithNullableNested,
-        "third", either(
-                "left", string,
-                "right", SomeSchema
-        )
+        "third", string + SomeSchema
 )
 
 val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", i64) {
@@ -106,7 +103,7 @@ val TableWithEverything = tableOf(WithEverything, "with_everything", "_id", i64)
     )
 }
 
-val stringOrNullableString = either("a", string, "b", nullable(string))
+val stringOrNullableString = string + nullable(string)
 val schemaWithNullableEither = Tuple("1", stringOrNullableString, "2", nullable(stringOrNullableString))
 val TableWithNullableEither = tableOf(schemaWithNullableEither, "tableContainingEither","_id", i64) {
     arrayOf(
