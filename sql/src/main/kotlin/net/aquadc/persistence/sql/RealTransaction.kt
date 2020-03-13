@@ -68,7 +68,7 @@ internal class RealTransaction(
                 .getOrPut(table, New::map)
                 .getOrPut(id) { Array<Any?>(table.schema.mutableFields.size) { Unset } }
 
-        table.delegateFor(field).update(session, lowSession, table, field, id, previous, value)
+        table.delegateFor(field).update(lowSession, table, field, id, previous, value)
         updates[field.mutableOrdinal.toInt()] = value
     }
 

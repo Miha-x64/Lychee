@@ -190,7 +190,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
     }
 
     override fun <T> getClean(field: FieldDef<SCH, T, *>, id: ID): T =
-            table.delegateFor(field).fetch(session, lowSession, table, field, id)
+            table.delegateFor(field).fetch(lowSession, table, field, id)
 
     override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T, *>, id: ID, previous: T, update: T) {
         val ourTransact = lowSession.transaction
