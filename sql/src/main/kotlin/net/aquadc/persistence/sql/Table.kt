@@ -135,8 +135,9 @@ private constructor(
 
                         check(outDelegates?.put(path, Embedded(
                                 outColumns.subList(start, outColumns.size).array(),
-                                // ArrayList$SubList checks for concurrent modifications and cannot be passed as is
-                                outRecipe.subList(recipeStart, outRecipe.size).array()
+                                // ArrayList$SubList checks for modifications and cannot be passed as is
+                                outRecipe.subList(recipeStart, outRecipe.size).array(),
+                                start
                         )) === null)
                     }
                     else -> TODO()

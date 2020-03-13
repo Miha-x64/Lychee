@@ -321,8 +321,23 @@ private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, 
         this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
 
 internal fun <CUR : AutoCloseable> Blocking<CUR>.row(
-        cursor: CUR, columns: Array<out StoredNamedLens<*, *, *>>, bindBy: BindBy
+        cursor: CUR, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>, bindBy: BindBy
 ): Array<Any?> = when (bindBy) {
     BindBy.Name -> rowByName(cursor, columns)
-    BindBy.Position -> rowByPosition(cursor, columns)
+    BindBy.Position -> rowByPosition(cursor, offset, columns)
+}
+
+internal fun <SCH : Schema<SCH>, CUR : AutoCloseable, R> Blocking<CUR>.cell(
+        cursor: CUR, table: Table<SCH, *, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
+): R = when (bindBy) {
+    BindBy.Name -> cellByName(cursor, column)
+    BindBy.Position -> cellAt(cursor, table.columnsMappedToFields.forceIndexOf(column), column.type)
+}
+
+private fun Array<out Any>.forceIndexOf(element: Any): Int {
+    //      note: ^^^^^^^ unlike indexOf, there's no special case for null, just 'cause we don't need it
+    for (index in indices)
+        if (element == this[index])
+            return index
+    throw NoSuchElementException(element.toString() + " !in " + contentToString())
 }

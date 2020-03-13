@@ -311,17 +311,28 @@ class SqliteSession(
                 )
         override fun sizeHint(cursor: Cursor): Int = cursor.count
         override fun next(cursor: Cursor): Boolean = cursor.moveToNext()
-        override fun <T> cellAt(cursor: Cursor, col: Int, type: DataType<T>): T = type.get(cursor, col)
+
+        private fun <T> cellByName(cursor: Cursor, guess: Int, col: StoredNamedLens<*, T, out DataType<T>>): T =
+                col.type.get(
+                        cursor,
+                        cursor.getColIdx(guess, col.name as java.lang.String)
+                )
+        override fun <T> cellByName(cursor: Cursor, col: StoredNamedLens<*, T, out DataType<T>>): T =
+                cellByName(cursor, Integer.MAX_VALUE /* don't even try to guess */, col)
+        override fun <T> cellAt(cursor: Cursor, col: Int, type: DataType<T>): T =
+                type.get(cursor, col)
+
         override fun rowByName(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
                 Array(columns.size) { idx ->
-                    val col = columns[idx] // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
-                    val index = cursor.getColIdx(idx, col.name as java.lang.String)
-                    col.type.get(cursor, index)
+                    val col = columns[idx]
+                    cellByName(cursor, idx, col as StoredNamedLens<*, Any?, out DataType<Any?>>)
                 }
-        override fun rowByPosition(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
+        override fun rowByPosition(cursor: Cursor, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
                 Array(columns.size) { idx ->
-                    columns[idx].type.get(cursor, idx)
+                    columns[idx].type.get(cursor, offset + idx)
                 }
+
+        // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
         private fun Cursor.getColIdx(guess: Int, name: java.lang.String): Int { // native `getColumnIndex` wrecks labels with '.'!
             val columnNames = columnNames!!
             if (columnNames.size > guess && name.equalsIgnoreCase(columnNames[guess])) return guess

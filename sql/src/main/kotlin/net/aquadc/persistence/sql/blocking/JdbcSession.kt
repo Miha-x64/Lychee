@@ -291,16 +291,15 @@ class JdbcSession(
                 .executeQuery()
         override fun sizeHint(cursor: ResultSet): Int = -1
         override fun next(cursor: ResultSet): Boolean = cursor.next()
-        override fun <T> cellAt(cursor: ResultSet, col: Int, type: DataType<T>): T = type.get(cursor, col)
+
+        override fun <T> cellByName(cursor: ResultSet, col: StoredNamedLens<*, T, out DataType<T>>): T =
+                col.type.get1indexed(cursor, cursor.findColumn(col.name))
+        override fun <T> cellAt(cursor: ResultSet, col: Int, type: DataType<T>): T =
+                type.get(cursor, col)
         override fun rowByName(cursor: ResultSet, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
-                Array(columns.size) { idx ->
-                    val col = columns[idx]
-                    col.type.get1indexed(cursor, cursor.findColumn(col.name))
-                }
-        override fun rowByPosition(cursor: ResultSet, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
-                Array(columns.size) { idx ->
-                    columns[idx].type.get(cursor, idx)
-                }
+                Array(columns.size) { idx -> cellByName(cursor, columns[idx] as StoredNamedLens<*, Any?, out DataType<Any?>>) }
+        override fun rowByPosition(cursor: ResultSet, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
+                Array(columns.size) { idx -> columns[idx].type.get(cursor, offset + idx) }
     }
 
 

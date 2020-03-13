@@ -11,7 +11,6 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleNullable
 import java.io.InputStream
 import java.sql.ResultSet
-import java.sql.SQLFeatureNotSupportedException
 
 /**
  * SQL session tied to blocking API with cursors of type [CUR].
@@ -25,18 +24,14 @@ interface Blocking<CUR : AutoCloseable> {
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
 
+    fun <T> cellByName(cursor: CUR, col: StoredNamedLens<*, T, out DataType<T>>): T
     fun <T> cellAt(cursor: CUR, col: Int, type: DataType<T>): T
-    fun rowByName(cursor: CUR, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?>
-    fun rowByPosition(cursor: CUR, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?>
 
-    companion object {
-        // neither eager nor lazy… let it be just Blocking.cellByteStream()
-        inline fun cellByteStream(): Fetch<Blocking<ResultSet>, InputStream> =
-                InputStreamFromResultSet //         ^^^^^^^^^ JDBC-only. Not supported by Android SQLite
-    }
+    fun rowByName(cursor: CUR, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?>
+    fun rowByPosition(cursor: CUR, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?>
 }
 
-object Eager {
+object Eagerly {
     inline fun <CUR : AutoCloseable, R> cell(returnType: DataType.Simple<R>): Fetch<Blocking<CUR>, R> =
             FetchCellEagerly(returnType)
 
@@ -56,23 +51,28 @@ object Eager {
             FetchStructListEagerly(table, bindBy)
 }
 
-@PublishedApi internal object InputStreamFromResultSet : Fetch<Blocking<ResultSet>, InputStream> {
+object Lazily {
+    inline fun <CUR : AutoCloseable, R> cell(returnType: DataType.Simple<R>): Fetch<Blocking<CUR>, Lazy<R>> =
+            FetchCellLazily(returnType)
 
-    override fun fetch(
-            from: Blocking<ResultSet>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): InputStream =
-            from.select(query, argumentTypes, arguments, 1).let {
-                check(it.next())
-                try {
-                    it.getBlob(0).binaryStream // Postgres-JDBC supports this, SQLite-JDBC doesn't
-                } catch (e: SQLFeatureNotSupportedException) {
-                    it.getBinaryStream(0) // this is typically just in-memory :'(
-                }
-            }
+    inline fun <CUR : AutoCloseable, R : Any> cell(returnType: SimpleNullable<R>): Fetch<Blocking<CUR>, Lazy<R?>> =
+            FetchCellLazily(returnType)
+
+    inline fun <CUR : AutoCloseable, R> col(elementType: DataType.Simple<R>): Fetch<Blocking<CUR>, CloseableIterator<R>> =
+            FetchColLazily(elementType)
+
+    inline fun <CUR : AutoCloseable, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
+            FetchColLazily(elementType)
+
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, Lazy<StructSnapshot<SCH>>> =
+            FetchStructLazily(table, bindBy)
+
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structList(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
+            FetchStructListLazily<CUR, SCH>(table, bindBy)
+
+    inline fun cellByteStream(): Fetch<Blocking<ResultSet>, InputStream> =
+            InputStreamFromResultSet //         ^^^^^^^^^ JDBC-only. Not supported by Android SQLite
 }
-
-//fun <T> lazyValue(): FetchValue<BlockingSession, T, T, LazyList<T>> = TODO()
-//fun <SCH : Schema<SCH>, D> lazyStruct(): FetchStruct<BlockingSession, SCH, Nothing, D, PropertyStruct<S>, LazyList<PropertyStruct<S>>> = TODO()
 
 //fun <T> observableValue(/*todo dependencies*/): FetchValue<BlockingSession, T, Property<T>, Property<LazyList<T>>> = TODO()
 //fun <SCH : Schema<SCH>, D, ID : IdBound> observableStruct(idName: String, idType: DataType.Simple<ID>/*todo dependencies*/): FetchStruct<BlockingSession, SCH, ID, D, PropertyStruct<S>, DiffProperty<LazyList<PropertyStruct<S>>, D>> = TODO()

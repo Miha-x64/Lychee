@@ -57,8 +57,6 @@ interface Session<SRC> {
 
 }
 
-interface LazyList<out E> : List<E>, Closeable // by GreenDAO
-
 
 /**
  * Represents a database session specialized for a certain [Table].
