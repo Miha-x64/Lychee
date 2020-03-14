@@ -8,7 +8,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.UiThread
 import net.aquadc.properties.Property
 import net.aquadc.properties.addUnconfinedChangeListener
-import net.aquadc.properties.android.observeStartedIf
+//import net.aquadc.properties.android.observeStartedIf
 
 
 /**
@@ -65,18 +65,18 @@ fun <V : View, T> V.bindViewTo(source: Property<T>, destination: android.util.Pr
         @JvmField protected val view: V,
         @JvmField protected val property: Property<@UnsafeVariance T>
 ) : View.OnAttachStateChangeListener
-      , (Boolean) -> Unit // started state changed
+//      , (Boolean) -> Unit // started state changed
       , (T, T) -> Unit, Runnable // value changed
 {
 
     @UiThread override fun onViewAttachedToWindow(v: View) {
-        view.context.observeStartedIf(true, this)
+        /*view.context.observeStartedIf(true, this)*/ invoke(true)
     }
     @UiThread override fun onViewDetachedFromWindow(v: View) {
-        view.context.observeStartedIf(false, this)
+        /*view.context.observeStartedIf(false, this)*/ invoke(false)
     }
 
-    @UiThread override fun invoke(isStarted: Boolean) { // View is attached, Activity changes its Started state
+    @UiThread /*override*/ fun invoke(isStarted: Boolean) { // View is attached, let's think Activity is started
         if (isStarted) {
             // We're probably the first listener,
             // subscription may trigger value computation.
