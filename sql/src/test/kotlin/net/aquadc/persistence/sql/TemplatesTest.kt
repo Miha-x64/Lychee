@@ -61,7 +61,7 @@ open class TemplatesTest {
                     "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
                     struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
-            val (f, s) = sumAndMul(80, 4, 6, 8).value
+            val (f, s) = sumAndMul(80, 4, 6, 8)
             assertEquals(Pair(84, 48), Pair(f, s))
         }
     }
@@ -111,8 +111,9 @@ open class TemplatesTest {
                     USER_BY_NAME, string,
                     struct<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
             )
-            val contact = userContact("John").value
-            assertEquals(expectedJohn, contact)
+            userContact("John").use { he ->
+                assertEquals(expectedJohn, he)
+            }
 
             val userContacts = session.query(
                     USERS_BY_NAME_AND_EMAIL_START, string, string,

@@ -8,7 +8,6 @@ import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.nothing
 import java.io.Closeable
@@ -32,7 +31,7 @@ import java.sql.SQLFeatureNotSupportedException
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
     ): CloseableIterator<R> =
-            object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, arguments, null, null, BindBy.Name/*whatever*/, NullSchema) {
+            object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, arguments, null, BindBy.Name/*whatever*/, NullSchema) {
                 override fun row(cur: CUR): R = from.cellAt(cur, 0, rt)
             }
 }
@@ -40,11 +39,12 @@ import java.sql.SQLFeatureNotSupportedException
 @PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR : AutoCloseable>(
         private val table: Table<SCH, *, *>,
         private val bindBy: BindBy
-) : Fetch<Blocking<CUR>, Lazy<StructSnapshot<SCH>>> {
+) : Fetch<Blocking<CUR>, CloseableStruct<SCH>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): Lazy<StructSnapshot<SCH>> =
-            lazy { fetchStruct(table, bindBy, from, query, argumentTypes, arguments) }
+    ): CloseableStruct<SCH> =
+            CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, arguments, table, bindBy, table.schema)
+                    .also { it.hasNext() /* move to first */ }
 }
 
 @PublishedApi internal class FetchStructListLazily<CUR : AutoCloseable, SCH : Schema<SCH>>(
@@ -55,7 +55,7 @@ import java.sql.SQLFeatureNotSupportedException
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
     ): CloseableIterator<TemporaryStruct<SCH>> =
             object : CurIterator<CUR, SCH, TemporaryStruct<SCH>>(
-                    from, query, argumentTypes, arguments, from, table, bindBy, table.schema
+                    from, query, argumentTypes, arguments, table, bindBy, table.schema
             ) {
                 override fun row(cur: CUR): TemporaryStruct<SCH> = this
             }
@@ -82,6 +82,7 @@ import java.sql.SQLFeatureNotSupportedException
 }
 
 interface CloseableIterator<out T> : Iterator<T>, Closeable
+interface CloseableStruct<SCH : Schema<SCH>> : Struct<SCH>, Closeable
 
 /**
  * A struct which will be invalid after mutating [Iterator] which owns it.
@@ -91,17 +92,16 @@ interface CloseableIterator<out T> : Iterator<T>, Closeable
  */
 interface TemporaryStruct<SCH : Schema<SCH>> : Struct<SCH>
 
-private abstract class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
+private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         protected val from: Blocking<CUR>,
         private val query: String,
         private val argumentTypes: Array<out DataType.Simple<*>>,
         private val arguments: Array<out Any>,
 
-        private val session: Blocking<CUR>?,
         private val table: Table<SCH, *, out Record<SCH, *>>?,
         private val bindBy: BindBy,
         schema: SCH
-) : CloseableIterator<R>, BaseStruct<SCH>(schema), TemporaryStruct<SCH> {
+) : CloseableIterator<R>, BaseStruct<SCH>(schema), TemporaryStruct<SCH>, CloseableStruct<SCH> {
 // he-he, like this weird iterator https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/util/MapCollections.java#74
 
     private var _cur: CUR? = null
@@ -138,11 +138,12 @@ private abstract class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         else close()
     }
 
-    protected abstract fun row(cur: CUR): R
+    protected open fun row(cur: CUR): R =
+            throw UnsupportedOperationException()
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T = when (state) {
         0,
-        1 -> table!!.let { it.delegateFor(field).get(session!!, it, field, cur, bindBy) }
+        1 -> table!!.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
         2 -> throw UnsupportedOperationException()
         else -> throw AssertionError()
     }

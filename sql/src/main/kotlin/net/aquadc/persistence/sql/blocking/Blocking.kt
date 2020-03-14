@@ -64,7 +64,7 @@ object Lazily {
     inline fun <CUR : AutoCloseable, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
             FetchColLazily(elementType)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, Lazy<StructSnapshot<SCH>>> =
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
             FetchStructLazily(table, bindBy)
 
     inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
