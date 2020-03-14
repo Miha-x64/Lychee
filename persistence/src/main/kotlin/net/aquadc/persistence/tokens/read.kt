@@ -54,9 +54,10 @@ private fun TokenStream.nextField(byName: Map<String, FieldDef<*, *, *>>): Field
 
 private val fieldValues = ThreadLocal<ArrayList<Any?>>()
 /**
- * Read these tokens as a sequence of [type].
- * This asserts the next token is [Token.BeginSequence] and consumes the whole bracket sequence.
+ * Collect these tokens as a sequence of [type] to a [List].
+ * This asserts that next token is [Token.BeginSequence] and consumes the whole bracket sequence.
  * @see readAs
+ * @see iteratorOf
  */
 fun <T> TokenStream.readListOf(type: DataType<T>): List<T> {
     // TODO: when [type] is primitive, use specialized collections
@@ -78,6 +79,48 @@ fun <T> TokenStream.readListOf(type: DataType<T>): List<T> {
     poll(Token.EndSequence)
 
     return list
+}
+
+/**
+ * Collect these tokens as a sequence of [type] to a [List].
+ * This asserts that next token is [Token.BeginSequence] and consumes the whole bracket sequence.
+ * @see readAs
+ * @see readListOf
+ */
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T> TokenStream.iteratorOf(type: DataType<T>): Iterator<T> =
+        TokensIterator(this, type)
+
+@PublishedApi internal class TokensIterator<T>(
+        private val tokens: TokenStream,
+        private val type: DataType<T>
+) : Iterator<T> {
+
+    var state = 0
+
+    override fun hasNext(): Boolean {
+        if (state == 0) pollBegin()
+        return state == 1
+    }
+    override fun next(): T {
+        if (state == 0) pollBegin()
+        if (state == 2) throw NoSuchElementException()
+        val value = tokens.readAs(type)
+        peekEnd()
+        return value
+    }
+
+    private fun pollBegin() {
+        tokens.poll(Token.BeginSequence)
+        state = 1
+        peekEnd() // required for empty sequences
+    }
+    private fun peekEnd() {
+        if (tokens.peek() == Token.EndSequence) {
+            tokens.poll()
+            state = 2
+        }
+    }
 }
 
 @JvmSynthetic internal val kindToToken = enumMapOf(

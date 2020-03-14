@@ -16,6 +16,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.tokens.Token
+import net.aquadc.persistence.tokens.iteratorOf
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.readListOf
 import net.aquadc.persistence.tokens.tokens
@@ -27,6 +28,7 @@ import net.aquadc.persistence.type.enumSet
 import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
+import net.aquadc.persistence.type.nothing
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
@@ -35,8 +37,10 @@ import net.aquadc.properties.persistence.enum
 import okio.ByteString.Companion.decodeHex
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import org.junit.Test
 import java.io.StringWriter
 import java.util.Base64
@@ -120,6 +124,23 @@ class PersistenceTest {
         assertEquals(listOf("1", "22", "ttt"), """["1", "22", "ttt"]""".reader().json().tokens().readAs(collection(string)))
 
         assertEquals("""["1","22","ttt"]""", StringWriter().also { collection(string).tokensFrom(listOf("1", "22", "ttt")).writeTo(it.json()) }.toString())
+    }
+
+    @Test fun `json iterators`() {
+        val empty = "[]".reader().json().tokens().iteratorOf(nothing)
+        assertFalse(empty.hasNext())
+        try { empty.next(); fail() }
+        catch (expected: NoSuchElementException) {}
+
+        val singleString = """["hello"]""".reader().json().tokens().iteratorOf(string)
+        assertEquals("hello", singleString.next())
+        try { singleString.next(); fail() }
+        catch (expected: NoSuchElementException) {}
+
+        assertEquals(
+                listOf(1, 2, 4, 8, 16, 32, 64),
+                "[1, 2, 4, 8, 16, 32, 64]".reader().json().tokens().iteratorOf(i32).asSequence().toList()
+        )
     }
 
     fun assertEqualToOriginal(deserialized: Struct<Sch>, assertNotSame: Boolean) {

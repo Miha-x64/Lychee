@@ -113,7 +113,10 @@ interface Transaction : AutoCloseable {
      * Insert [data] into a [table].
      */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
-    // TODO insert(Iterator)
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID, REC>, data: Iterator<Struct<SCH>>) {
+        for (struct in data)
+            insert(table, struct)
+    }
     // TODO emulate slow storage!
 
     fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
