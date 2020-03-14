@@ -4,21 +4,22 @@ package net.aquadc.properties.android.bindings.widget
 import android.widget.CompoundButton
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.bindings.Binding
 import net.aquadc.properties.android.bindings.bindViewTo
+import net.aquadc.properties.android.bindings.bindViewToBinding
 
 /**
  * Binds checked state to [check] via [CompoundButton.setChecked].
  */
-fun CompoundButton.bindCheckedTo(checkedProperty: Property<Boolean>) {
-    bindViewTo(checkedProperty, CheckedBinder(null))
-}
+fun CompoundButton.bindCheckedTo(checkedProperty: Property<Boolean>) =
+        bindViewTo(checkedProperty) { v, checked -> v.isChecked = checked }
 
 /**
  * Binds [checkedProperty] to checked sate via [CompoundButton.setOnCheckedChangeListener].
  */
 fun CompoundButton.bindToChecked(checkedProperty: MutableProperty<Boolean>) {
     checkedProperty.value = isChecked
-    setOnCheckedChangeListener(CheckedBinder(checkedProperty))
+    setOnCheckedChangeListener(CheckedBinder(this, checkedProperty))
 }
 
 /**
@@ -26,31 +27,31 @@ fun CompoundButton.bindToChecked(checkedProperty: MutableProperty<Boolean>) {
  * When this [CompoundButton] gets attached to window, checked state will be set from [checkedProperty].
  */
 fun CompoundButton.bindCheckedBidirectionally(checkedProperty: MutableProperty<Boolean>) {
-    val listenerAndBinding = CheckedBinder(checkedProperty)
+    val listenerAndBinding = CheckedBinder(this, checkedProperty)
     setOnCheckedChangeListener(listenerAndBinding)
-    bindViewTo(checkedProperty, listenerAndBinding)
+    bindViewToBinding(checkedProperty, listenerAndBinding)
 }
 
 private class CheckedBinder(
-        private val checkedProperty: MutableProperty<Boolean>?
-) : CompoundButton.OnCheckedChangeListener, (CompoundButton, Boolean) -> Unit {
+        view: CompoundButton,
+        property: MutableProperty<Boolean>
+) : Binding<CompoundButton, Boolean>(view, property), CompoundButton.OnCheckedChangeListener {
 
     private var changing = false
 
     override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
         if (!changing) {
             changing = true
-            checkedProperty!!.value = isChecked
+            (property as MutableProperty<Boolean>).value = isChecked
             changing = false
         }
     }
 
-    override fun invoke(p1: CompoundButton, p2: Boolean) {
+    override fun bind(view: CompoundButton, value: Boolean) {
         if (!changing) {
             changing = true
-            p1.isChecked = p2
+            view.isChecked = value
             changing = false
         }
     }
-
 }

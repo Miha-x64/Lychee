@@ -401,8 +401,8 @@ someGlobalProp.value = 1
 // mappedProp's listener was notified
 ```
 
-All Android bindings are based on [bindViewTo](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L23)
- which creates a [Binding](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L50).
+All Android bindings are based on [bindViewTo](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L25)
+ which creates a [Binding](/android-bindings/src/main/kotlin/net/aquadc/properties/android/bindings/bind.kt#L64).
 It is a [flyweight](https://en.wikipedia.org/wiki/Flyweight_pattern) observing
 View attached state, Activity started state, and Property changes.
 When view gets attached to window, `Binding` is getting subscribed

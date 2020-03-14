@@ -3,8 +3,8 @@ package net.aquadc.properties.android.bindings.material
 
 import com.google.android.material.tabs.TabLayout
 import net.aquadc.properties.MutableProperty
-import net.aquadc.properties.android.bindings.bindViewTo
-import net.aquadc.properties.android.simple.material.SimpleOnTabSelectedListener
+import net.aquadc.properties.android.bindings.Binding
+import net.aquadc.properties.android.bindings.bindViewToBinding
 
 
 /**
@@ -33,18 +33,25 @@ fun <T> TabLayout.bindTabsBidirectionally(
         prop: MutableProperty<T>,
         values: Array<T>
 ) {
-    val listenerAndBinding = object : SimpleOnTabSelectedListener(), (TabLayout, T) -> Unit {
-
-        override fun onTabSelected(tab: TabLayout.Tab) {
-            prop.value = values[tab.position]
-        }
-
-        override fun invoke(p1: TabLayout, p2: T) {
-            p1.getTabAt(values.indexOf(p2))!!.select()
-        }
-
-    }
+    val listenerAndBinding = TabLayoutBinding(this, prop, values)
 
     addOnTabSelectedListener(listenerAndBinding)
-    bindViewTo(prop, listenerAndBinding)
+    bindViewToBinding(prop, listenerAndBinding)
+}
+
+private class TabLayoutBinding<T>(
+        view: TabLayout,
+        prop: MutableProperty<T>,
+        private val values: Array<T>
+) : Binding<TabLayout, T>(view, prop), TabLayout.OnTabSelectedListener {
+
+    override fun onTabReselected(tab: TabLayout.Tab) {}
+    override fun onTabUnselected(tab: TabLayout.Tab) {}
+    override fun onTabSelected(tab: TabLayout.Tab) {
+        (property as MutableProperty<T>).value = values[tab.position]
+    }
+
+    override fun bind(view: TabLayout, value: T) {
+        view.getTabAt(values.indexOf(value))!!.select()
+    }
 }

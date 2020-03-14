@@ -1,5 +1,4 @@
 @file:JvmName("TextViewBindings")
-@file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.android.bindings.widget
 
 import android.content.res.Resources
@@ -9,44 +8,32 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import android.text.Editable
 import android.text.SpannedString
+import android.text.TextWatcher
 import android.widget.TextView
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.Property
+import net.aquadc.properties.android.bindings.Binding
 import net.aquadc.properties.android.bindings.bindViewTo
-import net.aquadc.properties.android.simple.SimpleTextWatcher
+import net.aquadc.properties.android.bindings.bindViewToBinding
 
 /**
  * Binds text to [textProperty] via [TextView.setText].
  */
-@Suppress("UNCHECKED_CAST")
-inline fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
-        bindViewTo(textProperty, SetText as (TextView, CharSequence) -> Unit)
+fun TextView.bindTextTo(textProperty: Property<CharSequence>): Unit =
+        bindViewToBinding(textProperty, WatcherAndBinding(this, textProperty, 0)) /* not -1! mind bit flags */
 
 /**
  * Binds text to [textResProperty] via [TextView.setText].
  */
-@Suppress("UNCHECKED_CAST")
-inline fun TextView.bindTextResTo(textResProperty: Property<Int>): Unit =
-        bindViewTo(textResProperty, SetText as (TextView, Int) -> Unit)
-
-@PublishedApi internal object SetText : (Any?, Any?) -> Any? {
-    override fun invoke(p1: Any?, p2: Any?): Any? {
-        p1 as TextView
-        when (p2) {
-            is CharSequence -> if (p1.text?.toString() != p2) p1.text = p2
-            is Int -> p1.setText(p2)
-            else -> throw AssertionError()
-        }
-        return Unit
-    }
-}
+fun TextView.bindTextResTo(textResProperty: Property<Int>): Unit =
+        bindViewToBinding(textResProperty, WatcherAndBinding(this, textResProperty, 0))
 
 /**
  * Binds [textProperty] of [CharSequence] to text via [android.text.TextWatcher].
  */
 fun TextView.bindToText(textProperty: MutableProperty<in CharSequence>) {
     textProperty.value = SpannedString(text)
-    addTextChangedListener(PropertySettingWatcher(1, textProperty))
+    addTextChangedListener(WatcherAndBinding(this, textProperty as Property<Any>, 1))
 }
 
 /**
@@ -55,24 +42,7 @@ fun TextView.bindToText(textProperty: MutableProperty<in CharSequence>) {
 @JvmName("bindToString")
 fun TextView.bindToText(textProperty: MutableProperty<in String>) {
     textProperty.value = text.toString()
-    @Suppress("UNCHECKED_CAST")
-    addTextChangedListener(PropertySettingWatcher(2, textProperty as MutableProperty<in CharSequence>))
-}
-
-
-private class PropertySettingWatcher(
-        private val mode: Int,
-        private val property: MutableProperty<in CharSequence>
-) : SimpleTextWatcher() {
-
-    override fun afterTextChanged(s: Editable) {
-        property.value = when (mode) {
-            1 -> SpannedString(s)
-            2 -> s.toString()
-            else -> throw AssertionError()
-        }
-    }
-
+    addTextChangedListener(WatcherAndBinding(this, textProperty as Property<Any>, 2))
 }
 
 /**
@@ -80,52 +50,75 @@ private class PropertySettingWatcher(
  * When this TextView gets attached to window, text will be set from [textProperty].
  */
 fun TextView.bindTextBidirectionally(textProperty: MutableProperty<String>) {
-    val watcherAndBinding = object : SimpleTextWatcher(), (TextView, String) -> Unit {
-
-        private var mutatingFromWatcher = false
-        private var mutatingFromChangeListener = false
-
-        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-            mutatingFromWatcher = true
-        }
-        override fun afterTextChanged(s: Editable) {
-            if (!mutatingFromChangeListener) textProperty.value = s.toString()
-            mutatingFromWatcher = false
-        }
-
-        override fun invoke(p1: TextView, p2: String) {
-            // we must check this to avoid resetting selection;
-            // note that SpannableStringBuilder calls toString within equals,
-            // so we're not going to be slower
-            if (p1.text?.toString() != p2) {
-                mutatingFromChangeListener = true
-                if (!mutatingFromWatcher) p1.text = p2
-                mutatingFromChangeListener = false
-            }
-        }
-    }
+    val watcherAndBinding = WatcherAndBinding(this, textProperty, 2)
 
     addTextChangedListener(watcherAndBinding)
-    bindViewTo(textProperty, watcherAndBinding)
+    bindViewToBinding(textProperty, watcherAndBinding)
+}
+
+private class WatcherAndBinding(
+        view: TextView,
+        property: Property<Any>,
+        private var _mode: Int
+) : Binding<TextView, Any>(view, property), TextWatcher {
+
+    private val mode get() = _mode and 3
+    private var mutatingFromWatcher
+        get() = (_mode and 4) != 0
+        set(whether) { _mode = if (whether) (_mode or 4) else (_mode and 4.inv()) }
+    private var mutatingFromChangeListener
+        get() = (_mode and 8) != 0
+        set(whether) { _mode = if (whether) (_mode or 8) else (_mode and 8.inv()) }
+
+    override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+        mutatingFromWatcher = true
+    }
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { }
+    override fun afterTextChanged(s: Editable) {
+        if (!mutatingFromChangeListener)
+            (property as MutableProperty).value = when (mode) {
+                1 -> SpannedString(s)
+                2 -> s.toString()
+                else -> throw AssertionError()
+            }
+        mutatingFromWatcher = false
+    }
+
+    override fun bind(view: TextView, value: Any) {
+        // we must check this to avoid resetting selection;
+        // note that SpannableStringBuilder calls toString within equals,
+        // so we're not going to be slower
+        if (view.text?.toString() != value) {
+            mutatingFromChangeListener = true
+            if (!mutatingFromWatcher) when (value) {
+                is CharSequence -> view.text = value
+                is Int -> view.setText(value)
+                else -> throw AssertionError()
+            }
+            mutatingFromChangeListener = false
+        }
+    }
 }
 
 
 /**
  * Binds hint to [hintProperty] via [TextView.setHint].
  */
-inline fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
-        bindViewTo(hintProperty, SetHint)
+fun TextView.bindHintTo(hintProperty: Property<CharSequence>): Unit =
+        bindViewToBinding(hintProperty, HintBinding(this, hintProperty))
 
 /**
  * Binds hint to [hintResProperty] via [TextView.setHint].
  */
-inline fun TextView.bindHintResTo(hintResProperty: Property<Int>): Unit =
-        bindViewTo(hintResProperty, SetHint)
+fun TextView.bindHintResTo(hintResProperty: Property<Int>): Unit =
+        bindViewToBinding(hintResProperty, HintBinding(this, hintResProperty))
 
-@PublishedApi internal object SetHint : (TextView, Any) -> Unit {
-    override fun invoke(p1: TextView, p2: Any) = when (p2) {
-        is CharSequence -> p1.hint = p2
-        is Int -> p1.setHint(p2)
+private class HintBinding(
+        view: TextView, property: Property<Any>
+) : Binding<TextView, Any>(view, property) {
+    override fun bind(view: TextView, value: Any) = when (value) {
+        is CharSequence -> view.hint = value
+        is Int -> view.setHint(value)
         else -> throw AssertionError()
     }
 }
@@ -133,20 +126,27 @@ inline fun TextView.bindHintResTo(hintResProperty: Property<Int>): Unit =
 /**
  * Binds error message to [errorProperty] via [TextView.setError].
  */
-inline fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>): Unit =
-        bindViewTo(errorProperty, SetError)
+fun TextView.bindErrorMessageTo(errorProperty: Property<CharSequence?>): Unit =
+        bindViewToBinding(errorProperty, ErrorBinding(this, errorProperty))
 
 /**
  * Binds error message to [errorResProperty] via [TextView.setError].
  */
-@JvmName("bindErrorMessageResTo")
-inline fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
-        bindViewTo(errorResProperty, SetError)
+fun TextView.bindErrorMessageResTo(errorResProperty: Property<Int>): Unit =
+        bindViewToBinding(errorResProperty, ErrorBinding(this, errorResProperty))
 
-@PublishedApi internal object SetError : (TextView, Any?) -> Unit {
-    override fun invoke(p1: TextView, p2: Any?) = when (p2) {
-        is CharSequence? -> p1.error = p2
-        is Int -> p1.error = (if (p2 == 0) null else p1.resources.getText(p2))
+/**
+ * Binds error message to [errorResProperty] via [TextView.setError].
+ */
+@Deprecated("renamed", ReplaceWith("this.bindErrorMessageResTo(errorResProperty)", "net.aquadc.properties.android.bindings.widget.bindErrorMessageResTo"))
+@JvmName("bindErrorMessageResTo_deprecated")
+fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
+        bindViewToBinding(errorResProperty, ErrorBinding(this, errorResProperty))
+
+private class ErrorBinding(view: TextView, property: Property<Any?>) : Binding<TextView, Any?>(view, property) {
+    override fun bind(view: TextView, value: Any?) = when (value) {
+        is CharSequence? -> view.error = value
+        is Int -> view.error = (if (value == 0) null else view.resources.getText(value))
         else -> throw AssertionError()
     }
 }
@@ -155,32 +155,36 @@ inline fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
  * Binds error message and icon to [errorProperty]
  * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
  */
-inline fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>): Unit =
-        bindViewTo(errorProperty, BindErrorMessageAndIconTo)
+fun TextView.bindErrorMessageAndIconTo(errorProperty: Property<Pair<CharSequence, Drawable>?>): Unit =
+        bindViewToBinding(errorProperty, ErrorWithIconBinding(this, errorProperty))
 
 /**
  * Binds error message and icon to [errorResProperty]
  * via [TextView.setError] (CharSequence, android.graphics.drawable.Drawable).
  */
 @JvmName("bindErrorMessageResAndIconTo")
-inline fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>): Unit =
-        bindViewTo(errorResProperty, BindErrorMessageAndIconTo)
+fun TextView.bindErrorMessageAndIconTo(errorResProperty: Property<MessageAndIconRes?>): Unit =
+        bindViewTo(errorResProperty, ErrorWithIconBinding(this, errorResProperty))
 
-@PublishedApi internal object BindErrorMessageAndIconTo : (TextView, Any?) -> Unit {
+private class ErrorWithIconBinding(view: TextView, property: Property<Any?>) : Binding<TextView, Any?>(view, property) {
 
-    override fun invoke(v: TextView, new: Any?) = when (new) {
-        null -> v.setError(null, null)
-        is Pair<*, *> -> v.setErrorWithIntrinsicBounds(new.first as CharSequence, new.second as Drawable)
+    override fun bind(view: TextView, value: Any?) = when (value) {
+        null -> view.setError(null, null)
+        is Pair<*, *> -> view.setErrorWithIntrinsicBounds(value.first as CharSequence, value.second as Drawable)
         is MessageAndIconRes -> {
-            val res = v.resources
-            v.setErrorWithIntrinsicBounds(
-                    res.getText(new.messageRes),
-                    res.getDrawableCompat(new.iconRes)
+            val res = view.resources
+            view.setErrorWithIntrinsicBounds(
+                    res.getText(value.messageRes),
+                    res.getDrawableCompat(value.iconRes)
             )
         }
         else -> throw AssertionError()
     }
 
+    private fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable?) {
+        icon?.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+        setError(error, icon)
+    }
 }
 
 internal fun Resources.getDrawableCompat(@DrawableRes id: Int): Drawable? =
@@ -194,12 +198,7 @@ internal fun Resources.getDrawableCompat(@DrawableRes id: Int): Drawable? =
 /**
  * A tuple of two [Int]s for [net.aquadc.properties.android.bindings.widget.bindErrorMessageAndIconTo].
  */
-class MessageAndIconRes(
+class MessageAndIconRes( // Hey, look at me! I want to be an inline class! Pleeeease!
         @JvmField @StringRes val messageRes: Int,
         @JvmField @DrawableRes val iconRes: Int
 )
-
-internal fun TextView.setErrorWithIntrinsicBounds(error: CharSequence, icon: Drawable?) {
-    icon?.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
-    setError(error, icon)
-}

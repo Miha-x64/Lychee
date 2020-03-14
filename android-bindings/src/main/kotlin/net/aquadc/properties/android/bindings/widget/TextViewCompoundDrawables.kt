@@ -16,7 +16,8 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import net.aquadc.properties.Property
-import net.aquadc.properties.android.bindings.bindViewTo
+import net.aquadc.properties.android.bindings.Binding
+import net.aquadc.properties.android.bindings.bindViewToBinding
 import kotlin.annotation.AnnotationRetention.SOURCE
 import kotlin.annotation.AnnotationTarget.FUNCTION
 import kotlin.annotation.AnnotationTarget.LOCAL_VARIABLE
@@ -73,53 +74,37 @@ class DrawableBindingStub internal constructor(
     /**
      * Binds drawable at [position] to the given [property]'s [DrawableRes] value.
      */
-    @JvmName("toRes")
+    @Deprecated("renamed", ReplaceWith("this.toRes(property)"))
+    @JvmName("toRes_overloaded")
     inline fun to(property: Property<Int>): Unit = bind(property)
+
+    /**
+     * Binds drawable at [position] to the given [property]'s [DrawableRes] value.
+     */
+    inline fun toRes(property: Property<Int>): Unit = bind(property)
 
     @PublishedApi
     internal fun bind(prop: Property<*>) {
-        view.bindViewTo(prop, when (position) {
-            LEFT -> left
-                    ?: SetCompoundDrawable(LEFT).also { left = it }
-            TOP -> top
-                    ?: SetCompoundDrawable(TOP).also { top = it }
-            RIGHT -> right
-                    ?: SetCompoundDrawable(RIGHT).also { right = it }
-            BOTTOM -> bottom
-                    ?: SetCompoundDrawable(BOTTOM).also { bottom = it }
-            START -> start
-                    ?: SetCompoundDrawable(START).also { start = it }
-            END -> end
-                    ?: SetCompoundDrawable(END).also { end = it }
-            else -> throw AssertionError()
-        })
-    }
-
-    private companion object {
-        private var left: SetCompoundDrawable? = null
-        private var top: SetCompoundDrawable? = null
-        private var right: SetCompoundDrawable? = null
-        private var bottom: SetCompoundDrawable? = null
-        private var start: SetCompoundDrawable? = null
-        private var end: SetCompoundDrawable? = null
+        view.bindViewToBinding(prop, CompoundDrawableBinding(view, prop, position))
     }
 
 }
 
-private class SetCompoundDrawable(
-        @CompoundDrawablePosition
-        private val position: Int
-) : (TextView, Any?) -> Unit {
+private class CompoundDrawableBinding(
+        view: TextView,
+        property: Property<Any?>,
+        @CompoundDrawablePosition private val position: Int
+) : Binding<TextView, Any?>(view, property) {
 
-    @SuppressLint("RtlHardcoded")
-    override fun invoke(view: TextView, drawable: Any?) {
+    @SuppressLint("RtlHardcoded", "NewApi")
+    override fun bind(view: TextView, value: Any?) {
         when (position) {
-            LEFT -> setAbs(view, 0, drawable)
-            TOP -> setAbs(view, 1, drawable)
-            RIGHT -> setAbs(view, 2, drawable)
-            BOTTOM -> setAbs(view, 3, drawable)
-            START -> setRel(view, 0, drawable)
-            END -> setRel(view, 2, drawable)
+            LEFT -> setAbs(view, 0, value)
+            TOP -> setAbs(view, 1, value)
+            RIGHT -> setAbs(view, 2, value)
+            BOTTOM -> setAbs(view, 3, value)
+            START -> setRel(view, 0, value)
+            END -> setRel(view, 2, value)
             else -> throw AssertionError()
         }
     }
@@ -146,5 +131,4 @@ private class SetCompoundDrawable(
             else -> throw AssertionError()
         }
     }
-
 }

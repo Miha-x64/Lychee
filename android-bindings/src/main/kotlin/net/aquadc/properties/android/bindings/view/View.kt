@@ -1,4 +1,5 @@
 @file:JvmName("ViewBindings")
+@file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.android.bindings.view
 
 import android.graphics.drawable.Drawable
@@ -16,15 +17,20 @@ import net.aquadc.properties.android.bindings.bindViewTo
  * Passes [visibleProperty] value to [View.setVisibility]:
  * `true` means [View.VISIBLE], `false` means [View.INVISIBLE].
  */
-fun View.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>): Unit =
-        bindViewTo(visibleProperty, SetVisibilitySoftly)
+inline fun View.bindVisibilitySoftlyTo(visibleProperty: Property<Boolean>): Unit =
+        bindVisibilityTo(visibleProperty, View.INVISIBLE)
 
 /**
  * Passes [visibleProperty] value to [View.setVisibility]:
  * `true` means [View.VISIBLE], `false` means [View.GONE].
  */
-fun View.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>): Unit =
-        bindViewTo(visibleProperty, SetVisibilityHardly)
+inline fun View.bindVisibilityHardlyTo(visibleProperty: Property<Boolean>): Unit =
+        bindVisibilityTo(visibleProperty, View.GONE)
+
+@PublishedApi @JvmSynthetic internal fun View.bindVisibilityTo(visibleProperty: Property<Boolean>, invisible: Int): Unit =
+        bindViewTo(visibleProperty) { view, visible ->
+            view.visibility = if (visible) View.VISIBLE else invisible
+        }
 
 /**
  * Passes [enabledProperty] value to [View.setEnabled].
@@ -35,21 +41,41 @@ fun View.bindEnabledTo(enabledProperty: Property<Boolean>): Unit =
 /**
  * Binds background using [View.setBackground].
  */
-fun View.bindBackgroundTo(backgroundProperty: Property<Drawable?>): Unit =
-        bindViewTo(backgroundProperty, SetBackground.Drawable)
+inline fun View.bindBackgroundTo(backgroundProperty: Property<Drawable?>): Unit =
+        bindBackgroundTo(backgroundProperty, false)
+
+/**
+ * Binds background using [View.setBackgroundResource].
+ */
+inline fun View.bindBackgroundResTo(backgroundProperty: Property<Int>): Unit =
+        bindBackgroundTo(backgroundProperty, false)
 
 /**
  * Binds background using [View.setBackgroundResource].
  */
 @JvmName("bindBackgroundResourceTo")
-fun View.bindBackgroundTo(backgroundProperty: Property<Int>): Unit =
-        bindViewTo(backgroundProperty, SetBackground.Drawable)
+@Deprecated("renamed", ReplaceWith("this.bindBackgroundResTo(backgroundProperty)", "net.aquadc.properties.android.bindings.view.bindBackgroundResTo"))
+inline fun View.bindBackgroundTo(backgroundProperty: Property<Int>): Unit =
+        bindBackgroundTo(backgroundProperty, false)
 
 /**
  * Binds background color using [View.setBackgroundColor].
  */
-fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
-        bindViewTo(backgroundColorProperty, SetBackground.Color)
+inline fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
+        bindBackgroundTo(backgroundColorProperty, true)
+
+@PublishedApi @JvmSynthetic internal fun View.bindBackgroundTo(backgroundProperty: Property<*/* Drawable | Int | null */>, color: Boolean) =
+        bindViewTo(backgroundProperty) { view, back ->
+            @Suppress("DEPRECATION")
+            when (back) {
+                is Drawable? ->
+                    if (Build.VERSION.SDK_INT >= 16) view.background = back else view.setBackgroundDrawable(back)
+                is Int ->
+                    if (color) view.setBackgroundColor(back) else view.setBackgroundResource(back)
+                else ->
+                    throw AssertionError()
+            }
+        }
 
 // endregion Property Bindings
 
@@ -68,32 +94,3 @@ fun View.setWhenLongClicked(clickedProperty: MutableProperty<Boolean>): Unit =
         setOnLongClickListener(SetWhenClicked(clickedProperty))
 
 // endregion Event Bindings
-
-private val SetVisibilitySoftly = SetVisibility(View.INVISIBLE)
-private val SetVisibilityHardly = SetVisibility(View.GONE)
-
-private class SetVisibility(
-        private val invisible: Int
-) : (View, Boolean) -> Unit {
-    override fun invoke(p1: View, p2: Boolean) {
-        p1.visibility = if (p2) View.VISIBLE else invisible
-    }
-}
-
-private class SetBackground(
-        private val color: Boolean
-) : (View, Any?) -> Unit {
-
-    @Suppress("DEPRECATION")
-    override fun invoke(view: View, back: Any?) = when (back) {
-        is Drawable? -> if (Build.VERSION.SDK_INT >= 16) view.background = back else view.setBackgroundDrawable(back)
-        is Int -> if (color) view.setBackgroundColor(back) else view.setBackgroundResource(back)
-        else -> throw AssertionError()
-    }
-
-    companion object {
-        @JvmField val Drawable = SetBackground(false)
-        @JvmField val Color = SetBackground(true)
-    }
-
-}

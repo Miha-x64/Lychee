@@ -19,19 +19,33 @@ import net.aquadc.properties.android.observeStartedIf
  * and on [View.OnAttachStateChangeListener.onViewAttachedToWindow].
  *
  * For immutable properties, calls [bind] in-place.
+ *
+ * Note: caller (inliner) of this function declares an anonymous class.
  */
-fun <V : View, T> V.bindViewTo(source: Property<T>, bind: (view: V, new: T) -> Unit) {
+inline fun <V : View, T> V.bindViewTo(source: Property<T>, crossinline bind: (view: V, new: T) -> Unit) {
     if (source.mayChange) {
-        val binding = Binding(this, source, bind)
-
-        // if the view is already attached, catch up with this state
-        if (windowToken != null) binding.onViewAttachedToWindow(this)
-        addOnAttachStateChangeListener(binding)
+        attach(
+                object : Binding<V, T>(this, source) {
+                    override fun bind(view: V, value: T) =
+                            bind.invoke(view, value)
+                }
+        )
     } else {
-        bind(this, source.value)
+        bind.invoke(this, source.value)
     }
 }
 
+// the best option when you need to declare and instantiate your own anonymous class
+internal fun <V : View, T> V.bindViewToBinding(source: Property<T>, binding: Binding<V, T>) {
+    if (source.mayChange) attach(binding)
+    else binding.bind(this, source.value)
+}
+
+@PublishedApi internal fun <T, V : View> V.attach(binding: Binding<V, T>) {
+    // if the view is already attached, catch up with this state
+    if (windowToken != null) binding.onViewAttachedToWindow(this)
+    addOnAttachStateChangeListener(binding)
+}
 
 /**
  * Binds view [destination] property to [source] property.
@@ -47,10 +61,9 @@ fun <V : View, T> V.bindViewTo(source: Property<T>, destination: android.util.Pr
         bindViewTo(source) { obj, value -> destination.set(obj, value) }
 
 
-private class Binding<V : View, in T>(
-        private val view: V,
-        private val property: Property<T>,
-        private val bind: (V, T) -> Unit
+@PublishedApi internal abstract class Binding<V : View, in T>(
+        @JvmField protected val view: V,
+        @JvmField protected val property: Property<@UnsafeVariance T>
 ) : View.OnAttachStateChangeListener
       , (Boolean) -> Unit // started state changed
       , (T, T) -> Unit, Runnable // value changed
@@ -89,6 +102,8 @@ private class Binding<V : View, in T>(
         view.removeCallbacks(this) // debounce, whatever the thread
         bind(view, property.value)
     }
+
+    abstract fun bind(view: V, value: T)
 
 }
 
