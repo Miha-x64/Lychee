@@ -72,7 +72,7 @@ internal fun <SCH : Schema<SCH>, CUR : AutoCloseable> fetchStruct(
         table: Table<SCH, *, *>, bindBy: BindBy,
         from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
 ): StructSnapshot<SCH> {
-    val managedCols = table.columnsMappedToFields
+    val managedCols = table.managedColumns
     val cur = try {
         from.select(query, argumentTypes, arguments, managedCols.size)
     } catch (e: Exception) {
@@ -92,7 +92,7 @@ internal fun <CUR : AutoCloseable, SCH : Schema<SCH>> fetchStructList(
         table: Table<SCH, *, *>, bindBy: BindBy,
         from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
 ): List<StructSnapshot<SCH>> {
-    val cols = table.columnsMappedToFields
+    val cols = table.managedColumns
     val recipe = table.recipe
 
     val cur = from.select(query, argumentTypes, arguments, cols.size)

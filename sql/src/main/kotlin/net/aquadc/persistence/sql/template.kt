@@ -27,7 +27,7 @@ enum class BindBy {
     Position,
 }
 
-// Because of KT-24067 I can't just cast Query to (...) -> R, so let's cast to VariadicConsumer
+// Because of KT-24067 I can't just cast Query to (...) -> R, so let's cast to VarFuncImpl
 inline fun <SRC, R> Session<SRC>.query(
         @Language("SQL") query: String,
         fetch: Fetch<SRC, R>

@@ -226,7 +226,7 @@ class EmbedUtilsTest {
     )
 
     private fun <SCH : Schema<SCH>> assertWorks(table: SimpleTable<SCH, *>, value: Struct<SCH>, flatExpect: Array<out Any?>) {
-        val dest = arrayOfNulls<Any>(table.columnsMappedToFields.size)
+        val dest = arrayOfNulls<Any>(table.managedColumns.size)
         flatten(table.recipe, dest, value, 0, 0)
         assertArrayEquals(flatExpect, dest)
 

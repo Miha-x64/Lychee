@@ -27,7 +27,7 @@ import java.io.DataOutputStream
 object SqliteDialect : Dialect {
 
     override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>): String = buildString {
-        val cols = table.columnsMappedToFields
+        val cols = table.managedColumns
         append("INSERT INTO ").appendName(table.name).append(" (")
                 .appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size)
                 .append(");")

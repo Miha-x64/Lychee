@@ -17,8 +17,8 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
             return false
         }
 
-        @Suppress("UNCHECKED_CAST")
-        other as PartialStruct<SCH> // other.type is our type, so it's safe
+        @Suppress("UNCHECKED_CAST") // other.type is our type, so it's safe
+        other as PartialStruct<SCH>
 
         schema.forEach(fields) { field ->
             val our = getOrThrow(field)

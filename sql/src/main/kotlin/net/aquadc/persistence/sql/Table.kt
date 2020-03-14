@@ -53,7 +53,7 @@ private constructor(
 
     @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null
     @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
-    @JvmSynthetic @JvmField internal var _columnsMappedToFields: Array<out StoredNamedLens<SCH, *, *>>? = null
+    @JvmSynthetic @JvmField internal var _managedColumns: Array<out StoredNamedLens<SCH, *, *>>? = null
     private val _columns: Lazy<Array<out StoredNamedLens<SCH, *, *>>> = lazy {
         val rels = relations().let { rels ->
             rels.associateByTo(New.map<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
@@ -75,7 +75,7 @@ private constructor(
 
         this._delegates = delegates
         val colsArray = columns.array()
-        _columnsMappedToFields = if (pkField == null) columns.subList(1, columns.size).array() else colsArray
+        _managedColumns = if (pkField == null) columns.subList(1, columns.size).array() else colsArray
         colsArray
     }
 
@@ -172,8 +172,8 @@ private constructor(
     internal val recipe: Array<out Nesting>
         get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }
 
-    val columnsMappedToFields: Array<out StoredNamedLens<SCH, *, *>>
-        get() = _columnsMappedToFields ?: _columns.value.let { _ /* unwrap lazy */ -> _columnsMappedToFields!! }
+    val managedColumns: Array<out StoredNamedLens<SCH, *, *>>
+        get() = _managedColumns ?: _columns.value.let { _ /* unwrap lazy */ -> _managedColumns!! }
 
 
     private var _columnsByName: Map<String, StoredNamedLens<SCH, *, *>>? = null

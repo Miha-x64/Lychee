@@ -19,7 +19,6 @@ import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.serialized
 import java.lang.ref.WeakReference
-import java.util.Arrays
 import java.util.concurrent.ConcurrentMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -92,7 +91,7 @@ internal inline fun <SCH : Schema<SCH>> bindQueryParams(
 }
 
 internal inline fun <SCH : Schema<SCH>> bindInsertionParams(table: Table<SCH, *, *>, data: Struct<SCH>, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit) {
-    val columns = table.columnsMappedToFields
+    val columns = table.managedColumns
     arrayOfNulls<Any>(columns.size).also { flatten(table.recipe, it, data, 0, 0) }.forEachIndexed { idx, value ->
         bind(columns[idx].type.erased, idx, value)
     }
@@ -331,7 +330,7 @@ internal fun <SCH : Schema<SCH>, CUR : AutoCloseable, R> Blocking<CUR>.cell(
         cursor: CUR, table: Table<SCH, *, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R = when (bindBy) {
     BindBy.Name -> cellByName(cursor, column)
-    BindBy.Position -> cellAt(cursor, table.columnsMappedToFields.forceIndexOf(column), column.type)
+    BindBy.Position -> cellAt(cursor, table.managedColumns.forceIndexOf(column), column.type)
 }
 
 private fun Array<out Any>.forceIndexOf(element: Any): Int {
