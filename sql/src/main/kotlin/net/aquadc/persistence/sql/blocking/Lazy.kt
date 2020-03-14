@@ -101,7 +101,7 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         private val table: Table<SCH, *, out Record<SCH, *>>?,
         private val bindBy: BindBy,
         schema: SCH
-) : CloseableIterator<R>, BaseStruct<SCH>(schema), TemporaryStruct<SCH>, CloseableStruct<SCH> {
+) : BaseStruct<SCH>(schema), CloseableIterator<R>, TemporaryStruct<SCH>, CloseableStruct<SCH> {
 // he-he, like this weird iterator https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/util/MapCollections.java#74
 
     private var _cur: CUR? = null
@@ -147,6 +147,16 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         2 -> throw UnsupportedOperationException()
         else -> throw AssertionError()
     }
+
+    override fun equals(other: Any?): Boolean =
+            if (schema === NullSchema) this === other
+            else super<BaseStruct>.equals(other)
+    override fun hashCode(): Int =
+            if (schema === NullSchema) System.identityHashCode(this)
+            else super<BaseStruct>.hashCode()
+    override fun toString(): String =
+            if (schema === NullSchema) javaClass.getName() + "@" + Integer.toHexString(hashCode())
+            else super<BaseStruct>.toString()
 }
 
 private object NullSchema : Schema<NullSchema>() {
