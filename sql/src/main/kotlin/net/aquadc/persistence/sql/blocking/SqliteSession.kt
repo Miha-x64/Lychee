@@ -308,7 +308,13 @@ class SqliteSession(
                         CurFac<Nothing, Nothing>(null, null, argumentTypes, arguments),
                         query,
                         null, null, null
-                )
+                ).also {
+                    check(it.columnCount == expectedCols) {
+                        val cols = it.columnNames.contentToString()
+                        it.close()
+                        "Expected $expectedCols cols, got $cols"
+                    }
+                }
         override fun sizeHint(cursor: Cursor): Int = cursor.count
         override fun next(cursor: Cursor): Boolean = cursor.moveToNext()
 

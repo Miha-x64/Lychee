@@ -72,10 +72,15 @@ internal fun <SCH : Schema<SCH>, CUR : AutoCloseable> fetchStruct(
         table: Table<SCH, *, *>, bindBy: BindBy,
         from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
 ): StructSnapshot<SCH> {
-    val cur = from.select(query, argumentTypes, arguments, table.columns.size)
+    val managedCols = table.columnsMappedToFields
+    val cur = try {
+        from.select(query, argumentTypes, arguments, managedCols.size)
+    } catch (e: Exception) {
+        throw RuntimeException("expected " + managedCols.map(StoredNamedLens<SCH, *, *>::name), e)
+    }
     try {
         check(from.next(cur))
-        val value = from.mapRow(bindBy, cur, table.columnsMappedToFields, table.recipe)
+        val value = from.mapRow(bindBy, cur, managedCols, table.recipe)
         check(!from.next(cur)) // single row expected
         return value
     } finally {

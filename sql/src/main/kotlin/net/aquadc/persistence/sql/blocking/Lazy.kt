@@ -107,7 +107,7 @@ private abstract class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
     private var _cur: CUR? = null
     private val cur get() = _cur ?: run {
         check(state == 0) { "Iterator is closed." }
-        from.select(query, argumentTypes, arguments, 1).also { _cur = it }
+        from.select(query, argumentTypes, arguments, table?.columnsMappedToFields?.size ?: 1).also { _cur = it }
     }
 
     var state = 0

@@ -81,11 +81,11 @@ open class TemplatesTest {
               , Relation.Embedded(NestingCase, Second)
         ) }
 
-        val USER_BY_NAME = "SELECT u._id as 'u.id', u.name as 'u.name', u.email as 'u.email'," +
-                "c._id as 'c.id', c.value as 'c.value', c.user_id as 'c.user_id' " +
+        val USER_BY_NAME = "SELECT u.name as 'u.name', u.email as 'u.email'," +
+                "c.value as 'c.value', c.user_id as 'c.user_id' " +
                 "FROM users u INNER JOIN contacts c ON u._id = c.user_id WHERE u.name = ? LIMIT 1"
-        val USERS_BY_NAME_AND_EMAIL_START = "SELECT u._id as 'u.id', u.name as 'u.name', u.email as 'u.email'," +
-                "c._id as 'c.id', c.value as 'c.value', c.user_id as 'c.user_id' " +
+        val USERS_BY_NAME_AND_EMAIL_START = "SELECT u.name as 'u.name', u.email as 'u.email'," +
+                "c.value as 'c.value', c.user_id as 'c.user_id' " +
                 "FROM users u INNER JOIN contacts c ON u._id = c.user_id WHERE u.name = ? AND u.email LIKE (? || '%') LIMIT 1"
         val expectedJohn = joined.schema(
                 User("John", "john@doe.com"),

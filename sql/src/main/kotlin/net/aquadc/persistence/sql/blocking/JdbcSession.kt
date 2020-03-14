@@ -289,6 +289,15 @@ class JdbcSession(
                     }
                 }
                 .executeQuery()
+                .also {
+                    val meta = it.metaData
+                    val actualCols = meta.columnCount
+                    check(actualCols == expectedCols) {
+                        val cols = Array(actualCols) { meta.getColumnLabel(it + 1) }.contentToString()
+                        it.close()
+                        "Expected $expectedCols cols, got $cols"
+                    }
+                }
         override fun sizeHint(cursor: ResultSet): Int = -1
         override fun next(cursor: ResultSet): Boolean = cursor.next()
 
