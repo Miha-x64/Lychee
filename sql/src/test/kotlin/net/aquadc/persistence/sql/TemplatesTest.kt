@@ -119,10 +119,19 @@ open class TemplatesTest {
                     USERS_BY_NAME_AND_EMAIL_START, string, string,
                     structs<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
             )
-            val iter = userContacts("John", "john") // don't collect TemporaryStructs!
-            assertTrue(iter.hasNext())
-            assertEquals(expectedJohn, iter.next())
-            assertFalse(iter.hasNext())
+            userContacts("John", "john").use { iter -> // don't collect TemporaryStructs!
+                assertEquals(expectedJohn, iter.next())
+                assertFalse(iter.hasNext())
+            }
+
+            userContacts("John", "john").use { iter ->
+                assertTrue(iter.hasNext()) // any number of `hasNext`s must be OK
+                assertTrue(iter.hasNext())
+                assertTrue(iter.hasNext())
+                assertTrue(iter.hasNext())
+                assertEquals(expectedJohn, iter.next())
+                assertFalse(iter.hasNext())
+            }
         }
     }
 
