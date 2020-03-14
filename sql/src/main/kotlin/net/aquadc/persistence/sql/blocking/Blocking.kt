@@ -47,7 +47,7 @@ object Eagerly {
     inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
             FetchStructEagerly(table, bindBy)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structList(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
             FetchStructListEagerly(table, bindBy)
 }
 
@@ -67,7 +67,7 @@ object Lazily {
     inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, Lazy<StructSnapshot<SCH>>> =
             FetchStructLazily(table, bindBy)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structList(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy)
 
     inline fun cellByteStream(): Fetch<Blocking<ResultSet>, InputStream> =
