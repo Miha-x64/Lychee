@@ -3,16 +3,15 @@ package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.bool
-import net.aquadc.persistence.type.i8
 import net.aquadc.persistence.type.byteArray
 import net.aquadc.persistence.type.collection
-import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.f32
+import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
-import net.aquadc.persistence.type.i16
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.MutableProperty
+import net.aquadc.properties.bind
 
 /**
  * Describes an object which can either save or restore some data.
@@ -35,12 +34,14 @@ interface PropertyIo {
         bool.invoke(prop)
 
 /** Reads or writes a [Byte] value */
+@Deprecated("does not look very useful")
 @JvmName("i8") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>): Unit =
-        i8.invoke(prop)
+        i32.invoke(prop.bind(Byte::toInt, Int::toByte))
 
 /** Reads or writes a [Short] value */
+@Deprecated("does not look very useful")
 @JvmName("i16") inline infix fun PropertyIo.x(prop: MutableProperty<Short>): Unit =
-        i16.invoke(prop)
+        i32.invoke(prop.bind(Short::toInt, Int::toShort))
 
 /** Reads or writes an [Int] value */
 @JvmName("i32") inline infix fun PropertyIo.x(prop: MutableProperty<Int>): Unit =

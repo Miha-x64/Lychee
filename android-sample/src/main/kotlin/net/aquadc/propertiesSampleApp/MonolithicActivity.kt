@@ -8,7 +8,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import net.aquadc.persistence.struct.transaction
-import net.aquadc.properties.android.simple.SimpleTextWatcher
 import net.aquadc.propertiesSampleLogic.User
 import splitties.dimensions.dip
 import splitties.views.dsl.core.button
@@ -64,8 +63,10 @@ class MonolithicActivity : Activity() {
 
         })
 
-        val watcher = object : SimpleTextWatcher() {
+        val watcher = object : TextWatcher {
             override fun afterTextChanged(s: Editable) = textChanged()
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
         }
         emailInput += watcher
         nameInput += watcher

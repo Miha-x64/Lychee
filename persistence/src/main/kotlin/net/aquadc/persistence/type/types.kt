@@ -82,8 +82,8 @@ sealed class DataType<T> {
 
         enum class Kind {
             Bool,
-            @Deprecated("does not look very useful") I8,
-            @Deprecated("does not look very useful") I16,
+            @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I8,
+            @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I16,
             I32, I64,
             F32, F64,
             Str, Blob,

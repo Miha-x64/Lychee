@@ -56,14 +56,13 @@ private class PrefReaderVisitor<T> : DataTypeVisitor<Nothing?, Any, T, T> {
             else
                 type.load(when (type.kind) {
                     DataType.Simple.Kind.Bool -> arg as Boolean
-                    DataType.Simple.Kind.I8 -> (arg as Int).assertFitsByte()
-                    DataType.Simple.Kind.I16 -> (arg as Int).assertFitsShort()
                     DataType.Simple.Kind.I32 -> arg as Int
                     DataType.Simple.Kind.I64 -> arg as Long
                     DataType.Simple.Kind.F32 -> arg as Float
                     DataType.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(arg as Long)
                     DataType.Simple.Kind.Str -> arg as String
                     DataType.Simple.Kind.Blob -> Base64.decode(arg as String, Base64.DEFAULT)
+                    else -> throw AssertionError()
                 })
 
     override fun <E> Nothing?.collection(arg: Any, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): T =
@@ -98,14 +97,13 @@ private class PrefWriterVisitor<T>(
                 val v = type.store(arg)
                 when (type.kind) {
                     DataType.Simple.Kind.Bool -> putBoolean(key, v as Boolean)
-                    DataType.Simple.Kind.I8 -> putInt(key, (v as Byte).toInt())
-                    DataType.Simple.Kind.I16 -> putInt(key, (v as Short).toInt())
                     DataType.Simple.Kind.I32 -> putInt(key, v as Int)
                     DataType.Simple.Kind.I64 -> putLong(key, v as Long)
                     DataType.Simple.Kind.F32 -> putFloat(key, v as Float)
                     DataType.Simple.Kind.F64 -> putLong(key, java.lang.Double.doubleToLongBits(v as Double))
                     DataType.Simple.Kind.Str -> putString(key, v as String)
                     DataType.Simple.Kind.Blob -> putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
+                    else -> throw AssertionError()
                 }
             }.let { }
 

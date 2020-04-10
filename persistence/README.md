@@ -52,10 +52,11 @@ the idea that a class could easily acquire serialization capability is just wron
 
 Lychee introduces `Struct`s which are objects with all fields serializable,
 and you are free to adapt `Schema`s to storages as you wish:
-* `TokenStream` provides transforms to change JSON schema while [avoiding mappers](https://blog.jooq.org/2019/11/13/stop-mapping-stuff-in-your-middleware-use-sqls-xml-or-json-operators-instead/)
+* `TokenStream` provides transforms to change JSON schema
+  while [avoiding mappers](https://blog.jooq.org/2019/11/13/stop-mapping-stuff-in-your-middleware-use-sqls-xml-or-json-operators-instead/);
 * SQL `Table` provides relations declared outside of `Schema` itself.
   This means that you can store `Structs` of the same `Schema` in different tables
-  providing potentially different relation set
-* SQL `Session` should in future support executing raw queries allowing you to join anything you want
-  and load it into memory directly, without N+1s and round tripping
+  providing potentially different relation set;
+* SQL `Session` supports executing raw queries allowing you to join anything you want
+  and load it into memory directly, without N+1s and round tripping.
   

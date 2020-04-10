@@ -135,5 +135,8 @@ open class TemplatesTest {
         }
     }
 
+    // todo left/right/outer join
+    // TODO insert, update, delete
+
 }
 

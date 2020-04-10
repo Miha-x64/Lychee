@@ -30,10 +30,10 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    implementation 'net.aquadc.properties:properties:0.0.12' // observables for both JVM and Android
-    implementation 'net.aquadc.properties:persistence:0.0.12' // persistence for JVM and Android
-    implementation 'net.aquadc.properties:extended-persistence:0.0.12' // partial structs, tuples, either, unsigned, primitive[], token transforms
-    implementation 'net.aquadc.properties:android-bindings:0.0.12' // AAR for Android(x): View bindings, Parcel, JsonReader as TokenStream, SharedPreferences as Struct, Handler as Executor
+    implementation 'net.aquadc.properties:properties:0.0.13' // observables for both JVM and Android
+    implementation 'net.aquadc.properties:persistence:0.0.13' // persistence for JVM and Android
+    implementation 'net.aquadc.properties:extended-persistence:0.0.13' // partial structs, tuples, either, unsigned, primitive[], token transforms
+    implementation 'net.aquadc.properties:android-bindings:0.0.13' // AAR for Android(x): View bindings, Parcel, JsonReader as TokenStream, SharedPreferences as Struct, Handler as Executor
 }
 ```
 

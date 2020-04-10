@@ -19,8 +19,8 @@ enum class Token(internal val delta: Int) {
         override fun coerce(value: Any?): Any? =
                 if (value is Boolean) value else throw IllegalArgumentException("expected $Bool but was $value")
     },
-    @Deprecated("does not look very useful") I8(0),
-    @Deprecated("does not look very useful") I16(0),
+    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I8(0),
+    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I16(0),
     I32(0), I64(0),
     F32(0), F64(0),
     Str(0) {
@@ -77,8 +77,6 @@ enum class Token(internal val delta: Int) {
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     fun coerceToNumber(value: Long): Any = when {
-        this == I8 && value in Byte.MIN_VALUE..Byte.MAX_VALUE -> value.toByte()
-        this == I16 && value in Short.MIN_VALUE..Short.MAX_VALUE -> value.toShort()
         this == I32 && value in Int.MIN_VALUE..Int.MAX_VALUE -> value.toInt()
         this == I64 -> value
         this == F32 -> value.toFloat()
@@ -87,7 +85,7 @@ enum class Token(internal val delta: Int) {
     }
 
     companion object {
-        val Integers: InlineEnumSet<Token> = I8 + I16 + I32 + I64
+        val Integers: InlineEnumSet<Token> = I32 + I64
         val Floats: InlineEnumSet<Token> = F32 + F64
         val Numbers: InlineEnumSet<Token> = Integers + Floats
         val ControlTokens: InlineEnumSet<Token> = BeginSequence + EndSequence + BeginDictionary + EndDictionary
@@ -95,8 +93,6 @@ enum class Token(internal val delta: Int) {
         fun ofValue(value: Any?): Token? = when (value) {
             null -> Null
             is Boolean -> Bool
-            is Byte -> I8
-            is Short -> I16
             is Int -> I32
             is Long -> I64
             is Float -> F32

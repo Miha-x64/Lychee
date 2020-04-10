@@ -14,8 +14,6 @@ import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.tokens.readAs
-import net.aquadc.persistence.tokens.readListOf
-import net.aquadc.persistence.tokens.tokens
 import net.aquadc.persistence.tokens.tokensFrom
 import net.aquadc.persistence.type.DataType
 
@@ -26,9 +24,9 @@ import net.aquadc.persistence.type.DataType
  * Each value is read using [readAs].
  */
 @Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readListOf(type)",
-        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readListOf"))
-fun <T> JsonReader.readListOf(type: DataType<T>): List<T> =
-        tokens().readListOf(type)
+        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readListOf"), DeprecationLevel.ERROR)
+fun <T> JsonReader.readListOf(type: DataType<T>): Nothing =
+        throw AssertionError()
 
 /**
  * Reads a JSON value denoted by [type] as [T].
@@ -40,9 +38,9 @@ fun <T> JsonReader.readListOf(type: DataType<T>): List<T> =
  * or if [JsonReader] met unexpected token for the given [FieldDef.type].
  */
 @Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readAs(type)",
-        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readAs"))
-fun <T> JsonReader.read(type: DataType<T>): T =
-        tokens().readAs(type)
+        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readAs"), DeprecationLevel.ERROR)
+fun <T> JsonReader.read(type: DataType<T>): Nothing =
+        throw AssertionError()
 
 
 /**
@@ -80,19 +78,19 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
 }
 
 @Deprecated("use tokens() directly instead", ReplaceWith("struct.tokens().writeTo(this)",
-        "net.aquadc.persistence.tokens.tokens", "net.aquadc.persistence.android.json.writeTo"))
-fun <SCH : Schema<SCH>> JsonWriter.write(struct: Struct<SCH>): Unit =
-        struct.tokens().writeTo(this)
+        "net.aquadc.persistence.tokens.tokens", "net.aquadc.persistence.android.json.writeTo"), DeprecationLevel.ERROR)
+fun <SCH : Schema<SCH>> JsonWriter.write(struct: Struct<SCH>):Nothing =
+        throw AssertionError()
 
 /**
  * Writes a value denoted by [type].
  */
 @Deprecated("use tokens() directly instead", ReplaceWith("type.tokensFrom(value).writeTo(this)",
-        "net.aquadc.persistence.tokens.tokensFrom", "net.aquadc.persistence.android.json.writeTo"))
-fun <T> JsonWriter.write(type: DataType<T>, value: T): Unit =
-        type.tokensFrom(value).writeTo(this)
+        "net.aquadc.persistence.tokens.tokensFrom", "net.aquadc.persistence.android.json.writeTo"), DeprecationLevel.ERROR)
+fun <T> JsonWriter.write(type: DataType<T>, value: T): Nothing =
+        throw AssertionError()
 
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =
-        write(field.approxType, struct.getOrThrow(field))
+        field.approxType.tokensFrom(struct.getOrThrow(field)).writeTo(this)

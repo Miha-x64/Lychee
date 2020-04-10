@@ -112,8 +112,8 @@ interface Transaction : AutoCloseable {
     /**
      * Insert [data] into a [table].
      */
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>): REC
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID, REC>, data: Iterator<Struct<SCH>>) {
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>/*patch: Partial*/): REC
+    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID, REC>, data: Iterator<Struct<SCH>>/*patch: Partial*/) {
         for (struct in data)
             insert(table, struct)
     }
@@ -159,5 +159,5 @@ interface Transaction : AutoCloseable {
 
 }
 
-@Deprecated("moved") typealias JdbcSession = net.aquadc.persistence.sql.blocking.JdbcSession
-@Deprecated("moved") typealias SqliteSession = net.aquadc.persistence.sql.blocking.SqliteSession
+@Deprecated("moved", level = DeprecationLevel.ERROR) typealias JdbcSession = net.aquadc.persistence.sql.blocking.JdbcSession
+@Deprecated("moved", level = DeprecationLevel.ERROR) typealias SqliteSession = net.aquadc.persistence.sql.blocking.SqliteSession

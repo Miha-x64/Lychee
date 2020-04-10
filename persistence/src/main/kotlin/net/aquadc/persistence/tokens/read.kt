@@ -125,8 +125,6 @@ inline fun <T> TokenStream.iteratorOf(type: DataType<T>): Iterator<T> =
 
 @JvmSynthetic internal val kindToToken = enumMapOf(
         DataType.Simple.Kind.Bool, Token.Bool,
-        DataType.Simple.Kind.I8, Token.I8,
-        DataType.Simple.Kind.I16, Token.I16,
         DataType.Simple.Kind.I32, Token.I32,
         DataType.Simple.Kind.I64, Token.I64,
         DataType.Simple.Kind.F32, Token.F32,

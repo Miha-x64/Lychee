@@ -157,12 +157,18 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
         either8("first", schema.First.type, "second", schema.Second.type, "third", schema.Third.type, "fourth", schema.Fourth.type, "fifth", schema.Fifth.type, "sixth", schema.Sixth.type, "seventh", schema.Seventh.type, "eighth", eighth)
 
 
-/** A placeholder to surprise less. */
+/**
+ * A placeholder to surprise less.
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @JvmName("e8plus") @Deprecated("Either9+ are not implemented", level = DeprecationLevel.ERROR) operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>, I, DI : DataType<I>>
         DataType.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.plus(ninth: DI): Nothing =
         throw UnsupportedOperationException()
 
-/** Maintains addition associativity. */
+/**
+ * Maintains addition associativity.
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @JvmName("plusE") @Deprecated("right operand is not expected to be Either", level = DeprecationLevel.ERROR) operator fun
         DataType.Partial<out Either8<*, *, *, *, *, *, *, *>, out Tuple8<*, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *>>
         .plus(other: DataType.Partial<out Either8<*, *, *, *, *, *, *, *>, out Tuple8<*, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *>>): Nothing =

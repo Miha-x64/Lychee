@@ -138,10 +138,17 @@ fun TextView.bindErrorMessageResTo(errorResProperty: Property<Int>): Unit =
 /**
  * Binds error message to [errorResProperty] via [TextView.setError].
  */
-@Deprecated("renamed", ReplaceWith("this.bindErrorMessageResTo(errorResProperty)", "net.aquadc.properties.android.bindings.widget.bindErrorMessageResTo"))
+@Deprecated(
+        "renamed",
+        ReplaceWith(
+                "this.bindErrorMessageResTo(errorResProperty)",
+                "net.aquadc.properties.android.bindings.widget.bindErrorMessageResTo"
+        ),
+        DeprecationLevel.ERROR
+)
 @JvmName("bindErrorMessageResTo_deprecated")
-fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Unit =
-        bindViewToBinding(errorResProperty, ErrorBinding(this, errorResProperty))
+fun TextView.bindErrorMessageTo(errorResProperty: Property<Int>): Nothing =
+        throw AssertionError()
 
 private class ErrorBinding(view: TextView, property: Property<Any?>) : Binding<TextView, Any?>(view, property) {
     override fun bind(view: TextView, value: Any?) = when (value) {

@@ -10,8 +10,6 @@ import android.util.JsonWriter
 import net.aquadc.collections.contains
 import net.aquadc.collections.enumMapOf
 import net.aquadc.collections.get
-import net.aquadc.persistence.android.assertFitsByte
-import net.aquadc.persistence.android.assertFitsShort
 import net.aquadc.persistence.hasFraction
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenPath
@@ -128,8 +126,6 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
 
         return if (nextTok == null) {
             val value = when (coerceTo!!) {
-                Token.I8 -> reader.nextInt().assertFitsByte()
-                Token.I16 -> reader.nextInt().assertFitsShort()
                 Token.I32 -> reader.nextInt()
                 Token.I64 -> reader.nextLong()
                 Token.F32 -> reader.nextDouble().toFloat()
@@ -146,7 +142,7 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
                     if (isName) _path.onName(value) else _path.afterValue()
                     value
                 }
-                else -> throw AssertionError() // already handled by map
+                else -> throw AssertionError() // already handled by map or deprecated I8/I16
             }
             if (coerceTo in Token.Numbers) _path.afterValue()
             value

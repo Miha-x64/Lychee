@@ -16,7 +16,6 @@ import net.aquadc.persistence.sql.PkLens
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.dialect.Dialect
-import net.aquadc.persistence.sql.dialect.appendHex
 import net.aquadc.persistence.sql.dialect.appendPlaceholders
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -131,21 +130,25 @@ object SqliteDialect : Dialect {
                     val v = type.store(arg)
                     when (type.kind) {
                         DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
-                        DataType.Simple.Kind.I8,
-                        DataType.Simple.Kind.I16,
                         DataType.Simple.Kind.I32,
                         DataType.Simple.Kind.I64,
                         DataType.Simple.Kind.F32,
                         DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
                         DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
-                        DataType.Simple.Kind.Blob -> append("x'").appendHex(v as ByteArray).append('\'')
-                    }.also { }
+                        DataType.Simple.Kind.Blob -> append("x'").append(TODO("append HEX") as String).append('\'')
+                    }//.also { }
                 }
             }
 
+            /**
+             * We had out own `StringBuilder.appendHex(ByteArray)` which was removed since it is unused.
+             * Take a look at [net.aquadc.persistence.toHexString] if you're gonna resurrect this functionality.
+             */
             override fun <E> StringBuilder.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
                 if (nullable && arg === null) append("NULL")
-                else append("x'").appendHex(ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()).append('\'')
+                else append("x'").append(
+                        TODO("append HEX" + ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()) as String
+                ).append('\'')
             }
 
             override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
@@ -159,14 +162,13 @@ object SqliteDialect : Dialect {
             override fun StringBuilder.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>) {
                 append(when (type.kind) {
                     DataType.Simple.Kind.Bool,
-                    DataType.Simple.Kind.I8,
-                    DataType.Simple.Kind.I16,
                     DataType.Simple.Kind.I32,
                     DataType.Simple.Kind.I64 -> "INTEGER"
                     DataType.Simple.Kind.F32,
                     DataType.Simple.Kind.F64 -> "REAL"
                     DataType.Simple.Kind.Str -> "TEXT"
                     DataType.Simple.Kind.Blob -> "BLOB"
+                    else -> throw AssertionError()
                 })
                 if (!nullable) append(" NOT NULL")
             }

@@ -220,9 +220,9 @@ interface Lens<SCH : Schema<SCH>,
  * Returns a function which is a special case of this [Lens] for non-partial [Struct]s
  * which implies non-nullable [T] as a return type.
  */
-@Deprecated("not needed anymore", ReplaceWith("this"))
-fun <SCH : Schema<SCH>, T> Lens<SCH, PartialStruct<SCH>, Struct<SCH>, T, *>.ofStruct(): (Struct<SCH>) -> T =
-        this
+@Deprecated("not needed anymore", ReplaceWith("this"), DeprecationLevel.ERROR)
+fun <SCH : Schema<SCH>, T> Lens<SCH, PartialStruct<SCH>, Struct<SCH>, T, *>.ofStruct(): Nothing =
+        throw AssertionError()
 
 
 // Damn, dear Kotlin, I just want to return an intersection-type

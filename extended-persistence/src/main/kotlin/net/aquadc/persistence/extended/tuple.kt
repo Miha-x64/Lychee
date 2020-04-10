@@ -26,11 +26,11 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         DA.times(second: DB): Tuple<A, DA, B, DB> =
         Tuple("first", this, "second", second)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
         Tuple<A, DA, B, DB>.build(
         first: A, second: B
-): Struct<Tuple<A, DA, B, DB>> = this(first, second)
+): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
@@ -81,11 +81,12 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple<A, DA, B, DB>.times(third: DC): Tuple3<A, DA, B, DB, C, DC> =
         Tuple3("first", First.type, "second", Second.type, "third", third)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple3<A, DA, B, DB, C, DC>.build(
         first: A, second: B, third: C
-): Struct<Tuple3<A, DA, B, DB, C, DC>> = this(first, second, third)
+): Nothing = throw AssertionError()
+
 /** Creates an instance of a [Tuple3] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple3<A, DA, B, DB, C, DC>.invoke(
@@ -144,11 +145,12 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple3<A, DA, B, DB, C, DC>.times(fourth: DD): Tuple4<A, DA, B, DB, C, DC, D, DD> =
         Tuple4("first", First.type, "second", Second.type, "third", Third.type, "fourth", fourth)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         Tuple4<A, DA, B, DB, C, DC, D, DD>.build(
         first: A, second: B, third: C, fourth: D
-): Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>> = this(first, second, third, fourth)
+): Nothing = throw AssertionError()
+
 /** Creates an instance of a [Tuple4] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         Tuple4<A, DA, B, DB, C, DC, D, DD>.invoke(
@@ -216,11 +218,12 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple4<A, DA, B, DB, C, DC, D, DD>.times(fifth: DE): Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE> =
         Tuple5("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", fifth)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.build(
         first: A, second: B, third: C, fourth: D, fifth: E
-): Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> = this(first, second, third, fourth, fifth)
+): Nothing = throw AssertionError()
+
 /** Creates an instance of a [Tuple5] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.invoke(
@@ -297,11 +300,12 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.times(sixth: DF): Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF> =
         Tuple6("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", sixth)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.build(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
-): Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> = this(first, second, third, fourth, fifth, sixth)
+): Nothing = throw AssertionError()
+
 /** Creates an instance of a [Tuple6] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.invoke(
@@ -387,11 +391,12 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.times(seventh: DG): Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG> =
         Tuple7("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", seventh)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.build(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
-): Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> = this(first, second, third, fourth, fifth, sixth, seventh)
+): Nothing = throw AssertionError()
+
 /** Creates an instance of a [Tuple7] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.invoke(
@@ -486,11 +491,11 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.times(eighth: DH): Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH> =
         Tuple8("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", Seventh.type, "eighth", eighth)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh, eighth)", "net.aquadc.persistence.extended.invoke"))
+@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh, eighth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
 inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
         Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.build(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H
-): Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> = this(first, second, third, fourth, fifth, sixth, seventh, eighth)
+): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple8] according to [this] schema. */
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
@@ -567,19 +572,28 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
 
 // Something red
 
-/** A placeholder to avoid undesired invocation of other overloads. */
+/**
+ * A placeholder to avoid undesired invocation of other overloads.
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @Deprecated("Tuple9+ are not implemented", level = DeprecationLevel.ERROR)
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>, I, DI : DataType<I>>
         Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.times(ninth: DH): Nothing =
         throw UnsupportedOperationException()
 
-/** Shows that Tuple* cannot be safely replaced with an arbitrary Schema. */
+/**
+ * Shows that Tuple* cannot be safely replaced with an arbitrary Schema.
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @Deprecated("left operand is expected to be a Tuple*, got other Schema", level = DeprecationLevel.ERROR)
 operator fun <SCH : Schema<SCH>>
         SCH.times(second: DataType<*>): Nothing =
         throw UnsupportedOperationException()
 
-/** Maintains multiplication associativity. */
+/**
+ * Maintains multiplication associativity.
+ * Despite this declaration is deprecated, it is not going to be removed.
+ */
 @Deprecated("right operand is not expected to be a Tuple* or any other Schema", level = DeprecationLevel.ERROR)
 operator fun <SCH : Schema<SCH>>
         DataType<*>.times(second: SCH): Nothing =

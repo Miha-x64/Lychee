@@ -25,15 +25,13 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
     private fun sanityCheck(value: Any?) {
         when (kind) {
             Kind.Bool -> value as Boolean
-            Kind.I8 -> value as Byte
-            Kind.I16 -> value as Short
             Kind.I32 -> value as Int
             Kind.I64 -> value as Long
             Kind.F32 -> value as Float
             Kind.F64 -> value as Double
             Kind.Str -> value as String
             Kind.Blob -> value as ByteArray
-        }
+        }//.also { }
     }
 
 }
@@ -46,40 +44,42 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 /**
  * Describes [Byte] instances.
  */
-@JvmField @Deprecated("does not look very useful")
-val i8: DataType.Simple<Byte> = SimpleNoOp(DataType.Simple.Kind.I8)
-@JvmField @Deprecated("renamed", ReplaceWith("i8")) val byte = i8
+@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
+val i8: Nothing get() = throw AssertionError()
+@Deprecated("renamed", ReplaceWith("i8"), level = DeprecationLevel.ERROR)
+val byte: Nothing get() = throw AssertionError()
 
 /**
  * Describes [Short] instances.
  */
-@JvmField @Deprecated("does not look very useful")
-val i16: DataType.Simple<Short> = SimpleNoOp(DataType.Simple.Kind.I16)
-@JvmField @Deprecated("renamed", ReplaceWith("i16")) val short = i16
+@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
+val i16: Nothing get() = throw AssertionError()
+@Deprecated("renamed", ReplaceWith("i16"), level = DeprecationLevel.ERROR)
+val short: Nothing get() = throw AssertionError()
 
 /**
  * Describes [Int] instances.
  */
 @JvmField val i32: DataType.Simple<Int> = SimpleNoOp(DataType.Simple.Kind.I32)
-@JvmField @Deprecated("renamed", ReplaceWith("i32")) val int = i32
+@JvmField @Deprecated("renamed", ReplaceWith("i32"), level = DeprecationLevel.ERROR) val int = i32
 
 /**
  * Describes [Long] instances.
  */
 @JvmField val i64: DataType.Simple<Long> = SimpleNoOp(DataType.Simple.Kind.I64)
-@JvmField @Deprecated("renamed", ReplaceWith("i64")) val long = i64
+@JvmField @Deprecated("renamed", ReplaceWith("i64"), level = DeprecationLevel.ERROR) val long = i64
 
 /**
  * Describes [Float] instances.
  */
 @JvmField val f32: DataType.Simple<Float> = SimpleNoOp(DataType.Simple.Kind.F32)
-@JvmField @Deprecated("renamed", ReplaceWith("f32")) val float = f32
+@JvmField @Deprecated("renamed", ReplaceWith("f32"), level = DeprecationLevel.ERROR) val float = f32
 
 /**
  * Describes [Double] instances.
  */
 @JvmField val f64: DataType.Simple<Double> = SimpleNoOp(DataType.Simple.Kind.F64)
-@JvmField @Deprecated("renamed", ReplaceWith("f64")) val double = f64
+@JvmField @Deprecated("renamed", ReplaceWith("f64"), level = DeprecationLevel.ERROR) val double = f64
 
 /**
  * Describes [String] instances.

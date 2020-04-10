@@ -68,14 +68,12 @@ class StreamWriterVisitor<D, T>(
         }
 
         when (type.kind) {
-            DataType.Simple.Kind.I8 -> output.writeByte(this, arg as Byte)
-            DataType.Simple.Kind.I16 -> output.writeShort(this, arg as Short)
             DataType.Simple.Kind.I32 -> output.writeInt(this, arg as Int)
             DataType.Simple.Kind.I64 -> output.writeLong(this, arg as Long)
             DataType.Simple.Kind.F32 -> output.writeInt(this, java.lang.Float.floatToIntBits(arg as Float))
             DataType.Simple.Kind.F64 -> output.writeLong(this, java.lang.Double.doubleToLongBits(arg as Double))
             DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
-        }
+        }//.also { ]
     }
 
     override fun <E> D.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
@@ -152,13 +150,12 @@ class StreamReaderVisitor<D, T>(
         }
 
         return type.load(when (type.kind) {
-            DataType.Simple.Kind.I8 -> input.readByte(this)
-            DataType.Simple.Kind.I16 -> input.readShort(this)
             DataType.Simple.Kind.I32 -> input.readInt(this)
             DataType.Simple.Kind.I64 -> input.readLong(this)
             DataType.Simple.Kind.F32 -> java.lang.Float.intBitsToFloat(input.readInt(this))
             DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(input.readLong(this))
             DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
+            else -> throw AssertionError()
         })
     }
 

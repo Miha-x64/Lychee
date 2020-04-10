@@ -76,14 +76,13 @@ class SqliteSession(
             return table.idColType.let {
                 it.load(when (it.kind) {
                     DataType.Simple.Kind.Bool -> throw IllegalArgumentException() // O RLY?! Boolean primary key?..
-                    DataType.Simple.Kind.I8 -> id.chkIn(Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt(), Byte::class.java).toByte()
-                    DataType.Simple.Kind.I16 -> id.chkIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt(), Short::class.java).toShort()
                     DataType.Simple.Kind.I32 -> id.chkIn(Int.MIN_VALUE, Int.MAX_VALUE, Int::class.java).toInt()
                     DataType.Simple.Kind.I64 -> id
                     DataType.Simple.Kind.F32 -> throw IllegalArgumentException() // O RLY?! Floating primary key?..
                     DataType.Simple.Kind.F64 -> throw IllegalArgumentException()
                     DataType.Simple.Kind.Str -> id.toString()
                     DataType.Simple.Kind.Blob -> throw IllegalArgumentException() // Possible but unclear what do you want
+                    else -> throw AssertionError()
                 })
             }
         }
@@ -255,15 +254,13 @@ class SqliteSession(
                     val v = simple.store(value)
                     when (simple.kind) {
                         DataType.Simple.Kind.Bool -> statement.bindLong(i, if (v as Boolean) 1 else 0)
-                        DataType.Simple.Kind.I8,
-                        DataType.Simple.Kind.I16,
                         DataType.Simple.Kind.I32,
                         DataType.Simple.Kind.I64 -> statement.bindLong(i, (v as Number).toLong())
                         DataType.Simple.Kind.F32,
                         DataType.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
                         DataType.Simple.Kind.Str -> statement.bindString(i, v as String)
                         DataType.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
-                    }.also { }
+                    }//.also { }
                 }
             }
         }
@@ -274,14 +271,13 @@ class SqliteSession(
                 check(isNullable).let { null as T }
             else simple.load(when (simple.kind) {
                 DataType.Simple.Kind.Bool -> cursor.getInt(index) == 1
-                DataType.Simple.Kind.I8 -> cursor.getShort(index).assertFitsByte()
-                DataType.Simple.Kind.I16 -> cursor.getShort(index)
                 DataType.Simple.Kind.I32 -> cursor.getInt(index)
                 DataType.Simple.Kind.I64 -> cursor.getLong(index)
                 DataType.Simple.Kind.F32 -> cursor.getFloat(index)
                 DataType.Simple.Kind.F64 -> cursor.getDouble(index)
                 DataType.Simple.Kind.Str -> cursor.getString(index)
                 DataType.Simple.Kind.Blob -> cursor.getBlob(index)
+                else -> throw AssertionError()
             })
         }
 

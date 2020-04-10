@@ -225,8 +225,6 @@ class JdbcSession(
                     val v = simple.store(value)
                     when (simple.kind) {
                         DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
-                        DataType.Simple.Kind.I8 -> statement.setByte(i, v as Byte)
-                        DataType.Simple.Kind.I16 -> statement.setShort(i, v as Short)
                         DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
                         DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
                         DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
@@ -234,7 +232,7 @@ class JdbcSession(
                         DataType.Simple.Kind.Str -> statement.setString(i, v as String)
                         // not sure whether setBlob should be used:
                         DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
-                    }.also { }
+                    }//.also { }
                 }
             }
         }
@@ -248,14 +246,13 @@ class JdbcSession(
             return flattened { isNullable, simple ->
                 val v = when (simple.kind) {
                     DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
-                    DataType.Simple.Kind.I8 -> resultSet.getByte(i)
-                    DataType.Simple.Kind.I16 -> resultSet.getShort(i)
                     DataType.Simple.Kind.I32 -> resultSet.getInt(i)
                     DataType.Simple.Kind.I64 -> resultSet.getLong(i)
                     DataType.Simple.Kind.F32 -> resultSet.getFloat(i)
                     DataType.Simple.Kind.F64 -> resultSet.getDouble(i)
                     DataType.Simple.Kind.Str -> resultSet.getString(i)
                     DataType.Simple.Kind.Blob -> resultSet.getBytes(i)
+                    else -> throw AssertionError()
                 }
 
                 // must check, will get zeroes otherwise
