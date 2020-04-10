@@ -1,6 +1,7 @@
 package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.asFieldSet
@@ -62,12 +63,14 @@ class PartialsTest {
     }
 
     @Test fun `take all`() {
-        val full = SomeSchema {
+        // upcast to box inline type…
+        val full: Struct<SomeSchema> = SomeSchema {
             it[A] = ""
             it[B] = 1
             it[C] = 1L
         }
 
+        // …otherwise we'd box it here twice and get different instances
         assertSame(full, full.take(SomeSchema.allFieldSet()))
     }
 

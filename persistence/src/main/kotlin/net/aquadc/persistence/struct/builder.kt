@@ -37,17 +37,26 @@ inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>)
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> =
-        StructBuilder<SCH>(Array(schema.fields.size) { Unset })
+fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> {
+    val fldCnt = schema.fields.size
+    val array: Array<Any?> = arrayOfNulls(fldCnt + 1)
+    array.fill(Unset, 0, fldCnt)
+    array[fldCnt] = schema
+    return StructBuilder<SCH>(array)
+}
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>): StructBuilder<SCH> {
     val fs = source.schema.fields
-    val values = Array<Any?>(fs.size) { Unset }
-    source.schema.forEach(source.fields intersect fields) { field ->
-        values[field.ordinal.toInt()] = source.getOrThrow(field)
+    val fldCnt = fs.size
+    val array: Array<Any?> = arrayOfNulls(fldCnt + 1)
+    val actualFields = source.fields intersect fields
+    for (i in 0 until fldCnt) {
+        val field = fs[i]
+        array[i] = if (field in actualFields) source.getOrThrow(field) else Unset
     }
-    return StructBuilder(values)
+    array[fldCnt] = source.schema
+    return StructBuilder<SCH>(array)
 }
 
 /**
@@ -106,20 +115,22 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
      */
     @PublishedApi internal fun finish(schema: SCH, searchForDefaults: Boolean): StructSnapshot<SCH> {
         if (searchForDefaults) {
-            values.forEachIndexed { i, value ->
+            for (i in 0.until(values.size - 1)) {
+                //     don't touch schema ^^^
+                val value = values[i]
                 if (value === Unset)
                     values[i] = schema.fields[i].default
             }
         }
 
-        return StructSnapshot(schema, values)
+        return StructSnapshot(values)
     }
 
     fun fieldsPresent(): FieldSet<SCH, FieldDef<SCH, *, *>> {
         var set = 0L
         var field = 1L
-        values.forEach { value ->
-            if (value !== Unset) {
+        for (i in 0.until(values.size - 1)) {
+            if (values[i] !== Unset) {
                 set = set or field
             }
             field = field shl 1

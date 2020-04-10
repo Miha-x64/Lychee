@@ -207,14 +207,18 @@ inline fun <E> List<E>.each(consume: (E) -> Unit) {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> Struct<SCH>.values(): Array<Any?> {
+fun <SCH : Schema<SCH>> Struct<SCH>.valuesAndSchema(): Array<Any?> {
     val fields = schema.fields
-    return Array(fields.size) { i -> this[fields[i]] }
+    val fieldCount = fields.size
+    val array = arrayOfNulls<Any>(fieldCount + 1)
+    fields.forEachIndexed { i, f -> array[i] = this[f] }
+    array[fieldCount] = schema
+    return array
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-inline fun <reified T> List<T>.array(): Array<T> =
-        (this as java.util.List<T>).toArray(arrayOfNulls<T>(size))
+inline fun <reified T> List<T>.array(plusSize: Int = 0): Array<T> =
+        (this as java.util.List<T>).toArray(arrayOfNulls<T>(size + plusSize))
 
 internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?) {
     when (fields.size.toInt()) {

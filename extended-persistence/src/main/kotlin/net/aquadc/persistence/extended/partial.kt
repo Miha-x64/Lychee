@@ -61,11 +61,12 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(schema: SCH, fields: FieldSet<SCH, *>, sparseValues: Array<Any?>) : super(schema) {
+    constructor(sparseValuesAndSchema: Array<Any?>, fields: FieldSet<SCH, *>)
+            : super(sparseValuesAndSchema[sparseValuesAndSchema.lastIndex] as SCH) {
         this.fields = fields
         this.values = arrayOfNulls<Any>(fields.size.toInt()).also { packed ->
             schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
-                packed[idx] = sparseValues[field.ordinal.toInt()]
+                packed[idx] = sparseValuesAndSchema[field.ordinal.toInt()]
             }
         }
     }
@@ -126,7 +127,9 @@ inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) 
  */
 fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *, *>>): PartialStruct<SCH> =
         if (fields == schema.allFieldSet()) {
-            if (this is StructSnapshot) this else StructSnapshot(this)
+            // 'is' smartcasts and uselessly reboxes value https://youtrack.jetbrains.com/issue/KT-38190
+            if (this.javaClass === StructSnapshot::class.java) this
+            else StructSnapshot(this)
         } else {
             PartialStructSnapshot(this, fields)
         }
@@ -145,7 +148,8 @@ inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(
     return schema.finish(builder)
 }
 
-@PublishedApi internal fun <SCH : Schema<SCH>> SCH.finish(builder: StructBuilder<SCH>): PartialStruct<SCH> {
-    val values = builder.expose()
-    return if (builder.fieldsPresent() == allFieldSet()) StructSnapshot(schema, values) else PartialStructSnapshot(schema, builder.fieldsPresent(), values)
-}
+@PublishedApi internal fun <SCH : Schema<SCH>> SCH.finish(builder: StructBuilder<SCH>): PartialStruct<SCH> =
+        builder.expose().let { valuesAndSchema ->
+            if (builder.fieldsPresent() == allFieldSet()) StructSnapshot(valuesAndSchema)
+            else PartialStructSnapshot(valuesAndSchema, builder.fieldsPresent())
+        }
