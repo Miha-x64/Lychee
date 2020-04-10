@@ -60,14 +60,6 @@ sealed class DataType<T> {
             if (actualType is Nullable<*, *>) throw ClassCastException() // unchecked cast?..
         }
 
-        override fun hashCode(): Int =
-                actualType.hashCode() xor 0x55555555
-
-        // looks useless but helps using assertEquals() in tests
-
-        override fun equals(other: Any?): Boolean =
-                other is Nullable<*, *> && actualType == other.actualType
-
     }
 
     /**
@@ -183,8 +175,9 @@ sealed class DataType<T> {
 
     }
 
+    // these look useless but help using assertEquals() in tests:
 
-    override fun equals(other: Any?): Boolean {
+    final override fun equals(other: Any?): Boolean {
         if (other !is DataType<*> || javaClass !== other.javaClass) return false
         // class identity equality   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ guarantees the same behaviour
 
@@ -192,22 +185,25 @@ sealed class DataType<T> {
             is Nullable<*, *> -> other is Nullable<*, *> && actualType as DataType<*> == other.actualType
             is Simple -> other is Simple<*> && kind === other.kind
             is Collect<*, *, *> -> other is Collect<*, *, *> && elementType == other.elementType
+            is Schema<*> -> this === other
             is Partial<*, *> -> other is Partial<*, *> && schema == other.schema
         }
     }
 
-    override fun hashCode(): Int = when (this) {
+    final override fun hashCode(): Int = when (this) {
         is Nullable<*, *> -> 13 * actualType.hashCode()
         is Simple -> 31 * kind.hashCode()
         is Collect<*, *, *> -> 63 * elementType.hashCode()
-        is Partial<*, *> -> (if (this is Struct<*>) 1 else 127) * schema.hashCode()
+        is Schema<*> -> System.identityHashCode(this)
+        is Partial<*, *> -> 127 * schema.hashCode()
     }
 
-    override fun toString(): String = when (this) {
+    final override fun toString(): String = when (this) {
         is Nullable<*, *> -> "nullable($actualType)"
         is Simple -> kind.toString()
         is Collect<*, *, *> -> "collection($elementType)"
-        is Partial<*, *> -> "partial($schema)" // overridden in Schema itself
+        is Schema<*> -> javaClass.simpleName
+        is Partial<*, *> -> "partial($schema)"
     }
 
 
