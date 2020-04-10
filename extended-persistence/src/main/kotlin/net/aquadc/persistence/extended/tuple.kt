@@ -33,6 +33,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         Tuple<A, DA, B, DB>.invoke(
         first: A, second: B
@@ -88,6 +89,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple3] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple3<A, DA, B, DB, C, DC>.invoke(
         first: A, second: B, third: C
@@ -152,6 +154,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple4] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         Tuple4<A, DA, B, DB, C, DC, D, DD>.invoke(
         first: A, second: B, third: C, fourth: D
@@ -225,6 +228,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple5] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E
@@ -307,6 +311,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple6] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
@@ -398,6 +403,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple7] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
@@ -498,6 +504,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD
 ): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple8] according to [this] schema. */
+@JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
         Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H

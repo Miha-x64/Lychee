@@ -14,6 +14,7 @@ inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit
 /**
  * Builds a [StructSnapshot] or throws if field value neither specified explicitly nor has a default.
  */
+@JvmName("newStruct")
 inline operator fun <SCH : Schema<SCH>> SCH.invoke(build: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
 /* CONTRACT_NOT_ALLOWED for operator fun
     contract { callsInPlace(build, InvocationKind.EXACTLY_ONCE) }
