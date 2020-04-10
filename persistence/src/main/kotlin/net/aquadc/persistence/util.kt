@@ -27,7 +27,7 @@ fun reallyEqual(a: Any?, b: Any?): Boolean = when {
     a == b -> true
     a === null || b === null -> false
     // popular array types
-    a is Array<*> -> b is Array<*> && Arrays.equals(a, b)
+    a is Array<*> -> b is Array<*> && a.size == b.size && elementsEq(a, b)
     a is ByteArray -> b is ByteArray && Arrays.equals(a, b)
     a is IntArray -> b is IntArray && Arrays.equals(a, b)
     a is CharArray -> b is CharArray && Arrays.equals(a, b)
@@ -39,6 +39,12 @@ fun reallyEqual(a: Any?, b: Any?): Boolean = when {
     a is DoubleArray -> b is DoubleArray && Arrays.equals(a, b)
     // just not equal and not arrays
     else -> false
+}
+private fun elementsEq(a: Array<*>, b: Array<*>): Boolean {
+    for (i in a.indices)
+        if (!reallyEqual(a[i], b[i]))
+            return false
+    return true
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -63,8 +69,8 @@ fun Any?.realHashCode(): Int = when (this) {
 fun Any?.realToString(): String = when (this) {
     null -> "null"
 
-    is Array<*> -> Arrays.deepToString(this)
-    is ByteArray -> Arrays.toString(this)
+    is Array<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", "[", "]", -1, "…", null)
+    is ByteArray -> toHexString()
     is IntArray -> Arrays.toString(this)
     is CharArray -> Arrays.toString(this)
 
@@ -76,6 +82,15 @@ fun Any?.realToString(): String = when (this) {
 
     else -> toString()
 }
+private val HEX_ARRAY = "0123456789ABCDEF".toByteArray()
+private fun ByteArray.toHexString(): String =
+        String(ByteArray(size * 2).also { hexChars ->
+            forEachIndexed { i, b ->
+                val v = b.toInt() and 0xFF
+                hexChars[i * 2] = HEX_ARRAY[v ushr 4]
+                hexChars[i * 2 + 1] = HEX_ARRAY[v and 0x0F]
+            }
+        })
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 object New {
@@ -203,7 +218,8 @@ inline fun <reified T> List<T>.array(): Array<T> =
 
 internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?) {
     when (fields.size.toInt()) {
-        0 -> { } // empty. Nothing to do here!
+        0 -> {
+        } // empty. Nothing to do here!
 
         1 ->
             builder[schema.single(fields) as FieldDef<SCH, Any?, *>] = values
