@@ -81,99 +81,99 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> F.plus(other: F
  * Returns a set representing a union of [this] set and [other] field.
  */
 inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> FieldSet<SCH, G>.plus(other: H): FieldSet<SCH, F> =
-        FieldSet(bitmask or (1L shl other.ordinal.toInt()))
+        FieldSet(bitSet or (1L shl other.ordinal.toInt()))
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, FieldDef<SCH, *, *>> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>.intersect(
         other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
-): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> = FieldSet(this.bitmask and other.bitmask)
+): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> = FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectMutAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectMutMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectMutImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectMutNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectImmAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectImmMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectImmImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectImmNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
         .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
         .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
         .intersect(other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
-        FieldSet(this.bitmask and other.bitmask)
+        FieldSet(this.bitSet and other.bitSet)
 
 /**
  * Returns a set equal to [this] without [other] field.
  */
 inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> FieldSet<SCH, G>.minus(other: H): FieldSet<SCH, F> =
-        FieldSet(bitmask and (1L shl other.ordinal.toInt()).inv())
+        FieldSet(bitSet and (1L shl other.ordinal.toInt()).inv())
 
 /**
  * Returns a set equal to [this] without fields from [other] set.
  */
 inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> FieldSet<SCH, F>.minus(other: FieldSet<SCH, F>): FieldSet<SCH, F> =
-        FieldSet(bitmask and other.bitmask.inv())
+        FieldSet(bitSet and other.bitSet.inv())
         // this:          0000000000000000011111111111111111
         // other:         0000000000000010101010101010101010
         // ~other:        1111111111111101010101010101010101
@@ -183,19 +183,19 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> FieldSet<SCH, F
  * Checks whether [this] set contains that [field].
  */
 inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDef<SCH, *, *>): Boolean =
-        (bitmask and (1L shl field.ordinal.toInt())) != 0L
+        (bitSet and (1L shl field.ordinal.toInt())) != 0L
 
 /**
  * Number of fields in this set.
  */
 val FieldSet<*, *>.size: Byte
-    get() = java.lang.Long.bitCount(bitmask).toByte()
+    get() = java.lang.Long.bitCount(bitSet).toByte()
 
 /**
  * Whether this set is empty.
  */
 val FieldSet<*, *>.isEmpty: Boolean
-    get() = bitmask == 0L
+    get() = bitSet == 0L
 
 /**
  * Returns index of [field] in this set.
@@ -204,7 +204,7 @@ val FieldSet<*, *>.isEmpty: Boolean
 fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: FieldDef<SCH, *, *>): Byte {
     val ord = field.ordinal
     val one = 1L shl ord.toInt()
-    return if ((bitmask and one) == 0L) -1 else java.lang.Long.bitCount(bitmask and lowerOnes(ord)).toByte()
+    return if ((bitSet and one) == 0L) -1 else java.lang.Long.bitCount(bitSet and lowerOnes(ord)).toByte()
 }
 
 fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
@@ -223,7 +223,7 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSet<SCH, F>, func: (F) -> Unit) {
     var ord = 0
-    var mask = set.bitmask
+    var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
             func(fields[ord] as F)
@@ -239,7 +239,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSe
  */
 fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.single(set: FieldSet<SCH, F>): F {
     var ord = 0
-    var mask = set.bitmask
+    var mask = set.bitSet
     while ((mask and 1L) == 0L) {
         mask = mask ushr 1
         ord++
@@ -255,7 +255,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: 
     val fields = fields
     var idx = 0
     var ord = 0
-    var mask = set.bitmask
+    var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
             func(idx++, fields[ord] as F)
@@ -274,7 +274,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexe
     val out = arrayOfNulls<R>(set.size.toInt())
     var idx = 0
     var ord = 0
-    var mask = set.bitmask
+    var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
             out[idx] = func(idx, fields[ord] as F)
@@ -300,7 +300,7 @@ inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
          * This value is a part of serialization ABI and has stable format
          * as it is written to and read from persistent storages.
          */
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val bitmask: Long
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val bitSet: Long
 )
 
 private fun lowerOnes(r: Byte): Long =

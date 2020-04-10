@@ -288,7 +288,7 @@ internal class FieldSetLens<S : Schema<S>>(
             true
 
     override fun ofPartial(partial: PartialStruct<S>): Long? =
-            partial.fields.bitmask
+            partial.fields.bitSet
 
     override fun get(index: Int): NamedLens<*, *, *, *, *> =
             if (index == 0) this else throw IndexOutOfBoundsException(index.toString())

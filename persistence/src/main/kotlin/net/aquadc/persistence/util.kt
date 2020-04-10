@@ -276,7 +276,7 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
 
                 while (nextField != null) {
                     val newFields = fields + nextField
-                    if (fields.bitmask == newFields.bitmask) {
+                    if (fields.bitSet == newFields.bitSet) {
                         throw UnsupportedOperationException("duplicate name: ${nextField.name}")
                     }
                     val value = readNextValue(nextField.type)

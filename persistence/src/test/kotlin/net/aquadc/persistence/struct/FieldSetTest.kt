@@ -168,15 +168,15 @@ class FieldSetTest {
     }
 
     @Test fun all63() {
-        assertEquals(0x7FFFFFFFFFFFFFFFL, Schema63.allFieldSet().bitmask)
-        assertEquals(0x7FFFFFFFFFFFFFFFL, Schema63.immutableFieldSet().bitmask)
-        assertEquals(0L, Schema63.mutableFieldSet().bitmask)
+        assertEquals(0x7FFFFFFFFFFFFFFFL, Schema63.allFieldSet().bitSet)
+        assertEquals(0x7FFFFFFFFFFFFFFFL, Schema63.immutableFieldSet().bitSet)
+        assertEquals(0L, Schema63.mutableFieldSet().bitSet)
     }
 
     @Test fun all64() {
-        assertEquals(-1L, Schema64.allFieldSet().bitmask)
-        assertEquals(-1L, Schema64.immutableFieldSet().bitmask)
-        assertEquals(0L, Schema64.mutableFieldSet().bitmask)
+        assertEquals(-1L, Schema64.allFieldSet().bitSet)
+        assertEquals(-1L, Schema64.immutableFieldSet().bitSet)
+        assertEquals(0L, Schema64.mutableFieldSet().bitSet)
     }
 
 }

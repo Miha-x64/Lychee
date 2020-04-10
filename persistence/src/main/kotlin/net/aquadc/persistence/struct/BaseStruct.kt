@@ -13,7 +13,7 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
 ) : PartialStruct<SCH> {
 
     override fun equals(other: Any?): Boolean {
-        if (other !is PartialStruct<*> || other.schema !== schema || other.fields.bitmask != fields.bitmask) {
+        if (other !is PartialStruct<*> || other.schema !== schema || other.fields.bitSet != fields.bitSet) {
             return false
         }
 
