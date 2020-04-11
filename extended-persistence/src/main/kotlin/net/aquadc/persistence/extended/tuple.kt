@@ -22,6 +22,7 @@ class Tuple<A, DA : DataType<A>, B, DB : DataType<B>>(
 }
 
 /** A shortcut for [Tuple] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         DA.times(second: DB): Tuple<A, DA, B, DB> =
         Tuple("first", this, "second", second)
@@ -54,12 +55,12 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
         }
 
 /** Returns first component of [this] [Tuple]. */
-@JvmName("component1of2")
+@JvmName("component1of2") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>> Struct<Tuple<A, DA, B, DB>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple]. */
-@JvmName("component2of2")
+@JvmName("component2of2") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>> Struct<Tuple<A, DA, B, DB>>.component2(): B =
         this[schema.Second]
 
@@ -78,6 +79,7 @@ class Tuple3<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>(
 }
 
 /** A shortcut for [Tuple3] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple<A, DA, B, DB>.times(third: DC): Tuple3<A, DA, B, DB, C, DC> =
         Tuple3("first", First.type, "second", Second.type, "third", third)
@@ -112,17 +114,17 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         }
 
 /** Returns first component of [this] [Tuple3]. */
-@JvmName("component1of3")
+@JvmName("component1of3") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> Struct<Tuple3<A, DA, B, DB, C, DC>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple3]. */
-@JvmName("component2of3")
+@JvmName("component2of3") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> Struct<Tuple3<A, DA, B, DB, C, DC>>.component2(): B =
         this[schema.Second]
 
 /** Returns third component of [this] [Tuple3]. */
-@JvmName("component3of3")
+@JvmName("component3of3") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> Struct<Tuple3<A, DA, B, DB, C, DC>>.component3(): C =
         this[schema.Third]
 
@@ -143,6 +145,7 @@ class Tuple4<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 }
 
 /** A shortcut for [Tuple4] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         Tuple3<A, DA, B, DB, C, DC>.times(fourth: DD): Tuple4<A, DA, B, DB, C, DC, D, DD> =
         Tuple4("first", First.type, "second", Second.type, "third", Third.type, "fourth", fourth)
@@ -179,22 +182,22 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         }
 
 /** Returns first component of [this] [Tuple4]. */
-@JvmName("component1of4")
+@JvmName("component1of4") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple4]. */
-@JvmName("component2of4")
+@JvmName("component2of4") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>>.component2(): B =
         this[schema.Second]
 
 /** Returns third component of [this] [Tuple4]. */
-@JvmName("component3of4")
+@JvmName("component3of4") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>>.component3(): C =
         this[schema.Third]
 
 /** Returns fourth component of [this] [Tuple4]. */
-@JvmName("component4of4")
+@JvmName("component4of4") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>>.component4(): D =
         this[schema.Fourth]
 
@@ -217,6 +220,7 @@ class Tuple5<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 }
 
 /** A shortcut for [Tuple5] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         Tuple4<A, DA, B, DB, C, DC, D, DD>.times(fifth: DE): Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE> =
         Tuple5("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", fifth)
@@ -255,27 +259,27 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         }
 
 /** Returns first component of [this] [Tuple5]. */
-@JvmName("component1of5")
+@JvmName("component1of5") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple5]. */
-@JvmName("component2of5")
+@JvmName("component2of5") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>.component2(): B =
         this[schema.Second]
 
 /** Returns third component of [this] [Tuple5]. */
-@JvmName("component3of5")
+@JvmName("component3of5") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>.component3(): C =
         this[schema.Third]
 
 /** Returns fourth component of [this] [Tuple5]. */
-@JvmName("component4of5")
+@JvmName("component4of5") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>.component4(): D =
         this[schema.Fourth]
 
 /** Returns fifth component of [this] [Tuple5]. */
-@JvmName("component5of5")
+@JvmName("component5of5") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>.component5(): E =
         this[schema.Fifth]
 
@@ -300,6 +304,7 @@ class Tuple6<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 }
 
 /** A shortcut for [Tuple6] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.times(sixth: DF): Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF> =
         Tuple6("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", sixth)
@@ -340,32 +345,32 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         }
 
 /** Returns first component of [this] [Tuple6]. */
-@JvmName("component1of6")
+@JvmName("component1of6") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple6]. */
-@JvmName("component2of6")
+@JvmName("component2of6") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.component2(): B =
         this[schema.Second]
 
 /** Returns third component of [this] [Tuple6]. */
-@JvmName("component3of6")
+@JvmName("component3of6") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.component3(): C =
         this[schema.Third]
 
 /** Returns fourth component of [this] [Tuple6]. */
-@JvmName("component4of6")
+@JvmName("component4of6") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.component4(): D =
         this[schema.Fourth]
 
 /** Returns fifth component of [this] [Tuple6]. */
-@JvmName("component5of6")
+@JvmName("component5of6") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.component5(): E =
         this[schema.Fifth]
 
 /** Returns sixth component of [this] [Tuple6]. */
-@JvmName("component6of6")
+@JvmName("component6of6") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.component6(): F =
         this[schema.Sixth]
 
@@ -392,6 +397,7 @@ class Tuple7<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 }
 
 /** A shortcut for [Tuple7] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.times(seventh: DG): Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG> =
         Tuple7("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", seventh)
@@ -434,37 +440,37 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         }
 
 /** Returns first component of [this] [Tuple7]. */
-@JvmName("component1of7")
+@JvmName("component1of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple7]. */
-@JvmName("component2of7")
+@JvmName("component2of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component2(): B =
         this[schema.Second]
 
 /** Returns third component of [this] [Tuple7]. */
-@JvmName("component3of7")
+@JvmName("component3of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component3(): C =
         this[schema.Third]
 
 /** Returns fourth component of [this] [Tuple7]. */
-@JvmName("component4of7")
+@JvmName("component4of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component4(): D =
         this[schema.Fourth]
 
 /** Returns fifth component of [this] [Tuple7]. */
-@JvmName("component5of7")
+@JvmName("component5of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component5(): E =
         this[schema.Fifth]
 
 /** Returns sixth component of [this] [Tuple7]. */
-@JvmName("component6of7")
+@JvmName("component6of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component6(): F =
         this[schema.Sixth]
 
 /** Returns seventh component of [this] [Tuple7]. */
-@JvmName("component7of7")
+@JvmName("component7of7") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.component7(): G =
         this[schema.Seventh]
 
@@ -493,6 +499,7 @@ class Tuple8<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 }
 
 /** A shortcut for [Tuple8] with default field names. */
+@JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.times(eighth: DH): Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH> =
         Tuple8("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", Seventh.type, "eighth", eighth)
@@ -537,42 +544,42 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         }
 
 /** Returns first component of [this] [Tuple8]. */
-@JvmName("component1of8")
+@JvmName("component1of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component1(): A =
         this[schema.First]
 
 /** Returns second component of [this] [Tuple8]. */
-@JvmName("component2of8")
+@JvmName("component2of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component2(): B =
         this[schema.Second]
 
 /** Returns third component of [this] [Tuple8]. */
-@JvmName("component3of8")
+@JvmName("component3of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component3(): C =
         this[schema.Third]
 
 /** Returns fourth component of [this] [Tuple8]. */
-@JvmName("component4of8")
+@JvmName("component4of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component4(): D =
         this[schema.Fourth]
 
 /** Returns fifth component of [this] [Tuple8]. */
-@JvmName("component5of8")
+@JvmName("component5of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component5(): E =
         this[schema.Fifth]
 
 /** Returns sixth component of [this] [Tuple8]. */
-@JvmName("component6of8")
+@JvmName("component6of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component6(): F =
         this[schema.Sixth]
 
 /** Returns seventh component of [this] [Tuple8]. */
-@JvmName("component7of8")
+@JvmName("component7of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component7(): G =
         this[schema.Seventh]
 
 /** Returns eighth component of [this] [Tuple8]. */
-@JvmName("component8of8")
+@JvmName("component8of8") @JvmSynthetic // useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>.component8(): H =
         this[schema.Eighth]
 
@@ -583,6 +590,7 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
  * A placeholder to avoid undesired invocation of other overloads.
  * Despite this declaration is deprecated, it is not going to be removed.
  */
+@JvmSynthetic // useless for Java
 @Deprecated("Tuple9+ are not implemented", level = DeprecationLevel.ERROR)
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>, I, DI : DataType<I>>
         Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.times(ninth: DH): Nothing =
@@ -592,6 +600,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
  * Shows that Tuple* cannot be safely replaced with an arbitrary Schema.
  * Despite this declaration is deprecated, it is not going to be removed.
  */
+@JvmSynthetic // useless for Java
 @Deprecated("left operand is expected to be a Tuple*, got other Schema", level = DeprecationLevel.ERROR)
 operator fun <SCH : Schema<SCH>>
         SCH.times(second: DataType<*>): Nothing =
@@ -601,6 +610,7 @@ operator fun <SCH : Schema<SCH>>
  * Maintains multiplication associativity.
  * Despite this declaration is deprecated, it is not going to be removed.
  */
+@JvmSynthetic // useless for Java
 @Deprecated("right operand is not expected to be a Tuple* or any other Schema", level = DeprecationLevel.ERROR)
 operator fun <SCH : Schema<SCH>>
         DataType<*>.times(second: SCH): Nothing =
