@@ -26,14 +26,14 @@ enum class Token(internal val delta: Int) {
     Str(0) {
         override fun coerce(value: Any?): Any? = when (value) {
             is Boolean, is Number -> value.toString()
-            is String -> value
+            is CharSequence -> value
             is ByteArray -> New.toBase64(value)
             else -> throw IllegalArgumentException("value $value cannot be coerced to $Str")
         }
     },
     Blob(0) {
         override fun coerce(value: Any?): Any? = when (value) {
-            is String -> New.fromBase64(value)
+            is CharSequence -> New.fromBase64(value.toString())
             is ByteArray -> value
             else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
         }
@@ -59,12 +59,13 @@ enum class Token(internal val delta: Int) {
                     F64 -> value
                     else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
                 }
-                is String ->
+                is CharSequence -> value.toString().let { value -> // to<Number> are extensions on String
                     if (hasFraction(value)) when (this) {
                         F32 -> value.toFloat()
                         F64 -> value.toDouble()
                         else -> throw IllegalArgumentException("value $value cannot be coerced to $this") // never coerce fractionals to ints
                     } else coerceToNumber(value.toLong())
+                }
                 else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
             }
         }
@@ -97,7 +98,7 @@ enum class Token(internal val delta: Int) {
             is Long -> I64
             is Float -> F32
             is Double -> F64
-            is String -> Str
+            is CharSequence -> Str
             is ByteArray -> Blob
             is Token -> if (value in ControlTokens) value else null
             else -> null
@@ -130,7 +131,7 @@ interface TokenStream : Iterator<Any?> {
     /**
      * Consume and return the next token.
      * @param coerceTo expected token type, or null to retrieve any
-     * @return null|Boolean|Byte|Short|Int|Long|Float|Double|String|ByteArray|Token.(Begin|End)(Sequence|Dictionary)
+     * @return null|Boolean|Byte|Short|Int|Long|Float|Double|CharSequence|ByteArray|Token.(Begin|End)(Sequence|Dictionary)
      *         **must** conform the type specified by [coerceTo]
      */
     fun poll(coerceTo: Token? = null): Any?
@@ -185,7 +186,11 @@ open class TokenPath : ArrayList<Any?>() {
             append('[')
             when (it) {
                 is Index -> append(it.value)
-                is String -> append('\'').append(it.replace("\\", "\\\\").replace("'", "\\'")).append('\'')
+
+                is CharSequence -> append('\'') // of course I know the fast way to append while replacing occurrences
+                        .append(it.toString().replace("\\", "\\\\").replace("'", "\\'")) // of several characters.
+                        .append('\'') // But there's no reason to do so in non-critical toString
+
                 else -> append(it) // make difference between strings (e. g. `$['null']`) and other types (`$[null]`)
                 // (by the way, this erases differences between int keys and array indices)
             }

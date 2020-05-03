@@ -45,7 +45,7 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
 
 private fun TokenStream.nextField(sch: Schema<*>): FieldDef<*, *, *>? {
     while (peek() != Token.EndDictionary) {
-        sch.fieldByName(poll(Token.Str) as String,
+        sch.fieldByName(poll(Token.Str) as CharSequence,
                 { return it },
                 { skipValue() /* unsupported value */ }
         )

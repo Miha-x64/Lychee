@@ -84,10 +84,10 @@ suspend inline fun TokenStreamScope.yieldDouble(compute: () -> Double): Boolean 
         }
 
 /**
- * Yield a [String] value.
+ * Yield a [String]/[CharSequence] value.
  * @return whether value was consumed. `false` means it was skipped
  */
-suspend inline fun TokenStreamScope.yieldString(compute: () -> String): Boolean =
+suspend inline fun TokenStreamScope.yieldString(compute: () -> CharSequence): Boolean =
         offer(Token.Str).let { coerceTo ->
             if (coerceTo != false) yield((coerceTo as Token?).coerce(compute())).let { true }
             else false

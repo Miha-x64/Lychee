@@ -255,7 +255,7 @@ private fun TokenStream.writeBracketSequenceTo(writer: JsonWriter, token: Any?) 
         is Boolean -> writer.value(token)
         is Byte, is Short, is Int, is Long -> writer.value((token as Number).toLong())
         is Float, is Double -> writer.value((token as Number).toDouble())
-        is String -> writer.value(token)
+        is CharSequence -> writer.value(token.toString())
         is ByteArray -> writer.value(Base64.encodeToString(token, Base64.DEFAULT))
         Token.BeginSequence -> {
             writer.beginArray()
@@ -274,7 +274,7 @@ private fun TokenStream.writeBracketSequenceTo(writer: JsonWriter, token: Any?) 
                     writer.endObject()
                     break
                 }
-                writer.name(poll(Token.Str) as String)
+                writer.name((poll(Token.Str) as CharSequence).toString())
                 writeBracketSequenceTo(writer, poll())
             }
         }
