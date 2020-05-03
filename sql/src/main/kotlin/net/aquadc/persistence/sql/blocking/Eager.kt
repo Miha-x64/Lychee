@@ -73,11 +73,7 @@ internal fun <SCH : Schema<SCH>, CUR : AutoCloseable> fetchStruct(
 ): StructSnapshot<SCH> {
     val managedColNames = table.managedColNames
     val managedColTypes = table.managedColTypes
-    val cur = try {
-        from.select(query, argumentTypes, arguments, managedColNames.size)
-    } catch (e: Exception) {
-        throw RuntimeException("expected ${managedColNames.contentToString()}", e)
-    }
+    val cur = from.select(query, argumentTypes, arguments, managedColNames.size)
     try {
         check(from.next(cur))
         val value = from.mapRow<CUR, SCH>(bindBy, cur, managedColNames, managedColTypes, table.recipe)

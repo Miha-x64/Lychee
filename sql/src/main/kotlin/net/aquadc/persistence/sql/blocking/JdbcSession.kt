@@ -289,10 +289,10 @@ class JdbcSession(
                 .also {
                     val meta = it.metaData
                     val actualCols = meta.columnCount
-                    check(actualCols == expectedCols) {
+                    if (actualCols != expectedCols) {
                         val cols = Array(actualCols) { meta.getColumnLabel(it + 1) }.contentToString()
                         it.close()
-                        "Expected $expectedCols cols, got $cols"
+                        throw IllegalArgumentException("Expected $expectedCols cols, got $cols")
                     }
                 }
         override fun sizeHint(cursor: ResultSet): Int = -1

@@ -306,10 +306,10 @@ class SqliteSession(
                         query,
                         null, null, null
                 ).also {
-                    check(it.columnCount == expectedCols) {
+                    if (it.columnCount != expectedCols) {
                         val cols = it.columnNames.contentToString()
                         it.close()
-                        "Expected $expectedCols cols, got $cols"
+                        throw IllegalArgumentException("Expected $expectedCols cols, got $cols")
                     }
                 }
         override fun sizeHint(cursor: Cursor): Int = cursor.count
