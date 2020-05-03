@@ -17,7 +17,7 @@ import net.aquadc.persistence.type.nullable
  * String concatenation factory to build names for nested lenses.
  */
 interface NamingConvention {
-    fun concatNames(outer: String, nested: String): String
+    fun concatNames(outer: CharSequence, nested: CharSequence): String
 }
 
 
@@ -126,10 +126,13 @@ interface NamingConvention {
 
 @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
 internal fun <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>> NamingConvention?.concatErased(
+        thisSchema: SCH, thatSchema: Schema<*>,
         dis: StoredLens<SCH, *, *>, that: StoredLens<*, *, *>
 ): Lens<SCH, PRT, STR, *, *> =
         Telescope<SCH, PRT, STR, Schema<*>, PartialStruct<Schema<*>>, Any?, DataType<*>>(
-                (if (this !== null && dis is Named && that is Named) concatNames(dis.name, that.name) else null),
+                if (this !== null && dis is Named<*> && that is Named<*>)
+                    concatNames((dis as Named<SCH>).name(thisSchema), (that as Named<Any?>).name(thatSchema))
+                else null,
                 dis as Lens<SCH, PRT, STR, out PartialStruct<Schema<*>>?, *>,
                 that as Lens<Schema<*>, PartialStruct<Schema<*>>, Struct<Schema<*>>, out Any?, *>
         )
@@ -144,7 +147,7 @@ val SnakeCase: NamingConvention = ConcatConvention('_')
  */
 val CamelCase: NamingConvention = object : NamingConvention {
 
-    override fun concatNames(outer: String, nested: String): String = buildString(outer.length + nested.length) {
+    override fun concatNames(outer: CharSequence, nested: CharSequence): String = buildString(outer.length + nested.length) {
         append(outer)
         if (nested.isNotEmpty()) {
             // Note: this capitalizer is intended for use with identifiers which are mostly ASCII.
@@ -163,7 +166,7 @@ val CamelCase: NamingConvention = object : NamingConvention {
 val NestingCase: NamingConvention = ConcatConvention('.')
 
 private class ConcatConvention(private val delimiter: Char) : NamingConvention {
-    override fun concatNames(outer: String, nested: String): String =
+    override fun concatNames(outer: CharSequence, nested: CharSequence): String =
             buildString(outer.length + 1 + nested.length) {
                 append(outer).append(delimiter).append(nested)
             }
@@ -271,7 +274,7 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
             other is PkLens<*, *> && other.table === table
 
     override fun toString(): String =
-            "${table.name}.$name (PRIMARY KEY)"
+            "${table.name}.${name(table.schema)} (PRIMARY KEY)"
 
 
     @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") // can't be fixed, overrides both invoke(struct) and invoke(partial)
@@ -316,7 +319,7 @@ internal class FieldSetLens<S : Schema<S>>(
 
 // ugly class for minimizing method count / vtable size
 internal abstract class BaseLens<SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>, T, DT : DataType<T>>(
-        private val _name: String?,
+        private val _name: CharSequence?,
         final override val type: DT
 ) : NamedLens<SCH, PRT, STR, T, DT> {
 
@@ -325,7 +328,13 @@ internal abstract class BaseLens<SCH : Schema<SCH>, PRT : PartialStruct<SCH>, ST
             ofPartial(struct as PRT) as T
 
     final override val name: String
-        get() = _name!! // give this instance as Lens, not NamedLens, when _name is null
+        get() = _name!!.toString() // give this instance as Lens, not NamedLens, when _name is null
+
+    override fun name(mySchema: SCH): CharSequence =
+            _name!!
+
+    override fun type(mySchema: SCH): DT =
+            type
 
     override val size: Int
         get() = 1 // true for FieldSetLens and PkLens, but overridden in Telescope

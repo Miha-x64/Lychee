@@ -14,7 +14,6 @@ import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import java.util.concurrent.ConcurrentHashMap
@@ -37,10 +36,10 @@ internal class BlockingQuery<CUR : AutoCloseable, R>(
 internal abstract class LowLevelSession<STMT, CUR : AutoCloseable> : Blocking<CUR> {
     abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
 
-    /** [columns] : [values] is a map */
+    /** [columnNames] : [values] is a map */
     abstract fun <SCH : Schema<SCH>, ID : IdBound> update(
             table: Table<SCH, ID, *>, id: ID,
-            columns: Any /* = [array of] StoredNamedLens<SCH, Struct<SCH>, *>> */, values: Any? /* = [array of] Any? */
+            columnNames: Any/*=[arrayOf]CharSequence*/, columnTypes: Any/*=[arrayOf]DataType*/, values: Any?/*=[arrayOf]Any?*/
     )
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID)
@@ -50,7 +49,7 @@ internal abstract class LowLevelSession<STMT, CUR : AutoCloseable> : Blocking<CU
     abstract fun onTransactionEnd(successful: Boolean)
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
+            table: Table<SCH, ID, *>, colName: CharSequence, colType: DataType<T>, id: ID
     ): T
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -62,7 +61,7 @@ internal abstract class LowLevelSession<STMT, CUR : AutoCloseable> : Blocking<CU
     ): Long
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-            table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
+            table: Table<SCH, ID, *>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
     ): Array<Any?>
 
     abstract val transaction: RealTransaction?

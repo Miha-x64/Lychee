@@ -65,7 +65,7 @@ val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", i64) {
           , Relation.Embedded(SnakeCase, Second)
           , Relation.Embedded(SnakeCase, Second / WithNullableNested.Nested, "fieldSet")
           , Relation.Embedded(SnakeCase, Third, "which")
-          , Relation.Embedded(SnakeCase, Third % goDeeper.Third.type.schema.Second, "fieldSet")
+          , Relation.Embedded(SnakeCase, Third % goDeeper.typeOf(goDeeper.Third).schema.Second, "fieldSet")
     )
 }
 

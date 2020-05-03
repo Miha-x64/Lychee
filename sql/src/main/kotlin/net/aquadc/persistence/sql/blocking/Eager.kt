@@ -6,7 +6,6 @@ import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.inflate
 import net.aquadc.persistence.sql.row
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 
@@ -72,15 +71,16 @@ internal fun <SCH : Schema<SCH>, CUR : AutoCloseable> fetchStruct(
         table: Table<SCH, *, *>, bindBy: BindBy,
         from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
 ): StructSnapshot<SCH> {
-    val managedCols = table.managedColumns
+    val managedColNames = table.managedColNames
+    val managedColTypes = table.managedColTypes
     val cur = try {
-        from.select(query, argumentTypes, arguments, managedCols.size)
+        from.select(query, argumentTypes, arguments, managedColNames.size)
     } catch (e: Exception) {
-        throw RuntimeException("expected " + managedCols.map(StoredNamedLens<SCH, *, *>::name), e)
+        throw RuntimeException("expected ${managedColNames.contentToString()}", e)
     }
     try {
         check(from.next(cur))
-        val value = from.mapRow(bindBy, cur, managedCols, table.recipe)
+        val value = from.mapRow<CUR, SCH>(bindBy, cur, managedColNames, managedColTypes, table.recipe)
         check(!from.next(cur)) // single row expected
         return value
     } finally {
@@ -92,17 +92,18 @@ internal fun <CUR : AutoCloseable, SCH : Schema<SCH>> fetchStructList(
         table: Table<SCH, *, *>, bindBy: BindBy,
         from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
 ): List<StructSnapshot<SCH>> {
-    val cols = table.managedColumns
+    val colNames = table.managedColNames
+    val colTypes = table.managedColTypes
     val recipe = table.recipe
 
-    val cur = from.select(query, argumentTypes, arguments, cols.size)
+    val cur = from.select(query, argumentTypes, arguments, colNames.size)
     try {
         return if (from.next(cur)) {
-            val first = from.mapRow(bindBy, cur, cols, recipe)
+            val first = from.mapRow<CUR, SCH>(bindBy, cur, colNames, colTypes, recipe)
             if (from.next(cur)) {
                 ArrayList<StructSnapshot<SCH>>(from.sizeHint(cur).let { if (it < 0) 10 else it }).also {
                     it.add(first)
-                    do it.add(from.mapRow(bindBy, cur, cols, recipe)) while (from.next(cur))
+                    do it.add(from.mapRow(bindBy, cur, colNames, colTypes, recipe)) while (from.next(cur))
                 }
             } else listOf<StructSnapshot<SCH>>(first)
         } else emptyList()
@@ -113,9 +114,12 @@ internal fun <CUR : AutoCloseable, SCH : Schema<SCH>> fetchStructList(
 
 private fun <CUR : AutoCloseable, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
         bindBy: BindBy,
-        cur: CUR, cols: Array<out StoredNamedLens<SCH, *, *>>, recipe: Array<out Table.Nesting>
+        cur: CUR,
+        colNames: Array<out CharSequence>,
+        colTypes: Array<out DataType<*>>,
+        recipe: Array<out Table.Nesting>
 ): StructSnapshot<SCH> {
-    val firstValues = row(cur, 0, cols, bindBy)
+    val firstValues = row(cur, 0, colNames, colTypes, bindBy)
     inflate(recipe, firstValues, 0, 0, 0)
     @Suppress("UNCHECKED_CAST")
     return firstValues[0] as StructSnapshot<SCH>

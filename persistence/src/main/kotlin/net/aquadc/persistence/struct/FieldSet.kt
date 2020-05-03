@@ -212,7 +212,7 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
         else buildString {
             append('[')
             forEach<SCH, FieldDef<SCH, *, *>>(fields) { field ->
-                append(field.name).append(", ")
+                append(nameOf(field)).append(", ")
             }
             setLength(length - 2)
             append(']')
@@ -221,12 +221,12 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
 /**
  * Invokes [func] on each element of the [set].
  */
-inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSet<SCH, F>, func: (F) -> Unit) {
+inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSet<SCH, F>, func: SCH.(F) -> Unit) {
     var ord = 0
     var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
-            func(fields[ord] as F)
+            func(this, fields[ord] as F)
         }
 
         mask = mask ushr 1

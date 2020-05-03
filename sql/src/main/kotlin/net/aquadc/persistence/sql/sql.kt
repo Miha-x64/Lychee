@@ -15,7 +15,6 @@ import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import org.intellij.lang.annotations.Language
-import java.io.Closeable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -104,7 +103,9 @@ fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.s
 fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.count(): Property<Long> =
         count(emptyCondition())
 
+@Deprecated("unintentionally exposed private API. Looks useless")
 @JvmField val NoOrder = emptyArray<Order<Nothing>>()
+internal inline fun <SCH : Schema<SCH>> noOrder(): Array<Order<SCH>> = NoOrder as Array<Order<SCH>>
 
 
 interface Transaction : AutoCloseable {
@@ -119,6 +120,7 @@ interface Transaction : AutoCloseable {
     }
     // TODO emulate slow storage!
 
+    // OMG, private API?
     fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
     // TODO: update where
 

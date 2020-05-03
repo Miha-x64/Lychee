@@ -54,7 +54,7 @@ inline class StructSnapshot<SCH : Schema<SCH>>
     override fun toString(): String = buildString {
         append("StructSnapshot").append(':').append(schema.javaClass.simpleName).append('(')
         schema.fields.forEach { field ->
-            append(field.name).append('=').append(this@StructSnapshot[field].realToString()).append(", ")
+            append(schema.nameOf(field)).append('=').append(this@StructSnapshot[field].realToString()).append(", ")
         }
         /*if (schema.fields.isNotEmpty() is always true)*/ setLength(length - 2)
         append(')')

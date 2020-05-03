@@ -67,7 +67,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> either3(
 @JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         DataType.Partial<Either<A, B>, Tuple<A, DA, B, DB>>.plus(third: DC): DataType.Partial<Either3<A, B, C>, Tuple3<A, DA, B, DB, C, DC>> =
-        either3("first", schema.First.type, "second", schema.Second.type, "third", third)
+        either3("first", schema.run { First.type }, "second", schema.run { Second.type }, "third", third)
 
 
 fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>> either4(
@@ -83,7 +83,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
 @JvmSynthetic // useless for Java
 @JvmName("e3plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         DataType.Partial<Either3<A, B, C>, Tuple3<A, DA, B, DB, C, DC>>.plus(fourth: DD): DataType.Partial<Either4<A, B, C, D>, Tuple4<A, DA, B, DB, C, DC, D, DD>> =
-        either4("first", schema.First.type, "second", schema.Second.type, "third", schema.Third.type, "fourth", fourth)
+        either4("first", schema.run { First.type }, "second", schema.run { Second.type }, "third", schema.run { Third.type }, "fourth", fourth)
 
 
 fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>> either5(
@@ -101,7 +101,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
 @JvmSynthetic // useless for Java
 @JvmName("e4plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         DataType.Partial<Either4<A, B, C, D>, Tuple4<A, DA, B, DB, C, DC, D, DD>>.plus(fifth: DE): DataType.Partial<Either5<A, B, C, D, E>, Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
-        either5("first", schema.First.type, "second", schema.Second.type, "third", schema.Third.type, "fourth", schema.Fourth.type, "fifth", fifth)
+        either5("first", schema.run { First.type }, "second", schema.run { Second.type }, "third", schema.run { Third.type }, "fourth", schema.run { Fourth.type }, "fifth", fifth)
 
 
 fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>> either6(
@@ -120,7 +120,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
 @JvmSynthetic // useless for Java
 @JvmName("e5plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         DataType.Partial<Either5<A, B, C, D, E>, Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>.plus(sixth: DF): DataType.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
-        either6("first", schema.First.type, "second", schema.Second.type, "third", schema.Third.type, "fourth", schema.Fourth.type, "fifth", schema.Fifth.type, "sixth", sixth)
+        either6("first", schema.run { First.type }, "second", schema.run { Second.type }, "third", schema.run { Third.type }, "fourth", schema.run { Fourth.type }, "fifth", schema.run { Fifth.type }, "sixth", sixth)
 
 
 fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>> either7(
@@ -140,7 +140,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
 @JvmSynthetic // useless for Java
 @JvmName("e6plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         DataType.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>.plus(seventh: DG): DataType.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
-        either7("first", schema.First.type, "second", schema.Second.type, "third", schema.Third.type, "fourth", schema.Fourth.type, "fifth", schema.Fifth.type, "sixth", schema.Sixth.type, "seventh", seventh)
+        either7("first", schema.run { First.type }, "second", schema.run { Second.type }, "third", schema.run { Third.type }, "fourth", schema.run { Fourth.type }, "fifth", schema.run { Fifth.type }, "sixth", schema.run { Sixth.type }, "seventh", seventh)
 
 
 fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>> either8(
@@ -161,7 +161,7 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
 @JvmSynthetic // useless for Java
 @JvmName("e7plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
         DataType.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>.plus(eighth: DH): DataType.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
-        either8("first", schema.First.type, "second", schema.Second.type, "third", schema.Third.type, "fourth", schema.Fourth.type, "fifth", schema.Fifth.type, "sixth", schema.Sixth.type, "seventh", schema.Seventh.type, "eighth", eighth)
+        either8("first", schema.run { First.type }, "second", schema.run { Second.type }, "third", schema.run { Third.type }, "fourth", schema.run { Fourth.type }, "fifth", schema.run { Fifth.type }, "sixth", schema.run { Sixth.type }, "seventh", schema.run { Seventh.type }, "eighth", eighth)
 
 
 /**

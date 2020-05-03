@@ -5,6 +5,7 @@ import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
+import net.aquadc.persistence.type.DataType
 
 /**
  * Responsible for fetching and updating data.
@@ -32,8 +33,9 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
 
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID
-    ): T =
-            lowSession.fetchSingle(table, field, id)
+    ): T = table.schema.let { sch -> // the following cast seems to be unnecessary with new inference
+        lowSession.fetchSingle(table, sch.nameOf(field), sch.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
+    }
 
     override fun <T, CUR : AutoCloseable> get(
             lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
@@ -44,26 +46,30 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
     override fun <T> update(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID,
             previous: T, update: T
-    ): Unit =
-            lowSession.update(table, id, field, update)
+    ): Unit = table.schema.let { sch ->
+        lowSession.update(table, id, field.name(sch), field.type(sch), update)
+    }
 }
 
 internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
-        private val columns: Array<StoredNamedLens<SCH, *, *>>,
-        private val recipe: Array<Table.Nesting> // contains a single start-end pair with (flattened) nesting inside
-      , private val myOffset: Int
+        private val schema: SCH,
+        tmpColumns: List<StoredNamedLens<SCH, *, *>>,
+        private val recipe: Array<Table.Nesting>, // contains a single start-end pair with (flattened) nesting inside
+        private val myOffset: Int
 ) : SqlPropertyDelegate<SCH, ID> {
+    private val columnNames = Array(tmpColumns.size) { i -> tmpColumns[i].name(schema) }
+    private val columnTypes = Array(tmpColumns.size) { i -> tmpColumns[i].type(schema) }
 
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID
     ): T =
-            inflated(lowSession.fetch(table, columns, id))
+            inflated(lowSession.fetch(table, columnNames, columnTypes, id))
 
     override fun <T, CUR : AutoCloseable> get(
             lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =
-            inflated(lowSession.row(cursor, myOffset, columns, bindBy))
+            inflated(lowSession.row(cursor, myOffset, columnNames, columnTypes, bindBy))
 
     private fun <T> inflated(values: Array<Any?>): T {
         inflate(recipe, values, 0, 0, 0)
@@ -74,8 +80,8 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID,
             previous: T, update: T
     ): Unit = lowSession.update(
-            table, id, columns,
+            table, id, columnNames, columnTypes,
             // TODO don't allocate this array, bind args directly instead
-            arrayOfNulls<Any>(columns.size).also { flatten(recipe, it, update, 0, 0) }
+            arrayOfNulls<Any>(columnNames.size).also { flatten(recipe, it, update, 0, 0) }
     )
 }

@@ -31,11 +31,11 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
         }
         is DataType.Partial<*, *> -> {
             poll(Token.BeginDictionary)
-            val byName = type.schema.fieldsByName
+            val sch = type.schema
             @Suppress("UPPER_BOUND_VIOLATED")
             val struct = readPartial<Any?, Schema<*>>(
                     type as DataType.Partial<Any?, Schema<*>>, fieldValues,
-                    { nextField(byName) as FieldDef<Schema<*>, *, *>? }, { readAs(it) }
+                    { nextField(sch) as FieldDef<Schema<*>, *, *>? }, { readAs(it) }
             )
             poll(Token.EndDictionary)
             struct as T
@@ -43,11 +43,12 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
     }
 }
 
-private fun TokenStream.nextField(byName: Map<String, FieldDef<*, *, *>>): FieldDef<*, *, *>? {
+private fun TokenStream.nextField(sch: Schema<*>): FieldDef<*, *, *>? {
     while (peek() != Token.EndDictionary) {
-        val field = byName[poll(Token.Str) as String]
-        if (field == null) skipValue() // unsupported value
-        else return field
+        sch.fieldByName(poll(Token.Str) as String,
+                { return it },
+                { skipValue() /* unsupported value */ }
+        )
     }
     return null
 }

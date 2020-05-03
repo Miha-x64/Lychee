@@ -5,7 +5,6 @@ import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleNullable
@@ -24,11 +23,11 @@ interface Blocking<CUR : AutoCloseable> {
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
 
-    fun <T> cellByName(cursor: CUR, col: StoredNamedLens<*, T, out DataType<T>>): T
+    fun <T> cellByName(cursor: CUR, name: CharSequence, type: DataType<T>): T
     fun <T> cellAt(cursor: CUR, col: Int, type: DataType<T>): T
 
-    fun rowByName(cursor: CUR, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?>
-    fun rowByPosition(cursor: CUR, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?>
+    fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>): Array<Any?>
+    fun rowByPosition(cursor: CUR, offset: Int, types: Array<out DataType<*>>): Array<Any?>
 }
 
 object Eagerly {

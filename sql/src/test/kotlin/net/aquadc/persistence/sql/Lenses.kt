@@ -1,6 +1,5 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple4
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.partial
@@ -25,8 +24,8 @@ class Lenses {
     }
 
     @Test fun `eq despite names`() = assertEquals(
-            SnakeCase.concatErased(NestedSchema.Items, SomeSchema.A),
-            CamelCase.concatErased(NestedSchema.Items, SomeSchema.A)
+            SnakeCase.concatErased(NestedSchema, SomeSchema, NestedSchema.Items, SomeSchema.A),
+            CamelCase.concatErased(NestedSchema, SomeSchema, NestedSchema.Items, SomeSchema.A)
     )
 
     @Test fun `nest eq`() {
@@ -80,22 +79,22 @@ class Lenses {
                 "3", partial(nested),
                 "4", nullable(partial(nested))
         )
-        assertEquals(string, (schema.First / nested.First).type)
-        assertEquals(nullable(string), (schema.First / nested.Second).type)
-        assertEquals(nullable(string), (schema.Second / nested.First).type)
-        assertEquals(nullable(string), (schema.Second / nested.Second).type)
-        assertEquals(nullable(string), (schema.Third / nested.First).type)
-        assertEquals(nullable(string), (schema.Third / nested.Second).type)
-        assertEquals(nullable(string), (schema.Fourth / nested.First).type)
-        assertEquals(nullable(string), (schema.Fourth / nested.Second).type)
+        assertEquals(string, (schema.First / nested.First).type(schema))
+        assertEquals(nullable(string), (schema.First / nested.Second).type(schema))
+        assertEquals(nullable(string), (schema.Second / nested.First).type(schema))
+        assertEquals(nullable(string), (schema.Second / nested.Second).type(schema))
+        assertEquals(nullable(string), (schema.Third / nested.First).type(schema))
+        assertEquals(nullable(string), (schema.Third / nested.Second).type(schema))
+        assertEquals(nullable(string), (schema.Fourth / nested.First).type(schema))
+        assertEquals(nullable(string), (schema.Fourth / nested.Second).type(schema))
     }
 
     @Test fun `non-struct nullability propagation`() {
         val schema = schemaWithNullableEither
-        assertEquals(nullable(string), (schema.First % schema.First.type.schema.First).type)
-        assertEquals(nullable(string), (schema.First % schema.First.type.schema.Second).type)
-        assertEquals(nullable(string), (schema.Second % schema.First.type.schema.First).type)
-        assertEquals(nullable(string), (schema.Second % schema.First.type.schema.Second).type)
+        assertEquals(nullable(string), (schema.First % schema.First.type(schema).schema.First).type(schema))
+        assertEquals(nullable(string), (schema.First % schema.First.type(schema).schema.Second).type(schema))
+        assertEquals(nullable(string), (schema.Second % schema.First.type(schema).schema.First).type(schema))
+        assertEquals(nullable(string), (schema.Second % schema.First.type(schema).schema.Second).type(schema))
     }
 
 }

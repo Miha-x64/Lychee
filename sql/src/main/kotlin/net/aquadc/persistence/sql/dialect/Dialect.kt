@@ -1,7 +1,6 @@
 package net.aquadc.persistence.sql.dialect
 
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.WhereCondition
@@ -20,8 +19,8 @@ interface Dialect {
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
     fun <SCH : Schema<SCH>> selectQuery(
-            table: Table<SCH, *, *>, columns: Array<out StoredNamedLens<SCH, *, *>>,
-            condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
+            table: Table<SCH, *, *>, columns: Array<out CharSequence>,
+            condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): String
 
     /**
@@ -38,12 +37,12 @@ interface Dialect {
      * Appends ORDER clause (without ORDER BY itself) to [this] builder.
      * @param order must be non-empty
      */
-    fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(order: Array<out Order<out SCH>>): StringBuilder
+    fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(schema: SCH, order: Array<out Order<SCH>>): StringBuilder
 
     /**
      *  Constructs an SQL query like `UPDATE <table> SET <col> = ?`
      */
-    fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out StoredNamedLens<SCH, *, *>>): String
+    fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out CharSequence>): String
 
     /**
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`
@@ -53,7 +52,7 @@ interface Dialect {
     /**
      * Appends quoted and escaped table or column name.
      */
-    fun StringBuilder.appendName(name: String): StringBuilder
+    fun StringBuilder.appendName(name: CharSequence): StringBuilder
 
     /**
      * Returns an SQL query to create the given [table].

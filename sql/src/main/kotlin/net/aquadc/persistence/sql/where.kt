@@ -77,7 +77,7 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
         get() = if (singleValue) 1 else (valueOrValues as Array<*>).size
 
     override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
-            with(dialect) { builder.appendName(context.columnByLens(lens)!!.name) }.append(op)
+            with(dialect) { builder.appendName(context.columnByLens(lens)!!.name(context.schema)) }.append(op)
 
     override fun setValuesTo(offset: Int, outCols: Array<in StoredLens<SCH, *, *>>, outColValues: Array<in Any>) {
         if (singleValue) {

@@ -97,18 +97,19 @@ class StreamWriterVisitor<D, T>(
             val fields = type.fields(arg)
             val size = fields.size
             output.writeByte(this, size)
+            val schema = type.schema
             when (size.toInt()) {
                 0 -> { /* nothing to do here */ }
                 1 -> {
-                    val field = type.schema.single(fields)
+                    val field = schema.single(fields)
                     output.writeByte(this, field.ordinal)
-                    (field.type as DataType<Any?>).write(output, this, values)
+                    (schema.run { (field as FieldDef<SCH, Any?, DataType<Any?>>).type }).write(output, this, values)
                 }
                 else -> { // packed or all
                     values as Array<*>
-                    type.schema.forEachIndexed(fields) { idx, field ->
+                    schema.forEachIndexed(fields) { idx, field ->
                         output.writeByte(this, field.ordinal)
-                        (field.type as DataType<Any?>).write(output, this, values[idx])
+                        (schema.run { (field as FieldDef<SCH, Any?, DataType<Any?>>).type }).write(output, this, values[idx])
                     }
                 }
             }

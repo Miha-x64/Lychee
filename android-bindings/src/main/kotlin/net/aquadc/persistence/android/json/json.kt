@@ -11,7 +11,6 @@ import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.allFieldSet
-import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.tokensFrom
@@ -35,7 +34,7 @@ fun <T> JsonReader.readListOf(type: DataType<T>): Nothing =
  * this ignores key-value pairs not listed in schema,
  * and consumes both opening and closing curly braces.
  * Throws an exception if there was no value for any [FieldDef] without a default value,
- * or if [JsonReader] met unexpected token for the given [FieldDef.type].
+ * or if [JsonReader] met unexpected token for the given [Schema.type].
  */
 @Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readAs(type)",
         "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readAs"), DeprecationLevel.ERROR)
@@ -71,7 +70,7 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
 ) {
     beginObject()
     struct.schema.forEach(fields) { field ->
-        name(field.name)
+        name(nameOf(field).toString())
         writeValueFrom(struct, field)
     }
     endObject()
@@ -93,4 +92,4 @@ fun <T> JsonWriter.write(type: DataType<T>, value: T): Nothing =
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =
-        field.approxType.tokensFrom(struct.getOrThrow(field)).writeTo(this)
+        struct.schema.typeOf(field as FieldDef<SCH, T, DataType<T>>).tokensFrom(struct.getOrThrow(field)).writeTo(this)

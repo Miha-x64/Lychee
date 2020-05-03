@@ -117,9 +117,8 @@ inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
         if (searchForDefaults) {
             for (i in 0.until(values.size - 1)) {
                 //     don't touch schema ^^^
-                val value = values[i]
-                if (value === Unset)
-                    values[i] = schema.fields[i].default
+                if (values[i] === Unset)
+                    values[i] = schema.defaultOrElse(schema.fields[i]) { throw NoSuchElementException(schema.fields[i].toString()) }
             }
         }
 

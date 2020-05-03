@@ -73,7 +73,7 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, embedSchema.Second)
             )
         }
-        assertEquals(arrayOf("_id", "a", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "b_a", "b_b"), table.columns.namesIn(embedSchema))
         assertEquals(
                 arrayOf(
                         PkLens(table),
@@ -91,7 +91,7 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, embedPartial.Second, "fieldsSet")
             )
         }
-        assertEquals(arrayOf("_id", "a", "b_fieldsSet", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "b_fieldsSet", "b_a", "b_b"), table.columns.namesIn(embedPartial))
         assertEquals(
                 arrayOf(
                         PkLens(table),
@@ -110,7 +110,7 @@ class RelationSchemas {
                     Relation.Embedded(SnakeCase, embedNullable.Second, "nullability")
             )
         }
-        assertEquals(arrayOf("_id", "a", "b_nullability", "b_a", "b_b"), table.columns.names())
+        assertEquals(arrayOf("_id", "a", "b_nullability", "b_a", "b_b"), table.columns.namesIn(embedNullable))
         assertEquals(
                 arrayOf(
                         PkLens(table),
@@ -131,7 +131,7 @@ class RelationSchemas {
         }
         assertEquals(
                 arrayOf("_id", "a", "b_fieldSetAndNullability", "b_a", "b_b"),
-                table.columns.names()
+                table.columns.namesIn(embedNullablePartial)
         )
         assertEquals(
                 arrayOf(
@@ -145,8 +145,8 @@ class RelationSchemas {
         )
     }
 
-    private fun Array<out Named>.names(): Array<out String> =
-            mapIndexedToArray { _, it -> it.name }
+    private fun <SCH : Schema<SCH>> Array<out Named<SCH>>.namesIn(schema: SCH): Array<out CharSequence> =
+            mapIndexedToArray { _, it -> it.name(schema) }
 
     private fun assertEquals(expected: Array<out Any?>, actual: Array<out Any?>) {
         if (expected.size != actual.size) assertEquals(expected as Any, actual as Any) // fallback to JUnit impl

@@ -81,33 +81,37 @@ internal inline fun <SCH : Schema<SCH>> bindQueryParams(
         for (i in 0 until size) {
             val colIndex = indices[argCols[i]]!!
             val column = cols[colIndex]
-            check(argCols[i]!!.type == column.type)
+            check(argCols[i]!!.type(table.schema) == column.type(table.schema))
             // I hope `argCols[i].type` is the same as `column.type`, but let's overcare :)
 
-            bind(column.type as DataType<Any?>, i, argValues[i])
+            bind(column.type(table.schema) as DataType<Any?>, i, argValues[i])
             // erase its type and assume that caller is clever enough
         }
     }
 }
 
-internal inline fun <SCH : Schema<SCH>> bindInsertionParams(table: Table<SCH, *, *>, data: Struct<SCH>, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit) {
+internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
+        table: Table<SCH, *, *>,
+        data: Struct<SCH>,
+        bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
+) {
     val columns = table.managedColumns
     arrayOfNulls<Any>(columns.size).also { flatten(table.recipe, it, data, 0, 0) }.forEachIndexed { idx, value ->
-        bind(columns[idx].type.erased, idx, value)
+        bind(columns[idx].type(table.schema).erased, idx, value)
     }
 }
 
 internal inline fun bindValues(
-        columns: Any, values: Any?, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
-): Int = if (columns is Array<*>) {
-    columns as Array<StoredLens<*, *, *>>
+        columnTypes: Any, values: Any?, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
+): Int = if (columnTypes is Array<*>) {
+    columnTypes as Array<DataType<*>>
     values as Array<*>?
-    columns.forEachIndexed { i, col ->
-        bind(col.type.erased, i, values?.get(i))
+    columnTypes.forEachIndexed { i, type ->
+        bind(type as DataType<Any?>, i, values?.get(i))
     }
-    columns.size
+    columnTypes.size
 } else {
-    bind((columns as StoredLens<*, *, *>).type.erased, 0, values)
+    bind(columnTypes as DataType<Any?>, 0, values)
     1
 }
 
@@ -231,7 +235,7 @@ internal fun flatten(
 ) {
     val start = recipe[_recipeOffset] as Table.Nesting.StructStart
     var dstPos = _dstPos
-    val type = start.myField?.type ?: start.unwrappedType // OMG, such a hack:
+    val type = start.type ?: start.unwrappedType // OMG, such a hack:
     // unwrappedType is a correct type for non-embedded, top-level struct
 
     if (start.hasFieldSet && type is DataType.Nullable<*, *> && value === null)
@@ -320,17 +324,17 @@ private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, 
         this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
 
 internal fun <CUR : AutoCloseable> Blocking<CUR>.row(
-        cursor: CUR, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>, bindBy: BindBy
+        cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, bindBy: BindBy
 ): Array<Any?> = when (bindBy) {
-    BindBy.Name -> rowByName(cursor, columns)
-    BindBy.Position -> rowByPosition(cursor, offset, columns)
+    BindBy.Name -> rowByName(cursor, columnNames, columnTypes)
+    BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
 }
 
 internal fun <SCH : Schema<SCH>, CUR : AutoCloseable, R> Blocking<CUR>.cell(
         cursor: CUR, table: Table<SCH, *, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R = when (bindBy) {
-    BindBy.Name -> cellByName(cursor, column)
-    BindBy.Position -> cellAt(cursor, table.managedColumns.forceIndexOf(column), column.type)
+    BindBy.Name -> cellByName(cursor, column.name(table.schema), column.type(table.schema))
+    BindBy.Position -> cellAt(cursor, table.managedColumns.forceIndexOf(column), column.type(table.schema))
 }
 
 private fun Array<out Any>.forceIndexOf(element: Any): Int {
@@ -339,4 +343,10 @@ private fun Array<out Any>.forceIndexOf(element: Any): Int {
         if (element == this[index])
             return index
     throw NoSuchElementException(element.toString() + " !in " + contentToString())
+}
+
+internal fun CharSequence.equalsIgnoreCase(that: CharSequence): Boolean { // will be removed in next commit, I think
+    val len = length
+    if (that.length != len) return false
+    return regionMatches(0, that, 0, len, ignoreCase = true)
 }

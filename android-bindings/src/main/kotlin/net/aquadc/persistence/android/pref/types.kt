@@ -7,20 +7,18 @@ import net.aquadc.collections.plus
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.DataTypeVisitor
 import net.aquadc.persistence.type.match
 import net.aquadc.persistence.type.serialized
-import net.aquadc.persistence.android.assertFitsByte
-import net.aquadc.persistence.android.assertFitsShort
 import net.aquadc.properties.internal.Unset
 import java.lang.Double as JavaLangDouble
 
 
-internal fun <T> FieldDef<*, T, *>.get(prefs: SharedPreferences): T {
-    val value = approxType.get(prefs, name)
-    return if (value === Unset) default else value
+internal fun <SCH : Schema<SCH>, T> SCH.get(what: FieldDef<SCH, T, *>, prefs: SharedPreferences): T {
+    val value = typeOf(what as FieldDef<SCH, T, DataType<T>>).get(prefs, nameOf(what).toString())
+    return if (value !== Unset) value else
+        defaultOrElse(what) { throw NoSuchElementException(what.toString()/* no value in shared prefs and no default */) }
 }
 
 internal fun <T> DataType<T>.get(prefs: SharedPreferences, name: String, default: T): T {

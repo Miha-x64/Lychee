@@ -28,12 +28,12 @@ import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.sql.equalsIgnoreCase
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
+import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i64
 import org.intellij.lang.annotations.Language
@@ -96,14 +96,14 @@ class SqliteSession(
                         .updateStatements
                         .getOrPut(cols) {
                             val colArray =
-                                    if (cols is Array<*>) cols as Array<StoredNamedLens<SCH, *, *>>
-                                    else arrayOf(cols as StoredNamedLens<SCH, *, *>)
+                                    if (cols is Array<*>) cols as Array<out CharSequence>
+                                    else arrayOf(cols as CharSequence)
                             connection.compileStatement(SqliteDialect.updateQuery(table, colArray))
                         }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
-            val statement = updateStatementWLocked(table, columns)
-            val colCount = bindValues(columns, values) { type, idx, value ->
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columnNames: Any, columnTypes: Any, values: Any?) {
+            val statement = updateStatementWLocked(table, columnNames)
+            val colCount = bindValues(columnTypes, values) { type, idx, value ->
                 type.bind(statement, idx, value)
             }
             table.idColType.bind(statement, colCount, id)
@@ -140,20 +140,21 @@ class SqliteSession(
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
                 table: Table<SCH, ID, *>,
-                columns: Array<out StoredNamedLens<SCH, *, *>>?,
+                columnNames: Array<out CharSequence>?,
                 condition: WhereCondition<SCH>,
-                order: Array<out Order<out SCH>>
+                order: Array<out Order<SCH>>
         ): Cursor = connection.rawQueryWithFactory(
                 CurFac(condition, table, null, null),
                 with(SqliteDialect) { SQLiteQueryBuilder.buildQueryString(
                         // fixme: building SQL myself could save some allocations
                         /*distinct=*/false,
                         table.name,
-                        if (columns == null) arrayOf("COUNT(*)") else columns.mapIndexedToArray { _, col -> col.name },
+                        if (columnNames == null) arrayOf("COUNT(*)")
+                        else columnNames.mapIndexedToArray { _, name -> name.toString() },
                         StringBuilder().appendWhereClause(table, condition).toString(),
                         /*groupBy=*/null,
                         /*having=*/null,
-                        if (order.isEmpty()) null else StringBuilder().appendOrderClause(order).toString(),
+                        if (order.isEmpty()) null else StringBuilder().appendOrderClause(table.schema, order).toString(),
                         /*limit=*/null
                 ) },
                 /*selectionArgs=*/null,
@@ -189,25 +190,25 @@ class SqliteSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
+                table: Table<SCH, ID, *>, colName: CharSequence, colType: DataType<T>, id: ID
         ): T =
-                select<SCH, ID>(table, arrayOf(column) /* fixme allocation */, pkCond<SCH, ID>(table, id), NoOrder)
-                        .fetchSingle(column.approxType)
+                select<SCH, ID>(table, arrayOf(colName) /* fixme allocation */, pkCond<SCH, ID>(table, id), noOrder())
+                        .fetchSingle(colType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
-                select<SCH, ID>(table, arrayOf(table.pkColumn) /* fixme allocation */, condition, order)
+                select<SCH, ID>(table, arrayOf(table.pkColumn.name(table.schema)) /* fixme allocation */, condition, order)
                         .fetchAllRows(table.idColType)
                         .array<Any>() as Array<ID>
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-                table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
+                table: Table<SCH, ID, *>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
+                select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<SCH>): Long =
-                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(i64)
+                select<SCH, ID>(table, null, condition, NoOrder as Array<out Order<SCH>>).fetchSingle(i64)
 
         override val transaction: RealTransaction?
             get() = this@SqliteSession.transaction
@@ -234,11 +235,11 @@ class SqliteSession(
                     close()
                 }
 
-        private fun <SCH : Schema<SCH>> Cursor.fetchColumns(columns: Array<out StoredNamedLens<SCH, *, *>>): Array<Any?> =
+        private fun Cursor.fetchColumns(columnTypes: Array<out DataType<*>>): Array<Any?> =
                 try {
                     check(moveToFirst())
-                    columns.mapIndexedToArray { index, column ->
-                        column.type.get(this, index)
+                    columnTypes.mapIndexedToArray { index, type ->
+                        type.get(this, index)
                     }
                 } finally {
                     close()
@@ -314,31 +315,30 @@ class SqliteSession(
         override fun sizeHint(cursor: Cursor): Int = cursor.count
         override fun next(cursor: Cursor): Boolean = cursor.moveToNext()
 
-        private fun <T> cellByName(cursor: Cursor, guess: Int, col: StoredNamedLens<*, T, out DataType<T>>): T =
-                col.type.get(
+        private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: DataType<T>): T =
+                type.get(
                         cursor,
-                        cursor.getColIdx(guess, col.name as java.lang.String)
+                        cursor.getColIdx(guess, name)
                 )
-        override fun <T> cellByName(cursor: Cursor, col: StoredNamedLens<*, T, out DataType<T>>): T =
-                cellByName(cursor, Integer.MAX_VALUE /* don't even try to guess */, col)
+        override fun <T> cellByName(cursor: Cursor, name: CharSequence, type: DataType<T>): T =
+                cellByName(cursor, Integer.MAX_VALUE /* don't even try to guess */, name, type)
         override fun <T> cellAt(cursor: Cursor, col: Int, type: DataType<T>): T =
                 type.get(cursor, col)
 
-        override fun rowByName(cursor: Cursor, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
-                Array(columns.size) { idx ->
-                    val col = columns[idx]
-                    cellByName(cursor, idx, col as StoredNamedLens<*, Any?, out DataType<Any?>>)
+        override fun rowByName(cursor: Cursor, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>): Array<Any?> =
+                Array(columnNames.size) { idx ->
+                    cellByName(cursor, idx, columnNames[idx], columnTypes[idx])
                 }
-        override fun rowByPosition(cursor: Cursor, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
-                Array(columns.size) { idx ->
-                    columns[idx].type.get(cursor, offset + idx)
+        override fun rowByPosition(cursor: Cursor, offset: Int, types: Array<out DataType<*>>): Array<Any?> =
+                Array(types.size) { idx ->
+                    types[idx].get(cursor, offset + idx)
                 }
 
         // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
-        private fun Cursor.getColIdx(guess: Int, name: java.lang.String): Int { // native `getColumnIndex` wrecks labels with '.'!
+        private fun Cursor.getColIdx(guess: Int, name: CharSequence): Int { // native `getColumnIndex` wrecks labels with '.'!
             val columnNames = columnNames!!
             if (columnNames.size > guess && name.equalsIgnoreCase(columnNames[guess])) return guess
-            val idx = columnNames.indexOfFirst { name.equalsIgnoreCase(it) }
+            val idx = columnNames.indexOfFirst { name.equalsIgnoreCase(it) } // fixme: why ignoring case!?
             if (idx < 0) error { "$name !in ${columnNames.contentToString()}" }
             return idx
         }
@@ -383,6 +383,6 @@ class SqliteSession(
 /**
  * Calls [SQLiteDatabase.execSQL] for the given [table] in [this] database.
  */
-fun SQLiteDatabase.createTable(table: Table<*, *, *>) {
+fun <SCH : Schema<SCH>> SQLiteDatabase.createTable(table: Table<SCH, *, *>) {
     execSQL(SqliteDialect.createTable(table))
 }

@@ -266,12 +266,14 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
     val firstField = maybeReadNextField()
     if (firstField != null) {
         fields += firstField
-        values = readNextValue(firstField.type)
+
+        val schema = type.schema
+        values = readNextValue(schema.run { (firstField as FieldDef<SCH, Any?, DataType<Any?>>).type })
         // if the first field is the only one,
         // we're gonna pass it to Partial factory without allocating an array
 
         // else proceed reading the following fields
-        var nextField = maybeReadNextField()
+        var nextField = maybeReadNextField() as FieldDef<SCH, Any?, DataType<Any?>>?
         if (nextField != null) {
             val fieldValues = fieldValues.getOrSet(::ArrayList)
             try {
@@ -281,16 +283,16 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
                 while (nextField != null) {
                     val newFields = fields + nextField
                     if (fields.bitSet == newFields.bitSet) {
-                        throw UnsupportedOperationException("duplicate name: ${nextField.name}")
+                        throw UnsupportedOperationException("duplicate name: ${schema.run { nextField!!.name }}")
                     }
-                    val value = readNextValue(nextField.type)
+                    val value = readNextValue(schema.run { nextField!!.type })
 
                     // nothing crashed, commit
                     fields = newFields
                     fieldValues.add(nextField)
                     fieldValues.add(value)
 
-                    nextField = maybeReadNextField()
+                    nextField = maybeReadNextField() as FieldDef<SCH, Any?, DataType<Any?>>?
                 }
             } catch (t: Throwable) {
                 // if something goes wrong (especially within read()),
@@ -352,4 +354,10 @@ fun hasFraction(nextNumber: String): Boolean {
 
     fractionDigits -= (lastMeaningfulFractionAt - i) // 1.00001000 -> 1.00001
     return fractionDigits > 0
+}
+
+internal fun CharSequence.eq(that: CharSequence, ignoreCase: Boolean): Boolean {
+    val len = length
+    if (that.length != len) return false
+    return regionMatches(0, that, 0, len, ignoreCase)
 }

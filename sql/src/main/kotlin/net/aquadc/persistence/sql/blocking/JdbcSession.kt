@@ -5,7 +5,6 @@ import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
-import net.aquadc.persistence.sql.NoOrder
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
@@ -21,10 +20,9 @@ import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
+import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.approxType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i64
 import org.intellij.lang.annotations.Language
@@ -93,14 +91,16 @@ class JdbcSession(
                         .updateStatements
                         .getOrPut(cols) {
                             val colArray =
-                                    if (cols is Array<*>) cols as Array<out StoredNamedLens<SCH, *, *>>
-                                    else arrayOf(cols as StoredNamedLens<SCH, *, *>)
+                                    if (cols is Array<*>) cols as Array<out CharSequence>
+                                    else arrayOf(cols as CharSequence)
                             connection.prepareStatement(dialect.updateQuery(table, colArray))
                         }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columns: Any, values: Any?) {
-            val statement = updateStatementWLocked(table, columns)
-            val colCount = bindValues(columns, values) { type, idx, value ->
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(
+                table: Table<SCH, ID, *>, id: ID, columnNames: Any, columnTypes: Any, values: Any?
+        ) {
+            val statement = updateStatementWLocked(table, columnNames)
+            val colCount = bindValues(columnTypes, values) { type, idx, value ->
                 type.bind(statement, idx, value)
             }
             table.idColType.bind(statement, colCount, id)
@@ -143,9 +143,9 @@ class JdbcSession(
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
                 table: Table<SCH, ID, *>,
-                columns: Array<out StoredNamedLens<SCH, *, *>>?,
+                columns: Array<out CharSequence>?,
                 condition: WhereCondition<SCH>,
-                order: Array<out Order<out SCH>>
+                order: Array<out Order<SCH>>
         ): ResultSet {
             val query =
                     if (columns == null) dialect.selectCountQuery(table, condition)
@@ -163,27 +163,27 @@ class JdbcSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID, *>, column: StoredNamedLens<SCH, T, *>, id: ID
+                table: Table<SCH, ID, *>, colName: CharSequence, colType: DataType<T>, id: ID
         ): T =
-                select<SCH, ID>(table /* fixme allocation */, arrayOf(column), pkCond<SCH, ID>(table, id), NoOrder)
-                        .fetchSingle(column.approxType)
+                select<SCH, ID>(table /* fixme allocation */, arrayOf(colName), pkCond<SCH, ID>(table, id), noOrder())
+                        .fetchSingle(colType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
-                select<SCH, ID>(table /* fixme allocation */, arrayOf(table.pkColumn), condition, order)
+                select<SCH, ID>(table /* fixme allocation */, arrayOf(table.pkColumn.name(table.schema)), condition, order)
                         .fetchAllRows(table.idColType)
                         .array<Any>() as Array<ID>
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
                 table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
         ): Long =
-                select<SCH, ID>(table, null, condition, NoOrder).fetchSingle(i64)
+                select<SCH, ID>(table, null, condition, noOrder()).fetchSingle(i64)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-                table: Table<SCH, ID, *>, columns: Array<out StoredNamedLens<SCH, *, *>>, id: ID
+                table: Table<SCH, ID, *>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columns, pkCond<SCH, ID>(table, id), NoOrder).fetchColumns(columns)
+                select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
@@ -205,11 +205,11 @@ class JdbcSession(
                     close()
                 }
 
-        private fun <SCH : Schema<SCH>> ResultSet.fetchColumns(columns: Array<out StoredNamedLens<SCH, *, *>>): Array<Any?> =
+        private fun ResultSet.fetchColumns(types: Array<out DataType<*>>): Array<Any?> =
                 try {
                     check(next())
-                    columns.mapIndexedToArray { index, column ->
-                        column.type.get(this, index)
+                    types.mapIndexedToArray { index, type ->
+                        type.get(this, index)
                     }
                 } finally {
                     close()
@@ -298,14 +298,14 @@ class JdbcSession(
         override fun sizeHint(cursor: ResultSet): Int = -1
         override fun next(cursor: ResultSet): Boolean = cursor.next()
 
-        override fun <T> cellByName(cursor: ResultSet, col: StoredNamedLens<*, T, out DataType<T>>): T =
-                col.type.get1indexed(cursor, cursor.findColumn(col.name))
+        override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: DataType<T>): T =
+                type.get1indexed(cursor, cursor.findColumn(name.toString()))
         override fun <T> cellAt(cursor: ResultSet, col: Int, type: DataType<T>): T =
                 type.get(cursor, col)
-        override fun rowByName(cursor: ResultSet, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
-                Array(columns.size) { idx -> cellByName(cursor, columns[idx] as StoredNamedLens<*, Any?, out DataType<Any?>>) }
-        override fun rowByPosition(cursor: ResultSet, offset: Int, columns: Array<out StoredNamedLens<*, *, *>>): Array<Any?> =
-                Array(columns.size) { idx -> columns[idx].type.get(cursor, offset + idx) }
+        override fun rowByName(cursor: ResultSet, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>): Array<Any?> =
+                Array(columnNames.size) { idx -> cellByName(cursor, columnNames[idx], columnTypes[idx]) }
+        override fun rowByPosition(cursor: ResultSet, offset: Int, types: Array<out DataType<*>>): Array<Any?> =
+                Array(types.size) { idx -> types[idx].get(cursor, offset + idx) }
     }
 
 

@@ -26,12 +26,13 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
      * Overwrites existing data, if any.
      */
     constructor(source: Struct<SCH>, prefs: SharedPreferences) : super(source.schema) {
-        val fields = schema.fields
+        val sch = schema
+        val fields = sch.fields
         val ed = prefs.edit()
         this.values = Array(fields.size) { i ->
             val field = fields[i]
             val value = source[field]
-            (field.type as DataType<Any?>).put(ed, field.name, value)
+            sch.typeOf(field as FieldDef<SCH, Any?, DataType<Any?>>).put(ed, sch.nameOf(field).toString(), value)
 
             when (field) {
                 is FieldDef.Mutable<SCH, *, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?, *>, null, value)
@@ -45,7 +46,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
 
     /**
      * Reads, writes, observes [prefs],
-     * assuming fields are either have values previously written to [prefs] or have [FieldDef.default] ones.
+     * assuming fields are either have values previously written to [prefs] or have [Schema.defaultOrElse] ones.
      */
     constructor(type: SCH, prefs: SharedPreferences) : super(type) {
         val fields = type.fields
@@ -67,7 +68,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
             is FieldDef.Mutable -> (value as Property<T>).value
             is FieldDef.Immutable -> {
                 if (value === Unset) {
-                    val actual = field.get(prefs)
+                    val actual = schema.get(field, prefs)
                     values[ordinal] = actual
                     actual
                 } else {
@@ -91,7 +92,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
                 Unset as T
 
         override fun <T> getClean(field: FieldDef<SCH, T, *>, id: Nothing?): T =
-                field.get(prefs)
+                schema.get(field, prefs)
 
         override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T, *>, id: Nothing?, previous: T, update: T) {
             transaction.set(field, update)
@@ -99,14 +100,15 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
 
         // `SharedPreferences` keeps a weak reference and not going to leak us
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-            val field = schema.fieldsByName[key] ?: return
-            val idx = field.ordinal.toInt()
-            val value = field.get(sharedPreferences)
-            when (field) {
-                is FieldDef.Mutable -> (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?, Nothing?>).commit(value)
-                is FieldDef.Immutable -> throw IllegalStateException("Immutable field $field in $prefs was mutated externally!")
-                // there will be ugly but a bit informative toString. Deal with it
-            }.also { }
+            schema.fieldByName(key, { field ->
+                val idx = field.ordinal.toInt()
+                val value = schema.get(field, sharedPreferences)
+                when (field) {
+                    is FieldDef.Mutable -> (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?, Nothing?>).commit(value)
+                    is FieldDef.Immutable -> throw IllegalStateException("Immutable field $field in $prefs was mutated externally!")
+                    // there will be ugly but a bit informative toString. Deal with it
+                }.also { }
+            }, { return })
         }
 
     }
@@ -119,7 +121,8 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         private val ed = prefs.edit()
 
         override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) {
-            field.approxType.put(ed, field.name, update)
+            schema.typeOf(field as FieldDef<SCH, T, DataType<T>>)
+                    .put(ed, schema.nameOf(field).toString(), update)
         }
 
         override fun close() {

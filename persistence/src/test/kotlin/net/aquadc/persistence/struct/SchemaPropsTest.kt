@@ -9,9 +9,6 @@ class SchemaPropsTest {
     @Test fun fields() =
             assertArrayEquals(arrayOf(SomeSchema.A, SomeSchema.B, SomeSchema.C, SomeSchema.D), SomeSchema.fields)
 
-    @Test fun fieldsByName() =
-            assertEquals(mapOf("a" to SomeSchema.A, "b" to SomeSchema.B, "c" to SomeSchema.C, "d" to SomeSchema.D), SomeSchema.fieldsByName)
-
     @Test fun mutableFields() =
             assertArrayEquals(arrayOf(SomeSchema.B, SomeSchema.C), SomeSchema.mutableFields)
 

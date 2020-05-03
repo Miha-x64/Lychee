@@ -1,22 +1,18 @@
 package net.aquadc.persistence.sql.dialect.sqlite
 
-import net.aquadc.persistence.stream.DataStreams
-import net.aquadc.persistence.stream.write
-import net.aquadc.persistence.struct.FieldDef
-import net.aquadc.persistence.struct.Named
-import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
-import net.aquadc.persistence.struct.approxType
-import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.DataTypeVisitor
-import net.aquadc.persistence.type.match
-import net.aquadc.persistence.sql.NoOrder
 import net.aquadc.persistence.sql.Order
-import net.aquadc.persistence.sql.PkLens
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.appendPlaceholders
+import net.aquadc.persistence.sql.dialect.appendReplacing
+import net.aquadc.persistence.sql.noOrder
+import net.aquadc.persistence.stream.DataStreams
+import net.aquadc.persistence.stream.write
+import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.DataTypeVisitor
+import net.aquadc.persistence.type.match
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
@@ -26,26 +22,26 @@ import java.io.DataOutputStream
 object SqliteDialect : Dialect {
 
     override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>): String = buildString {
-        val cols = table.managedColumns
+        val cols = table.managedColNames
         append("INSERT INTO ").appendName(table.name).append(" (")
                 .appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size)
                 .append(");")
     }
 
     override fun <SCH : Schema<SCH>> selectQuery(
-            table: Table<SCH, *, *>, columns: Array<out StoredNamedLens<SCH, *, *>>,
-            condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
+            table: Table<SCH, *, *>, columns: Array<out CharSequence>,
+            condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): String =
             selectQueryInternal(table, columns, condition, order)
 
     override fun <SCH : Schema<SCH>> selectCountQuery(
             table: Table<SCH, *, *>, condition: WhereCondition<SCH>
     ): String =
-            selectQueryInternal(table, null, condition, NoOrder)
+            selectQueryInternal(table, null, condition, noOrder())
 
     private fun <SCH : Schema<SCH>> selectQueryInternal(
-            table: Table<SCH, *, *>, columns: Array<out StoredNamedLens<SCH, *, *>>?,
-            condition: WhereCondition<SCH>, order: Array<out Order<out SCH>>
+            table: Table<SCH, *, *>, columns: Array<out CharSequence>?,
+            condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): String {
         val sb = StringBuilder("SELECT ")
                 .let { if (columns == null) it.append("COUNT(*)") else it.appendNames(columns) }
@@ -54,7 +50,7 @@ object SqliteDialect : Dialect {
         sb.appendWhereClause(table, condition)
 
         if (order.isNotEmpty())
-            sb.append(" ORDER BY ").appendOrderClause(order)
+            sb.append(" ORDER BY ").appendOrderClause(table.schema, order)
 
         return sb.toString()
     }
@@ -70,19 +66,19 @@ object SqliteDialect : Dialect {
     }
 
     override fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(
-            order: Array<out Order<out SCH>>
+            schema: SCH, order: Array<out Order<SCH>>
     ): StringBuilder = apply {
         if (order.isEmpty()) throw IllegalArgumentException()
-        order.forEach { appendName(it.col.name).append(if (it.desc) " DESC, " else " ASC, ") }
+        order.forEach { appendName(it.col.name(schema)).append(if (it.desc) " DESC, " else " ASC, ") }
         setLength(length - 2)
     }
 
-    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out StoredNamedLens<SCH, *, *>>): String =
+    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out CharSequence>): String =
             buildString {
                 append("UPDATE ").appendName(table.name).append(" SET ")
 
                 cols.forEach { col ->
-                    appendName(col.name).append(" = ?, ")
+                    appendName(col).append(" = ?, ")
                 }
                 setLength(length - 2) // assume not empty
 
@@ -94,13 +90,13 @@ object SqliteDialect : Dialect {
                     .append(" WHERE ").appendName(table.idColName).append(" = ?;")
                     .toString()
 
-    override fun StringBuilder.appendName(name: String): StringBuilder =
-            append('"').append(name.replace("\"", "\"\"")).append('"')
+    override fun StringBuilder.appendName(name: CharSequence): StringBuilder =
+            append('"').appendReplacing(name, '"', "\"\"").append('"')
 
-    private fun StringBuilder.appendNames(cols: Array<out Named>): StringBuilder = apply {
+    private fun StringBuilder.appendNames(cols: Array<out CharSequence>): StringBuilder = apply {
         if (cols.isNotEmpty()) {
             cols.forEach { col ->
-                appendName(col.name).append(", ")
+                appendName(col).append(", ")
             }
             setLength(length - 2) // trim comma
         }
@@ -108,21 +104,31 @@ object SqliteDialect : Dialect {
 
     override fun createTable(table: Table<*, *, *>): String {
         val sb = StringBuilder("CREATE TABLE ").appendName(table.name).append(" (")
-        table.columns.forEach { col ->
-            sb.appendName(col.name).append(' ').appendNameOf(col.type)
-            if (col is PkLens<*, *> || col === table.pkField)
-                sb.append(" PRIMARY KEY")
+                .appendName(table.idColName).append(' ').appendNameOf(table.idColType).append(" PRIMARY KEY")
 
-            /* this is useless since we can store only a full struct with all fields filled:
-            if (col.hasDefault) sb.appendDefault(col) */
+        val colNames = table.managedColNames
+        val colTypes = table.managedColTypes
 
+        val startIndex = if (table.pkField == null) 0 else 1
+        val endExclusive = colNames.size
+        if (endExclusive != startIndex) {
             sb.append(", ")
+
+            // skip
+            for (i in startIndex until endExclusive) {
+                sb.appendName(colNames[i]).append(' ').appendNameOf(colTypes[i])
+
+                /* this is useless since we can store only a full struct with all fields filled:
+                if (hasDefault) sb.appendDefault(...) */
+
+                .append(", ")
+            }
         }
         sb.setLength(sb.length - 2) // trim last comma; schema.fields must not be empty
         return sb.append(");").toString()
     }
 
-    private fun <T> StringBuilder.appendDefault(col: FieldDef<*, T, *>) {
+    private fun <T> StringBuilder.appendDefault(type: DataType<T>, default: T) {
         object : DataTypeVisitor<StringBuilder, T, T, Unit> {
             override fun StringBuilder.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
                 if (nullable && arg === null) append("NULL")
@@ -154,7 +160,7 @@ object SqliteDialect : Dialect {
             override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
                 error("unsupported²")
             }
-        }.match(col.approxType, this, col.default)
+        }.match(type, this, default)
     }
 
     private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {

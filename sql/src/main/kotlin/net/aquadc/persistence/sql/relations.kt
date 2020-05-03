@@ -66,7 +66,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
             path: StoredLens<S, FR?, *>, foreignTable: Table<FS, *, FR>
     ) : Relation<S, ID, FR?>(path) {
         init {
-            checkToOne(path, foreignTable)
+            checkToOne(TODO(), path, foreignTable)
         }
     }
 
@@ -82,8 +82,8 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
             ourTable: Table<S, ID, R>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: StoredLens<FS, *, *>
     ) : Relation<S, ID, C>(path) {
         init {
-            checkToMany(path, foreignTable)
-            checkToOne(joinColumn, ourTable) // ToMany is actually many ToOnes
+            checkToMany(ourTable.schema, path, foreignTable)
+            checkToOne(foreignTable.schema, joinColumn, ourTable) // ToMany is actually many ToOnes
         }
 
         companion object {
@@ -98,7 +98,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
             path: StoredLens<S, C, *>, foreignTable: Table<FS, *, FR>, joinTable: JoinTable
     ) : Relation<S, ID, C>(path) {
         init {
-            checkToMany(path, foreignTable)
+            checkToMany(TODO(), path, foreignTable)
         }
     }
 
@@ -131,8 +131,8 @@ typealias JoinTable = Nothing
 }*/
 
 internal fun <S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
-        path: StoredLens<S, *, *>, foreignTable: Table<FS, *, FR>) {
-    val type = path.type
+        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<FS, *, FR>) {
+    val type = path.type(schema)
     check(type is DataType.Collect<*, *, *>) {
         "only fields of Collection<Struct> types can be used with to-many relations"
     }
@@ -145,8 +145,10 @@ internal fun <S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
     }
 }
 
-internal fun <S : Schema<S>, F : Schema<F>, R : Record<F, *>> checkToOne(path: StoredLens<S, *, *>, foreignTable: Table<F, *, R>) {
-    val type = path.type
+internal fun <S : Schema<S>, F : Schema<F>, R : Record<F, *>> checkToOne(
+        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<F, *, R>
+) {
+    val type = path.type(schema)
     val realType = if (type is DataType.Nullable<*, *>) type.actualType else type
     check(realType is Schema<*>) {
         "only fields of Struct types can be used with such relations, got $realType at $path"

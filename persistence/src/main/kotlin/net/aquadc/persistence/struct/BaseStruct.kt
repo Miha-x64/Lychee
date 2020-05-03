@@ -32,7 +32,7 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
         var result = 0
 
         schema.forEach(fields) { field ->
-            result = 31 * result + this.getOrThrow(field).realHashCode()
+            result = 31 * result + getOrThrow(field).realHashCode()
         }
         return result
     }
@@ -40,7 +40,7 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
     override fun toString(): String = buildString {
         append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.javaClass.simpleName).append('(')
         schema.forEach(fields) { field ->
-            append(field.name).append('=').append(getOrThrow(field).realToString()).append(", ")
+            append(nameOf(field)).append('=').append(getOrThrow(field).realToString()).append(", ")
         }
         if (!fields.isEmpty) {
             setLength(length - 2)
