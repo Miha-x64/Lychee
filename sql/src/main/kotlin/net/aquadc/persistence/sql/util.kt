@@ -244,8 +244,8 @@ internal fun flatten(
     val erased = start.unwrappedType as DataType.Partial<Any?, *>
 
     val fieldSet =
-            if (start.hasFieldSet) erased.fields(value).bitSet.let {
-                out[dstPos++] = it; FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>(it)
+            if (start.hasFieldSet) (erased.fields(value) as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>).also {
+                out[dstPos++] = it.bitSet
             } else erased.schema.allFieldSet<Schema<*>>()
 
     val fields = start.unwrappedType.schema.fields

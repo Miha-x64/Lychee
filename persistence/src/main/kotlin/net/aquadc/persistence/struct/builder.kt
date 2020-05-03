@@ -62,7 +62,8 @@ fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<S
 /**
  * A temporary wrapper around [Array] for instantiating [StructSnapshot]s.
  */
-inline class StructBuilder<SCH : Schema<SCH>> /*internal*/ constructor(
+@Suppress("NON_PUBLIC_PRIMARY_CONSTRUCTOR_OF_INLINE_CLASS")
+inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
         private val values: Array<Any?>
 ) {
 

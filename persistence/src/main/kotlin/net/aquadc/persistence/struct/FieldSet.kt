@@ -293,7 +293,7 @@ typealias FldSet<SCH> = FieldSet<SCH, FieldDef<SCH, *, *>>
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
 inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
-/*internal*/ @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) @Deprecated("Don't. Touch. This. Directly.") constructor(
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
         /**
          * A value with bits set according to fields present.
          * A set considered to be 'containing field f' when bitmask has a bit `1 << f.ordinal` set.
