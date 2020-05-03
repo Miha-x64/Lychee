@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteQuery
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.persistence.array
+import net.aquadc.persistence.eq
 import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
@@ -28,7 +29,6 @@ import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
-import net.aquadc.persistence.sql.equalsIgnoreCase
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.noOrder
@@ -337,8 +337,8 @@ class SqliteSession(
         // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
         private fun Cursor.getColIdx(guess: Int, name: CharSequence): Int { // native `getColumnIndex` wrecks labels with '.'!
             val columnNames = columnNames!!
-            if (columnNames.size > guess && name.equalsIgnoreCase(columnNames[guess])) return guess
-            val idx = columnNames.indexOfFirst { name.equalsIgnoreCase(it) } // fixme: why ignoring case!?
+            if (columnNames.size > guess && name.eq(columnNames[guess], false)) return guess
+            val idx = columnNames.indexOfFirst { name.eq(it, false) }
             if (idx < 0) error { "$name !in ${columnNames.contentToString()}" }
             return idx
         }

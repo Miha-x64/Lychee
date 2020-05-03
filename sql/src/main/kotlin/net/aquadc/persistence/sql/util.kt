@@ -344,9 +344,3 @@ private fun Array<out Any>.forceIndexOf(element: Any): Int {
             return index
     throw NoSuchElementException(element.toString() + " !in " + contentToString())
 }
-
-internal fun CharSequence.equalsIgnoreCase(that: CharSequence): Boolean { // will be removed in next commit, I think
-    val len = length
-    if (that.length != len) return false
-    return regionMatches(0, that, 0, len, ignoreCase = true)
-}

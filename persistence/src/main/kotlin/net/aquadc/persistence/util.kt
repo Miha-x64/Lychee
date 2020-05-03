@@ -356,7 +356,7 @@ fun hasFraction(nextNumber: String): Boolean {
     return fractionDigits > 0
 }
 
-internal fun CharSequence.eq(that: CharSequence, ignoreCase: Boolean): Boolean {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) fun CharSequence.eq(that: CharSequence, ignoreCase: Boolean): Boolean {
     val len = length
     if (that.length != len) return false
     return regionMatches(0, that, 0, len, ignoreCase)
