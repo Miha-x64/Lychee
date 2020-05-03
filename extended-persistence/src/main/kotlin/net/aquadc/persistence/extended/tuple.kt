@@ -38,7 +38,7 @@ inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         Tuple<A, DA, B, DB>.invoke(
         first: A, second: B
-): Struct<Tuple<A, DA, B, DB>> =
+): StructSnapshot<Tuple<A, DA, B, DB>> =
         this {
             it[First] = first
             it[Second] = second
