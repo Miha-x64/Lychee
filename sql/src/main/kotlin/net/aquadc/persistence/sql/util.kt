@@ -344,3 +344,16 @@ private fun Array<out Any>.forceIndexOf(element: Any): Int {
             return index
     throw NoSuchElementException(element.toString() + " !in " + contentToString())
 }
+
+internal fun <CUR : AutoCloseable, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
+        bindBy: BindBy,
+        cur: CUR,
+        colNames: Array<out CharSequence>,
+        colTypes: Array<out DataType<*>>,
+        recipe: Array<out Table.Nesting>
+): StructSnapshot<SCH> {
+    val firstValues = row(cur, 0, colNames, colTypes, bindBy)
+    inflate(recipe, firstValues, 0, 0, 0)
+    @Suppress("UNCHECKED_CAST")
+    return firstValues[0] as StructSnapshot<SCH>
+}
