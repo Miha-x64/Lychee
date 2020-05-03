@@ -4,7 +4,9 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.throwNse
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleNullable
@@ -16,9 +18,15 @@ import java.sql.ResultSet
  */
 interface Blocking<CUR : AutoCloseable> {
     // Android SQLite API has special methods for single-cell selections
-    fun <T> cell(query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>): T
+    fun <T> cell(
+            query: String,
+            argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>,
+            type: DataType<T>, orElse: () -> T
+    ): T
 
-    fun select(query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, expectedCols: Int): CUR
+    fun select(
+            query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, expectedCols: Int
+    ): CUR
 
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
@@ -31,11 +39,15 @@ interface Blocking<CUR : AutoCloseable> {
 }
 
 object Eagerly {
-    inline fun <CUR : AutoCloseable, R> cell(returnType: DataType.Simple<R>): Fetch<Blocking<CUR>, R> =
-            FetchCellEagerly(returnType)
+    inline fun <CUR : AutoCloseable, R> cell(
+            returnType: DataType.Simple<R>, noinline orElse: () -> R = throwNse
+    ): Fetch<Blocking<CUR>, R> =
+            FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R : Any> cell(returnType: SimpleNullable<R>): Fetch<Blocking<CUR>, R?> =
-            FetchCellEagerly(returnType)
+    inline fun <CUR : AutoCloseable, R : Any> cell(
+            returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
+    ): Fetch<Blocking<CUR>, R?> =
+            FetchCellEagerly(returnType, orElse)
 
     inline fun <CUR : AutoCloseable, R> col(elementType: DataType.Simple<R>): Fetch<Blocking<CUR>, List<R>> =
             FetchColEagerly(elementType)
@@ -43,30 +55,46 @@ object Eagerly {
     inline fun <CUR : AutoCloseable, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, List<R?>> =
             FetchColEagerly(elementType)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
-            FetchStructEagerly(table, bindBy)
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(
+            table: Table<SCH, *, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
+    ): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
+            FetchStructEagerly(table, bindBy, orElse)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(
+            table: Table<SCH, *, *>, bindBy: BindBy
+    ): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
             FetchStructListEagerly(table, bindBy)
 }
 
 object Lazily {
-    inline fun <CUR : AutoCloseable, R> cell(returnType: DataType.Simple<R>): Fetch<Blocking<CUR>, Lazy<R>> =
-            FetchCellLazily(returnType)
+    inline fun <CUR : AutoCloseable, R> cell(
+            returnType: DataType.Simple<R>, noinline orElse: () -> R = throwNse
+    ): Fetch<Blocking<CUR>, Lazy<R>> =
+            FetchCellLazily(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R : Any> cell(returnType: SimpleNullable<R>): Fetch<Blocking<CUR>, Lazy<R?>> =
-            FetchCellLazily(returnType)
+    inline fun <CUR : AutoCloseable, R : Any> cell(
+            returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
+    ): Fetch<Blocking<CUR>, Lazy<R?>> =
+            FetchCellLazily(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R> col(elementType: DataType.Simple<R>): Fetch<Blocking<CUR>, CloseableIterator<R>> =
+    inline fun <CUR : AutoCloseable, R> col(
+            elementType: DataType.Simple<R>
+    ): Fetch<Blocking<CUR>, CloseableIterator<R>> =
             FetchColLazily(elementType)
 
-    inline fun <CUR : AutoCloseable, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
+    inline fun <CUR : AutoCloseable, R : Any> col(
+            elementType: SimpleNullable<R>
+    ): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
             FetchColLazily(elementType)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
-            FetchStructLazily(table, bindBy)
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(
+            table: Table<SCH, *, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
+    ): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
+            FetchStructLazily(table, bindBy, orElse)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(table: Table<SCH, *, *>, bindBy: BindBy): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(
+            table: Table<SCH, *, *>, bindBy: BindBy
+    ): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy)
 
     inline fun cellByteStream(): Fetch<Blocking<ResultSet>, InputStream> =

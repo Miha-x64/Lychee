@@ -357,3 +357,5 @@ internal fun <CUR : AutoCloseable, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
     @Suppress("UNCHECKED_CAST")
     return firstValues[0] as StructSnapshot<SCH>
 }
+
+@PublishedApi @JvmField internal val throwNse = { throw NoSuchElementException() }

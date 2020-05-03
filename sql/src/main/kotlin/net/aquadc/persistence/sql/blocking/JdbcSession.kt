@@ -262,11 +262,11 @@ class JdbcSession(
         }
 
         override fun <T> cell(
-                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>
+                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>, orElse: () -> T
         ): T {
             val rs = select(query, argumentTypes, arguments, 1)
             try {
-                check(rs.next())
+                if (!rs.next()) return orElse()
                 val value = type.get(rs, 0)
                 check(!rs.next())
                 return value

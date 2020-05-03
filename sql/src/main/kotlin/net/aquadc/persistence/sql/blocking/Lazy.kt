@@ -17,12 +17,13 @@ import java.sql.ResultSet
 import java.sql.SQLFeatureNotSupportedException
 
 @PublishedApi internal class FetchCellLazily<CUR : AutoCloseable, R>(
-        private val rt: DataType<R>
+        private val rt: DataType<R>,
+        private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, Lazy<R>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
     ): Lazy<R> =
-            lazy { from.cell(query, argumentTypes, arguments, rt) }
+            lazy { from.cell(query, argumentTypes, arguments, rt, orElse) }
 }
 
 @PublishedApi internal class FetchColLazily<CUR : AutoCloseable, R>(
@@ -38,13 +39,22 @@ import java.sql.SQLFeatureNotSupportedException
 
 @PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR : AutoCloseable>(
         private val table: Table<SCH, *, *>,
-        private val bindBy: BindBy
-) : Fetch<Blocking<CUR>, CloseableStruct<SCH>> {
+        private val bindBy: BindBy,
+        private val orElse: () -> Struct<SCH>
+) : Fetch<Blocking<CUR>, CloseableStruct<SCH>>, CloseableStruct<SCH> {
+
+    private var fallback: Struct<SCH>? = null
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): CloseableStruct<SCH> =
-            CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, arguments, table, bindBy, table.schema)
-                    .also { it.hasNext() /* move to first */ }
+    ): CloseableStruct<SCH> {
+        val lazy = CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, arguments, table, bindBy, table.schema)
+
+        return if (lazy.hasNext() /* move to first */) lazy else this.also { fallback = orElse() }
+    }
+
+    override fun <T> get(field: FieldDef<SCH, T, *>): T = fallback!![field]
+    override val schema: SCH get() = fallback!!.schema
+    override fun close() { /* nothing to do here */ }
 }
 
 @PublishedApi internal class FetchStructListLazily<CUR : AutoCloseable, SCH : Schema<SCH>>(
@@ -112,7 +122,7 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
 
     var state = 0
 
-    override fun next(): R = cur.let { cur ->
+    final override fun next(): R = cur.let { cur ->
         when (state) {
             0 -> if (!move(cur, toState = 0)) throw NoSuchElementException()
             1 -> state = 0
@@ -121,14 +131,14 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         }
         row(cur)
     }
-    override fun hasNext(): Boolean =
+    final override fun hasNext(): Boolean =
             when (state) {
                 0 -> move(cur, 1)
                 1 -> true
                 2 -> false
                 else -> throw AssertionError()
             }
-    override fun close() {
+    final override fun close() {
         _cur?.let { it.close(); _cur = null }
         state = 2
     }
@@ -141,20 +151,20 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
     protected open fun row(cur: CUR): R =
             throw UnsupportedOperationException()
 
-    override fun <T> get(field: FieldDef<SCH, T, *>): T = when (state) {
+    final override fun <T> get(field: FieldDef<SCH, T, *>): T = when (state) {
         0,
         1 -> table!!.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
         2 -> throw UnsupportedOperationException()
         else -> throw AssertionError()
     }
 
-    override fun equals(other: Any?): Boolean =
+    final override fun equals(other: Any?): Boolean =
             if (schema === NullSchema) this === other
             else super<BaseStruct>.equals(other)
-    override fun hashCode(): Int =
+    final override fun hashCode(): Int =
             if (schema === NullSchema) System.identityHashCode(this)
             else super<BaseStruct>.hashCode()
-    override fun toString(): String =
+    final override fun toString(): String =
             if (schema === NullSchema) javaClass.getName() + "@" + Integer.toHexString(hashCode())
             else super<BaseStruct>.toString()
 }

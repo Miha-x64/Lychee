@@ -289,10 +289,12 @@ class SqliteSession(
             return toByte()
         }
 
-        override fun <T> cell(query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>): T {
+        override fun <T> cell(
+                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>, orElse: () -> T
+        ): T {
             val cur = select(query, argumentTypes, arguments, 1)
             try {
-                check(cur.moveToFirst())
+                if (!cur.moveToFirst()) return orElse()
                 val value = type.get(cur, 0)
                 check(!cur.moveToNext())
                 return value

@@ -9,12 +9,13 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 
 @PublishedApi internal class FetchCellEagerly<CUR : AutoCloseable, R>(
-        private val rt: DataType<R>
+        private val rt: DataType<R>,
+        private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, R> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
     ): R =
-            from.cell(query, argumentTypes, arguments, rt)
+            from.cell(query, argumentTypes, arguments, rt, orElse)
 }
 
 @PublishedApi internal class FetchColEagerly<CUR : AutoCloseable, R>(
@@ -42,7 +43,8 @@ import net.aquadc.persistence.type.DataType
 
 @PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR : AutoCloseable>(
         private val table: Table<SCH, *, *>,
-        private val bindBy: BindBy
+        private val bindBy: BindBy,
+        private val orElse: () -> StructSnapshot<SCH>
 ) : Fetch<Blocking<CUR>, StructSnapshot<SCH>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
@@ -51,7 +53,7 @@ import net.aquadc.persistence.type.DataType
         val managedColTypes = table.managedColTypes
         val cur = from.select(query, argumentTypes, arguments, managedColNames.size)
         try {
-            check(from.next(cur))
+            if (!from.next(cur)) return orElse()
             val value = from.mapRow<CUR, SCH>(bindBy, cur, managedColNames, managedColTypes, table.recipe)
             check(!from.next(cur)) // single row expected
             return value

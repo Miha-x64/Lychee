@@ -15,6 +15,7 @@ import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 
@@ -31,6 +32,21 @@ open class TemplatesTest {
         Lazily.run {
             val kek = session.query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
             assertEquals("lolkek", kek("lol").value)
+        }
+    }
+    @Test fun <CUR : AutoCloseable> noCell() {
+        val session = session as Session<Blocking<CUR>>
+        Eagerly.run {
+            try { session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string))(); fail() }
+            catch (expected: NoSuchElementException) {}
+
+            assertEquals("fallback", session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" })())
+        }
+        Lazily.run {
+            try { session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string))().value; fail() }
+            catch (expected: NoSuchElementException) {}
+
+            assertEquals("fallback", session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" })().value)
         }
     }
 
@@ -61,8 +77,43 @@ open class TemplatesTest {
                     "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
                     struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
-            val (f, s) = sumAndMul(80, 4, 6, 8)
-            assertEquals(Pair(84, 48), Pair(f, s))
+            sumAndMul(80, 4, 6, 8).use {
+                val (f, s) = it
+                assertEquals(Pair(84, 48), Pair(f, s))
+            }
+        }
+    }
+
+    @Test fun <CUR : AutoCloseable> noRow() {
+        val session = session as Session<Blocking<CUR>>
+        val intPair = i32 * i32
+        Eagerly.run {
+            try { session.query(
+                    "SELECT 0, 0 LIMIT 0",
+                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position)
+            )(); fail() } catch (expected: NoSuchElementException) {}
+
+            val (f, s) = session.query(
+                    "SELECT 0, 0 LIMIT 0",
+                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+            )()
+            assertEquals(1, f)
+            assertEquals(2, s)
+        }
+        Lazily.run {
+            try { session.query(
+                    "SELECT 0, 0 LIMIT 0",
+                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position)
+            )(); fail() } catch (expected: NoSuchElementException) {}
+
+            session.query(
+                    "SELECT 0, 0 LIMIT 0",
+                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+            )().use {
+                val (f, s) = it
+                assertEquals(1, f)
+                assertEquals(2, s)
+            }
         }
     }
 
