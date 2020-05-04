@@ -69,11 +69,31 @@ val playerRecord = session.withTransaction {
 session.withTransaction {
     playerRecord[Player.Score] += 100
 }
+```
 
+There are two APIs for querying data.
+
+DAO-based:
+```kt
 session[PlayerTable]
     .select(Player.Score greaterThan 10, Player.Name.asc)
     .addChangeListener { old, new -> ... }
 ```
+and SQL-based templates:
+```kt
+val namesToEmails = session.query(
+        "SELECT u.name, c.email FROM users u " +
+        "INNER JOIN contacts c ON u._id = c.user_id " +
+        "LIMIT ?, ?", /*offset*/ i32, /*rowCount*/ u32,
+        /* fetch as */ structs(string * string, BindBy.Position)
+)
+namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
+    it.forEach { (name, email) ->
+        
+    }
+}
+```
+
 
 
 #### Thanks
