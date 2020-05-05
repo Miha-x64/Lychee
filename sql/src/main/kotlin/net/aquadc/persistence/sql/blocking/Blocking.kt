@@ -94,8 +94,24 @@ object Lazily {
 
     inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(
             table: Table<SCH, *, *>, bindBy: BindBy
-    ): Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> =
-            FetchStructListLazily<CUR, SCH>(table, bindBy)
+    ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
+            FetchStructListLazily<CUR, SCH>(table, bindBy, false)
+
+    /**
+     * An iterator over __transient Structs__.
+     * A Struct is __transient__ when it is owned by an [Iterator].
+     * Such a Struct is valid only until [Iterator.next] or [CloseableIterator.close] call.
+     * It must not escape the for-loop; never store or collect them.
+     * Sorting, finding min, max, distinct also won't work because requires looking back at previous `Struct`s.
+     * (Flat)mapping and filtering i.e. stateless intermediate operations, are still OK.
+     * Limiting, skipping, folding, reducing, counting,
+     * and other stateful one-pass operations are also OK.
+     * (But consider doing as much work as possible in SQL instead.)
+     */
+    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> transientStructs(
+            table: Table<SCH, *, *>, bindBy: BindBy
+    ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
+            FetchStructListLazily<CUR, SCH>(table, bindBy, true)
 
     inline fun cellByteStream(): Fetch<Blocking<ResultSet>, InputStream> =
             InputStreamFromResultSet //         ^^^^^^^^^ JDBC-only. Not supported by Android SQLite

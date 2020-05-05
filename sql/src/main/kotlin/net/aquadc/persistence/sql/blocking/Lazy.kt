@@ -8,6 +8,7 @@ import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.nothing
 import java.io.Closeable
@@ -59,15 +60,17 @@ import java.sql.SQLFeatureNotSupportedException
 
 @PublishedApi internal class FetchStructListLazily<CUR : AutoCloseable, SCH : Schema<SCH>>(
         private val table: Table<SCH, *, *>,
-        private val bindBy: BindBy
-) : Fetch<Blocking<CUR>, CloseableIterator<TemporaryStruct<SCH>>> {
+        private val bindBy: BindBy,
+        private val transient: Boolean
+) : Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): CloseableIterator<TemporaryStruct<SCH>> =
-            object : CurIterator<CUR, SCH, TemporaryStruct<SCH>>(
+    ): CloseableIterator<Struct<SCH>> =
+            object : CurIterator<CUR, SCH, Struct<SCH>>(
                     from, query, argumentTypes, arguments, table, bindBy, table.schema
             ) {
-                override fun row(cur: CUR): TemporaryStruct<SCH> = this
+                override fun row(cur: CUR): Struct<SCH> =
+                        if (transient) this else StructSnapshot(this)
             }
 }
 
@@ -94,14 +97,6 @@ import java.sql.SQLFeatureNotSupportedException
 interface CloseableIterator<out T> : Iterator<T>, Closeable
 interface CloseableStruct<SCH : Schema<SCH>> : Struct<SCH>, Closeable
 
-/**
- * A struct which will be invalid after mutating [Iterator] which owns it.
- * [get] could be blocking.
- *
- * @see android.util.MapCollections.MapIterator
- */
-interface TemporaryStruct<SCH : Schema<SCH>> : Struct<SCH>
-
 private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         protected val from: Blocking<CUR>,
         private val query: String,
@@ -111,7 +106,7 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         private val table: Table<SCH, *, out Record<SCH, *>>?,
         private val bindBy: BindBy,
         schema: SCH
-) : BaseStruct<SCH>(schema), CloseableIterator<R>, TemporaryStruct<SCH>, CloseableStruct<SCH> {
+) : BaseStruct<SCH>(schema), CloseableIterator<R>, Struct<SCH>, CloseableStruct<SCH> {
 // he-he, like this weird iterator https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/util/MapCollections.java#74
 
     private var _cur: CUR? = null
