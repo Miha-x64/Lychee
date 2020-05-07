@@ -45,8 +45,14 @@ sealed class DataType<T> {
 
     /**
      * Adds nullability to runtime representation of [actualType].
-     * Wraps only non-nullable type, represented as `null` in memory.
-     * (However, some non-standard [Simple], [Collect], or [Partial] implementations
+     * Wraps a non-nullable type,
+     * adds possibility of having `null` value in both runtime and stored representations.
+     *
+     * The main reason why you can't have custom nullability is that
+     * lens concatenation `toPartial / toSomething` or `toPartial / toSomethingNullable`
+     * must produce predictable output for both runtime and stored representation.
+     *
+     * (However, some [Simple], [Collect], or [Partial] implementations
      * may have nullable in-memory representation, and thus cannot be wrapped into [Nullable])
      */
     class Nullable<T : Any, DT : DataType<T>>(

@@ -3,6 +3,8 @@
 ![Lock-free](https://img.shields.io/badge/%E2%9A%9B-Lock--free-3399aa.svg) 
 ![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely%20Lightweight-7799cc.svg)
 [![Hits-of-Code](https://hitsofcode.com/github/Miha-x64/Lychee)](https://hitsofcode.com/view/github/Miha-x64/Lychee)
+[![Kotlin 1.3](https://img.shields.io/badge/kotlin-1.3-blue.svg)](http://kotlinlang.org)
+[![Awesome Kotlin](https://kotlin.link/awesome-kotlin.svg)](https://kotlin.link)
 [![Channel at Kotlin Slack](https://img.shields.io/static/v1?label=kotlinlang&message=Lychee&color=brightgreen&logo=slack)](https://app.slack.com/client/T09229ZC6/CPVLZ7LBT)
 [![Telegram chat](https://img.shields.io/static/v1?label=chat&message=Lychee&color=brightgreen&logo=telegram)](https://t.me/kotlin_lychee)
 

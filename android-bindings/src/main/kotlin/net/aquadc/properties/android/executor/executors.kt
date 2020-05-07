@@ -9,6 +9,7 @@ import java.util.concurrent.Executor
 /**
  * A factory which creates an [Executor] for current [Looper].
  */
+@Suppress("unused") // :properties is linked against :fake-bindings which contains a class with the same name
 object AndroidCurrentLooperExecutorFactory : () -> Executor? {
 
     /**

@@ -60,7 +60,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     @Suppress("UNCHECKED_CAST")
-    protected infix fun <T, DT : DataType<T>> CharSequence.mut(type: DT): FieldDef.Mutable<SELF, T, DT> =
+    protected inline infix fun <T, DT : DataType<T>> CharSequence.mut(type: DT): FieldDef.Mutable<SELF, T, DT> =
             this.mut(type, Unset as T)
 
     /**
@@ -81,7 +81,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     @Suppress("UNCHECKED_CAST")
-    protected infix fun <T, DT : DataType<T>> CharSequence.let(dataType: DT): FieldDef.Immutable<SELF, T, DT> =
+    protected inline infix fun <T, DT : DataType<T>> CharSequence.let(dataType: DT): FieldDef.Immutable<SELF, T, DT> =
             this.let(dataType, Unset as T)
 
     /**
