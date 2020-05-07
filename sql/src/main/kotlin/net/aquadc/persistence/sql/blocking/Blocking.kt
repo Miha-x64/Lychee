@@ -1,6 +1,8 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.persistence.CloseableIterator
+import net.aquadc.persistence.CloseableStruct
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.Table
@@ -98,12 +100,13 @@ object Lazily {
             FetchStructListLazily<CUR, SCH>(table, bindBy, false)
 
     /**
-     * An iterator over __transient Structs__.
-     * A Struct is __transient__ when it is owned by an [Iterator].
-     * Such a Struct is valid only until [Iterator.next] or [CloseableIterator.close] call.
-     * It must not escape the for-loop; never store or collect them.
-     * Sorting, finding min, max, distinct also won't work because requires looking back at previous `Struct`s.
-     * (Flat)mapping and filtering i.e. stateless intermediate operations, are still OK.
+     * A view on ResultSet/Cursor as an iterator over __transient Structs__.
+     * A [Struct] is __transient__ when it is owned by an [Iterator].
+     * Such a [Struct] is valid only until [Iterator.next] or [CloseableIterator.close] call.
+     * Never store, collect, or let them escape the for-loop.
+     * Sorting, finding min, max, distinct also won't work because
+     * these operations require looking back at previous [Struct]s.
+     * (Flat)mapping and filtering i.e. stateless intermediate operations are still OK.
      * Limiting, skipping, folding, reducing, counting,
      * and other stateful one-pass operations are also OK.
      * (But consider doing as much work as possible in SQL instead.)

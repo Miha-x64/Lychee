@@ -3,15 +3,24 @@ package net.aquadc.persistence.tokens
 import net.aquadc.collections.enumMapOf
 import net.aquadc.collections.get
 import net.aquadc.collections.set
+import net.aquadc.persistence.CloseableIterator
+import net.aquadc.persistence.IteratorAndTransientStruct
+import net.aquadc.persistence.NullSchema
+import net.aquadc.persistence.forceAddField
 import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.allFieldSet
+import net.aquadc.persistence.struct.emptyFieldSet
+import net.aquadc.persistence.struct.isEmpty
+import net.aquadc.persistence.struct.minus
+import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.DataType
 
 
 /**
  * Read these tokens as [type].
- * This asserts the next token is [Token.BeginDictionary] and consumes the whole bracket sequence.
  */
 @Suppress("UNCHECKED_CAST")
 fun <T> TokenStream.readAs(type: DataType<T>): T {
@@ -83,21 +92,47 @@ fun <T> TokenStream.readListOf(type: DataType<T>): List<T> {
 }
 
 /**
- * Collect these tokens as a sequence of [type] to a [List].
+ * A view on [TokenStream] as a sequence of [type].
  * This asserts that next token is [Token.BeginSequence] and consumes the whole bracket sequence.
  * @see readAs
  * @see readListOf
+ * @see iteratorOfTransient
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T> TokenStream.iteratorOf(type: DataType<T>): Iterator<T> =
-        TokensIterator(this, type)
+inline fun <T> TokenStream.iteratorOf(type: DataType<T>): CloseableIterator<T> =
+        TokensIterator(this, type, NullSchema)
 
-@PublishedApi internal class TokensIterator<T>(
-        private val tokens: TokenStream,
-        private val type: DataType<T>
-) : Iterator<T> {
+/**
+ * A view on [TokenStream] as a sequence of __transient structs__ of type [schema].
+ * This asserts that next token is [Token.BeginSequence]
+ * and consumes the whole bracket sequence by the last `next()` call.
+ * A [Struct] is __transient__ when it is owned by an [Iterator].
+ * Such a [Struct] is valid only until [Iterator.next] or [CloseableIterator.close] call.
+ * Never store, collect, or let them escape the for-loop.
+ * Sorting, finding min, max, distinct also won't work because
+ * these operations require looking back at previous [Struct]s.
+ * (Flat)mapping and filtering i.e. stateless intermediate operations are still OK.
+ * Limiting, skipping, folding, reducing, counting,
+ * and other stateful one-pass operations are also OK.
+ *
+ * @see readAs
+ * @see readListOf
+ * @see iteratorOf
+ */
+@Suppress("NOTHING_TO_INLINE")
+inline fun <SCH : Schema<SCH>> TokenStream.iteratorOfTransient(schema: SCH): CloseableIterator<Struct<SCH>> =
+        TokensIterator(this, null, schema)
 
-    var state = 0
+
+@Suppress("UNCHECKED_CAST") @PublishedApi
+internal class TokensIterator<SCH : Schema<SCH>, T>(
+    private val tokens: TokenStream,
+    private val type: DataType<T>?, // transient if null
+    transientSchema: SCH // stable if NullSchema
+) : IteratorAndTransientStruct<SCH, T>(transientSchema) {
+
+    private var state = 0
+    private var array: Array<Any?>? = null // for transient struct
 
     override fun hasNext(): Boolean {
         if (state == 0) pollBegin()
@@ -106,20 +141,52 @@ inline fun <T> TokenStream.iteratorOf(type: DataType<T>): Iterator<T> =
     override fun next(): T {
         if (state == 0) pollBegin()
         if (state == 2) throw NoSuchElementException()
-        val value = tokens.readAs(type)
-        peekEnd()
-        return value
+        return (if (type == null) readTransient() as T else tokens.readAs(type)).also { peekEnd() }
+    }
+
+    override fun <T> get(field: FieldDef<SCH, T, *>): T =
+        array!![field.ordinal.toInt()] as T
+
+    override fun close() {
+        state = 2
+        tokens.close()
+        array = null
     }
 
     private fun pollBegin() {
         tokens.poll(Token.BeginSequence)
-        state = 1
-        peekEnd() // required for empty sequences
+        state =
+            if (tokens.peek() === Token.EndSequence) 2 // Short-circuit: empty sequence.
+            else 1.also {
+                if (type == null)
+                    array = arrayOfNulls(schema.fields.size) // Allocate data structure for transient Struct.
+            }
+    }
+    private fun readTransient(): Struct<SCH> {
+        tokens.poll(Token.BeginDictionary)
+
+        var fields = emptyFieldSet<SCH, FieldDef<SCH, *, *>>()
+        val values: Array<Any?> = array!!
+
+        var nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
+        while (nextField != null) { // this is ultra unhandy without assignment as expression
+            fields = fields.forceAddField(nextField, schema)
+            values[nextField.ordinal.toInt()] = tokens.readAs(schema.run { nextField!!.type })
+
+            nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
+        }
+
+        val missing = schema.allFieldSet() - fields
+        if (!missing.isEmpty) throw NoSuchElementException("Missing values for fields: ${schema.toString(missing)}")
+
+        tokens.poll(Token.EndDictionary)
+        return this
     }
     private fun peekEnd() {
         if (tokens.peek() == Token.EndSequence) {
             tokens.poll()
             state = 2
+            // The end. But this doesn't mean we can null out array or close tokens!
         }
     }
 }

@@ -247,6 +247,14 @@ private class CoroutineTokenStream : TokenStreamScope(), TokenStream, Continuati
         return hasNext() // we could encounter several yieldAll(emptyStream)
     }
 
+    override fun close() {
+        nextOfferOrYieldAll = null
+        nextYield = null
+        nextToken = null
+        nextValue = null
+        yieldAll = null
+    }
+
     // TokenStreamScope
 
     override suspend fun offer(token: Token): Any? {

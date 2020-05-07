@@ -4,8 +4,10 @@ import androidx.annotation.RestrictTo
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.contains
 import net.aquadc.collections.plus
+import net.aquadc.persistence.CloseableIterator
 import net.aquadc.persistence.New
 import net.aquadc.persistence.hasFraction
+import java.io.Closeable
 
 /**
  * Token type in abstract serialization protocol.
@@ -115,7 +117,7 @@ fun Token?.coerce(value: Any?): Any? =
  * Dictionaries are effectively collections of pairs, e. g. have even number of values.
  * Only primitive names (dictionary values at odd positions) are supported by most of operations.
  */
-interface TokenStream : Iterator<Any?> {
+interface TokenStream : CloseableIterator<Any?> {
 
     /**
      * Nesting information.
@@ -185,14 +187,13 @@ open class TokenPath : ArrayList<Any?>() {
         this@TokenPath.forEach {
             append('[')
             when (it) {
-                is Index -> append(it.value)
+                is Index -> append('#').append(it.value)
 
                 is CharSequence -> append('\'') // of course I know the fast way to append while replacing occurrences
                         .append(it.toString().replace("\\", "\\\\").replace("'", "\\'")) // of several characters.
                         .append('\'') // But there's no reason to do so in non-critical toString
 
                 else -> append(it) // make difference between strings (e. g. `$['null']`) and other types (`$[null]`)
-                // (by the way, this erases differences between int keys and array indices)
             }
             append(']')
         }

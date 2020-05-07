@@ -114,6 +114,11 @@ interface Transaction : AutoCloseable {
      * Insert [data] into a [table].
      */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>/*patch: Partial*/): REC
+
+    /**
+     * Insert all the [data] into a table.
+     * Iterators over __transient structs__ are welcome.
+     */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID, REC>, data: Iterator<Struct<SCH>>/*patch: Partial*/) {
         for (struct in data)
             insert(table, struct)

@@ -17,6 +17,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.iteratorOf
+import net.aquadc.persistence.tokens.iteratorOfTransient
 import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.readListOf
 import net.aquadc.persistence.tokens.tokens
@@ -40,6 +41,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.io.StringWriter
@@ -141,6 +143,30 @@ class PersistenceTest {
                 listOf(1, 2, 4, 8, 16, 32, 64),
                 "[1, 2, 4, 8, 16, 32, 64]".reader().json().tokens().iteratorOf(i32).asSequence().toList()
         )
+    }
+
+    @Test fun `json struct iterators`() {
+        val s = """[{"first":"v1","second":"v2"},{"first":"v3","second":"v4"}]"""
+        val schema = string * string
+        val stable = s.reader().json().tokens().iteratorOf(schema)
+        val transient = s.reader().json().tokens().iteratorOfTransient(schema)
+
+        assertTrue(stable.hasNext())
+        assertTrue(transient.hasNext())
+
+        val reference0 = schema("v1", "v2")
+        assertEquals(reference0, stable.next())
+        assertEquals(reference0, transient.next())
+
+        val reference1 = schema("v3", "v4")
+        assertEquals(reference1, stable.next())
+        assertEquals(reference1, transient.next())
+
+        assertFalse(stable.hasNext())
+        assertFalse(transient.hasNext())
+
+        try { stable.next(); fail() } catch (expected: NoSuchElementException) {}
+        try { transient.next(); fail() } catch (expected: NoSuchElementException) {}
     }
 
     fun assertEqualToOriginal(deserialized: Struct<Sch>, assertNotSame: Boolean) {

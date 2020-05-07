@@ -38,6 +38,10 @@ internal abstract class Transform(
             source.hasNext()
     // we count on correct bracket sequences. Then, no matter which state we are in, this will be correct
 
+    override fun close() {
+        source.close()
+    }
+
 }
 
 internal fun TokenStream.writeBracketSequenceTo(buffer: MutableCollection<Any?>, token: Any?) {

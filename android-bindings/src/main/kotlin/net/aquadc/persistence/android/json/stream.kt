@@ -20,6 +20,14 @@ import java.io.Writer
 
 /**
  * Create a [JsonReader] for this [Reader].
+ * For example,
+ * <code>
+ *     inputStream.reader().json().tokens().iteratorOfTransient(SomeSchema).use {
+ *         forEachRemaining {
+ *             println(it)
+ *         }
+ *     }
+ * </code>
  */
 inline fun Reader.json(): JsonReader =
         JsonReader(this)
@@ -245,6 +253,10 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
         hasFraction(number)
     } catch (e: NumberFormatException) {
         throw NumberFormatException("${e.message} at $path")
+    }
+
+    override fun close() {
+        reader.close()
     }
 
 }

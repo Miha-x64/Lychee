@@ -1,17 +1,18 @@
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.persistence.CloseableIterator
+import net.aquadc.persistence.CloseableStruct
+import net.aquadc.persistence.IteratorAndTransientStruct
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.Table
-import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.nothing
-import java.io.Closeable
 import java.io.FilterInputStream
 import java.io.InputStream
 import java.sql.ResultSet
@@ -94,8 +95,8 @@ import java.sql.SQLFeatureNotSupportedException
             }
 }
 
-interface CloseableIterator<out T> : Iterator<T>, Closeable
-interface CloseableStruct<SCH : Schema<SCH>> : Struct<SCH>, Closeable
+@Deprecated("moved") typealias CloseableIterator<T> = CloseableIterator<T>
+@Deprecated("moved") typealias CloseableStruct<SCH> = CloseableStruct<SCH>
 
 private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         protected val from: Blocking<CUR>,
@@ -106,8 +107,7 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         private val table: Table<SCH, *, out Record<SCH, *>>?,
         private val bindBy: BindBy,
         schema: SCH
-) : BaseStruct<SCH>(schema), CloseableIterator<R>, Struct<SCH>, CloseableStruct<SCH> {
-// he-he, like this weird iterator https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/util/MapCollections.java#74
+) : IteratorAndTransientStruct<SCH, R>(schema) {
 
     private var _cur: CUR? = null
     private val cur get() = _cur ?: run {
@@ -153,17 +153,4 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
         else -> throw AssertionError()
     }
 
-    final override fun equals(other: Any?): Boolean =
-            if (schema === NullSchema) this === other
-            else super<BaseStruct>.equals(other)
-    final override fun hashCode(): Int =
-            if (schema === NullSchema) System.identityHashCode(this)
-            else super<BaseStruct>.hashCode()
-    final override fun toString(): String =
-            if (schema === NullSchema) javaClass.getName() + "@" + Integer.toHexString(hashCode())
-            else super<BaseStruct>.toString()
-}
-
-private object NullSchema : Schema<NullSchema>() {
-    init { "" let nothing }
 }

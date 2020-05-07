@@ -270,7 +270,7 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
         val schema = type.schema
         values = readNextValue(schema.run { (firstField as FieldDef<SCH, Any?, DataType<Any?>>).type })
         // if the first field is the only one,
-        // we're gonna pass it to Partial factory without allocating an array
+        // we must pass it to Partial factory without allocating an array
 
         // else proceed reading the following fields
         var nextField = maybeReadNextField() as FieldDef<SCH, Any?, DataType<Any?>>?
@@ -281,17 +281,17 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
                 fieldValues.add(values)
 
                 while (nextField != null) {
-                    val newFields = fields + nextField
-                    if (fields.bitSet == newFields.bitSet) {
-                        throw UnsupportedOperationException("duplicate name: ${schema.run { nextField!!.name }}")
-                    }
+                    val newFields = fields.forceAddField(nextField, schema)
                     val value = readNextValue(schema.run { nextField!!.type })
+
+                    fieldValues.ensureCapacity(fieldValues.size + 2)
 
                     // nothing crashed, commit
                     fields = newFields
                     fieldValues.add(nextField)
                     fieldValues.add(value)
 
+                    // this still could OOM but we've already updated `fields` along with `fieldValues`
                     nextField = maybeReadNextField() as FieldDef<SCH, Any?, DataType<Any?>>?
                 }
             } catch (t: Throwable) {
@@ -305,6 +305,18 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
         }
     }
     return type.load(fields, values)
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>.forceAddField(
+        that: FieldDef<SCH, *, *>,
+        schema: SCH
+): FieldSet<SCH, FieldDef<SCH, *, *>> {
+    val newFields = this + that
+    if (bitSet == newFields.bitSet) {
+        throw UnsupportedOperationException("duplicate name: ${schema.run { that.name }}")
+    }
+    return newFields
 }
 
 @PublishedApi
