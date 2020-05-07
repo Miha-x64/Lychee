@@ -45,7 +45,7 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         }
 
 /** Creates a partial instance of a [Tuple] according to [this] schema. */
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
+inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>>
         Tuple<A, DA, B, DB>.buildPartial(
         first: A? = null, second: B? = null
 ): PartialStruct<Tuple<A, DA, B, DB>> =
