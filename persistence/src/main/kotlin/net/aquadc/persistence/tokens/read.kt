@@ -121,6 +121,10 @@ inline fun <T> TokenStream.iteratorOf(type: DataType<T>): CloseableIterator<T> =
 @Suppress("NOTHING_TO_INLINE")
 inline fun <SCH : Schema<SCH>> TokenStream.iteratorOfTransient(schema: SCH): CloseableIterator<Struct<SCH>> =
         TokensIterator(this, null, schema)
+// I could create TokenStream.iterateTransient(schema: SCH, block: (Iterator<Struct<SCH>>) -> R): R but
+// * you could want to read several token sequences within a single document, auto-closing will complicate things
+// * you still can do e. g. `tokens.iteratorOfTransient(sch) { itr -> itr.next() }` and shoot your leg
+//   (should I create a `TransientIterator.next { el -> }`?)
 
 
 @Suppress("UNCHECKED_CAST") @PublishedApi
