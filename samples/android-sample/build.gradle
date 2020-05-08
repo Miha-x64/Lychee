@@ -7,7 +7,6 @@ android {
 
     defaultConfig {
         applicationId "net.aquadc.propertiesSampleApp"
-        minSdkVersion 19
         targetSdkVersion target_android_version
         versionCode 1
         versionName "1.0"
@@ -37,6 +36,18 @@ android {
         }
     }
 
+    flavorDimensions 'v'
+    productFlavors {
+        legacy {
+            dimension 'v'
+            minSdkVersion 14
+        }
+        fresh {
+            dimension 'v'
+            minSdkVersion 21
+        }
+    }
+
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
         test.java.srcDirs += 'src/test/kotlin'
@@ -44,22 +55,26 @@ android {
 
     packagingOptions {
         exclude 'META-INF/*kotlin*'
-        exclude 'META-INF/kotlin*'
-        exclude 'kotlin'
-        exclude 'kotlin/*'
+        exclude 'META-INF/*.version'
         exclude 'kotlin/**'
     }
 }
 
+repositories {
+    maven { url "https://jitpack.io" } // com.github.grishka
+}
 dependencies {
     testImplementation 'junit:junit:4.12'
 
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    freshImplementation 'com.github.grishka.litex:recyclerview:1.0'
+    freshImplementation 'com.github.grishka.litex:collection:1.0'
+    legacyImplementation 'androidx.recyclerview:recyclerview:1.1.0'
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    implementation "com.louiscad.splitties:splitties-views-dsl:$splitties_version"
-    implementation "com.louiscad.splitties:splitties-resources:$splitties_version"
-    implementation "com.louiscad.splitties:splitties-views-dsl-recyclerview:$splitties_version"
+    implNoX(it, "com.louiscad.splitties:splitties-views-dsl:$splitties_version")
+    implNoX(it, "com.louiscad.splitties:splitties-resources:$splitties_version")
+    implNoX(it, "com.louiscad.splitties:splitties-views-dsl-recyclerview:$splitties_version")
     
     implementation project(':properties')
     implementation project(':android-bindings')
@@ -68,4 +83,15 @@ dependencies {
     implementation project(':samples:logic-sample') // ViewModels are here
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-3'
+}
+private static void implNoX(DependencyHandler h, String what) {
+    h.legacyImplementation what
+    h.freshImplementation(what) {
+        exclude group: 'androidx.recyclerview'
+        exclude group: 'androidx.core'
+        exclude group: 'androidx.collection'
+        exclude group: 'androidx.arch.core'
+        exclude group: 'androidx.lifecycle'
+        exclude group: 'androidx.annotation'
+    }
 }
