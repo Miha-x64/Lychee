@@ -12,7 +12,7 @@ dependencies {
     implementation 'org.openjfx:javafx-graphics:13:linux'
     implementation 'com.jfoenix:jfoenix:1.4.0'
     implementation project(':fx-bindings')
-    implementation project(':logic-sample')
+    implementation project(':samples:logic-sample')
     implementation project(':persistence')
     implementation project(':properties')
 

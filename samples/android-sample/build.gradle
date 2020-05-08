@@ -65,7 +65,7 @@ dependencies {
     implementation project(':android-bindings')
     implementation project(':sql') // required for SQLite sample
     implementation project(':persistence') // required for saving state — ParcelPropertiesMemento is there
-    implementation project(':logic-sample') // ViewModels are here
+    implementation project(':samples:logic-sample') // ViewModels are here
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-3'
 }

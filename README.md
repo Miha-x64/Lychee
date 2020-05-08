@@ -426,4 +426,4 @@ triggering UI state change as needed and without any callbacks.
 
 #### ProGuard rules for Android?
 
-[Here you are.](/android-sample/proguard-rules.pro#L30-L55)
+[Here you are.](/samples/android-sample/proguard-rules.pro#L30-L55)

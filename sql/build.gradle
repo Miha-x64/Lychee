@@ -21,8 +21,8 @@ dependencies {
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation 'org.xerial:sqlite-jdbc:3.25.2'
-    testImplementation project(':testing')
+    testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence')
 }
 
-apply from: rootProject.file('release-bintray.gradle')
+apply from: rootProject.file('etc/release-bintray.gradle')

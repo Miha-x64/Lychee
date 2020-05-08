@@ -2,8 +2,8 @@ exclude_paths:
   # ignore undocumented test cases, etc
   - '**/src/test/**'
   # ignore unused parameters, constant conditions, etc
-  - 'fake-bindings/**'
+  - 'etc/fake-bindings/**'
   # ignore undocumented public declarations in samples
-  - 'android-sample/**'
-  - 'fx-sample/**'
-  - 'logic-sample/**'
+  - 'samples/android-sample/**'
+  - 'samples/fx-sample/**'
+  - 'samples/logic-sample/**'

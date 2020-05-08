@@ -15,8 +15,8 @@ dependencies {
     compileOnly "com.google.android:android:$android_artifact_version"
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
-    testImplementation project(':testing')
+    testImplementation project(':etc:testing')
     testImplementation "com.squareup.okio:okio:$okio_version"
 }
 
-apply from: rootProject.file('release-bintray.gradle')
+apply from: rootProject.file('etc/release-bintray.gradle')
