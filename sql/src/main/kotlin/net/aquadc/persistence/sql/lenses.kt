@@ -140,12 +140,12 @@ internal fun <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>> Na
 /**
  * Generates names concatenated with snake_case
  */
-val SnakeCase: NamingConvention = ConcatConvention('_')
+@JvmField val SnakeCase: NamingConvention = ConcatConvention('_')
 
 /**
  * Generates names concatenated with camelCase
  */
-val CamelCase: NamingConvention = object : NamingConvention {
+@JvmField val CamelCase: NamingConvention = object : NamingConvention {
 
     override fun concatNames(outer: CharSequence, nested: CharSequence): String = buildString(outer.length + nested.length) {
         append(outer)
@@ -163,7 +163,7 @@ val CamelCase: NamingConvention = object : NamingConvention {
 /**
  * Generates names concatenated with a dot.
  */
-val NestingCase: NamingConvention = ConcatConvention('.')
+@JvmField val NestingCase: NamingConvention = ConcatConvention('.')
 
 private class ConcatConvention(private val delimiter: Char) : NamingConvention {
     override fun concatNames(outer: CharSequence, nested: CharSequence): String =
