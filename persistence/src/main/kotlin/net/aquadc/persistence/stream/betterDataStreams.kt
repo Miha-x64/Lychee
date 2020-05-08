@@ -1,6 +1,5 @@
 package net.aquadc.persistence.stream
 
-import net.aquadc.persistence.type.DataTypeVisitor
 import java.io.DataInput
 import java.io.DataInputStream
 import java.io.DataOutput
@@ -43,11 +42,6 @@ interface BetterDataOutput<D> {
      */
     fun writeString(output: D, string: String?)
 
-    /**
-     * Gives a visitor capable of writing already encoded values of type [T] into [D].
-     */
-    fun <T> writerVisitor(): DataTypeVisitor<D, T, T, Unit>
-
 }
 
 /**
@@ -87,11 +81,6 @@ interface BetterDataInput<D> {
      */
     fun readString(input: D): String?
 
-    /**
-     * Gives a visitor capable of reading raw/encoded value of type [T] from [D].
-     */
-    fun <T> readVisitor(): DataTypeVisitor<D, Nothing?, T, T>
-
 }
 
 /**
@@ -124,12 +113,6 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
         else -> throw AssertionError()
     }
 
-    private var reader: StreamReaderVisitor<DataInput, Any?>? = null
-    override fun <T> readVisitor(): DataTypeVisitor<DataInput, Nothing?, T, T> {
-        val reader = reader ?: StreamReaderVisitor<DataInput, Any?>(this).also { reader = it }
-        return reader as StreamReaderVisitor<DataInput, T>
-    }
-
     // output
 
     override fun writeByte(output: DataOutput, byte: Byte): Unit =
@@ -160,12 +143,6 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
             output.write(1)
             output.writeUTF(string)
         }
-    }
-
-    private var writer: StreamWriterVisitor<DataOutput, Any?>? = null
-    override fun <T> writerVisitor(): DataTypeVisitor<DataOutput, T, T, Unit> {
-        val writer = writer ?: StreamWriterVisitor<DataOutput, Any?>(this).also { writer = it }
-        return writer as StreamWriterVisitor<DataOutput, T>
     }
 
 }

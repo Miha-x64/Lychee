@@ -11,8 +11,6 @@ import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.DataTypeVisitor
-import net.aquadc.persistence.type.match
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
@@ -129,65 +127,53 @@ object SqliteDialect : Dialect {
     }
 
     private fun <T> StringBuilder.appendDefault(type: DataType<T>, default: T) {
-        object : DataTypeVisitor<StringBuilder, T, T, Unit> {
-            override fun StringBuilder.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) {
-                if (nullable && arg === null) append("NULL")
-                else {
-                    val v = type.store(arg)
-                    when (type.kind) {
-                        DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
-                        DataType.Simple.Kind.I32,
-                        DataType.Simple.Kind.I64,
-                        DataType.Simple.Kind.F32,
-                        DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
-                        DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
-                        DataType.Simple.Kind.Blob -> append("x'").append(TODO("append HEX") as String).append('\'')
-                    }//.also { }
-                }
-            }
+        val type = if (type is DataType.Nullable<*, *>) {
+            val act = type.actualType
+            if (default == null) append("NULL").also { return }
+            act as DataType<T/*!!*/>
+        } else type
 
-            /**
-             * We had out own `StringBuilder.appendHex(ByteArray)` which was removed since it is unused.
-             * Take a look at [net.aquadc.persistence.toHexString] if you're gonna resurrect this functionality.
-             */
-            override fun <E> StringBuilder.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
-                if (nullable && arg === null) append("NULL")
-                else append("x'").append(
-                        TODO("append HEX" + ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), arg) }.toByteArray()) as String
-                ).append('\'')
+        when (type) {
+            is DataType.Nullable<*, *> -> throw AssertionError()
+            is DataType.Simple<T> -> type.store(default).let { v ->
+                when (type.kind) {
+                    DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
+                    DataType.Simple.Kind.I32,
+                    DataType.Simple.Kind.I64,
+                    DataType.Simple.Kind.F32,
+                    DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
+                    DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
+                    DataType.Simple.Kind.Blob -> append("x'").append(TODO("append HEX") as String).append('\'')
+                }//.also { }
+                Unit
             }
-
-            override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
-                error("unsupported²")
-            }
-        }.match(type, this, default)
+            is DataType.Collect<*, *, *> -> append("x'").append(
+                TODO("append HEX" + ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), default) }.toByteArray()) as String
+            ).append('\'')
+            is DataType.Partial<*, *> -> throw UnsupportedOperationException()
+        }
     }
 
     private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {
-        object : DataTypeVisitor<StringBuilder, Nothing?, T, Unit> {
-            override fun StringBuilder.simple(arg: Nothing?, nullable: Boolean, type: DataType.Simple<T>) {
-                append(when (type.kind) {
-                    DataType.Simple.Kind.Bool,
-                    DataType.Simple.Kind.I32,
-                    DataType.Simple.Kind.I64 -> "INTEGER"
-                    DataType.Simple.Kind.F32,
-                    DataType.Simple.Kind.F64 -> "REAL"
-                    DataType.Simple.Kind.Str -> "TEXT"
-                    DataType.Simple.Kind.Blob -> "BLOB"
-                    else -> throw AssertionError()
-                })
-                if (!nullable) append(" NOT NULL")
-            }
-
-            override fun <E> StringBuilder.collection(arg: Nothing?, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) {
-                append("BLOB")
-                if (!nullable) append(" NOT NULL")
-            }
-
-            override fun <SCH : Schema<SCH>> StringBuilder.partial(arg: Nothing?, nullable: Boolean, type: DataType.Partial<T, SCH>) {
-                throw UnsupportedOperationException() // column can't be of Partial type at this point
-            }
-        }.match(dataType, this, null)
+        val act = if (dataType is DataType.Nullable<*, *>) dataType.actualType else dataType
+        when (act) {
+            is DataType.Nullable<*, *> -> throw AssertionError()
+            is DataType.Simple<*> -> append(when (act.kind) {
+                DataType.Simple.Kind.Bool,
+                DataType.Simple.Kind.I32,
+                DataType.Simple.Kind.I64 -> "INTEGER"
+                DataType.Simple.Kind.F32,
+                DataType.Simple.Kind.F64 -> "REAL"
+                DataType.Simple.Kind.Str -> "TEXT"
+                DataType.Simple.Kind.Blob -> "BLOB"
+                else -> throw AssertionError()
+            })
+            is DataType.Collect<*, *, *> -> append("BLOB")
+            is DataType.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
+        }
+        if (dataType === act) {
+            append(" NOT NULL")
+        }
     }
 
     /**

@@ -8,8 +8,6 @@ import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.DataTypeVisitor
-import net.aquadc.persistence.type.match
 import net.aquadc.persistence.type.serialized
 import net.aquadc.properties.internal.Unset
 import java.lang.Double as JavaLangDouble
@@ -43,83 +41,80 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
     val value = map[key]
     if (value === null) return Unset as T
 
-    return (readerVis as PrefReaderVisitor<T>).match(this, null, value)
-}
-private val readerVis = PrefReaderVisitor<Any?>()
-private class PrefReaderVisitor<T> : DataTypeVisitor<Nothing?, Any, T, T> {
+    val type = if (this is DataType.Nullable<*, *>) {
+        val act = actualType
+        when (act) {
+            is DataType.Nullable<*, *> -> throw AssertionError()
+            is DataType.Simple<*> -> if (value == (if (act.kind in storedAsString) false else "null")) return null as T
+            is DataType.Collect<*, *, *>, is DataType.Partial<*, *> -> if (value == false) return null as T
+        }
+        act as DataType<T/*!!*/>
+    } else this
 
-    override fun Nothing?.simple(arg: Any, nullable: Boolean, type: DataType.Simple<T>): T =
-            if (nullable && if (type.kind in storedAsString) arg == false else arg == "null")
-                null as T
-            else
-                type.load(when (type.kind) {
-                    DataType.Simple.Kind.Bool -> arg as Boolean
-                    DataType.Simple.Kind.I32 -> arg as Int
-                    DataType.Simple.Kind.I64 -> arg as Long
-                    DataType.Simple.Kind.F32 -> arg as Float
-                    DataType.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(arg as Long)
-                    DataType.Simple.Kind.Str -> arg as String
-                    DataType.Simple.Kind.Blob -> Base64.decode(arg as String, Base64.DEFAULT)
-                    else -> throw AssertionError()
-                })
-
-    override fun <E> Nothing?.collection(arg: Any, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): T =
-            if (nullable && arg == false)
-                null as T
-            else
-                type.elementType.let { elementType ->
-                    if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str) // TODO should store everything in strings
-                        type.load((arg as Set<String>).map(elementType::load)) // todo zero-copy
-                    else /* here we have a Collection<Whatever>, including potentially a collection of collections, structs, etc */
-                        serialized(type).load(Base64.decode(arg as String, Base64.DEFAULT))
-                }
-
-    override fun <SCH : Schema<SCH>> Nothing?.partial(arg: Any, nullable: Boolean, type: DataType.Partial<T, SCH>): T =
-            if (nullable && arg == false) null as T
-            else serialized(type).load(Base64.decode(arg as String, Base64.DEFAULT))
-
+    return when (type) {
+        is DataType.Nullable<*, *> -> throw AssertionError()
+        is DataType.Simple -> type.load(when (type.kind) {
+            DataType.Simple.Kind.Bool -> value as Boolean
+            DataType.Simple.Kind.I32 -> value as Int
+            DataType.Simple.Kind.I64 -> value as Long
+            DataType.Simple.Kind.F32 -> value as Float
+            DataType.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(value as Long)
+            DataType.Simple.Kind.Str -> value as String
+            DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
+            else -> throw AssertionError()
+        })
+        is DataType.Collect<T, *, *> -> type.elementType.let { elementType ->
+            if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str) // TODO should store everything in strings
+                type.load((value as Set<String>).map(elementType::load)) // todo zero-copy
+            else /* here we have a Collection<Whatever>, including potentially a collection of collections, structs, etc */
+                serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
+        }
+        is DataType.Partial<*, *> -> serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
+    }
 }
 
 internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, value: T) {
-    PrefWriterVisitor<T>(key).match(this, editor, value)
-}
-private class PrefWriterVisitor<T>(
-        private val key: String
-) : DataTypeVisitor<SharedPreferences.Editor, T, T, Unit> {
+    val type = if (this is DataType.Nullable<*, *>) {
+        val act = actualType
+        if (value == null) when (act) {
+            is DataType.Nullable<*, *> ->
+                throw AssertionError()
+            is DataType.Simple<*> ->
+                if (act.kind in storedAsString) editor.putBoolean(key, false) else editor.putString(key, "null")
+            is DataType.Collect<*, *, *> ->
+                editor.putBoolean(key, false)
+            is DataType.Partial<*, *> ->
+                editor.putBoolean(key, false)
+        }.also { return }
 
-    override fun SharedPreferences.Editor.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>) =
-            if (nullable && arg === null) {
-                if (type.kind in storedAsString) putBoolean(key, false)
-                else putString(key, "null")
-            } else {
-                val v = type.store(arg)
-                when (type.kind) {
-                    DataType.Simple.Kind.Bool -> putBoolean(key, v as Boolean)
-                    DataType.Simple.Kind.I32 -> putInt(key, v as Int)
-                    DataType.Simple.Kind.I64 -> putLong(key, v as Long)
-                    DataType.Simple.Kind.F32 -> putFloat(key, v as Float)
-                    DataType.Simple.Kind.F64 -> putLong(key, java.lang.Double.doubleToLongBits(v as Double))
-                    DataType.Simple.Kind.Str -> putString(key, v as String)
-                    DataType.Simple.Kind.Blob -> putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
-                    else -> throw AssertionError()
-                }
-            }.let { }
+        act as DataType<T/*!!*/>
+    } else this
 
-    override fun <E> SharedPreferences.Editor.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>) =
-            if (nullable && arg === null) {
-                putBoolean(key, false)
-            } else {
-                type.elementType.let { elementType ->
-                    if (elementType is DataType.Simple<E> && elementType.kind == DataType.Simple.Kind.Str)
-                        putStringSet(key, type.store(arg).fatMapTo<HashSet<String>, E, String>(HashSet()) { elementType.store(it) as String })
-                    else
-                        putString(key, Base64.encodeToString(serialized(type).store(arg) as ByteArray, Base64.DEFAULT))
-                }
-            }.let { }
-
-    override fun <SCH : Schema<SCH>> SharedPreferences.Editor.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>) {
-        if (nullable && arg === null) putBoolean(key, false)
-        else putString(key, Base64.encodeToString(serialized(type).store(arg) as ByteArray, Base64.DEFAULT))
+    when (type) {
+        is DataType.Nullable<*, *> -> throw AssertionError()
+        is DataType.Simple<T> -> type.store(value).let { v ->
+            when (type.kind) {
+                DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean)
+                DataType.Simple.Kind.I32 -> editor.putInt(key, v as Int)
+                DataType.Simple.Kind.I64 -> editor.putLong(key, v as Long)
+                DataType.Simple.Kind.F32 -> editor.putFloat(key, v as Float)
+                DataType.Simple.Kind.F64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(v as Double))
+                DataType.Simple.Kind.Str -> editor.putString(key, v as String)
+                DataType.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
+                else -> throw AssertionError()
+            }
+        }
+        is DataType.Collect<T, *, *> -> type.elementType.let { elementType ->
+            if (elementType is DataType.Simple && elementType.kind == DataType.Simple.Kind.Str)
+                editor.putStringSet(
+                    key,
+                    type.store(value)
+                        .fatMapTo<HashSet<String>, T, String>(HashSet()) { (elementType as DataType.Simple<T>).store(it) as String }
+                )
+            else
+                editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))
+        }
+        is DataType.Partial<*, *> ->
+            editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))
     }
-
 }

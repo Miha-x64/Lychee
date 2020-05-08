@@ -216,33 +216,3 @@ sealed class DataType<T> {
 //    abstract class Dictionary<M, K, V> internal constructor(keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
 
 }
-
-/**
- * Match/visit (on) this [dataType], passing [arg] and [payload] into [this] visitor.
- */
-@Suppress(
-        "NOTHING_TO_INLINE", // hope this will generate monomorphic call-site
-        "UNCHECKED_CAST"
-)
-inline fun <PL, ARG, T, R> DataTypeVisitor<PL, ARG, T, R>.match(dataType: DataType<T>, payload: PL, arg: ARG): R =
-    when (dataType) {
-        is DataType.Nullable<*, *> -> {
-            when (val actualType = dataType.actualType as DataType<T/*!!*/>) {
-                is DataType.Nullable<*, *> -> throw AssertionError()
-                is DataType.Simple -> payload.simple(arg, true, actualType)
-                is DataType.Collect<*, *, *> -> payload.collection(arg, true, actualType as DataType.Collect<T, Any?, DataType<Any?>>)
-                is DataType.Partial<T, *> -> @Suppress("UPPER_BOUND_VIOLATED")
-                        payload.partial<Schema<*>>(arg, true, actualType as DataType.Partial<T, Schema<*>>)
-            }
-        }
-        is DataType.Simple -> payload.simple(arg, false, dataType)
-        is DataType.Collect<T, *, *> -> payload.collection(arg, false, dataType as DataType.Collect<T, Any, out DataType<Any>>)
-        is DataType.Partial<T, *> -> @Suppress("UPPER_BOUND_VIOLATED")
-                payload.partial<Schema<*>>(arg, false, dataType as DataType.Partial<T, Schema<*>>)
-    }
-
-interface DataTypeVisitor<PL, ARG, T, R> {
-    fun PL.simple(arg: ARG, nullable: Boolean, type: DataType.Simple<T>): R
-    fun <E> PL.collection(arg: ARG, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>): R
-    fun <SCH : Schema<SCH>> PL.partial(arg: ARG, nullable: Boolean, type: DataType.Partial<T, SCH>): R
-}
