@@ -1,3 +1,4 @@
+@file:JvmName("ReadWrite")
 package net.aquadc.persistence.stream
 
 import net.aquadc.persistence.NullSchema

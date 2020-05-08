@@ -1,7 +1,6 @@
 package net.aquadc.persistence.android.parcel
 
 import android.os.Parcel
-import net.aquadc.persistence.android.assertFitsShort
 import net.aquadc.persistence.stream.BetterDataInput
 import net.aquadc.persistence.stream.BetterDataOutput
 
@@ -18,6 +17,13 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
     @Deprecated("does not look very useful")
     override fun readShort(input: Parcel): Short =
             input.readInt().assertFitsShort()
+
+    private fun Int.assertFitsShort(): Short {
+        require(this in Short.MIN_VALUE..Short.MAX_VALUE) {
+            "value $this cannot be fit into ${Short::class.java.simpleName}"
+        }
+        return toShort()
+    }
 
     override fun readInt(input: Parcel): Int =
             input.readInt()

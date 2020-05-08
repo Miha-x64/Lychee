@@ -52,8 +52,3 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
             }
 
 }
-
-@Suppress("NOTHING_TO_INLINE")
-inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
-        REC.transactional(): TransactionalPropertyStruct<SCH> =
-        RecordTransactionalAdapter(this)

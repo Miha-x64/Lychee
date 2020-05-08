@@ -1,6 +1,4 @@
 @file:Suppress("NOTHING_TO_INLINE")
-@file:JvmMultifileClass
-@file:JvmName("Json")
 package net.aquadc.persistence.android.json
 
 import android.util.Base64
@@ -17,38 +15,6 @@ import net.aquadc.persistence.tokens.TokenStream
 import java.io.Reader
 import java.io.Writer
 
-
-/**
- * Create a [JsonReader] for this [Reader].
- * For example,
- * <code>
- *     inputStream.reader().json().tokens().iteratorOfTransient(SomeSchema).use {
- *         forEachRemaining {
- *             println(it)
- *         }
- *     }
- * </code>
- */
-inline fun Reader.json(): JsonReader =
-        JsonReader(this)
-
-/**
- * Create a [JsonWriter] for this [Writer].
- */
-inline fun Writer.json(): JsonWriter =
-        JsonWriter(this)
-
-/**
- * Create a [TokenStream] of this JSON.
- */
-inline fun JsonReader.tokens(): TokenStream =
-        JsonTokenStream(this)
-
-/**
- * Write [this] [TokenStream] to [writer].
- */
-fun TokenStream.writeTo(writer: JsonWriter): Unit =
-        writeBracketSequenceTo(writer, poll())
 
 @PublishedApi internal class JsonTokenStream(
         private val reader: JsonReader
@@ -261,40 +227,4 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
         reader.close()
     }
 
-}
-
-private fun TokenStream.writeBracketSequenceTo(writer: JsonWriter, token: Any?) {
-    when (token) {
-        null -> writer.nullValue()
-        is Boolean -> writer.value(token)
-        is Byte, is Short, is Int, is Long -> writer.value((token as Number).toLong())
-        is Float, is Double -> writer.value((token as Number).toDouble())
-        is CharSequence -> writer.value(token.toString())
-        is ByteArray -> writer.value(Base64.encodeToString(token, Base64.DEFAULT))
-        Token.BeginSequence -> {
-            writer.beginArray()
-            while (true) {
-                val next = poll()
-                if (next == Token.EndSequence) break
-                writeBracketSequenceTo(writer, next)
-            }
-            writer.endArray()
-        }
-        Token.BeginDictionary -> {
-            writer.beginObject()
-            while (true) {
-                if (peek() == Token.EndDictionary) {
-                    poll(Token.EndDictionary)
-                    writer.endObject()
-                    break
-                }
-                writer.name((poll(Token.Str) as CharSequence).toString())
-                writeBracketSequenceTo(writer, poll())
-            }
-        }
-        Token.EndSequence, Token.EndDictionary -> {
-            throw IllegalArgumentException("unexpected token '$token', nesting problem at $path")
-        }
-        else -> throw AssertionError("unexpected token '$token'")
-    }
 }

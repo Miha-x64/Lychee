@@ -5,8 +5,9 @@ import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.contains
 import net.aquadc.collections.plus
 import net.aquadc.persistence.CloseableIterator
-import net.aquadc.persistence.New
+import net.aquadc.persistence.fromBase64
 import net.aquadc.persistence.hasFraction
+import net.aquadc.persistence.toBase64
 import java.io.Closeable
 
 /**
@@ -29,13 +30,13 @@ enum class Token(internal val delta: Int) {
         override fun coerce(value: Any?): Any? = when (value) {
             is Boolean, is Number -> value.toString()
             is CharSequence -> value
-            is ByteArray -> New.toBase64(value)
+            is ByteArray -> toBase64(value)
             else -> throw IllegalArgumentException("value $value cannot be coerced to $Str")
         }
     },
     Blob(0) {
         override fun coerce(value: Any?): Any? = when (value) {
-            is CharSequence -> New.fromBase64(value.toString())
+            is CharSequence -> fromBase64(value.toString())
             is ByteArray -> value
             else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
         }

@@ -1,7 +1,7 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.New
 import net.aquadc.persistence.NullSchema
+import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
@@ -41,7 +41,7 @@ internal class RealTransaction(
         val id = lowSession.insert(table, data)
 
         // remember we've added a record
-        (inserted ?: New.map<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })
+        (inserted ?: newMap<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })
                 .getOrPut(table, ::ArrayList)
                 .add(id)
 
@@ -66,7 +66,7 @@ internal class RealTransaction(
     ) {
         checkOpenAndThread()
         val updates = (updated ?: UpdatesMap().also { updated = it })
-                .getOrPut(table, New::map)
+                .getOrPut(table, ::newMap)
                 .getOrPut(id) { Array<Any?>(table.schema.mutableFields.size) { Unset } }
 
         table.delegateFor(field).update(lowSession, table, field, id, previous, value)
@@ -94,7 +94,7 @@ internal class RealTransaction(
     }
 
     private fun deletedMap() =
-            deleted ?: New.map<Table<*, *, *>, Any>().also { deleted = it }
+            deleted ?: newMap<Table<*, *, *>, Any>().also { deleted = it }
 
     override fun setSuccessful() {
         checkOpenAndThread()

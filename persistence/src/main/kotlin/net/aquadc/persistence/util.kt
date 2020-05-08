@@ -92,56 +92,6 @@ private fun ByteArray.toHexString(): String =
             }
         })
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-object New {
-
-    private val andro: Boolean = try {
-        android.os.Build.VERSION.SDK_INT >= 0; true
-    } catch (ignored: NoClassDefFoundError) {
-        false
-    }
-
-    private val kitKat: Boolean = andro && try {
-        android.os.Build.VERSION.SDK_INT >= 19
-    } catch (ignored: NoClassDefFoundError) {
-        false
-    }
-
-    fun <K, V> map(): MutableMap<K, V> =
-            map(0)
-
-    fun <K, V> map(initialCapacity: Int): MutableMap<K, V> =
-            if (kitKat) android.util.ArrayMap(initialCapacity)
-            else HashMap(initialCapacity)
-
-    fun <K, V> map(copyFrom: Map<K, V>): MutableMap<K, V> =
-            if (kitKat) android.util.ArrayMap<K, V>(copyFrom.size).also { it.putAll(copyFrom) }
-            else HashMap(copyFrom)
-
-    fun <E> set(): MutableSet<E> =
-            if (kitKat) Collections.newSetFromMap(android.util.ArrayMap(0))
-            else HashSet()
-
-    fun <E> set(initialCapacity: Int): MutableSet<E> =
-            if (kitKat) Collections.newSetFromMap(android.util.ArrayMap(initialCapacity))
-            else HashSet(initialCapacity)
-
-    fun <E> set(copyFrom: Collection<E>): MutableSet<E> =
-            if (kitKat) Collections.newSetFromMap(android.util.ArrayMap<E, Boolean>(copyFrom.size)).also { it.addAll(copyFrom) }
-            else HashSet(copyFrom)
-
-    @SuppressLint("NewApi") // false-positive: we won't use java.util.Base64 branch on Android
-    fun fromBase64(str: String): ByteArray =
-            if (andro) android.util.Base64.decode(str, android.util.Base64.DEFAULT)
-            else java.util.Base64.getDecoder().decode(str)
-
-    @SuppressLint("NewApi")
-    fun toBase64(bytes: ByteArray): String =
-            if (andro) android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
-            else java.util.Base64.getEncoder().encodeToString(bytes)
-
-}
-
 /*internal inline fun <T, R> AnyCollection.fatMap(transform: (T) -> R): List<R> = when (this) {
     is List<*> -> Array<Any?>(size) { transform(this[it] as T) }
     is Collection<*> -> arrayOfNulls<Any>(size).also { dest ->

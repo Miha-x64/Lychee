@@ -1,5 +1,8 @@
-@file:UseExperimental(ExperimentalContracts::class)
-@file:Suppress("NOTHING_TO_INLINE")
+@file:[
+    JvmName("Sql")
+    UseExperimental(ExperimentalContracts::class)
+    Suppress("NOTHING_TO_INLINE")
+]
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.struct.FieldDef
@@ -14,6 +17,7 @@ import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
+import net.aquadc.properties.persistence.TransactionalPropertyStruct
 import org.intellij.lang.annotations.Language
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -168,3 +172,8 @@ interface Transaction : AutoCloseable {
 
 @Deprecated("moved", level = DeprecationLevel.ERROR) typealias JdbcSession = net.aquadc.persistence.sql.blocking.JdbcSession
 @Deprecated("moved", level = DeprecationLevel.ERROR) typealias SqliteSession = net.aquadc.persistence.sql.blocking.SqliteSession
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
+    REC.transactional(): TransactionalPropertyStruct<SCH> =
+    RecordTransactionalAdapter(this)

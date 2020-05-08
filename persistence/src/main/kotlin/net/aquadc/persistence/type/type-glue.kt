@@ -1,3 +1,4 @@
+@file:JvmName("GlueTypes")
 package net.aquadc.persistence.type
 
 import net.aquadc.persistence.stream.DataStreams

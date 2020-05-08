@@ -1,6 +1,6 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.New
+import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
@@ -30,7 +30,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
 
     // these three are guarded by RW lock
     internal var insertStatement: STMT? = null
-    internal val updateStatements = New.map<Any, STMT>()
+    internal val updateStatements = newMap<Any, STMT>()
     internal var deleteStatement: STMT? = null
 
 

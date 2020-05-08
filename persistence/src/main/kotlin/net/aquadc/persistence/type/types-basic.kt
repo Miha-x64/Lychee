@@ -159,3 +159,22 @@ fun <E> list(@Suppress("UNUSED_PARAMETER") elementType: DataType<E>): Nothing =
     override fun store(value: Nothing): SimpleValue =
             throw UnsupportedOperationException()
 }
+
+// originally these typealiases were in types.kt, but they were the only top-level declarations
+
+/**
+ * Used by [DataType.Simple] and represents the following type, according to [DataType.Simple.Kind]:
+ * [Boolean] | [Byte] | [Short] | [Int] | [Long] | [Float] | [Double] | [String] | [ByteArray]
+ */
+typealias SimpleValue = Any
+
+/**
+ * Used by [DataType.Collect] and represents the following type:
+ * [Collection]<E> | [Array]<E> | EArray
+ * where E represents [Byte], [Short], [Int], [Long], [Float], [Double],
+ * EArray means [ByteArray], [ShortArray], [IntArray], [LongArray], [FloatArray], [DoubleArray] accordingly
+ */
+typealias AnyCollection = Any
+// @see fatMap, fatMapTo, fatAsList, don't forget to update them
+
+typealias SimpleNullable<T> = DataType.Nullable<T, DataType.Simple<T>>

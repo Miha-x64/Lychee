@@ -1,7 +1,7 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.New
+import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -32,7 +32,7 @@ internal typealias UpdatesMap = MutableMap<
         >
 
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun UpdatesMap() = New.map<
+internal inline fun UpdatesMap() = newMap<
         Table<*, *, *>,
         MutableMap<
                 IdBound,

@@ -3,25 +3,7 @@ package net.aquadc.persistence.type
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 
-
-/**
- * Used by [DataType.Simple] and represents the following type, according to [DataType.Simple.Kind]:
- * [Boolean] | [Byte] | [Short] | [Int] | [Long] | [Float] | [Double] | [String] | [ByteArray]
- */
-typealias SimpleValue = Any
-
-/**
- * Used by [DataType.Collect] and represents the following type:
- * [Collection]<E> | [Array]<E> | EArray
- * where E represents [Byte], [Short], [Int], [Long], [Float], [Double],
- * EArray means [ByteArray], [ShortArray], [IntArray], [LongArray], [FloatArray], [DoubleArray] accordingly
- */
-typealias AnyCollection = Any
-// @see fatMap, fatMapTo, fatAsList, don't forget to update them
-
-typealias SimpleNullable<T> = DataType.Nullable<T, DataType.Simple<T>>
 
 /**
  * Describes type of stored values and underlying serialization techniques.
@@ -82,7 +64,7 @@ sealed class DataType<T> {
             Bool,
             @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I8,
             @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I16,
-            I32, I64,
+            I32, I64, // TODO: U32, U64, BigInt, BigFloat
             F32, F64,
             Str, Blob,
         }

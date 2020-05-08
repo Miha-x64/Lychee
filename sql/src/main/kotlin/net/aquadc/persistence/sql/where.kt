@@ -1,3 +1,4 @@
+@file:JvmName("Where")
 package net.aquadc.persistence.sql
 
 import androidx.annotation.Size
@@ -228,4 +229,5 @@ infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.or(that: WhereCondition<SCH>):
 /**
  * Builder for [between] and [notBetween]. E. g. `(SomeSchema.Field between lower..upper)`
  */
+@JvmSynthetic // rangeTo(from, to) is useless for Java
 inline operator fun <reified T> T.rangeTo(that: T): Array<T> = arrayOf(this, that)

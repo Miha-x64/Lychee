@@ -1,3 +1,4 @@
+@file:JvmName("ReadTokens")
 package net.aquadc.persistence.tokens
 
 import net.aquadc.collections.enumMapOf

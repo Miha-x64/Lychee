@@ -1,3 +1,4 @@
+@file:JvmName("PropertiesState")
 package net.aquadc.properties.persistence.memento
 
 import net.aquadc.properties.persistence.PropertyIo

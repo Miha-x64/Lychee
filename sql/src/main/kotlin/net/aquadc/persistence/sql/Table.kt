@@ -1,7 +1,9 @@
+@file:JvmName("Tables")
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.New
 import net.aquadc.persistence.array
+import net.aquadc.persistence.newMap
+import net.aquadc.persistence.newSet
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Named
@@ -58,13 +60,13 @@ private constructor(
     @JvmSynthetic @JvmField internal var _managedColTypes: Array<out DataType<*>>? = null
     private val _columns: Lazy<Array<out StoredNamedLens<SCH, *, *>>> = lazy {
         val rels = relations().let { rels ->
-            rels.associateByTo(New.map<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
+            rels.associateByTo(newMap<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
         }
         val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(schema.fields.size)
         if (pkField == null) {
             columns.add(PkLens(this), idColName)
         }
-        val delegates = New.map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>()
+        val delegates = newMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>()
         val recipe = ArrayList<Nesting>()
         val ss = Nesting.StructStart(false, null, null, schema)
         recipe.add(ss)
@@ -84,7 +86,7 @@ private constructor(
     }
 
     internal class CheckNamesList<E : Named<*>>(initialCapacity: Int) : ArrayList<E>(initialCapacity) {
-        private val names = New.set<String>(initialCapacity)
+        private val names = newSet<String>(initialCapacity)
         fun add(element: E, itsName: CharSequence): Boolean {
             check(itsName.isNotBlank()) { "column has blank name: $element" }
             check(names.add(itsName.toString())) { "duplicate name '$itsName'" }
@@ -193,7 +195,7 @@ private constructor(
     val columnsByName: Map<String, StoredNamedLens<SCH, *, *>>
         get() = _columnsByName
                 ?: columns.let { cols ->
-                    cols.associateByTo(New.map(cols.size), { it.name(schema).toString() })
+                    cols.associateByTo(newMap(cols.size), { it.name(schema).toString() })
                 }.also { _columnsByName = it }
 
 
@@ -202,7 +204,7 @@ private constructor(
     val columnIndices: Map<StoredNamedLens<SCH, *, *>, Int>
         get() = _columnIndices
                 ?: columns.let { cols ->
-                    New.map<StoredNamedLens<SCH, *, *>, Int>(cols.size).also { map ->
+                    newMap<StoredNamedLens<SCH, *, *>, Int>(cols.size).also { map ->
                         columns.forEachIndexed { i, col -> map[col] = i }
                     }
                 }.also { _columnIndices = it }

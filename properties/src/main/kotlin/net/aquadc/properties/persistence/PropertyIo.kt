@@ -1,3 +1,4 @@
+@file:JvmName("PropertyRw")
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.properties.persistence
 

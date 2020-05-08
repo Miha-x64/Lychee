@@ -1,4 +1,4 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:[JvmName("Lenses") Suppress("NOTHING_TO_INLINE")]
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.struct.Lens

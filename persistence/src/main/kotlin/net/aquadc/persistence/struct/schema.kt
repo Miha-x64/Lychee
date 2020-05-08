@@ -1,10 +1,10 @@
 @file:JvmName("Schemas")
 package net.aquadc.persistence.struct
 
-import net.aquadc.persistence.New
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.fill
+import net.aquadc.persistence.newMap
 import net.aquadc.persistence.type.DataType
 
 /**
@@ -132,7 +132,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF
             }
 
             1 ->
-                fields.associateByTo(New.map<String, FieldDef<SELF, *, *>>(fields.size), { it.name(schema).toString() })
+                fields.associateByTo(newMap<String, FieldDef<SELF, *, *>>(fields.size), { it.name(schema).toString() })
 
             2 ->
                 arrayOfNulls<FieldDef.Mutable<SELF, *, *>>(mutableCount.toInt()).also { mut ->

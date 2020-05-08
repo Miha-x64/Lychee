@@ -2,7 +2,7 @@
 package net.aquadc.persistence.type
 
 import androidx.annotation.RestrictTo
-import net.aquadc.persistence.New
+import net.aquadc.persistence.newMap
 import java.util.EnumSet
 import kotlin.collections.HashSet
 
@@ -43,7 +43,7 @@ inline fun <reified E : Any, U : Any> enum(
         object : DataType.Simple<Any?>(encodeAs.kind) {
 
             private val lookup =
-                    values.associateByTo(New.map(values.size), encode).also { check(it.size == values.size) {
+                    values.associateByTo(newMap(values.size), encode).also { check(it.size == values.size) {
                         "there were duplicate names, check values of 'nameProp' for each enum constant passed in 'values'"
                     } }
 
@@ -126,7 +126,7 @@ inline fun <reified E : Enum<E>> enumSet(
 inline fun <reified E, DE : DataType<E>> enumSet(
         encodeAs: DE
 ): DataType.Collect<Set<E>, E, DE> =
-        setInternal(encodeAs, E::class.java)
+        setInternal(encodeAs, E::class.java.takeIf { it.isEnum })
 
 
 // Util
