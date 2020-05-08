@@ -24,8 +24,10 @@ import java.sql.SQLFeatureNotSupportedException
 ) : Fetch<Blocking<CUR>, Lazy<R>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): Lazy<R> =
-            lazy { from.cell(query, argumentTypes, arguments, rt, orElse) }
+    ): Lazy<R> {
+        val rt = rt; val orElse = orElse // don't capture `this`
+        return lazy { from.cell(query, argumentTypes, arguments, rt, orElse) }
+    }
 }
 
 @PublishedApi internal class FetchColLazily<CUR : AutoCloseable, R>(
@@ -33,10 +35,12 @@ import java.sql.SQLFeatureNotSupportedException
 ) : Fetch<Blocking<CUR>, CloseableIterator<R>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): CloseableIterator<R> =
-            object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, arguments, null, BindBy.Name/*whatever*/, NullSchema) {
-                override fun row(cur: CUR): R = from.cellAt(cur, 0, rt)
-            }
+    ): CloseableIterator<R> {
+        val rt = rt // don't capture `this`
+        return object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, arguments, null, BindBy.Name/*whatever*/, NullSchema) {
+            override fun row(cur: CUR): R = from.cellAt(cur, 0, rt)
+        }
+    }
 }
 
 @PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR : AutoCloseable>(
@@ -66,13 +70,15 @@ import java.sql.SQLFeatureNotSupportedException
 ) : Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> {
     override fun fetch(
             from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>
-    ): CloseableIterator<Struct<SCH>> =
-            object : CurIterator<CUR, SCH, Struct<SCH>>(
-                    from, query, argumentTypes, arguments, table, bindBy, table.schema
-            ) {
-                override fun row(cur: CUR): Struct<SCH> =
-                        if (transient) this else StructSnapshot(this)
-            }
+    ): CloseableIterator<Struct<SCH>> {
+        val transient = transient // don't capture this
+        return object : CurIterator<CUR, SCH, Struct<SCH>>(
+            from, query, argumentTypes, arguments, table, bindBy, table.schema
+        ) {
+            override fun row(cur: CUR): Struct<SCH> =
+                if (transient) this else StructSnapshot(this)
+        }
+    }
 }
 
 @PublishedApi internal object InputStreamFromResultSet : Fetch<Blocking<ResultSet>, InputStream> {

@@ -51,7 +51,7 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
     }
 }
 
-private fun TokenStream.nextField(sch: Schema<*>): FieldDef<*, *, *>? {
+internal/*accessed from a class*/ fun TokenStream.nextField(sch: Schema<*>): FieldDef<*, *, *>? {
     while (peek() != Token.EndDictionary) {
         sch.fieldByName(poll(Token.Str) as CharSequence,
                 { return it },

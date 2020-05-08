@@ -57,8 +57,10 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
     private var nextNumber: String? = null
     private var nextLong: Long = Long.MIN_VALUE
 
+    @Suppress("INAPPLICABLE_JVM_FIELD")
     private companion object {
-        val jsonToTok = enumMapOf(
+        // wannabe const but https://youtrack.jetbrains.com/issue/KT-25915
+        @JvmField val jsonToTok = enumMapOf(
                 JsonToken.BEGIN_ARRAY, Token.BeginSequence,
                 JsonToken.END_ARRAY, Token.EndSequence,
                 JsonToken.BEGIN_OBJECT, Token.BeginDictionary,
@@ -70,7 +72,7 @@ fun TokenStream.writeTo(writer: JsonWriter): Unit =
                 JsonToken.NULL, Token.Null
                 // END_DOCUMENT
         )
-        val tokToJson = enumMapOf(
+        @JvmField val tokToJson = enumMapOf(
                 Token.Null, JsonToken.NULL,
                 Token.Bool, JsonToken.BOOLEAN,
                 // Token.I8, Token.I16, Token.I32, Token.I64, Token.F32, Token.F64, Token.Str, Token.Blob,

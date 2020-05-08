@@ -87,11 +87,13 @@ enum class Token(internal val delta: Int) {
         else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
     }
 
+    @Suppress("INAPPLICABLE_JVM_FIELD")
     companion object {
-        val Integers: InlineEnumSet<Token> = I32 + I64
-        val Floats: InlineEnumSet<Token> = F32 + F64
-        val Numbers: InlineEnumSet<Token> = Integers + Floats
-        val ControlTokens: InlineEnumSet<Token> = BeginSequence + EndSequence + BeginDictionary + EndDictionary
+        // wannabe const but https://youtrack.jetbrains.com/issue/KT-25915
+        @JvmField val Integers: InlineEnumSet<Token> = I32 + I64
+        @JvmField val Floats: InlineEnumSet<Token> = F32 + F64
+        @JvmField val Numbers: InlineEnumSet<Token> = Integers + Floats
+        @JvmField val ControlTokens: InlineEnumSet<Token> = BeginSequence + EndSequence + BeginDictionary + EndDictionary
 
         fun ofValue(value: Any?): Token? = when (value) {
             null -> Null

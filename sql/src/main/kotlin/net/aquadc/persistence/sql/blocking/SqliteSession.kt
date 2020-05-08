@@ -282,13 +282,6 @@ class SqliteSession(
             })
         }
 
-        private fun Short.assertFitsByte(): Byte {
-            require(this in Byte.MIN_VALUE..Byte.MAX_VALUE) {
-                "value $this cannot be fit into ${Byte::class.java.simpleName}"
-            }
-            return toByte()
-        }
-
         override fun <T> cell(
                 query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>, orElse: () -> T
         ): T {

@@ -74,7 +74,7 @@ constructor(
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
             FieldDef.Mutable<SCH, ForeID?, *>.toOneNullable(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC?> =
             (this@Record prop this@toOneNullable).bind(
-                    { id: ForeID? -> if (id == null) null else session[foreignTable].require(id) },
+                    { id: ForeID? -> if (id == null) null else _session[foreignTable].require(id) },
                     { it: ForeREC? -> it?.primaryKey }
             )
 
