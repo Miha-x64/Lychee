@@ -1,5 +1,6 @@
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.VarFuncImpl
 import net.aquadc.persistence.sql.ColCond
 import net.aquadc.persistence.sql.Fetch
@@ -68,10 +69,9 @@ internal abstract class LowLevelSession<STMT, CUR : AutoCloseable> : Blocking<CU
 
     @JvmField val daos: ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, STMT>> = ConcurrentHashMap()
 
-    @Suppress("UPPER_BOUND_VIOLATED")
-    private val localReusableCond = ThreadLocal<ColCond<Any, Any?>>()
+    private val localReusableCond = ThreadLocal<ColCond<NullSchema, Any?>>()
 
-    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+    @Suppress("UNCHECKED_CAST")
     internal fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
             table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
     ): ColCond<SCH, ID> {

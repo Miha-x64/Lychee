@@ -31,9 +31,9 @@ constructor(
 
     internal val _session get() = session
 
-    @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+    @Suppress("UNCHECKED_CAST")
     internal val dao: Dao<SCH, ID, *>
-        get() = session.get(table as Table<SCH, ID, Record<SCH, ID>>)
+        get() = session[table as Table<SCH, ID, Record<SCH, ID>>]
 
     internal fun copyValues(): Array<Any?> {
         val size = values.size
@@ -52,7 +52,7 @@ constructor(
             val value = values[index]
 
             if (value === Unset) {
-                @Suppress("UNCHECKED_CAST", "UPPER_BOUND_VIOLATED")
+                @Suppress("UNCHECKED_CAST")
                 val freshValue = dao.getClean(field, primaryKey)
                 values[index] = freshValue
                 freshValue

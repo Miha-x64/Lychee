@@ -5,8 +5,6 @@ import net.aquadc.persistence.New
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
-import net.aquadc.persistence.struct.Lens
-import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
@@ -41,17 +39,6 @@ internal inline fun UpdatesMap() = New.map<
                 Array<Any?>
                 >
         >()
-
-@Suppress("UPPER_BOUND_VIOLATED")
-internal inline val Table<*, *, *>.erased
-    get() = this as Table<Any, IdBound, Record<Any, IdBound>>
-
-internal inline val DataType<*>.erased
-    get() = this as DataType<Any?>
-
-@Suppress("UPPER_BOUND_VIOLATED")
-internal inline val <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>, T> Lens<SCH, PRT, STR, T, *>.erased
-    get() = this as Lens<Schema<*>, PartialStruct<*>?, Struct<*>?, Any?, DataType<Any?>>
 
 internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.Simple<T>) -> R): R =
         when (this) {
@@ -97,7 +84,7 @@ internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
 ) {
     val columns = table.managedColumns
     arrayOfNulls<Any>(columns.size).also { flatten(table.recipe, it, data, 0, 0) }.forEachIndexed { idx, value ->
-        bind(columns[idx].type(table.schema).erased, idx, value)
+        bind(columns[idx].type(table.schema) as DataType<Any?>, idx, value)
     }
 }
 

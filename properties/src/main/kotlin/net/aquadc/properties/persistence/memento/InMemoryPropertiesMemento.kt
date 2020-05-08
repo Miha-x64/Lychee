@@ -40,7 +40,6 @@ class InMemoryPropertiesMemento : PropertiesMemento {
         for (i in types.indices) {
             val type = types[i]
             val value = vals[i]
-            @Suppress("UPPER_BOUND_VIOLATED")
             (type as DataType<Any?>).write(kind, output, value)
         }
     }

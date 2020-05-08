@@ -1,6 +1,7 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.New
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
@@ -114,7 +115,7 @@ internal class RealTransaction(
         var unmanage: ArrayList<WeakReference<out Record<*, *>>>? = null
         if (del != null) {
             for ((table, ids) in del) { // forEach here will be unable to smart-cast `unmanage` var
-                val man = lowSession.daos[table.erased] as RealDao<*, IdBound, *, *>?
+                val man = lowSession.daos[table as Table<NullSchema, IdBound, Record<NullSchema, IdBound>>] as RealDao<*, IdBound, *, *>?
                 if (man != null) {
                     if (unmanage == null) unmanage = ArrayList()
                     if (ids is Unit) man.truncateLocked(removedRefsTo = unmanage)
@@ -126,9 +127,10 @@ internal class RealTransaction(
         // value changes
         val upd = updated?.onEach { (table, idToRec) ->
             idToRec.forEach { (id, upd) ->
-                lowSession.daos[table]?.erased?.getCached(id)?.let { rec ->
-                    table.erased.commitValues(rec, upd)
-                }
+                (lowSession.daos[table] as RealDao<NullSchema, IdBound, Record<NullSchema, IdBound>, *>?)
+                    ?.getCached(id)?.let { rec ->
+                        (table as Table<NullSchema, IdBound, Record<NullSchema, IdBound>>).commitValues(rec, upd)
+                    }
             }
         }
 
@@ -169,9 +171,5 @@ internal class RealTransaction(
             if (thread === null) "this transaction was already closed" else "called from wrong thread"
         }
     }
-
-    @Suppress("UPPER_BOUND_VIOLATED")
-    private inline val RealDao<*, *, *, *>.erased
-        get() = this as RealDao<Any, IdBound, Record<Any, IdBound>, *>
 
 }

@@ -41,10 +41,9 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
         is DataType.Partial<*, *> -> {
             poll(Token.BeginDictionary)
             val sch = type.schema
-            @Suppress("UPPER_BOUND_VIOLATED")
-            val struct = readPartial<Any?, Schema<*>>(
-                    type as DataType.Partial<Any?, Schema<*>>, fieldValues,
-                    { nextField(sch) as FieldDef<Schema<*>, *, *>? }, { readAs(it) }
+            val struct = readPartial(
+                    type as DataType.Partial<Any?, NullSchema>, fieldValues,
+                    { nextField(sch) as FieldDef<NullSchema, *, *>? }, { readAs(it) }
             )
             poll(Token.EndDictionary)
             struct as T
