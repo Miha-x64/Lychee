@@ -13,7 +13,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 
-class Lenses {
+class LensesTest {
 
     object DeeplyNestedSchema : Schema<DeeplyNestedSchema>() {
         val Items = "items" let NestedSchema
