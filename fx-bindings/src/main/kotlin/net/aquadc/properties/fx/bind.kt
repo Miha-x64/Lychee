@@ -1,3 +1,4 @@
+@file:JvmName("FxBindings")
 package net.aquadc.properties.fx
 
 import javafx.beans.property.SimpleObjectProperty

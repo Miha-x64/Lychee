@@ -1,3 +1,4 @@
+@file:JvmName("ButtonBindings")
 package net.aquadc.properties.fx
 
 import javafx.scene.control.ButtonBase
