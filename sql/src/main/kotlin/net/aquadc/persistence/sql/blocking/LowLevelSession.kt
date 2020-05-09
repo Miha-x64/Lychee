@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
 
 
-internal class BlockingQuery<CUR : AutoCloseable, R>(
+internal class BlockingQuery<CUR, R>(
         private val session: Blocking<CUR>,
         private val query: String,
         private val argumentTypes: Array<out DataType.Simple<*>>,
@@ -34,7 +34,7 @@ internal class BlockingQuery<CUR : AutoCloseable, R>(
 
 }
 
-internal abstract class LowLevelSession<STMT, CUR : AutoCloseable> : Blocking<CUR> {
+internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
     abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
 
     /** [columnNames] : [values] is a map */

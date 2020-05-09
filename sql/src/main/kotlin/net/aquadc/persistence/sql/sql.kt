@@ -19,6 +19,7 @@ import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Manager
 import net.aquadc.properties.persistence.TransactionalPropertyStruct
 import org.intellij.lang.annotations.Language
+import java.io.Closeable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -112,7 +113,7 @@ fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.c
 internal inline fun <SCH : Schema<SCH>> noOrder(): Array<Order<SCH>> = NoOrder as Array<Order<SCH>>
 
 
-interface Transaction : AutoCloseable {
+interface Transaction : Closeable {
 
     /**
      * Insert [data] into a [table].

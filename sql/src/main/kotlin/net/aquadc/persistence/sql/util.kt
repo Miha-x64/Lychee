@@ -310,14 +310,14 @@ private inline fun flattenFieldValues(
 private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
         this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
 
-internal fun <CUR : AutoCloseable> Blocking<CUR>.row(
+internal fun <CUR> Blocking<CUR>.row(
         cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, bindBy: BindBy
 ): Array<Any?> = when (bindBy) {
     BindBy.Name -> rowByName(cursor, columnNames, columnTypes)
     BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
 }
 
-internal fun <SCH : Schema<SCH>, CUR : AutoCloseable, R> Blocking<CUR>.cell(
+internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell(
         cursor: CUR, table: Table<SCH, *, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R = when (bindBy) {
     BindBy.Name -> cellByName(cursor, column.name(table.schema), column.type(table.schema))
@@ -332,7 +332,7 @@ private fun Array<out Any>.forceIndexOf(element: Any): Int {
     throw NoSuchElementException(element.toString() + " !in " + contentToString())
 }
 
-internal fun <CUR : AutoCloseable, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
+internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
         bindBy: BindBy,
         cur: CUR,
         colNames: Array<out CharSequence>,

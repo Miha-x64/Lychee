@@ -1,5 +1,7 @@
 package net.aquadc.persistence.struct
 
+import java.io.Closeable
+
 /**
  * Represents an instance of a struct /strʌkt/ —
  * a map with [FieldDef] keys (can be treated as [String] or [Byte])
@@ -44,7 +46,7 @@ interface TransactionalStruct<SCH : Schema<SCH>> : Struct<SCH> {
 /**
  * A transaction on a single [Struct] instance.
  */
-interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
+interface StructTransaction<SCH : Schema<SCH>> : Closeable {
 
     /**
      * Sets [field] value to [update].
@@ -59,7 +61,7 @@ interface StructTransaction<SCH : Schema<SCH>> : AutoCloseable {
     fun setSuccessful()
 }
 
-abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SCH>, AutoCloseable {
+abstract class SimpleStructTransaction<SCH : Schema<SCH>> : StructTransaction<SCH>, Closeable {
 
     @JvmField protected var successful: Boolean? = false
 

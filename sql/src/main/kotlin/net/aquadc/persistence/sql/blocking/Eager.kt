@@ -8,7 +8,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 
-@PublishedApi internal class FetchCellEagerly<CUR : AutoCloseable, R>(
+@PublishedApi internal class FetchCellEagerly<CUR, R>(
         private val rt: DataType<R>,
         private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, R> {
@@ -18,7 +18,7 @@ import net.aquadc.persistence.type.DataType
             from.cell(query, argumentTypes, arguments, rt, orElse)
 }
 
-@PublishedApi internal class FetchColEagerly<CUR : AutoCloseable, R>(
+@PublishedApi internal class FetchColEagerly<CUR, R>(
         private val rt: DataType<R>
 ) : Fetch<Blocking<CUR>, List<R>> {
     override fun fetch(
@@ -36,12 +36,12 @@ import net.aquadc.persistence.type.DataType
                 } else listOf(first)
             } else emptyList()
         } finally {
-            cur.close()
+            from.close(cur)
         }
     }
 }
 
-@PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR : AutoCloseable>(
+@PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR>(
         private val table: Table<SCH, *, *>,
         private val bindBy: BindBy,
         private val orElse: () -> StructSnapshot<SCH>
@@ -58,12 +58,12 @@ import net.aquadc.persistence.type.DataType
             check(!from.next(cur)) // single row expected
             return value
         } finally {
-            cur.close()
+            from.close(cur)
         }
     }
 }
 
-@PublishedApi internal class FetchStructListEagerly<CUR : AutoCloseable, SCH : Schema<SCH>>(
+@PublishedApi internal class FetchStructListEagerly<CUR, SCH : Schema<SCH>>(
         private val table: Table<SCH, *, *>,
         private val bindBy: BindBy
 ) : Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> {
@@ -86,7 +86,7 @@ import net.aquadc.persistence.type.DataType
                 } else listOf<StructSnapshot<SCH>>(first)
             } else emptyList()
         } finally {
-            cur.close()
+            from.close(cur)
         }
     }
 }

@@ -21,9 +21,9 @@ import org.junit.Test
 
 open class TemplatesTest {
 
-    open val session: Session<out Blocking<out AutoCloseable>> get() = jdbcSession
+    open val session: Session<out Blocking<*>> get() = jdbcSession
 
-    @Test fun <CUR : AutoCloseable> cell() {
+    @Test fun <CUR> cell() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
             val kek = session.query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
@@ -34,7 +34,7 @@ open class TemplatesTest {
             assertEquals("lolkek", kek("lol").value)
         }
     }
-    @Test fun <CUR : AutoCloseable> noCell() {
+    @Test fun <CUR> noCell() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
             try { session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string))(); fail() }
@@ -50,7 +50,7 @@ open class TemplatesTest {
         }
     }
 
-    @Test fun <CUR : AutoCloseable> col() {
+    @Test fun <CUR> col() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
             val one = session.query("SELECT 1", col<CUR, Int>(i32))
@@ -62,7 +62,7 @@ open class TemplatesTest {
         }
     }
 
-    @Test fun <CUR : AutoCloseable> row() {
+    @Test fun <CUR> row() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
             val sumAndMul = session.query(
@@ -84,7 +84,7 @@ open class TemplatesTest {
         }
     }
 
-    @Test fun <CUR : AutoCloseable> noRow() {
+    @Test fun <CUR> noRow() {
         val session = session as Session<Blocking<CUR>>
         val intPair = i32 * i32
         Eagerly.run {
@@ -117,7 +117,7 @@ open class TemplatesTest {
         }
     }
 
-    @Test fun <CUR : AutoCloseable> join() {
+    @Test fun <CUR> join() {
         val session = session as Session<Blocking<CUR>>
         val johnPk = session.withTransaction {
             val john = insert(UserTable, User("John", "john@doe.com"))

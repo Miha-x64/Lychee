@@ -337,6 +337,9 @@ class SqliteSession(
             if (idx < 0) error { "$name !in ${columnNames.contentToString()}" }
             return idx
         }
+
+        override fun close(cursor: Cursor) =
+            cursor.close()
     }
 
 

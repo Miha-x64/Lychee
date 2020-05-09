@@ -18,7 +18,7 @@ internal interface SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound> {
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID
     ): T
 
-    fun <T, CUR : AutoCloseable> get(
+    fun <T, CUR> get(
             lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T
@@ -37,7 +37,7 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
         lowSession.fetchSingle(table, sch.nameOf(field), sch.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
     }
 
-    override fun <T, CUR : AutoCloseable> get(
+    override fun <T, CUR> get(
             lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =
@@ -65,7 +65,7 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
     ): T =
             inflated(lowSession.fetch(table, columnNames, columnTypes, id))
 
-    override fun <T, CUR : AutoCloseable> get(
+    override fun <T, CUR> get(
             lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =

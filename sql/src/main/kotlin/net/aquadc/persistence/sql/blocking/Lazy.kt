@@ -18,7 +18,7 @@ import java.io.InputStream
 import java.sql.ResultSet
 import java.sql.SQLFeatureNotSupportedException
 
-@PublishedApi internal class FetchCellLazily<CUR : AutoCloseable, R>(
+@PublishedApi internal class FetchCellLazily<CUR, R>(
         private val rt: DataType<R>,
         private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, Lazy<R>> {
@@ -30,7 +30,7 @@ import java.sql.SQLFeatureNotSupportedException
     }
 }
 
-@PublishedApi internal class FetchColLazily<CUR : AutoCloseable, R>(
+@PublishedApi internal class FetchColLazily<CUR, R>(
         private val rt: DataType<R>
 ) : Fetch<Blocking<CUR>, CloseableIterator<R>> {
     override fun fetch(
@@ -43,7 +43,7 @@ import java.sql.SQLFeatureNotSupportedException
     }
 }
 
-@PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR : AutoCloseable>(
+@PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR>(
         private val table: Table<SCH, *, *>,
         private val bindBy: BindBy,
         private val orElse: () -> Struct<SCH>
@@ -63,7 +63,7 @@ import java.sql.SQLFeatureNotSupportedException
     override fun close() { /* nothing to do here */ }
 }
 
-@PublishedApi internal class FetchStructListLazily<CUR : AutoCloseable, SCH : Schema<SCH>>(
+@PublishedApi internal class FetchStructListLazily<CUR, SCH : Schema<SCH>>(
         private val table: Table<SCH, *, *>,
         private val bindBy: BindBy,
         private val transient: Boolean
@@ -104,7 +104,7 @@ import java.sql.SQLFeatureNotSupportedException
 @Deprecated("moved") typealias CloseableIterator<T> = CloseableIterator<T>
 @Deprecated("moved") typealias CloseableStruct<SCH> = CloseableStruct<SCH>
 
-private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
+private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
         protected val from: Blocking<CUR>,
         private val query: String,
         private val argumentTypes: Array<out DataType.Simple<*>>,
@@ -140,7 +140,7 @@ private open class CurIterator<CUR : AutoCloseable, SCH : Schema<SCH>, R>(
                 else -> throw AssertionError()
             }
     final override fun close() {
-        _cur?.let { it.close(); _cur = null }
+        _cur?.let { from.close(it); _cur = null }
         state = 2
     }
 

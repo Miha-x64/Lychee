@@ -13,12 +13,11 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleNullable
 import java.io.InputStream
-import java.sql.ResultSet
 
 /**
  * SQL session tied to blocking API with cursors of type [CUR].
  */
-interface Blocking<CUR : AutoCloseable> {
+interface Blocking<CUR> {
     // Android SQLite API has special methods for single-cell selections
     fun <T> cell(
             query: String,
@@ -38,63 +37,72 @@ interface Blocking<CUR : AutoCloseable> {
 
     fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>): Array<Any?>
     fun rowByPosition(cursor: CUR, offset: Int, types: Array<out DataType<*>>): Array<Any?>
+
+    /**
+     * Closes the given cursor.
+     * [java.sql.ResultSet] is [AutoCloseable],
+     * while [android.database.Cursor] is [java.io.Closeable].
+     * [AutoCloseable] is more universal but requires Java 7 / Android SDK 19.
+     * Let's support mammoth crap smoothly.
+     */
+    fun close(cursor: CUR)
 }
 
 object Eagerly {
-    inline fun <CUR : AutoCloseable, R> cell(
+    inline fun <CUR, R> cell(
             returnType: DataType.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R> =
             FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R : Any> cell(
+    inline fun <CUR, R : Any> cell(
             returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R?> =
             FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R> col(elementType: DataType.Simple<R>): Fetch<Blocking<CUR>, List<R>> =
+    inline fun <CUR, R> col(elementType: DataType.Simple<R>): Fetch<Blocking<CUR>, List<R>> =
             FetchColEagerly(elementType)
 
-    inline fun <CUR : AutoCloseable, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, List<R?>> =
+    inline fun <CUR, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, List<R?>> =
             FetchColEagerly(elementType)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(
+    inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
     ): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
             FetchStructEagerly(table, bindBy, orElse)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(
+    inline fun <CUR, SCH : Schema<SCH>> structs(
             table: Table<SCH, *, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
             FetchStructListEagerly(table, bindBy)
 }
 
 object Lazily {
-    inline fun <CUR : AutoCloseable, R> cell(
+    inline fun <CUR, R> cell(
             returnType: DataType.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R>> =
             FetchCellLazily(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R : Any> cell(
+    inline fun <CUR, R : Any> cell(
             returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R?>> =
             FetchCellLazily(returnType, orElse)
 
-    inline fun <CUR : AutoCloseable, R> col(
+    inline fun <CUR, R> col(
             elementType: DataType.Simple<R>
     ): Fetch<Blocking<CUR>, CloseableIterator<R>> =
             FetchColLazily(elementType)
 
-    inline fun <CUR : AutoCloseable, R : Any> col(
+    inline fun <CUR, R : Any> col(
             elementType: SimpleNullable<R>
     ): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
             FetchColLazily(elementType)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> struct(
+    inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
     ): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
             FetchStructLazily(table, bindBy, orElse)
 
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> structs(
+    inline fun <CUR, SCH : Schema<SCH>> structs(
             table: Table<SCH, *, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, false)
@@ -111,12 +119,12 @@ object Lazily {
      * and other stateful one-pass operations are also OK.
      * (But consider doing as much work as possible in SQL instead.)
      */
-    inline fun <CUR : AutoCloseable, SCH : Schema<SCH>> transientStructs(
+    inline fun <CUR, SCH : Schema<SCH>> transientStructs(
             table: Table<SCH, *, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, true)
 
-    inline fun cellByteStream(): Fetch<Blocking<ResultSet>, InputStream> =
+    inline fun cellByteStream(): Fetch<Blocking<java.sql.ResultSet>, InputStream> =
             InputStreamFromResultSet //         ^^^^^^^^^ JDBC-only. Not supported by Android SQLite
 }
 

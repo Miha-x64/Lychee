@@ -306,6 +306,9 @@ class JdbcSession(
                 Array(columnNames.size) { idx -> cellByName(cursor, columnNames[idx], columnTypes[idx]) }
         override fun rowByPosition(cursor: ResultSet, offset: Int, types: Array<out DataType<*>>): Array<Any?> =
                 Array(types.size) { idx -> types[idx].get(cursor, offset + idx) }
+
+        override fun close(cursor: ResultSet) =
+            cursor.close()
     }
 
 

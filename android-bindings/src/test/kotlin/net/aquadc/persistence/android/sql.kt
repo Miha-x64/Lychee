@@ -101,7 +101,7 @@ class QueryBuilderRoboTests : QueryBuilderTests() {
 @Config(manifest = Config.NONE)
 class TemplatesRoboTests : TemplatesTest() {
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session<out Blocking<out AutoCloseable>>
+    override lateinit var session: Session<out Blocking<*>>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)
