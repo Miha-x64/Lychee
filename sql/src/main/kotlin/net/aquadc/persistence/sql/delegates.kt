@@ -15,16 +15,16 @@ import net.aquadc.persistence.type.DataType
 internal interface SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound> {
 
     fun <T> fetch(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID
+            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
     ): T
 
     fun <T, CUR> get(
-            lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+            lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T
 
     fun <T> update(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID,
+            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
             previous: T, update: T
     )
 }
@@ -32,19 +32,19 @@ internal interface SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound> {
 internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH, ID> {
 
     override fun <T> fetch(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID
+            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
     ): T = table.schema.let { sch -> // the following cast seems to be unnecessary with new inference
         lowSession.fetchSingle(table, sch.nameOf(field), sch.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
     }
 
     override fun <T, CUR> get(
-            lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+            lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =
             lowSession.cell<SCH, CUR, T>(cursor, table, field, bindBy)
 
     override fun <T> update(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID,
+            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
             previous: T, update: T
     ): Unit = table.schema.let { sch ->
         lowSession.update(table, id, field.name(sch), field.type(sch), update)
@@ -61,12 +61,12 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
     private val columnTypes = Array(tmpColumns.size) { i -> tmpColumns[i].type(schema) }
 
     override fun <T> fetch(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID
+            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
     ): T =
             inflated(lowSession.fetch(table, columnNames, columnTypes, id))
 
     override fun <T, CUR> get(
-            lowSession: Blocking<CUR>, table: Table<SCH, *, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+            lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =
             inflated(lowSession.row(cursor, myOffset, columnNames, columnTypes, bindBy))
@@ -77,7 +77,7 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
     }
 
     override fun <T> update(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID, *>, field: FieldDef<SCH, T, *>, id: ID,
+            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
             previous: T, update: T
     ): Unit = lowSession.update(
             table, id, columnNames, columnTypes,

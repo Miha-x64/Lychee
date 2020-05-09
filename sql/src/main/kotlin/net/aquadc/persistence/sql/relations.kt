@@ -61,10 +61,10 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      * @param S outer schema
      * @param FS foreign schema
      */
-    @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
-    class ToOne<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, FR : Record<FS, FID>>(
-            path: StoredLens<S, FR?, *>, foreignTable: Table<FS, *, FR>
-    ) : Relation<S, ID, FR?>(path) {
+    @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR) // todo
+    class ToOne<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound>(
+            path: StoredLens<S, Record<FS, FID>?, *>, foreignTable: Table<FS, *>
+    ) : Relation<S, ID, Record<FS, FID>?>(path) {
         init {
             checkToOne(TODO(), path, foreignTable)
         }
@@ -78,8 +78,8 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      * @param FR foreign record
      */
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
-    class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> private constructor(
-            ourTable: Table<S, ID, R>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: StoredLens<FS, *, *>
+    class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> private constructor(
+            ourTable: Table<S, ID>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinColumn: StoredLens<FS, *, *>
     ) : Relation<S, ID, C>(path) {
         init {
             checkToMany(ourTable.schema, path, foreignTable)
@@ -87,15 +87,15 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
         }
 
         companion object {
-            operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> Table<S, ID, R>.invoke(
-                    path: Lens<S, Record<S, ID>, Record<S, ID>, C, *>, foreignTable: Table<FS, *, FR>, joinColumn: Lens<FS, Record<FS, *>, Record<FS, *>, *, *>
+            operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, C : Collection<Record<FS, FID>>> Table<S, ID>.invoke(
+                    path: Lens<S, Record<S, ID>, Record<S, ID>, C, *>, foreignTable: Table<FS, *>, joinColumn: Lens<FS, Record<FS, *>, Record<FS, *>, *, *>
             ): Nothing = TODO() // ToMany<S, ID, FS, R, FID, FR, C> = ToMany(this, path, foreignTable, joinColumn)
         }
     }
 
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
-    class ManyToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FR : Record<FS, *>, C : Collection<FR>>(
-            path: StoredLens<S, C, *>, foreignTable: Table<FS, *, FR>, joinTable: JoinTable
+    class ManyToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, C : Collection<Record<FS, *>>>(
+            path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinTable: JoinTable
     ) : Relation<S, ID, C>(path) {
         init {
             checkToMany(TODO(), path, foreignTable)
@@ -130,8 +130,8 @@ typealias JoinTable = Nothing
 
 }*/
 
-internal fun <S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
-        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<FS, *, FR>) {
+internal fun <S : Schema<S>, FS : Schema<FS>> checkToMany(
+        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<FS, *>) {
     val type = path.type(schema)
     check(type is DataType.Collect<*, *, *>) {
         "only fields of Collection<Struct> types can be used with to-many relations"
@@ -145,8 +145,8 @@ internal fun <S : Schema<S>, FS : Schema<FS>, FR : Record<FS, *>> checkToMany(
     }
 }
 
-internal fun <S : Schema<S>, F : Schema<F>, R : Record<F, *>> checkToOne(
-        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<F, *, R>
+internal fun <S : Schema<S>, F : Schema<F>> checkToOne(
+        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<F, *>
 ) {
     val type = path.type(schema)
     val realType = if (type is DataType.Nullable<*, *>) type.actualType else type

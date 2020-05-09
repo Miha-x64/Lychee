@@ -47,9 +47,7 @@ interface Session<SRC> {
     /**
      * Lazily creates and returns DAO for the given table.
      */
-    operator fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(
-            table: Table<SCH, ID, REC>
-    ): Dao<SCH, ID, REC>
+    operator fun <SCH : Schema<SCH>, ID : IdBound> get(table: Table<SCH, ID>): Dao<SCH, ID>
 
     /**
      * Opens a transaction, allowing mutation of data.
@@ -66,10 +64,12 @@ interface Session<SRC> {
  * Represents a database session specialized for a certain [Table].
  * {@implNote [Manager] supertype is used by [ManagedProperty] instances}
  */
-interface Dao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> : Manager<SCH, Transaction, ID> {
-    fun find(id: ID /* TODO fields to prefetch */): REC?
-    fun select(condition: WhereCondition<SCH>, order: Array<out Order<SCH>>/* TODO: prefetch */): Property<List<REC>> // TODO Fetch | group by | having
-    // todo joins
+interface Dao<SCH : Schema<SCH>, ID : IdBound> : Manager<SCH, Transaction, ID> {
+    fun find(id: ID): Record<SCH, ID>?
+    fun select(
+        condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
+    ): Property<List<Record<SCH, ID>>> // TODO group by | having
+
     fun count(condition: WhereCondition<SCH>): Property<Long>
     // why do they have 'out' variance? Because we want to use a single WhereCondition<Nothing> when there's no condition
 }
@@ -93,19 +93,19 @@ inline fun <R> Session<*>.withTransaction(block: Transaction.() -> R): R {
     }
 }
 
-fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.require(id: ID): REC =
+fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.require(id: ID): Record<SCH, ID> =
         find(id) ?: throw NoSuchElementException("No record found in `$this` for ID $id")
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.select(
-        condition: WhereCondition<SCH>, vararg order: Order<SCH>/* TODO: prefetch */
-): Property<List<REC>> =
+inline fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.select(
+        condition: WhereCondition<SCH>, vararg order: Order<SCH>
+): Property<List<Record<SCH, ID>>> =
         select(condition, order)
 
-fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.selectAll(vararg order: Order<SCH>): Property<List<REC>> =
+fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.selectAll(vararg order: Order<SCH>): Property<List<Record<SCH, ID>>> =
         select(emptyCondition(), order)
 
-fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> Dao<SCH, ID, REC>.count(): Property<Long> =
+fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.count(): Property<Long> =
         count(emptyCondition())
 
 @Deprecated("unintentionally exposed private API. Looks useless")
@@ -118,20 +118,20 @@ interface Transaction : Closeable {
     /**
      * Insert [data] into a [table].
      */
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, REC>, data: Struct<SCH>/*patch: Partial*/): REC
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>/*todo patch: Partial*/): Record<SCH, ID>
 
     /**
      * Insert all the [data] into a table.
      * Iterators over __transient structs__ are welcome.
      */
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID, REC>, data: Iterator<Struct<SCH>>/*patch: Partial*/) {
+    fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>/*todo patch: Partial*/) {
         for (struct in data)
             insert(table, struct)
     }
     // TODO emulate slow storage!
 
     // OMG, private API?
-    fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
     // TODO: update where
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
@@ -141,11 +141,11 @@ interface Transaction : Closeable {
      * Clear the whole table.
      * This may be implemented either as `DELETE FROM table` or `TRUNCATE table`.
      */
-    fun truncate(table: Table<*, *, *>)
+    fun truncate(table: Table<*, *>)
 
     fun setSuccessful()
 
-    operator fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.set(field: FieldDef.Mutable<SCH, T, *>, new: T) {
+    operator fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.set(field: FieldDef.Mutable<SCH, T, *>, new: T) {
         (this prop field).setValue(this@Transaction, new)
     }
 
@@ -163,7 +163,7 @@ interface Transaction : Closeable {
                 }
             }
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.mutateFrom(
+    private inline fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.mutateFrom(
             source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T, *>
     ) {
         this[field] = source.getOrThrow(field)

@@ -44,7 +44,7 @@ import java.sql.SQLFeatureNotSupportedException
 }
 
 @PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR>(
-        private val table: Table<SCH, *, *>,
+        private val table: Table<SCH, *>,
         private val bindBy: BindBy,
         private val orElse: () -> Struct<SCH>
 ) : Fetch<Blocking<CUR>, CloseableStruct<SCH>>, CloseableStruct<SCH> {
@@ -64,7 +64,7 @@ import java.sql.SQLFeatureNotSupportedException
 }
 
 @PublishedApi internal class FetchStructListLazily<CUR, SCH : Schema<SCH>>(
-        private val table: Table<SCH, *, *>,
+        private val table: Table<SCH, *>,
         private val bindBy: BindBy,
         private val transient: Boolean
 ) : Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> {
@@ -110,7 +110,7 @@ private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
         private val argumentTypes: Array<out DataType.Simple<*>>,
         private val arguments: Array<out Any>,
 
-        private val table: Table<SCH, *, out Record<SCH, *>>?,
+        private val table: Table<SCH, *>?,
         private val bindBy: BindBy,
         schema: SCH
 ) : IteratorAndTransientStruct<SCH, R>(schema) {

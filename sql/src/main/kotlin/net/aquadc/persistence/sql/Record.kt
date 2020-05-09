@@ -1,13 +1,11 @@
 package net.aquadc.persistence.sql
 
-import androidx.annotation.RestrictTo
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.mapIndexed
 import net.aquadc.properties.Property
-import net.aquadc.properties.bind
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.persistence.PropertyStruct
@@ -21,10 +19,8 @@ open class Record<SCH : Schema<SCH>, ID : IdBound>
  * Creates new record.
  * Note that such a record is managed and alive (will receive updates) only if created by [Dao].
  */
-@Deprecated("Will become internal soon, making the whole class effectively final")
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-constructor(
-        internal val table: Table<SCH, ID, *>,
+internal constructor(
+        internal val table: Table<SCH, ID>,
         private val session: Session<*>,
         val primaryKey: ID
 ) : BaseStruct<SCH>(table.schema), PropertyStruct<SCH> {
@@ -32,8 +28,8 @@ constructor(
     internal val _session get() = session
 
     @Suppress("UNCHECKED_CAST")
-    internal val dao: Dao<SCH, ID, *>
-        get() = session[table as Table<SCH, ID, Record<SCH, ID>>]
+    internal val dao: Dao<SCH, ID>
+        get() = session[table as Table<SCH, ID>]
 
     internal fun copyValues(): Array<Any?> {
         val size = values.size
@@ -64,28 +60,25 @@ constructor(
     override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): SqlProperty<T> =
             values[field.ordinal.toInt()] as SqlProperty<T>
 
-    @Deprecated("now we have normal relations")
+    @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
     @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
     infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<SCH, ForeID, *>.toOne(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC> =
-            (this as FieldDef.Mutable<SCH, ForeID?, *>).toOneNullable(foreignTable) as SqlProperty<ForeREC>
+            FieldDef.Mutable<SCH, ForeID, *>.toOne(foreignTable: Table<ForeSCH, ForeID>): SqlProperty<ForeREC> =
+            throw AssertionError()
 
-    @Deprecated("now we have normal relations")
-    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<SCH, ForeID?, *>.toOneNullable(foreignTable: Table<ForeSCH, ForeID, ForeREC>): SqlProperty<ForeREC?> =
-            (this@Record prop this@toOneNullable).bind(
-                    { id: ForeID? -> if (id == null) null else _session[foreignTable].require(id) },
-                    { it: ForeREC? -> it?.primaryKey }
-            )
+    @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
+    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound>
+            FieldDef.Mutable<SCH, ForeID?, *>.toOneNullable(foreignTable: Table<ForeSCH, ForeID>): SqlProperty<Record<ForeSCH, ForeID>?> =
+            throw AssertionError()
 
-    @Deprecated("now we have normal relations")
-    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<ForeSCH, ID, *>.toMany(foreignTable: Table<ForeSCH, ForeID, ForeREC>): Property<List<ForeREC>> =
-            session[foreignTable].select(this eq primaryKey)
+    @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
+    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound>
+            FieldDef.Mutable<ForeSCH, ID, *>.toMany(foreignTable: Table<ForeSCH, ForeID>): Property<List<Record<ForeSCH, ForeID>>> =
+            throw AssertionError()
 
     @JvmField @JvmSynthetic @Suppress("UNCHECKED_CAST")
     internal val values: Array<Any?/* = ManagedProperty<Transaction, T> | T */> =
-            session[table as Table<SCH, ID, Record<SCH, ID>>].let { dao ->
+            session[table as Table<SCH, ID>].let { dao ->
                 schema.mapIndexed(fields) { i, field ->
                     when (field) {
                         is FieldDef.Mutable -> ManagedProperty(dao, field as FieldDef<SCH, Any?, *>, primaryKey, Unset)

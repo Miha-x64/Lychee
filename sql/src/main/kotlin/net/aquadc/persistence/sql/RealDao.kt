@@ -21,12 +21,12 @@ import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.CopyOnWriteArraySet
 
 
-internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, STMT>(
+internal class RealDao<SCH : Schema<SCH>, ID : IdBound, STMT>(
         private val session: Session<*>,
         private val lowSession: LowLevelSession<STMT, *>,
-        private val table: Table<SCH, ID, REC>,
+        private val table: Table<SCH, ID>,
         private val dialect: Dialect
-) : Dao<SCH, ID, REC> {
+) : Dao<SCH, ID> {
 
     // these three are guarded by RW lock
     internal var insertStatement: STMT? = null
@@ -35,30 +35,30 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
 
 
     // there's no ReferenceQueue, just evict when reference gets nulled out
-    private val recordRefs = ConcurrentHashMap<ID, WeakReference<REC>>()
+    private val recordRefs = ConcurrentHashMap<ID, WeakReference<Record<SCH, ID>>>()
 
     // SELECT COUNT(*) WHERE ...
     private val counts = ConcurrentHashMap<WhereCondition<SCH>, WeakReference<`Mapped-`<WhereCondition<SCH>, Long>>>()
 
     // SELECT _id WHERE ...
-    private val selections = ConcurrentHashMap<ConditionAndOrder<SCH>, WeakReference<Property<List<REC>>>>()
+    private val selections = ConcurrentHashMap<ConditionAndOrder<SCH>, WeakReference<Property<List<Record<SCH, ID>>>>>()
     // same items here, but in different format
     private val selectionsByOrder = Array(table.columns.size) { _ ->
-        CopyOnWriteArraySet<WeakReference<Property<List<REC>>>>()
+        CopyOnWriteArraySet<WeakReference<Property<List<Record<SCH, ID>>>>>()
     }
 
-    internal fun getCached(id: ID): REC? =
+    internal fun getCached(id: ID): Record<SCH, ID>? =
             recordRefs.getWeakOrRemove(id)
 
-    internal fun forget(id: ID): WeakReference<REC>? =
+    internal fun forget(id: ID): WeakReference<Record<SCH, ID>>? =
             recordRefs.remove(id)?.let(::forgetInternal)
 
-    internal fun truncateLocked(removedRefsTo: ArrayList<in WeakReference<out REC>>) {
+    internal fun truncateLocked(removedRefsTo: ArrayList<in WeakReference<out Record<SCH, ID>>>) {
         recordRefs.values.mapNotNullTo(removedRefsTo, ::forgetInternal)
         recordRefs.clear()
     }
 
-    private fun forgetInternal(ref: WeakReference<REC>): WeakReference<REC>? {
+    private fun forgetInternal(ref: WeakReference<Record<SCH, ID>>): WeakReference<Record<SCH, ID>>? {
         val rec = ref.get() ?: return null
         rec.isManaged = false
         return ref
@@ -82,7 +82,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
         }
     }
 
-    private fun updateSelection(selection: Property<List<REC>>) {
+    private fun updateSelection(selection: Property<List<Record<SCH, ID>>>) {
         val mapped = selection as `Mapped-`<*, *>
         val distinct = mapped.original as `Distinct-`
         val anotherMapped = distinct.original as `Mapped-`<*, *>
@@ -149,17 +149,17 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, S
 
     // region Dao implementation
 
-    override fun find(id: ID): REC? =
+    override fun find(id: ID): Record<SCH, ID>? =
             when (lowSession.fetchCount(table, lowSession.pkCond(table, id))) {
                 0L -> null
-                1L -> recordRefs.getOrPutWeak(id) { table.newRecord(session, id) }
+                1L -> recordRefs.getOrPutWeak(id) { Record<SCH, ID>(table, session, id) }
                 else -> throw AssertionError()
             }
 
-    override fun select(condition: WhereCondition<SCH>, vararg order: Order<SCH>): Property<List<REC>> {
+    override fun select(condition: WhereCondition<SCH>, vararg order: Order<SCH>): Property<List<Record<SCH, ID>>> {
         val cor = ConditionAndOrder(condition, order)
-        val ref: WeakReference<Property<List<REC>>>
-        val prop: Property<List<REC>>
+        val ref: WeakReference<Property<List<Record<SCH, ID>>>>
+        val prop: Property<List<Record<SCH, ID>>>
         selections.getOrPutWeak(cor, {
             concurrentPropertyOf(cor)
                     .map(PrimaryKeys(table, lowSession))

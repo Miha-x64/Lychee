@@ -19,7 +19,6 @@ import net.aquadc.persistence.sql.NoOrder
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
-import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
@@ -51,11 +50,11 @@ class SqliteSession(
     @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(table: Table<SCH, ID, REC>): Dao<SCH, ID, REC> =
-            getDao(table) as Dao<SCH, ID, REC>
+    override fun <SCH : Schema<SCH>, ID : IdBound> get(table: Table<SCH, ID>): Dao<SCH, ID> =
+            getDao(table) as Dao<SCH, ID>
 
-    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, SQLiteStatement> =
-            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table as Table<SCH, ID, Record<SCH, ID>>, SqliteDialect) } as RealDao<SCH, ID, *, SQLiteStatement>
+    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID>): RealDao<SCH, ID, SQLiteStatement> =
+            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, SqliteDialect) } as RealDao<SCH, ID, SQLiteStatement>
 
     // region transactions and modifying statements
 
@@ -64,7 +63,7 @@ class SqliteSession(
 
     @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement, Cursor>() {
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID {
             val dao = getDao(table)
             val statement = dao.insertStatement ?: connection.compileStatement(SqliteDialect.insert(table)).also { dao.insertStatement = it }
 
@@ -91,7 +90,7 @@ class SqliteSession(
             return this
         }
 
-        private fun <SCH : Schema<SCH>, ID : IdBound> updateStatementWLocked(table: Table<SCH, ID, *>, cols: Any): SQLiteStatement =
+        private fun <SCH : Schema<SCH>, ID : IdBound> updateStatementWLocked(table: Table<SCH, ID>, cols: Any): SQLiteStatement =
                 getDao(table)
                         .updateStatements
                         .getOrPut(cols) {
@@ -101,7 +100,7 @@ class SqliteSession(
                             connection.compileStatement(SqliteDialect.updateQuery(table, colArray))
                         }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID, *>, id: ID, columnNames: Any, columnTypes: Any, values: Any?) {
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, columnNames: Any, columnTypes: Any, values: Any?) {
             val statement = updateStatementWLocked(table, columnNames)
             val colCount = bindValues(columnTypes, values) { type, idx, value ->
                 type.bind(statement, idx, value)
@@ -110,14 +109,14 @@ class SqliteSession(
             check(statement.executeUpdateDelete() == 1)
         }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID) {
+        override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID) {
             val dao = getDao(table)
             val statement = dao.deleteStatement ?: connection.compileStatement(SqliteDialect.deleteRecordQuery(table)).also { dao.deleteStatement = it }
             table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdateDelete() == 1)
         }
 
-        override fun truncate(table: Table<*, *, *>) {
+        override fun truncate(table: Table<*, *>) {
             connection.execSQL(SqliteDialect.truncate(table))
         }
 
@@ -139,7 +138,7 @@ class SqliteSession(
         }
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
-                table: Table<SCH, ID, *>,
+                table: Table<SCH, ID>,
                 columnNames: Array<out CharSequence>?,
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<SCH>>
@@ -165,7 +164,7 @@ class SqliteSession(
         // a workaround for binding BLOBs, as suggested in https://stackoverflow.com/a/23159664/3050249
         private inner class CurFac<ID : IdBound, SCH : Schema<SCH>>(
                 private val condition: WhereCondition<SCH>?,
-                private val table: Table<SCH, ID, *>?,
+                private val table: Table<SCH, ID>?,
                 private val argumentTypes: Array<out DataType.Simple<*>>?,
                 private val arguments: Array<out Any>?
         ) : SQLiteDatabase.CursorFactory {
@@ -190,24 +189,24 @@ class SqliteSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID, *>, colName: CharSequence, colType: DataType<T>, id: ID
+                table: Table<SCH, ID>, colName: CharSequence, colType: DataType<T>, id: ID
         ): T =
                 select<SCH, ID>(table, arrayOf(colName) /* fixme allocation */, pkCond<SCH, ID>(table, id), noOrder())
                         .fetchSingle(colType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-                table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
+                table: Table<SCH, ID>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select<SCH, ID>(table, arrayOf(table.pkColumn.name(table.schema)) /* fixme allocation */, condition, order)
                         .fetchAllRows(table.idColType)
                         .array<Any>() as Array<ID>
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-                table: Table<SCH, ID, *>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
+                table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
         ): Array<Any?> =
                 select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID, *>, condition: WhereCondition<SCH>): Long =
+        override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID>, condition: WhereCondition<SCH>): Long =
                 select<SCH, ID>(table, null, condition, NoOrder as Array<out Order<SCH>>).fetchSingle(i64)
 
         override val transaction: RealTransaction?
@@ -357,7 +356,7 @@ class SqliteSession(
 
     fun dump(sb: StringBuilder) {
         sb.append("DAOs\n")
-        lowLevel.daos.forEach { (table: Table<*, *, *>, dao: Dao<*, *, *>) ->
+        lowLevel.daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
             sb.append(" ").append(table.name).append("\n")
             dao.dump("  ", sb)
 
@@ -381,6 +380,6 @@ class SqliteSession(
 /**
  * Calls [SQLiteDatabase.execSQL] for the given [table] in [this] database.
  */
-fun <SCH : Schema<SCH>> SQLiteDatabase.createTable(table: Table<SCH, *, *>) {
+fun <SCH : Schema<SCH>> SQLiteDatabase.createTable(table: Table<SCH, *>) {
     execSQL(SqliteDialect.createTable(table))
 }

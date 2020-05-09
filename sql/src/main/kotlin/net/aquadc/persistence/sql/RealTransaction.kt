@@ -23,25 +23,25 @@ internal class RealTransaction(
     private var isSuccessful = false
 
     // table : IDs
-    private var inserted: MutableMap<Table<*, *, *>, ArrayList<IdBound>>? = null
+    private var inserted: MutableMap<Table<*, *>, ArrayList<IdBound>>? = null
 
     // column : ID : value
     internal var updated: UpdatesMap? = null
 
     // table : IDs
-    private var deleted: MutableMap<Table<*, *, *>, Any>? = null // MutableMap<Table, ArrayList<IdBound> | Unit>; fixme: without RWLock this will be wrong
+    private var deleted: MutableMap<Table<*, *>, Any>? = null // MutableMap<Table, ArrayList<IdBound> | Unit>; fixme: without RWLock this will be wrong
 
     // TODO: use special collections for Longs
 
-    override fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound> insert(
-            table: Table<SCH, ID, REC>, data: Struct<SCH>
-    ): REC {
+    override fun <SCH : Schema<SCH>, ID : IdBound> insert(
+            table: Table<SCH, ID>, data: Struct<SCH>
+    ): Record<SCH, ID> {
         checkOpenAndThread()
 
         val id = lowSession.insert(table, data)
 
         // remember we've added a record
-        (inserted ?: newMap<Table<*, *, *>, ArrayList<IdBound>>().also { inserted = it })
+        (inserted ?: newMap<Table<*, *>, ArrayList<IdBound>>().also { inserted = it })
                 .getOrPut(table, ::ArrayList)
                 .add(id)
 
@@ -61,8 +61,8 @@ internal class RealTransaction(
         return session[table].require(id)
     }
 
-    override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>, T> update(
-            table: Table<SCH, ID, REC>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T
+    override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
+            table: Table<SCH, ID>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T
     ) {
         checkOpenAndThread()
         val updates = (updated ?: UpdatesMap().also { updated = it })
@@ -79,22 +79,22 @@ internal class RealTransaction(
 
         val table = record.table
         val id = record.primaryKey
-        lowSession.delete(table as Table<SCH, ID, Record<SCH, ID>>, id)
+        lowSession.delete(table, id)
 
         val del = deletedMap()
         if (del[table] != Unit) {
-            (del as MutableMap<Table<*, *, *>, ArrayList<IdBound>>).getOrPut(table, ::ArrayList).add(id)
+            (del as MutableMap<Table<*, *>, ArrayList<IdBound>>).getOrPut(table, ::ArrayList).add(id)
         }
     }
 
-    override fun truncate(table: Table<*, *, *>) {
+    override fun truncate(table: Table<*, *>) {
         checkOpenAndThread()
         lowSession.truncate(table)
         deletedMap()[table] = Unit
     }
 
     private fun deletedMap() =
-            deleted ?: newMap<Table<*, *, *>, Any>().also { deleted = it }
+            deleted ?: newMap<Table<*, *>, Any>().also { deleted = it }
 
     override fun setSuccessful() {
         checkOpenAndThread()
@@ -115,7 +115,7 @@ internal class RealTransaction(
         var unmanage: ArrayList<WeakReference<out Record<*, *>>>? = null
         if (del != null) {
             for ((table, ids) in del) { // forEach here will be unable to smart-cast `unmanage` var
-                val man = lowSession.daos[table as Table<NullSchema, IdBound, Record<NullSchema, IdBound>>] as RealDao<*, IdBound, *, *>?
+                val man = lowSession.daos[table as Table<NullSchema, IdBound>] as RealDao<*, IdBound, *>?
                 if (man != null) {
                     if (unmanage == null) unmanage = ArrayList()
                     if (ids is Unit) man.truncateLocked(removedRefsTo = unmanage)
@@ -127,9 +127,9 @@ internal class RealTransaction(
         // value changes
         val upd = updated?.onEach { (table, idToRec) ->
             idToRec.forEach { (id, upd) ->
-                (lowSession.daos[table] as RealDao<NullSchema, IdBound, Record<NullSchema, IdBound>, *>?)
+                (lowSession.daos[table] as RealDao<NullSchema, IdBound, *>?)
                     ?.getCached(id)?.let { rec ->
-                        (table as Table<NullSchema, IdBound, Record<NullSchema, IdBound>>).commitValues(rec, upd)
+                        (table as Table<NullSchema, IdBound>).commitValues(rec, upd)
                     }
             }
         }
@@ -137,7 +137,7 @@ internal class RealTransaction(
         // structure changes
         val ins = inserted
         if (ins != null || del != null || upd != null) {
-            val changedTables = (ins?.keys ?: emptySet<Table<*, *, *>>()) + (del?.keys ?: emptySet())
+            val changedTables = (ins?.keys ?: emptySet<Table<*, *>>()) + (del?.keys ?: emptySet())
 
             var updatedCols: BitSet? = null
             for ((table, dao) in lowSession.daos) {

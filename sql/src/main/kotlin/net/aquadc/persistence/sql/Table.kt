@@ -24,7 +24,7 @@ import net.aquadc.properties.internal.Unset
  * @param ID  primary key type
  * @param REC type of record, which can be simply `Record<SCH>` or a custom class extending [Record]
  */
-abstract class Table<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
+open class Table<SCH : Schema<SCH>, ID : IdBound>
 private constructor(
         val schema: SCH,
         val name: String,
@@ -40,12 +40,6 @@ private constructor(
 
     constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) :
             this(schema, name, schema.run { idCol.name }, schema.run { idCol.type }, idCol)
-
-    /**
-     * Instantiates a record. Typically consists of a single constructor call.
-     */
-    @Deprecated("Stop overriding this! Will become final.")
-    abstract fun newRecord(session: Session<*>, primaryKey: ID): REC
 
     /**
      * Returns all relations for this table.
@@ -174,8 +168,8 @@ private constructor(
     val columns: Array<out StoredNamedLens<SCH, *, *>>
         get() = _columns.value
 
-    val pkColumn: NamedLens<SCH, REC, REC, ID, out DataType.Simple<ID>>
-        get() = columns[0] as NamedLens<SCH, REC, REC, ID, out DataType.Simple<ID>>
+    val pkColumn: NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.Simple<ID>>
+        get() = columns[0] as NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.Simple<ID>>
 
     internal val recipe: Array<out Nesting>
         get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }
@@ -209,7 +203,7 @@ private constructor(
                     }
                 }.also { _columnIndices = it }
 
-    internal fun delegateFor(lens: Lens<SCH, REC, REC, *, *>): SqlPropertyDelegate<SCH, ID> {
+    internal fun delegateFor(lens: Lens<SCH, Record<SCH, ID>, Record<SCH, ID>, *, *>): SqlPropertyDelegate<SCH, ID> {
         val delegates = _delegates ?: _columns.value.let { _ /* unwrap lazy */ -> _delegates!! }
         return delegates[lens] ?: simpleDelegate as SqlPropertyDelegate<SCH, ID>
     }
@@ -227,7 +221,7 @@ private constructor(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is Table<*, *, *> || other.name != name) return false
+        if (other !is Table<*, *> || other.name != name) return false
         require(this === other) { "tables have same name but different instances: '$this' and '$other" }
         return true
     }
@@ -258,47 +252,38 @@ private constructor(
 /**
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
  */
-open class SimpleTable<SCH : Schema<SCH>, ID : IdBound> : Table<SCH, ID, Record<SCH, ID>> {
-
-    constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) : super(schema, name, idColName, idColType)
-
-    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) : super(schema, name, idCol)
-
-    @Deprecated("Stop overriding this! Will become final.")
-    override fun newRecord(session: Session<*>, primaryKey: ID): Record<SCH, ID> =
-            Record(this, session, primaryKey)
-
-}
+@Deprecated("normal Table is Simple enough", ReplaceWith("Table"))
+typealias SimpleTable<SCH, ID> = Table<SCH, ID>
 
 @Suppress("NOTHING_TO_INLINE") // pass-through
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>): SimpleTable<SCH, ID> =
-        SimpleTable(schema, name, idColName, idColType)
+        Table(schema, name, idColName, idColType)
 
 @Suppress("NOTHING_TO_INLINE") // pass-through
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>): SimpleTable<SCH, ID> =
-        SimpleTable(schema, name, idCol)
+        Table(schema, name, idCol)
 
 // just extend SimpleTable, but infer type arguments instead of forcing client to specify them explicitly in object expression:
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>,
         crossinline relations: SCH.() -> Array<out Relation<SCH, ID, *>>
-): SimpleTable<SCH, ID> =
-        object : SimpleTable<SCH, ID>(schema, name, idColName, idColType) {
+): Table<SCH, ID> =
+        object : Table<SCH, ID>(schema, name, idColName, idColType) {
             override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke(schema)
         }
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>,
         crossinline relations: () -> Array<out Relation<SCH, ID, *>>
-): SimpleTable<SCH, ID> =
-        object : SimpleTable<SCH, ID>(schema, name, idCol) {
+): Table<SCH, ID> =
+        object : Table<SCH, ID>(schema, name, idCol) {
             override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke()
         }
 
 @Suppress("NOTHING_TO_INLINE") // just to be consistent with other functions
-inline fun <SCH : Schema<SCH>> projection(schema: SCH): SimpleTable<SCH, Nothing> =
+inline fun <SCH : Schema<SCH>> projection(schema: SCH): Table<SCH, Nothing> =
         tableOf(schema, "<anonymous>", "<none>", nothing)
 
-inline fun <SCH : Schema<SCH>> projection(schema: SCH, crossinline relations: SCH.() -> Array<out Relation<SCH, Nothing, *>>): SimpleTable<SCH, Nothing> =
+inline fun <SCH : Schema<SCH>> projection(schema: SCH, crossinline relations: SCH.() -> Array<out Relation<SCH, Nothing, *>>): Table<SCH, Nothing> =
         tableOf(schema, "<anonymous>", "<none>", nothing, relations)

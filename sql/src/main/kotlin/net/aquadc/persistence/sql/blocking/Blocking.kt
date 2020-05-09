@@ -66,12 +66,12 @@ object Eagerly {
             FetchColEagerly(elementType)
 
     inline fun <CUR, SCH : Schema<SCH>> struct(
-            table: Table<SCH, *, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
+            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
     ): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
             FetchStructEagerly(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(
-            table: Table<SCH, *, *>, bindBy: BindBy
+            table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
             FetchStructListEagerly(table, bindBy)
 }
@@ -98,12 +98,12 @@ object Lazily {
             FetchColLazily(elementType)
 
     inline fun <CUR, SCH : Schema<SCH>> struct(
-            table: Table<SCH, *, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
+            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
     ): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
             FetchStructLazily(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(
-            table: Table<SCH, *, *>, bindBy: BindBy
+            table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, false)
 
@@ -120,7 +120,7 @@ object Lazily {
      * (But consider doing as much work as possible in SQL instead.)
      */
     inline fun <CUR, SCH : Schema<SCH>> transientStructs(
-            table: Table<SCH, *, *>, bindBy: BindBy
+            table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, true)
 

@@ -256,7 +256,7 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<U
 // region special lenses
 
 internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
-        private val table: Table<S, ID, out Record<S, ID>>
+        private val table: Table<S, ID>
 ) : BaseLens<S, Record<S, ID>, Record<S, ID>, ID, DataType.Simple<ID>>(
         table.idColName, table.idColType
 ) {

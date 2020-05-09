@@ -18,6 +18,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.blocking.SqliteSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.properties.ChangeListener
@@ -64,11 +65,11 @@ class SqliteActivity : Activity() {
         vm.selectedProp.addChangeListener(selectedChanged)
     }
 
-    private val lastInsertedChanged: ChangeListener<Human?> = { _, inserted ->
+    private val lastInsertedChanged: ChangeListener<Record<Human, Long>?> = { _, inserted ->
         if (inserted != null) vm.selectedProp.value = inserted
     }
 
-    private val selectedChanged: ChangeListener<Human?> = { _, _ ->
+    private val selectedChanged: ChangeListener<Record<Human, Long>?> = { _, _ ->
         EditDialogFragment().show(fragmentManager, null)
     }
 
@@ -136,7 +137,7 @@ class SqliteActivity : Activity() {
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle?): View {
             return RecyclerView(container.context).apply {
                 layoutManager = LinearLayoutManager(container.context)
-                adapter = object : RecyclerView.Adapter<SimpleHolder>(), ChangeListener<List<Human>> {
+                adapter = object : RecyclerView.Adapter<SimpleHolder>(), ChangeListener<List<Record<Human, Long>>> {
 
                     val list = vm.humanListProp
 
@@ -168,7 +169,7 @@ class SqliteActivity : Activity() {
                         if (--recyclers == 0) list.removeChangeListener(this)
                     }
 
-                    override fun invoke(old: List<Human>, new: List<Human>) {
+                    override fun invoke(old: List<Record<Human, Long>>, new: List<Record<Human, Long>>) {
                         notifyDataSetChanged()
                     }
 

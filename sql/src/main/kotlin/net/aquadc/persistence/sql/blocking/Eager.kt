@@ -42,7 +42,7 @@ import net.aquadc.persistence.type.DataType
 }
 
 @PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR>(
-        private val table: Table<SCH, *, *>,
+        private val table: Table<SCH, *>,
         private val bindBy: BindBy,
         private val orElse: () -> StructSnapshot<SCH>
 ) : Fetch<Blocking<CUR>, StructSnapshot<SCH>> {
@@ -64,7 +64,7 @@ import net.aquadc.persistence.type.DataType
 }
 
 @PublishedApi internal class FetchStructListEagerly<CUR, SCH : Schema<SCH>>(
-        private val table: Table<SCH, *, *>,
+        private val table: Table<SCH, *>,
         private val bindBy: BindBy
 ) : Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> {
     override fun fetch(

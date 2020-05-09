@@ -8,7 +8,6 @@ import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
-import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
@@ -51,13 +50,13 @@ class JdbcSession(
     @JvmField @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>> get(
-            table: Table<SCH, ID, REC>
-    ): Dao<SCH, ID, REC> =
-            getDao(table) as Dao<SCH, ID, REC>
+    override fun <SCH : Schema<SCH>, ID : IdBound> get(
+            table: Table<SCH, ID>
+    ): Dao<SCH, ID> =
+            getDao(table) as Dao<SCH, ID>
 
-    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID, *>): RealDao<SCH, ID, *, PreparedStatement> =
-            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table as Table<SCH, ID, Record<SCH, ID>>, dialect) } as RealDao<SCH, ID, *, PreparedStatement>
+    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID>): RealDao<SCH, ID, PreparedStatement> =
+        lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as RealDao<SCH, ID, PreparedStatement>
 
     // region transactions and modifying statements
 
@@ -68,7 +67,7 @@ class JdbcSession(
 
     private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID {
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID {
             val dao = getDao(table)
             val statement = dao.insertStatement ?: connection.prepareStatement(dialect.insert(table), Statement.RETURN_GENERATED_KEYS).also { dao.insertStatement = it }
 
@@ -86,7 +85,7 @@ class JdbcSession(
             return statement.generatedKeys.fetchSingle(table.idColType)
         }
 
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *, *>, cols: Any): PreparedStatement =
+        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *>, cols: Any): PreparedStatement =
                 getDao(table)
                         .updateStatements
                         .getOrPut(cols) {
@@ -97,7 +96,7 @@ class JdbcSession(
                         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound> update(
-                table: Table<SCH, ID, *>, id: ID, columnNames: Any, columnTypes: Any, values: Any?
+                table: Table<SCH, ID>, id: ID, columnNames: Any, columnTypes: Any, values: Any?
         ) {
             val statement = updateStatementWLocked(table, columnNames)
             val colCount = bindValues(columnTypes, values) { type, idx, value ->
@@ -107,14 +106,14 @@ class JdbcSession(
             check(statement.executeUpdate() == 1)
         }
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID) {
+        override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID) {
             val dao = getDao(table)
             val statement = dao.deleteStatement ?: connection.prepareStatement(dialect.deleteRecordQuery(table)).also { dao.deleteStatement = it }
             table.idColType.bind(statement, 0, primaryKey)
             check(statement.executeUpdate() == 1)
         }
 
-        override fun truncate(table: Table<*, *, *>) {
+        override fun truncate(table: Table<*, *>) {
             val stmt = connection.createStatement()
             try {
                 stmt.execute(dialect.truncate(table))
@@ -142,7 +141,7 @@ class JdbcSession(
         }
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
-                table: Table<SCH, ID, *>,
+                table: Table<SCH, ID>,
                 columns: Array<out CharSequence>?,
                 condition: WhereCondition<SCH>,
                 order: Array<out Order<SCH>>
@@ -163,25 +162,25 @@ class JdbcSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID, *>, colName: CharSequence, colType: DataType<T>, id: ID
+                table: Table<SCH, ID>, colName: CharSequence, colType: DataType<T>, id: ID
         ): T =
                 select<SCH, ID>(table /* fixme allocation */, arrayOf(colName), pkCond<SCH, ID>(table, id), noOrder())
                         .fetchSingle(colType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-                table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
+                table: Table<SCH, ID>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
         ): Array<ID> =
                 select<SCH, ID>(table /* fixme allocation */, arrayOf(table.pkColumn.name(table.schema)), condition, order)
                         .fetchAllRows(table.idColType)
                         .array<Any>() as Array<ID>
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
-                table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
+                table: Table<SCH, ID>, condition: WhereCondition<SCH>
         ): Long =
                 select<SCH, ID>(table, null, condition, noOrder()).fetchSingle(i64)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-                table: Table<SCH, ID, *>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
+                table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
         ): Array<Any?> =
                 select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
 
@@ -323,7 +322,7 @@ class JdbcSession(
 
     fun dump(sb: StringBuilder) {
         sb.append("DAOs\n")
-        lowLevel.daos.forEach { (table: Table<*, *, *>, dao: Dao<*, *, *>) ->
+        lowLevel.daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
             sb.append(" ").append(table.name).append("\n")
             dao.dump("  ", sb)
 

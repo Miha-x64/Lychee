@@ -24,7 +24,7 @@ import kotlin.contracts.contract
 
 
 internal typealias UpdatesMap = MutableMap<
-        Table<*, *, *>,
+        Table<*, *>,
         MutableMap<
                 IdBound,
                 @ParameterName("valuesByOrdinal") Array<Any?>
@@ -33,7 +33,7 @@ internal typealias UpdatesMap = MutableMap<
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun UpdatesMap() = newMap<
-        Table<*, *, *>,
+        Table<*, *>,
         MutableMap<
                 IdBound,
                 Array<Any?>
@@ -56,7 +56,7 @@ internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, sim
         }
 
 internal inline fun <SCH : Schema<SCH>> bindQueryParams(
-        condition: WhereCondition<SCH>, table: Table<SCH, *, *>, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
+        condition: WhereCondition<SCH>, table: Table<SCH, *>, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
 ) {
     val size = condition.size
     if (size > 0) {
@@ -78,7 +78,7 @@ internal inline fun <SCH : Schema<SCH>> bindQueryParams(
 }
 
 internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
-        table: Table<SCH, *, *>,
+        table: Table<SCH, *>,
         data: Struct<SCH>,
         bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
 ) {
@@ -318,7 +318,7 @@ internal fun <CUR> Blocking<CUR>.row(
 }
 
 internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell(
-        cursor: CUR, table: Table<SCH, *, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
+        cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R = when (bindBy) {
     BindBy.Name -> cellByName(cursor, column.name(table.schema), column.type(table.schema))
     BindBy.Position -> cellAt(cursor, table.managedColumns.forceIndexOf(column), column.type(table.schema))

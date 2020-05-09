@@ -28,7 +28,7 @@ interface WhereCondition<SCH : Schema<SCH>> {
     /**
      * Appends corresponding part of SQL query to [builder] using [dialect].
      */
-    fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder
+    fun appendSqlTo(context: Table<SCH, *>, dialect: Dialect, builder: StringBuilder): StringBuilder
 
     /**
      * Appends contained colName-value-pairs to the given [outCols] and [outColValues] lists.
@@ -47,7 +47,7 @@ inline fun <SCH : Schema<SCH>> emptyCondition(): WhereCondition<SCH> =
 
 @PublishedApi internal object EmptyCondition : WhereCondition<Nothing> {
     override val size: Int get() = 0
-    override fun appendSqlTo(context: Table<Nothing, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder = builder
+    override fun appendSqlTo(context: Table<Nothing, *>, dialect: Dialect, builder: StringBuilder): StringBuilder = builder
     override fun setValuesTo(offset: Int, outCols: Array<in StoredLens<Nothing, *, *>>, outColValues: Array<in Any>) {}
 }
 
@@ -77,7 +77,7 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
     override val size: Int
         get() = if (singleValue) 1 else (valueOrValues as Array<*>).size
 
-    override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
+    override fun appendSqlTo(context: Table<SCH, *>, dialect: Dialect, builder: StringBuilder): StringBuilder =
             with(dialect) { builder.appendName(context.columnByLens(lens)!!.name(context.schema)) }.append(op)
 
     override fun setValuesTo(offset: Int, outCols: Array<in StoredLens<SCH, *, *>>, outColValues: Array<in Any>) {
@@ -185,7 +185,7 @@ internal class BiCond<SCH : Schema<SCH>>(
     override val size: Int
         get() = left.size + right.size
 
-    override fun appendSqlTo(context: Table<SCH, *, *>, dialect: Dialect, builder: StringBuilder): StringBuilder {
+    override fun appendSqlTo(context: Table<SCH, *>, dialect: Dialect, builder: StringBuilder): StringBuilder {
         builder.append('(')
         left.appendSqlTo(context, dialect, builder)
                 .append(if (and) " AND " else " OR ")

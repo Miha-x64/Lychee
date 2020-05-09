@@ -5,7 +5,7 @@ import net.aquadc.persistence.struct.Schema
 
 
 internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
-        private val table: Table<SCH, ID, *>,
+        private val table: Table<SCH, ID>,
         private val lowSession: LowLevelSession<*, *>
 ) : (ConditionAndOrder<SCH>) -> Array<ID> {
 
@@ -15,7 +15,7 @@ internal class PrimaryKeys<SCH : Schema<SCH>, ID : IdBound>(
 }
 
 internal class Count<SCH : Schema<SCH>, ID : IdBound>(
-        private val table: Table<SCH, ID, *>,
+        private val table: Table<SCH, ID>,
         private val lowSession: LowLevelSession<*, *>
 ): (WhereCondition<SCH>) -> Long {
 
@@ -24,15 +24,15 @@ internal class Count<SCH : Schema<SCH>, ID : IdBound>(
 
 }
 
-internal class ListSelection<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
-        private val dao: Dao<SCH, ID, REC>,
+internal class ListSelection<SCH : Schema<SCH>, ID : IdBound>(
+        private val dao: Dao<SCH, ID>,
         private val primaryKeys: Array<ID>
-) : AbstractList<REC>() {
+) : AbstractList<Record<SCH, ID>>() {
 
     override val size: Int
         get() = primaryKeys.size
 
-    override fun get(index: Int): REC =
+    override fun get(index: Int): Record<SCH, ID> =
             dao.require(primaryKeys[index])
 
 }

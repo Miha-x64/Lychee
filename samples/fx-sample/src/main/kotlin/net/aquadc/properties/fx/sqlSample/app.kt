@@ -9,18 +9,25 @@ import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.control.ListView
-import javafx.scene.layout.*
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Pane
+import javafx.scene.layout.Priority
+import javafx.scene.layout.VBox
 import javafx.stage.Stage
-import net.aquadc.persistence.sql.blocking.JdbcSession
+import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.Table
-import net.aquadc.properties.*
-import net.aquadc.properties.fx.bindTo
-import net.aquadc.properties.fx.fx
-import net.aquadc.properties.fx.setWhenClicked
+import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.properties.fx.bindEnableTo
+import net.aquadc.properties.fx.bindTextTo
+import net.aquadc.properties.fx.bindTo
+import net.aquadc.properties.fx.fx
 import net.aquadc.properties.fx.fxList
-import net.aquadc.propertiesSampleLogic.sql.*
+import net.aquadc.properties.fx.setWhenClicked
+import net.aquadc.propertiesSampleLogic.sql.Human
+import net.aquadc.propertiesSampleLogic.sql.SampleTables
+import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import java.sql.Connection
 import java.sql.DriverManager
 
@@ -39,7 +46,7 @@ class SqliteApp : Application() {
 
                     val hBox = this
 
-                    children += JFXListView<Human>().apply {
+                    children += JFXListView<Record<Human, Long>>().apply {
                         items = vm.humanListProp.fxList()
                         setCellFactory(::createListCell)
                         prefWidthProperty().bind(hBox.widthProperty().multiply(.4))
@@ -53,18 +60,18 @@ class SqliteApp : Application() {
                         padding = Insets(10.0, 10.0, 10.0, 10.0)
 
                         children += JFXTextField().apply {
-                            disableProperty().bind((!vm.actionsEnabledProp).fx())
+                            bindEnableTo(vm.actionsEnabledProp)
                             vm.nameProp.addChangeListener { _, new -> if (text != new) text = new }
                             textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
                         }
 
                         children += Label().apply {
                             padding = Insets(10.0, 0.0, 0.0, 0.0)
-                            textProperty().bind(vm.airConditionersTextProp.fx())
+                            bindTextTo(vm.airConditionersTextProp)
                         }
 
                         children += JFXButton("Delete").apply {
-                            disableProperty().bind((!vm.actionsEnabledProp).fx())
+                            bindEnableTo(vm.actionsEnabledProp)
                             setWhenClicked(vm.deleteClicked)
                         }
 
@@ -95,9 +102,9 @@ class SqliteApp : Application() {
         stage.show()
     }
 
-    private fun createListCell(lv: ListView<Human>): JFXListCell<Human> {
-        val cell = object : JFXListCell<Human>() {
-            override fun updateItem(item: Human?, empty: Boolean) {
+    private fun createListCell(lv: ListView<Record<Human, Long>>): JFXListCell<Record<Human, Long>> {
+        val cell = object : JFXListCell<Record<Human, Long>>() {
+            override fun updateItem(item: Record<Human, Long>?, empty: Boolean) {
                 textProperty().unbind()
                 super.updateItem(item, empty)
                 if (item != null && !empty) {
@@ -124,7 +131,7 @@ class SqliteApp : Application() {
 
 
 private fun createNeededTables(conn: Connection, dialect: Dialect) {
-    SampleTables.forEach { table: Table<*, Long, *> ->
+    SampleTables.forEach { table: Table<*, Long> ->
         conn.createStatement().use { statement ->
             statement.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='${table.name}'").use {
                 if (it.next()) {

@@ -35,45 +35,45 @@ internal class BlockingQuery<CUR, R>(
 }
 
 internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
-    abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID, *>, data: Struct<SCH>): ID
+    abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID
 
     /** [columnNames] : [values] is a map */
     abstract fun <SCH : Schema<SCH>, ID : IdBound> update(
-            table: Table<SCH, ID, *>, id: ID,
+            table: Table<SCH, ID>, id: ID,
             columnNames: Any/*=[arrayOf]CharSequence*/, columnTypes: Any/*=[arrayOf]DataType*/, values: Any?/*=[arrayOf]Any?*/
     )
 
-    abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID, *>, primaryKey: ID)
+    abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID)
 
-    abstract fun truncate(table: Table<*, *, *>)
+    abstract fun truncate(table: Table<*, *>)
 
     abstract fun onTransactionEnd(successful: Boolean)
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID, *>, colName: CharSequence, colType: DataType<T>, id: ID
+            table: Table<SCH, ID>, colName: CharSequence, colType: DataType<T>, id: ID
     ): T
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-            table: Table<SCH, ID, *>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
+            table: Table<SCH, ID>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): Array<ID> // TODO: should return primitive arrays, too
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
-            table: Table<SCH, ID, *>, condition: WhereCondition<SCH>
+            table: Table<SCH, ID>, condition: WhereCondition<SCH>
     ): Long
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-            table: Table<SCH, ID, *>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
+            table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
     ): Array<Any?>
 
     abstract val transaction: RealTransaction?
 
-    @JvmField val daos: ConcurrentHashMap<Table<*, *, *>, RealDao<*, *, *, STMT>> = ConcurrentHashMap()
+    @JvmField val daos: ConcurrentHashMap<Table<*, *>, RealDao<*, *, STMT>> = ConcurrentHashMap()
 
     private val localReusableCond = ThreadLocal<ColCond<NullSchema, Any?>>()
 
     @Suppress("UNCHECKED_CAST")
     internal fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
-            table: Table<SCH, ID, out Record<SCH, ID>>, value: ID
+            table: Table<SCH, ID>, value: ID
     ): ColCond<SCH, ID> {
         val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
             ColCond(table.pkColumn as Lens<SCH, Record<SCH, *>, Record<SCH, *>, ID, *>, " = ?", value)

@@ -19,7 +19,7 @@ import java.io.DataOutputStream
  */
 object SqliteDialect : Dialect {
 
-    override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *, *>): String = buildString {
+    override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *>): String = buildString {
         val cols = table.managedColNames
         append("INSERT INTO ").appendName(table.name).append(" (")
                 .appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size)
@@ -27,18 +27,18 @@ object SqliteDialect : Dialect {
     }
 
     override fun <SCH : Schema<SCH>> selectQuery(
-            table: Table<SCH, *, *>, columns: Array<out CharSequence>,
+            table: Table<SCH, *>, columns: Array<out CharSequence>,
             condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): String =
             selectQueryInternal(table, columns, condition, order)
 
     override fun <SCH : Schema<SCH>> selectCountQuery(
-            table: Table<SCH, *, *>, condition: WhereCondition<SCH>
+            table: Table<SCH, *>, condition: WhereCondition<SCH>
     ): String =
             selectQueryInternal(table, null, condition, noOrder())
 
     private fun <SCH : Schema<SCH>> selectQueryInternal(
-            table: Table<SCH, *, *>, columns: Array<out CharSequence>?,
+            table: Table<SCH, *>, columns: Array<out CharSequence>?,
             condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
     ): String {
         val sb = StringBuilder("SELECT ")
@@ -54,7 +54,7 @@ object SqliteDialect : Dialect {
     }
 
     override fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(
-            context: Table<SCH, *, *>,
+            context: Table<SCH, *>,
             condition: WhereCondition<SCH>
     ): StringBuilder = apply {
         val afterWhere = length
@@ -71,7 +71,7 @@ object SqliteDialect : Dialect {
         setLength(length - 2)
     }
 
-    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *, *>, cols: Array<out CharSequence>): String =
+    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *>, cols: Array<out CharSequence>): String =
             buildString {
                 append("UPDATE ").appendName(table.name).append(" SET ")
 
@@ -83,7 +83,7 @@ object SqliteDialect : Dialect {
                 append(" WHERE ").appendName(table.idColName).append(" = ?;")
             }
 
-    override fun deleteRecordQuery(table: Table<*, *, *>): String =
+    override fun deleteRecordQuery(table: Table<*, *>): String =
             StringBuilder("DELETE FROM ").appendName(table.name)
                     .append(" WHERE ").appendName(table.idColName).append(" = ?;")
                     .toString()
@@ -100,7 +100,7 @@ object SqliteDialect : Dialect {
         }
     }
 
-    override fun createTable(table: Table<*, *, *>): String {
+    override fun createTable(table: Table<*, *>): String {
         val sb = StringBuilder("CREATE TABLE ").appendName(table.name).append(" (")
                 .appendName(table.idColName).append(' ').appendNameOf(table.idColType).append(" PRIMARY KEY")
 
@@ -179,7 +179,7 @@ object SqliteDialect : Dialect {
     /**
      * {@implNote SQLite does not have TRUNCATE statement}
      */
-    override fun truncate(table: Table<*, *, *>): String =
+    override fun truncate(table: Table<*, *>): String =
             buildString(13 + table.name.length) {
                 append("DELETE FROM").appendName(table.name)
             }
