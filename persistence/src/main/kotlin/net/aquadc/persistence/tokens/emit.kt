@@ -30,9 +30,13 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
     when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
         is DataType.Simple -> {
-            offer(kindToToken[type.kind]!!).let { coerceTo -> // internal API, he-he
-                if (coerceTo != false)
-                    yield((coerceTo as Token?).coerce((type as DataType.Simple<Any?>).store(value)))
+            val token = if (type.hasStringRepresentation) Token.Str else kindToToken[type.kind]!!
+            offer(token).let { coerceTo -> // internal API, he-he
+                if (coerceTo != false) {
+                    val stored = (type as DataType.Simple<Any?>)
+                        .let { if (it.hasStringRepresentation) it.storeAsString(value) else it.store(value) }
+                    yield((coerceTo as Token?).coerce(stored))
+                }
             }
         }
         is DataType.Collect<*, *, *> -> {

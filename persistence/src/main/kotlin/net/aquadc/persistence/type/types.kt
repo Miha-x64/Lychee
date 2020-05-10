@@ -70,6 +70,13 @@ sealed class DataType<T> {
         }
 
         /**
+         * If true, string-based serialization formats will call
+         * [storeAsString] instead of [store], and will pass [CharSequence] to [load].
+         * This is useful to override appearance of numbers or blobs in JSON, XML, etc.
+         */
+        open val hasStringRepresentation: Boolean get() = false
+
+        /**
          * Converts a simple persistable value into its in-memory representation.
          * @return in-memory representation of [value]
          */
@@ -81,7 +88,12 @@ sealed class DataType<T> {
          */
         abstract fun store(value: T): SimpleValue
 
-        // TODO: to & from String, e. g. to encode UUID as blob, but use string representation in JSON
+        /**
+         * If [hasStringRepresentation], string-based serialization formats
+         * will call this method instead of [store].
+         */
+        open fun storeAsString(value: T): CharSequence =
+            throw UnsupportedOperationException()
 
     }
 

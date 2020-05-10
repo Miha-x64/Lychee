@@ -53,18 +53,22 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
 
     return when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
-        is DataType.Simple -> type.load(when (type.kind) {
-            DataType.Simple.Kind.Bool -> value as Boolean
-            DataType.Simple.Kind.I32 -> value as Int
-            DataType.Simple.Kind.I64 -> value as Long
-            DataType.Simple.Kind.F32 -> value as Float
-            DataType.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(value as Long)
-            DataType.Simple.Kind.Str -> value as String
-            DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
-            else -> throw AssertionError()
-        })
+        is DataType.Simple -> type.load(
+            if (type.hasStringRepresentation) value as CharSequence
+            else when (type.kind) {
+                DataType.Simple.Kind.Bool -> value as Boolean
+                DataType.Simple.Kind.I32 -> value as Int
+                DataType.Simple.Kind.I64 -> value as Long
+                DataType.Simple.Kind.F32 -> value as Float
+                DataType.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(value as Long)
+                DataType.Simple.Kind.Str -> value as String
+                DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
+                else -> throw AssertionError()
+            }
+        )
         is DataType.Collect<T, *, *> -> type.elementType.let { elementType ->
-            if (elementType is DataType.Simple<*> && elementType.kind == DataType.Simple.Kind.Str) // TODO should store everything in strings
+            if (elementType is DataType.Simple<*> &&
+                (elementType.hasStringRepresentation || elementType.kind == DataType.Simple.Kind.Str)) // TODO should store everything in strings
                 type.load((value as Set<String>).map(elementType::load)) // todo zero-copy
             else /* here we have a Collection<Whatever>, including potentially a collection of collections, structs, etc */
                 serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
@@ -92,8 +96,9 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
 
     when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
-        is DataType.Simple<T> -> type.store(value).let { v ->
-            when (type.kind) {
+        is DataType.Simple<T> ->
+            if (type.hasStringRepresentation) editor.putString(key, type.storeAsString(value).toString())
+            else type.store(value).let { v -> when (type.kind) {
                 DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean)
                 DataType.Simple.Kind.I32 -> editor.putInt(key, v as Int)
                 DataType.Simple.Kind.I64 -> editor.putLong(key, v as Long)
@@ -102,14 +107,17 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
                 DataType.Simple.Kind.Str -> editor.putString(key, v as String)
                 DataType.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
                 else -> throw AssertionError()
-            }
-        }
+            } }
         is DataType.Collect<T, *, *> -> type.elementType.let { elementType ->
-            if (elementType is DataType.Simple && elementType.kind == DataType.Simple.Kind.Str)
+            if (elementType is DataType.Simple && (elementType.hasStringRepresentation || elementType.kind == DataType.Simple.Kind.Str))
                 editor.putStringSet(
                     key,
                     type.store(value)
-                        .fatMapTo<HashSet<String>, T, String>(HashSet()) { (elementType as DataType.Simple<T>).store(it) as String }
+                        .fatMapTo<HashSet<String>, T, String>(HashSet()) { v ->
+                            (elementType as DataType.Simple<T>)
+                                .let { if (it.hasStringRepresentation) it.storeAsString(v) else it.store(v) as CharSequence }
+                                .toString()
+                        }
                 )
             else
                 editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))

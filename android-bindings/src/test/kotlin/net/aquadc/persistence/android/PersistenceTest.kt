@@ -6,12 +6,14 @@ import net.aquadc.persistence.android.json.writeTo
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.colour
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.extended.times
+import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
@@ -78,6 +80,10 @@ class PersistenceTest {
         val STRUCT = "struct" let nullable(Sch)
         val PART = "part" let partial(Sch)
         val EITHER = "either" let either("left", tupleType, "right", i32)
+        val COLOUR = "colour" let colour
+        val COLOURS = "colours" let collection(colour)
+        val UUID = "uuid" let uuid
+        val UUIDS = "uuids" let collection(uuid)
     }
 
     val instance = Sch {
@@ -103,15 +109,24 @@ class PersistenceTest {
             it[STRUCT] = null
             it[PART] = Sch.buildPartial { }
             it[EITHER] = EitherLeft(tupleType(10, 20.0))
+            it[COLOUR] = 0xFFFF8845.toInt()
+            it[COLOURS] = listOf()
+            it[UUID] = java.util.UUID.randomUUID()
+            it[UUIDS] = emptyList()
         }
         it[PART] = Sch.buildPartial {
             it[STRING] = "I'm partial!"
         }
         it[EITHER] = EitherRight(14)
+        it[COLOUR] = 0x66666666.toInt()
+        it[COLOURS] = listOf(0xFF000000.toInt())
+        it[UUID] = java.util.UUID.randomUUID()
+        it[UUIDS] = listOf(java.util.UUID.randomUUID())
     }
 
     @Test fun `json object`() {
         val json = StringWriter().also { instance.tokens().writeTo(it.json()) }.toString()
+        println(json)
         val deserialized = json.reader().json().tokens().readAs(Sch)
         assertEqualToOriginal(deserialized, true)
     }

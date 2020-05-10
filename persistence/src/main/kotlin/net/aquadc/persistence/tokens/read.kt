@@ -32,7 +32,9 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
     return when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
         is DataType.Simple -> {
-            val token = kindToToken[type.kind]!! // !! exhaustive mapping
+            val token =
+                if (type.hasStringRepresentation) Token.Str
+                else kindToToken[type.kind]!! // !! exhaustive mapping
             type.load(poll(token)!!) as T // !! we never pass Token.Null so source must not return `null`s
         }
         is DataType.Collect<*, *, *> -> {

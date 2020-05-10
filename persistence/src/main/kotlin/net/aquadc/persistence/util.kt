@@ -82,7 +82,7 @@ fun Any?.realToString(): String = when (this) {
 
     else -> toString()
 }
-private val HEX_ARRAY = "0123456789ABCDEF".toByteArray()
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val HEX_ARRAY = "0123456789ABCDEF".toByteArray()
 private fun ByteArray.toHexString(): String =
         String(ByteArray(size * 2).also { hexChars ->
             forEachIndexed { i, b ->
