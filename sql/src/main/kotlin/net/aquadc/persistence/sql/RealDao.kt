@@ -14,6 +14,8 @@ import net.aquadc.properties.internal.`Distinct-`
 import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.map
 import net.aquadc.persistence.sql.dialect.Dialect
+import net.aquadc.persistence.struct.MutableField
+import net.aquadc.persistence.type.DataType
 import java.lang.ref.WeakReference
 import java.util.BitSet
 import java.util.concurrent.ConcurrentHashMap
@@ -184,7 +186,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, STMT>(
 
     // region Manager implementation
 
-    override fun <T> getDirty(field: FieldDef.Mutable<SCH, T, *>, id: ID): T {
+    override fun <T> getDirty(field: MutableField<SCH, T, out DataType<T>>, id: ID): T {
         val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
         return thisRec[field.mutableOrdinal.toInt()] as T
     }
@@ -192,7 +194,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, STMT>(
     override fun <T> getClean(field: FieldDef<SCH, T, *>, id: ID): T =
             table.delegateFor(field).fetch(lowSession, table, field, id)
 
-    override fun <T> set(transaction: Transaction, field: FieldDef.Mutable<SCH, T, *>, id: ID, previous: T, update: T) {
+    override fun <T> set(transaction: Transaction, field: MutableField<SCH, T, out DataType<T>>, id: ID, previous: T, update: T) {
         val ourTransact = lowSession.transaction
         if (transaction !== ourTransact)
             error("Wrong transaction: requested $transaction, but session's is $ourTransact")

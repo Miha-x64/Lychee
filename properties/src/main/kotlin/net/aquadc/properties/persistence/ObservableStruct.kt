@@ -3,13 +3,17 @@ package net.aquadc.properties.persistence
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.SimpleStructTransaction
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructTransaction
+import net.aquadc.persistence.struct.foldOrdinal
 import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.intersect
+import net.aquadc.persistence.struct.size
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
@@ -36,10 +40,10 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         values = Array(fields.size) { i ->
             val field = fields[i]
             val value = source[field]
-            when (field) {
-                is FieldDef.Mutable<SCH, *, *> -> propertyOf(value, concurrent)
-                is FieldDef.Immutable<SCH, *, *> -> value
-            }
+            field.foldOrdinal(
+                ifMutable = { propertyOf(value, concurrent) },
+                ifImmutable = { value }
+            )
         }
     }
 
@@ -61,13 +65,13 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(field: FieldDef<SCH, T, *>): T {
         val value = values[field.ordinal.toInt()]
-        return when (field) {
-            is FieldDef.Mutable<SCH, T, *> -> (value as MutableProperty<T>).value
-            is FieldDef.Immutable<SCH, T, *> -> value as T
-        }
+        return field.foldOrdinal(
+            ifMutable = { (value as MutableProperty<T>).value },
+            ifImmutable = { value as T }
+        )
     }
 
-    operator fun <T> set(field: FieldDef.Mutable<SCH, T, *>, value: T) {
+    operator fun <T> set(field: MutableField<SCH, T, *>, value: T) {
         prop(field).value = value
     }
 
@@ -77,20 +81,20 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
      *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
     fun setFrom(
-            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
-    ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
+            source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
+    ): FieldSet<SCH, MutableField<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
                 schema.forEach(fields) { field ->
                     mutateFrom(source, field) // capture type
                 }
             }
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T, *>) {
+    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: MutableField<SCH, T, *>) {
         this[field] = source.getOrThrow(field)
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): MutableProperty<T> =
+    override fun <T> prop(field: MutableField<SCH, T, *>): MutableProperty<T> =
             (values[field.ordinal.toInt()] as MutableProperty<T>)
 
     /**
@@ -106,12 +110,12 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         @JvmField @JvmSynthetic internal val observable: ObservableStruct<SCH>
 ) : BaseStruct<SCH>(observable.schema), TransactionalPropertyStruct<SCH> {
 
-    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(observable.schema.mutableFields.size)
+    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(observable.schema.mutableFieldSet.size)
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T =
             observable[field]
 
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
+    override fun <T> prop(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
         val index = field.mutableOrdinal.toInt()
         val prop = props[index] ?: observable.transactional(field).also { props[index] = it }
         return (prop as TransactionalProperty<StructTransaction<SCH>, T>)
@@ -119,19 +123,18 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
     override fun beginTransaction(): StructTransaction<SCH> = object : SimpleStructTransaction<SCH>() {
 
-        private val patch = Array<Any?>(schema.mutableFields.size) { Unset }
+        private val patch = Array<Any?>(schema.mutableFieldSet.size) { Unset }
 
-        override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) {
+        override fun <T> set(field: MutableField<SCH, T, *>, update: T) {
             patch[field.mutableOrdinal.toInt()] = update
         }
 
         override fun close() {
             when (successful) {
                 true -> {
-                    val fields = schema.mutableFields
-                    for (i in fields.indices) {
+                    schema.forEachIndexed(schema.mutableFieldSet) { i, field ->
                         if (patch[i] !== Unset) {
-                            (observable.prop(fields[i]) as MutableProperty<Any?>).value = patch[i]
+                            (observable.prop(field) as MutableProperty<Any?>).value = patch[i]
                         }
                     }
                 }
@@ -144,10 +147,10 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     }
 
     private fun <T> ObservableStruct<SCH>
-            .transactional(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
+            .transactional(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
             object : `Mapped-`<T, T>(this@transactional prop field, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
                 override fun setValue(transaction: StructTransaction<SCH>, value: T) {
-                    transaction[field] = value
+                    transaction.set(field, value)
                 }
             }
 

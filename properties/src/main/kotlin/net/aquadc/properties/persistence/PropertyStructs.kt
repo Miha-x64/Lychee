@@ -3,11 +3,16 @@ package net.aquadc.properties.persistence
 
 import net.aquadc.persistence.array
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.StructTransaction
 import net.aquadc.persistence.struct.TransactionalStruct
+import net.aquadc.persistence.struct.foldField
+import net.aquadc.persistence.struct.isEmpty
+import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.mapValueList
@@ -20,7 +25,7 @@ interface PropertyStruct<SCH : Schema<SCH>> : Struct<SCH> {
     /**
      * @return a property representing a given [field]
      */
-    infix fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): Property<T>
+    infix fun <T> prop(field: MutableField<SCH, T, *>): Property<T>
 
 }
 
@@ -32,7 +37,7 @@ interface TransactionalPropertyStruct<SCH : Schema<SCH>> : PropertyStruct<SCH>, 
     /**
      * @return a property representing a given [field]
      */
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T>
+    override fun <T> prop(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T>
 
 }
 
@@ -41,16 +46,16 @@ interface TransactionalPropertyStruct<SCH : Schema<SCH>> : PropertyStruct<SCH>, 
  * Returns a [Property] containing snapshots of [this] mutable struct.
  */
 fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> {
-    return schema.mutableFields.map { prop(it) }.mapValueList { newMutableValues ->
-        val array = if (schema.immutableFields.isEmpty()) newMutableValues.array(1)
+    return schema.mapIndexed(schema.mutableFieldSet) { _, it -> prop(it) }.asList().mapValueList { newMutableValues ->
+        val array = if (schema.immutableFieldSet.isEmpty) newMutableValues.array(1)
         else {
             val fields = schema.fields
             arrayOfNulls<Any>(fields.size + 1).also { array ->
                 for (i in fields.indices)
-                    array[i] = when (val field = fields[i]) {
-                        is FieldDef.Mutable -> newMutableValues[field.mutableOrdinal.toInt()]
-                        is FieldDef.Immutable -> this@snapshots[field]
-                    }
+                    array[i] = (fields[i] as FieldDef<SCH, Any?, DataType<Any?>>).foldField(
+                        ifMutable = { newMutableValues[it.mutableOrdinal.toInt()] },
+                        ifImmutable = { this@snapshots[it] }
+                    )
             }
         }
         array[array.lastIndex] = schema
@@ -61,5 +66,5 @@ fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> {
 /**
  * Creates a property getter, i. e. a function which returns a property of a pre-set [field] of a given [SCH].
  */
-fun <SCH : Schema<SCH>, T> propertyGetterOf(field: FieldDef.Mutable<SCH, T, *>): (PropertyStruct<SCH>) -> Property<T> =
+fun <SCH : Schema<SCH>, T> propertyGetterOf(field: MutableField<SCH, T, *>): (PropertyStruct<SCH>) -> Property<T> =
         { it prop field }

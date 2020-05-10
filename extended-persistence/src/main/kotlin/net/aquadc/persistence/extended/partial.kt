@@ -12,7 +12,6 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
 import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.buildUpon
 import net.aquadc.persistence.struct.contains
 import net.aquadc.persistence.struct.forEachIndexed
@@ -30,7 +29,7 @@ fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH
         object : DataType.Partial<PartialStruct<SCH>, SCH>(schema) {
 
             override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): PartialStruct<SCH> =
-                    PartialStructSnapshot(schema, fields, when (fields.size.toInt()) {
+                    PartialStructSnapshot(schema, fields, when (fields.size) {
                         0 -> EmptyArray
                         1 -> arrayOf(values)
                         else -> values as Array<Any?>
@@ -54,7 +53,7 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
     constructor(source: Struct<SCH>, fields: FieldSet<SCH, *>) : super(source.schema) {
         this.fields = fields
-        this.values = arrayOfNulls(fields.size.toInt())
+        this.values = arrayOfNulls(fields.size)
         schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
             values[idx] = source[field]
         }
@@ -64,7 +63,7 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
     constructor(sparseValuesAndSchema: Array<Any?>, fields: FieldSet<SCH, *>)
             : super(sparseValuesAndSchema[sparseValuesAndSchema.lastIndex] as SCH) {
         this.fields = fields
-        this.values = arrayOfNulls<Any>(fields.size.toInt()).also { packed ->
+        this.values = arrayOfNulls<Any>(fields.size).also { packed ->
             schema.forEachIndexed<SCH, FieldDef<SCH, *, *>>(fields) { idx, field ->
                 packed[idx] = sparseValuesAndSchema[field.ordinal.toInt()]
             }
@@ -73,7 +72,7 @@ class PartialStructSnapshot<SCH : Schema<SCH>> : BaseStruct<SCH> {
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     constructor(schema: SCH, fields: FieldSet<SCH, *>, packedValues: Array<Any?>, dummy: Nothing?) : super(schema) {
-        check(fields.size.toInt() == packedValues.size)
+        check(fields.size == packedValues.size)
         this.fields = fields
         this.values = packedValues
     }
@@ -126,7 +125,7 @@ inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) 
  * Creates a [PartialStruct] consisting of [fields] from [this].
  */
 fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *, *>>): PartialStruct<SCH> =
-        if (fields == schema.allFieldSet()) {
+        if (fields == schema.allFieldSet) {
             // 'is' smartcasts and uselessly reboxes value https://youtrack.jetbrains.com/issue/KT-38190
             if (this.javaClass === StructSnapshot::class.java) this
             else StructSnapshot(this)
@@ -138,8 +137,8 @@ fun <SCH : Schema<SCH>> Struct<SCH>.take(fields: FieldSet<SCH, FieldDef<SCH, *, 
  * Builds a [StructSnapshot] filled with data from [this] and applies changes via [mutate].
  */
 inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(
-        fields: FieldSet<SCH, FieldDef<SCH, *, *>> = schema.allFieldSet(),
-        mutate: SCH.(StructBuilder<SCH>) -> Unit = { }
+    fields: FieldSet<SCH, FieldDef<SCH, *, *>> = schema.allFieldSet,
+    mutate: SCH.(StructBuilder<SCH>) -> Unit = { }
 ): PartialStruct<SCH> {
     contract { callsInPlace(mutate, InvocationKind.EXACTLY_ONCE) }
 
@@ -150,6 +149,6 @@ inline fun <SCH : Schema<SCH>> PartialStruct<SCH>.copy(
 
 @PublishedApi internal fun <SCH : Schema<SCH>> SCH.finish(builder: StructBuilder<SCH>): PartialStruct<SCH> =
         builder.expose().let { valuesAndSchema ->
-            if (builder.fieldsPresent() == allFieldSet()) StructSnapshot(valuesAndSchema)
+            if (builder.fieldsPresent() == allFieldSet) StructSnapshot(valuesAndSchema)
             else PartialStructSnapshot(valuesAndSchema, builder.fieldsPresent())
         }

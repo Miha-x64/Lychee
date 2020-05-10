@@ -34,10 +34,10 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
             val value = source[field]
             sch.typeOf(field as FieldDef<SCH, Any?, DataType<Any?>>).put(ed, sch.nameOf(field).toString(), value)
 
-            when (field) {
-                is FieldDef.Mutable<SCH, *, *> -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?, *>, null, value)
-                is FieldDef.Immutable<SCH, *, *> -> value
-            }
+            field.foldOrdinal(
+                ifMutable = { ManagedProperty(manager, field, null, value) },
+                ifImmutable = { value }
+            )
         }
         ed.apply()
         this.prefs = prefs
@@ -51,9 +51,11 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
     constructor(type: SCH, prefs: SharedPreferences) : super(type) {
         val fields = type.fields
         this.values = Array(fields.size) {
-            when (val field = fields[it]) {
-                is FieldDef.Mutable -> ManagedProperty(manager, field as FieldDef.Mutable<SCH, Any?, *>, null, Unset)
-                is FieldDef.Immutable -> Unset
+            fields[it].let { field ->
+                field.foldOrdinal(
+                    ifMutable = { ManagedProperty(manager, field as FieldDef<SCH, Any?, DataType<Any?>>, null, Unset) },
+                    ifImmutable = { Unset }
+                )
             }
         }
         this.prefs = prefs
@@ -64,9 +66,9 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
     override fun <T> get(field: FieldDef<SCH, T, *>): T {
         val ordinal = field.ordinal.toInt()
         val value = values[ordinal]
-        return when (field) {
-            is FieldDef.Mutable -> (value as Property<T>).value
-            is FieldDef.Immutable -> {
+        return field.foldOrdinal(
+            ifMutable = { (value as Property<T>).value },
+            ifImmutable = {
                 if (value === Unset) {
                     val actual = schema.get(field, prefs)
                     values[ordinal] = actual
@@ -75,7 +77,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
                     value
                 } as T
             }
-        }
+        )
     }
 
     private val manager = PrefManager()
@@ -88,13 +90,13 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
          *   Thus, 'dirty' state is nonsensical here.
          */
 
-        override fun <T> getDirty(field: FieldDef.Mutable<SCH, T, *>, id: Nothing?): T =
+        override fun <T> getDirty(field: MutableField<SCH, T, out DataType<T>>, id: Nothing?): T =
                 Unset as T
 
         override fun <T> getClean(field: FieldDef<SCH, T, *>, id: Nothing?): T =
                 schema.get(field, prefs)
 
-        override fun <T> set(transaction: StructTransaction<SCH>, field: FieldDef.Mutable<SCH, T, *>, id: Nothing?, previous: T, update: T) {
+        override fun <T> set(transaction: StructTransaction<SCH>, field: MutableField<SCH, T, out DataType<T>>, id: Nothing?, previous: T, update: T) {
             transaction.set(field, update)
         }
 
@@ -103,26 +105,28 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
             schema.fieldByName(key, { field ->
                 val idx = field.ordinal.toInt()
                 val value = schema.get(field, sharedPreferences)
-                when (field) {
-                    is FieldDef.Mutable -> (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?, Nothing?>).commit(value)
-                    is FieldDef.Immutable -> throw IllegalStateException("Immutable field $field in $prefs was mutated externally!")
-                    // there will be ugly but a bit informative toString. Deal with it
-                }.also { }
+                field.foldOrdinal(
+                    ifMutable = {
+                        (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?, Nothing?>).commit(value)
+                    },
+                    ifImmutable = {
+                        throw UnsupportedOperationException("Immutable field $field in $prefs was mutated externally!")
+                    } // there will be ugly but a bit informative toString. Deal with it
+                )
             }, { return })
         }
 
     }
 
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>) =
+    override fun <T> prop(field: MutableField<SCH, T, *>) =
             (values[field.ordinal.toInt()] as TransactionalProperty<StructTransaction<SCH>, T>)
 
     override fun beginTransaction(): StructTransaction<SCH> = object : SimpleStructTransaction<SCH>() {
 
         private val ed = prefs.edit()
 
-        override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) {
-            schema.typeOf(field as FieldDef<SCH, T, DataType<T>>)
-                    .put(ed, schema.nameOf(field).toString(), update)
+        override fun <T> set(field: MutableField<SCH, T, *>, update: T) {
+            schema.typeOf(field as MutableField<SCH, T, out DataType<T>>).put(ed, schema.nameOf(field).toString(), update)
         }
 
         override fun close() {

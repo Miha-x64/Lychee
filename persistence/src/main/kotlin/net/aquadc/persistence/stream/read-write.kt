@@ -101,9 +101,9 @@ private fun <SCH : Schema<SCH>, D, T> D.partial(arg: T, nullable: Boolean, type:
         val values = type.store(arg)
         val fields = type.fields(arg)
         val size = fields.size
-        output.writeByte(this, size)
+        output.writeByte(this, size.toByte(/* we know is is in 1..64 */))
         val schema = type.schema
-        when (size.toInt()) {
+        when (size) {
             0 -> { /* nothing to do here */ }
             1 -> {
                 val field = schema.single(fields)

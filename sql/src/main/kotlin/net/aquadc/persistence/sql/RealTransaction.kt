@@ -4,6 +4,7 @@ import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.internal.Unset
@@ -62,7 +63,7 @@ internal class RealTransaction(
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound, T> update(
-            table: Table<SCH, ID>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T
+        table: Table<SCH, ID>, id: ID, field: MutableField<SCH, T, *>, previous: T, value: T
     ) {
         checkOpenAndThread()
         val updates = (updated ?: UpdatesMap().also { updated = it })

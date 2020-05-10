@@ -31,7 +31,7 @@ inline operator fun <SCH : Schema<SCH>> SCH.invoke(build: SCH.(StructBuilder<SCH
 inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>) -> Unit): StructSnapshot<SCH> {
     contract { callsInPlace(mutate, InvocationKind.EXACTLY_ONCE) }
 
-    val builder = buildUpon(this, schema.allFieldSet())
+    val builder = buildUpon(this, schema.allFieldSet)
     mutate(schema, builder)
     return builder.finish(schema, searchForDefaults = false)
 }
@@ -98,7 +98,7 @@ inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
      */
     fun setFrom(
             source: PartialStruct<SCH>,
-            fields: FieldSet<SCH, FieldDef<SCH, *, *>> = source.schema.allFieldSet()
+            fields: FieldSet<SCH, FieldDef<SCH, *, *>> = source.schema.allFieldSet
     ): FieldSet<SCH, FieldDef<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->

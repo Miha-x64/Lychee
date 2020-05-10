@@ -10,7 +10,10 @@ class SchemaPropsTest {
             assertArrayEquals(arrayOf(SomeSchema.A, SomeSchema.B, SomeSchema.C, SomeSchema.D), SomeSchema.fields)
 
     @Test fun mutableFields() =
-            assertArrayEquals(arrayOf(SomeSchema.B, SomeSchema.C), SomeSchema.mutableFields)
+            assertArrayEquals(
+                arrayOf(SomeSchema.B, SomeSchema.C),
+                SomeSchema.mapIndexed(SomeSchema.mutableFieldSet) { _, it -> it }
+            )
 
 
 
@@ -21,13 +24,13 @@ class SchemaPropsTest {
     }
 
     @Test fun mutableOrdinals() {
-        SomeSchema.mutableFields.forEachIndexed { index, fieldDef ->
+        SomeSchema.forEachIndexed(SomeSchema.mutableFieldSet) { index, fieldDef ->
             assertEquals(index, fieldDef.mutableOrdinal.toInt())
         }
     }
 
     @Test fun immutableOrdinals() {
-        SomeSchema.immutableFields.forEachIndexed { index, fieldDef ->
+        SomeSchema.forEachIndexed(SomeSchema.immutableFieldSet) { index, fieldDef ->
             assertEquals(index, fieldDef.immutableOrdinal.toInt())
         }
     }

@@ -2,8 +2,10 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructTransaction
+import net.aquadc.persistence.struct.size
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.identity
@@ -18,9 +20,9 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
     override fun <T> get(field: FieldDef<SCH, T, *>): T =
             record[field]
 
-    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(record.schema.mutableFields.size)
+    private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(record.schema.mutableFieldSet.size)
 
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
+    override fun <T> prop(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
         val index = field.mutableOrdinal.toInt()
         return (props[index] as TransactionalProperty<StructTransaction<SCH>, T>?)
                 ?: record.prop(field).transactional(field).also { props[index] = it }
@@ -30,7 +32,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
 
         private val transaction = record._session.beginTransaction()
 
-        override fun <T> set(field: FieldDef.Mutable<SCH, T, *>, update: T) =
+        override fun <T> set(field: MutableField<SCH, T, *>, update: T) =
                 record.prop(field).setValue(transaction, update)
 
         override fun setSuccessful() {
@@ -44,7 +46,7 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
     }
 
     private fun <SCH : Schema<SCH>, T> SqlProperty<T>
-            .transactional(field: FieldDef.Mutable<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
+            .transactional(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
             object : `Mapped-`<T, T>(this@transactional, identity(), InPlaceWorker), TransactionalProperty<StructTransaction<SCH>, T> {
                 override fun setValue(transaction: StructTransaction<SCH>, value: T) {
                     transaction.set<T>(field, value)

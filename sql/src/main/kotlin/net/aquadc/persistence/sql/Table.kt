@@ -5,6 +5,7 @@ import net.aquadc.persistence.array
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.newSet
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.ImmutableField
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Named
 import net.aquadc.persistence.struct.NamedLens
@@ -12,6 +13,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.nothing
 import net.aquadc.properties.internal.ManagedProperty
@@ -30,7 +32,7 @@ private constructor(
         val name: String,
         val idColName: CharSequence,
         val idColType: DataType.Simple<ID>,
-        val pkField: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>? // todo: consistent names, ID || PK
+        val pkField: ImmutableField<SCH, ID, out DataType.Simple<ID>>? // todo: consistent names, ID || PK
 // TODO: [unique] indices https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/greendao-api/src/main/java/org/greenrobot/greendao/annotation/Index.java
 // TODO: auto increment
 ) {
@@ -38,7 +40,7 @@ private constructor(
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>) :
             this(schema, name, idColName, idColType, null)
 
-    constructor(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>) :
+    constructor(schema: SCH, name: String, idCol: ImmutableField<SCH, ID, out DataType.Simple<ID>>) :
             this(schema, name, schema.run { idCol.name }, schema.run { idCol.type }, idCol)
 
     /**
@@ -211,11 +213,10 @@ private constructor(
             (columnIndices as Map<StoredLens<SCH, *, *>, Int>)[lens]?.let { columns[it] as StoredNamedLens<SCH, T, *> }
 
     @JvmSynthetic internal fun commitValues(record: Record<SCH, ID>, mutFieldValues: Array<Any?>) {
-        val mutFields = schema.mutableFields
-        for (i in mutFields.indices) {
+        schema.forEachIndexed(schema.mutableFieldSet) { i, field ->
             val value = mutFieldValues[i]
             if (value !== Unset) {
-                (record.values[mutFields[i].ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
+                (record.values[field.ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
             }
         }
     }
@@ -260,7 +261,7 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, 
         Table(schema, name, idColName, idColType)
 
 @Suppress("NOTHING_TO_INLINE") // pass-through
-inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>): SimpleTable<SCH, ID> =
+inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: ImmutableField<SCH, ID, out DataType.Simple<ID>>): SimpleTable<SCH, ID> =
         Table(schema, name, idCol)
 
 // just extend SimpleTable, but infer type arguments instead of forcing client to specify them explicitly in object expression:
@@ -274,7 +275,7 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         }
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
-        schema: SCH, name: String, idCol: FieldDef.Immutable<SCH, ID, out DataType.Simple<ID>>,
+        schema: SCH, name: String, idCol: ImmutableField<SCH, ID, out DataType.Simple<ID>>,
         crossinline relations: () -> Array<out Relation<SCH, ID, *>>
 ): Table<SCH, ID> =
         object : Table<SCH, ID>(schema, name, idCol) {

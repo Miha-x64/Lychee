@@ -10,8 +10,7 @@ import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.struct.allFieldSet
-import net.aquadc.persistence.struct.contains
+import net.aquadc.persistence.struct.contains as originalContains
 import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
@@ -150,7 +149,7 @@ internal fun inflate(
     val fieldSet = if (start.hasFieldSet) {
         (mutColumnValues[srcPos++] as Long?)?.let { FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>(it) }
     } else { // no fieldSet implies it's a non-partial Struct
-        schema.allFieldSet<Schema<*>>()
+        schema.allFieldSet as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>
     }
 
     var dstPos = _dstPos
@@ -202,7 +201,7 @@ internal fun inflate(
     fieldSet as FieldSet<Any?, FieldDef<Any?, *, *>>?
     mutColumnValues[_dstPos] =
             if (fieldSet == null) null
-            else t.load(fieldSet, when (fieldSet.size.toInt()) {
+            else t.load(fieldSet, when (fieldSet.size) {
                 0 -> null
                 1 -> mutColumnValues[_dstPos]
                 else -> mutColumnValues.copyOfRange(_dstPos, _dstPos + fieldSet.size)
@@ -233,10 +232,10 @@ internal fun flatten(
     val fieldSet =
             if (start.hasFieldSet) (erased.fields(value) as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>).also {
                 out[dstPos++] = it.bitSet
-            } else erased.schema.allFieldSet<Schema<*>>()
+            } else erased.schema.allFieldSet as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>
 
     val fields = start.unwrappedType.schema.fields
-    when (fieldSet.size.toInt()) {
+    when (fieldSet.size) {
         0 -> { /* nothing to do here */ }
         1 -> {
             val fieldValue = erased.store(value)
@@ -303,12 +302,9 @@ private inline fun flattenFieldValues(
     }
 }
 
-@Suppress(
-        "UPPER_BOUND_VIOLATED",
-        "NOTHING_TO_INLINE" // inline: please issue a compiler error if inner contains() call is recursive
-)
+@Suppress("UPPER_BOUND_VIOLATED", "NOTHING_TO_INLINE")
 private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
-        this != null && this.contains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
+        this != null && this.originalContains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
 
 internal fun <CUR> Blocking<CUR>.row(
         cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, bindBy: BindBy

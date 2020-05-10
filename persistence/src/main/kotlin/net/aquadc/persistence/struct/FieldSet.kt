@@ -14,7 +14,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> emptyFieldSet(dummy: Not
 /**
  * Returns an empty set of fields.
  * Useful for passing anywhere because it is a subtype of
- * both `FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>` abd `FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>`.
+ * both `FieldSet<SCH, MutableField<SCH, *, *>>` abd `FieldSet<SCH, ImmutableField<SCH, *, *>>`.
  * [SCH] of output type is still not [Nothing] because it is safer to leave it invariant everywhere.
  */
 inline fun <SCH : Schema<SCH>> emptyFieldSet(): FieldSet<SCH, Nothing> =
@@ -48,27 +48,23 @@ inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *, *>) 
 /**
  * Returns a set with all fields of [this] [Schema].
  */
-fun <SCH : Schema<SCH>> SCH.allFieldSet(): FieldSet<SCH, FieldDef<SCH, *, *>> =
-        FieldSet(
-                fields.size.let { size ->
-                    // (1L shl size) - 1   :  1L shl 64  will overflow to 1
-                    // -1L ushr (64 - size): -1L ushr 64 will remain -1L
-                    // the last one is okay, assuming that zero-field structs are prohibited
-                    -1L ushr (64 - size)
-                }
-        )
+@Deprecated("use member property instead", ReplaceWith("this.allFieldSet"))
+inline fun <SCH : Schema<SCH>> SCH.allFieldSet(): FieldSet<SCH, FieldDef<SCH, *, *>> =
+        allFieldSet
 
 /**
- * Returns a set of all [FieldDef.Mutable] fields of [this] [Schema].
+ * Returns a set of all [MutableField]s of [this] [Schema].
  */
-fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
-        fieldsWhere { it is FieldDef.Mutable } as FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
+@Deprecated("use member property instead", ReplaceWith("this.mutableFieldSet"))
+inline fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): FieldSet<SCH, MutableField<SCH, *, *>> =
+        mutableFieldSet
 
 /**
- * Returns a set of all [FieldDef.Immutable] fields of [this] [Schema].
+ * Returns a set of all [ImmutableField]s of [this] [Schema].
  */
-fun <SCH : Schema<SCH>> SCH.immutableFieldSet(): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> =
-        fieldsWhere { it is FieldDef.Immutable } as FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
+@Deprecated("use member property instead", ReplaceWith("this.immutableFieldSet"))
+inline fun <SCH : Schema<SCH>> SCH.immutableFieldSet(): FieldSet<SCH, ImmutableField<SCH, *, *>> =
+        immutableFieldSet
 
 
 /**
@@ -90,13 +86,13 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> F
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
+        .intersect(other: FieldSet<SCH, MutableField<SCH, *, *>>): FieldSet<SCH, MutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>.intersect(
-        other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
-): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> = FieldSet(this.bitSet and other.bitSet)
+        other: FieldSet<SCH, ImmutableField<SCH, *, *>>
+): FieldSet<SCH, ImmutableField<SCH, *, *>> = FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectAnyNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
@@ -104,42 +100,42 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> F
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectMutAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
+@JvmName("intersectMutAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, MutableField<SCH, *, *>>
+        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, MutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectMutMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
+@JvmName("intersectMutMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, MutableField<SCH, *, *>>
+        .intersect(other: FieldSet<SCH, MutableField<SCH, *, *>>): FieldSet<SCH, MutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectMutImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
+@JvmName("intersectMutImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, MutableField<SCH, *, *>>
+        .intersect(other: FieldSet<SCH, ImmutableField<SCH, *, *>>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectMutNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
+@JvmName("intersectMutNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, MutableField<SCH, *, *>>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectImmAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> =
+@JvmName("intersectImmAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, ImmutableField<SCH, *, *>>
+        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, ImmutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectImmMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
+@JvmName("intersectImmMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, ImmutableField<SCH, *, *>>
+        .intersect(other: FieldSet<SCH, MutableField<SCH, *, *>>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectImmImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>): FieldSet<SCH, FieldDef.Immutable<SCH, *, *>> =
+@JvmName("intersectImmImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, ImmutableField<SCH, *, *>>
+        .intersect(other: FieldSet<SCH, ImmutableField<SCH, *, *>>): FieldSet<SCH, ImmutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectImmNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>
+@JvmName("intersectImmNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, ImmutableField<SCH, *, *>>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
@@ -150,12 +146,12 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> F
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
-        .intersect(other: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
+        .intersect(other: FieldSet<SCH, MutableField<SCH, *, *>>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
-        .intersect(other: FieldSet<SCH, FieldDef.Immutable<SCH, *, *>>): FieldSet<SCH, Nothing> =
+        .intersect(other: FieldSet<SCH, ImmutableField<SCH, *, *>>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
@@ -186,10 +182,10 @@ inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDe
         (bitSet and (1L shl field.ordinal.toInt())) != 0L
 
 /**
- * Number of fields in this set.
+ * Number of fields in this set, ∈ [1, 64]
  */
-val FieldSet<*, *>.size: Byte
-    get() = java.lang.Long.bitCount(bitSet).toByte()
+val FieldSet<*, *>.size: Int
+    get() = java.lang.Long.bitCount(bitSet)
 
 /**
  * Whether this set is empty.
@@ -271,7 +267,7 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: 
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> {
     val fields = fields
-    val out = arrayOfNulls<R>(set.size.toInt())
+    val out = arrayOfNulls<R>(set.size)
     var idx = 0
     var ord = 0
     var mask = set.bitSet

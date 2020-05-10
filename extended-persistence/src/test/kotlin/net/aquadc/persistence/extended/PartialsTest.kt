@@ -3,7 +3,6 @@ package net.aquadc.persistence.extended
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.struct.plus
@@ -46,7 +45,7 @@ class PartialsTest {
         assertEquals(99, p.getOrThrow(SomeSchema.B))
         assertEquals(100500L, p.getOrThrow(SomeSchema.C))
         assertTrue(p is StructSnapshot)
-        assertEquals(SomeSchema.allFieldSet(), p.fields)
+        assertEquals(SomeSchema.allFieldSet, p.fields)
     }
 
     @Test fun take() {
@@ -71,7 +70,7 @@ class PartialsTest {
         }
 
         // …otherwise we'd box it here twice and get different instances
-        assertSame(full, full.take(SomeSchema.allFieldSet()))
+        assertSame(full, full.take(SomeSchema.allFieldSet))
     }
 
     @Test fun `copy from`() {

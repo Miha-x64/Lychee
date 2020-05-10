@@ -13,7 +13,6 @@ import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenStream
@@ -58,7 +57,7 @@ fun <T> JsonReader.read(type: DataType<T>): Nothing =
 fun <SCH : Schema<SCH>> JsonWriter.write(
         list: List<Struct<SCH>>,
         fields: FieldSet<SCH, FieldDef<SCH, *, *>> =
-                list.firstOrNull()?.schema?.allFieldSet() ?: /* otherwise it doesn't matter */ FieldSet(0)
+                list.firstOrNull()?.schema?.allFieldSet ?: /* otherwise it doesn't matter */ FieldSet(0)
 ) {
     beginArray()
     list.each { write(it, fields) }

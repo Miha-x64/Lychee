@@ -7,6 +7,7 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -131,7 +132,7 @@ interface Transaction : Closeable {
     // TODO emulate slow storage!
 
     // OMG, private API?
-    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID>, id: ID, field: FieldDef.Mutable<SCH, T, *>, previous: T, value: T)
+    fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID>, id: ID, field: MutableField<SCH, T, *>, previous: T, value: T)
     // TODO: update where
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
@@ -145,7 +146,7 @@ interface Transaction : Closeable {
 
     fun setSuccessful()
 
-    operator fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.set(field: FieldDef.Mutable<SCH, T, *>, new: T) {
+    operator fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.set(field: MutableField<SCH, T, *>, new: T) {
         (this prop field).setValue(this@Transaction, new)
     }
 
@@ -155,8 +156,8 @@ interface Transaction : Closeable {
      *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
     fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.setFrom(
-            source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef.Mutable<SCH, *, *>>
-    ): FieldSet<SCH, FieldDef.Mutable<SCH, *, *>> =
+            source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
+    ): FieldSet<SCH, MutableField<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->
                     mutateFrom(source, field) // capture type
@@ -164,7 +165,7 @@ interface Transaction : Closeable {
             }
     @Suppress("NOTHING_TO_INLINE")
     private inline fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.mutateFrom(
-            source: PartialStruct<SCH>, field: FieldDef.Mutable<SCH, T, *>
+            source: PartialStruct<SCH>, field: MutableField<SCH, T, *>
     ) {
         this[field] = source.getOrThrow(field)
     }

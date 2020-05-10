@@ -12,7 +12,6 @@ import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.allFieldSet
 import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.isEmpty
 import net.aquadc.persistence.struct.minus
@@ -180,7 +179,7 @@ internal class TokensIterator<SCH : Schema<SCH>, T>(
             nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
         }
 
-        val missing = schema.allFieldSet() - fields
+        val missing = schema.allFieldSet - fields
         if (!missing.isEmpty) throw NoSuchElementException("Missing values for fields: ${schema.toString(missing)}")
 
         tokens.poll(Token.EndDictionary)

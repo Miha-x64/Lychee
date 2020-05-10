@@ -2,9 +2,13 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.struct.BaseStruct
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.foldField
+import net.aquadc.persistence.struct.foldOrdinal
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
@@ -41,9 +45,9 @@ internal constructor(
         return out
     }
 
-    override fun <T> get(field: FieldDef<SCH, T, *>): T = when (field) {
-        is FieldDef.Mutable -> prop(field).value
-        is FieldDef.Immutable -> {
+    override fun <T> get(field: FieldDef<SCH, T, *>): T = (field as FieldDef<SCH, T, DataType<T>>).foldField(
+        ifMutable = { prop(it).value },
+        ifImmutable = {
             val index = field.ordinal.toInt()
             val value = values[index]
 
@@ -54,10 +58,10 @@ internal constructor(
                 freshValue
             } else value as T
         }
-    }
+    )
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> prop(field: FieldDef.Mutable<SCH, T, *>): SqlProperty<T> =
+    override fun <T> prop(field: MutableField<SCH, T, *>): SqlProperty<T> =
             values[field.ordinal.toInt()] as SqlProperty<T>
 
     @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
@@ -80,10 +84,10 @@ internal constructor(
     internal val values: Array<Any?/* = ManagedProperty<Transaction, T> | T */> =
             session[table as Table<SCH, ID>].let { dao ->
                 schema.mapIndexed(fields) { i, field ->
-                    when (field) {
-                        is FieldDef.Mutable -> ManagedProperty(dao, field as FieldDef<SCH, Any?, *>, primaryKey, Unset)
-                        is FieldDef.Immutable -> Unset
-                    }
+                    field.foldOrdinal(
+                        ifMutable = { ManagedProperty(dao, field as FieldDef<SCH, Any?, DataType<Any?>>, primaryKey, Unset) },
+                        ifImmutable = { Unset }
+                    )
                 }
             }
 
@@ -93,10 +97,10 @@ internal constructor(
     @JvmSynthetic internal fun dropManagement() {
         val vals = values
         schema.forEachIndexed(fields) { i, field ->
-            when (field) {
-                is FieldDef.Mutable -> (vals[i] as ManagedProperty<*, *, *, *>).dropManagement()
-                is FieldDef.Immutable -> { /* no-op */ }
-            }.also { }
+            field.foldOrdinal(
+                ifMutable = { (vals[i] as ManagedProperty<*, *, *, *>).dropManagement() },
+                ifImmutable = { /* no-op */ }
+            )
         }
     }
 

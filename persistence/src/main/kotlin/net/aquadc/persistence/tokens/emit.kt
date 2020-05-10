@@ -49,7 +49,7 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
                 val fields = type.fields(value)
                 val values = type.store(value)
                 val schema: Schema<Schema<*>> = type.schema as Schema<Schema<*>>
-                when (fields.size.toInt()) {
+                when (fields.size) {
                     0 -> { } // nothing to do here
                     1 -> {
                         val field = schema.single<Schema<*>, FieldDef<Schema<*>, *, *>>(fields) as FieldDef<Schema<*>, Any?, DataType<Any?>>

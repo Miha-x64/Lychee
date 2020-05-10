@@ -171,7 +171,7 @@ inline fun <reified T> List<T>.array(plusSize: Int = 0): Array<T> =
         (this as java.util.List<T>).toArray(arrayOfNulls<T>(size + plusSize))
 
 internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?) {
-    when (fields.size.toInt()) {
+    when (fields.size) {
         0 -> {
         } // empty. Nothing to do here!
 
@@ -191,7 +191,7 @@ internal fun <SCH : Schema<SCH>> fill(builder: StructBuilder<SCH>, schema: SCH, 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun <SCH : Schema<SCH>> PartialStruct<SCH>.fieldValues(): Any? {
     val fields = fields
-    return when (val fieldCount = fields.size.toInt()) {
+    return when (val fieldCount = fields.size) {
         0 -> null
         1 -> getOrThrow(schema.single(fields))
         else -> {
@@ -247,7 +247,7 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
             } catch (t: Throwable) {
                 // if something goes wrong (especially within read()),
                 // we're gonna pop everything we've pushed, saving the rest of application from memory leaks
-                fieldValues.pop(2 * fields.size.toInt())
+                fieldValues.pop(2 * fields.size)
                 throw t
             }
 
@@ -284,7 +284,7 @@ internal fun ArrayList<*>.pop(count: Int) {
 
 @PublishedApi
 internal fun <SCH : Schema<SCH>> gatherValues(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, fieldValues: ArrayList<Any?>): Array<Any?> {
-    val fieldCount = fields.size.toInt()
+    val fieldCount = fields.size
     val values = arrayOfNulls<Any>(fieldCount)
     repeat(fieldCount) { _ ->
         val value = fieldValues.pop()
