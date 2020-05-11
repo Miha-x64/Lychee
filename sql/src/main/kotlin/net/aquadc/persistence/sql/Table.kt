@@ -24,7 +24,6 @@ import net.aquadc.properties.internal.Unset
  * Represents a table, i. e. defines structs which can be persisted in a database.
  * @param SCH self, i. e. this table
  * @param ID  primary key type
- * @param REC type of record, which can be simply `Record<SCH>` or a custom class extending [Record]
  */
 open class Table<SCH : Schema<SCH>, ID : IdBound>
 private constructor(

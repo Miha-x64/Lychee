@@ -155,7 +155,7 @@ interface Transaction : Closeable {
      * @return a set of updated fields
      *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
-    fun <REC : Record<SCH, ID>, SCH : Schema<SCH>, ID : IdBound, T> REC.setFrom(
+    fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.setFrom(
             source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
     ): FieldSet<SCH, MutableField<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
@@ -176,6 +176,6 @@ interface Transaction : Closeable {
 @Deprecated("moved", level = DeprecationLevel.ERROR) typealias SqliteSession = net.aquadc.persistence.sql.blocking.SqliteSession
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun <SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>
-    REC.transactional(): TransactionalPropertyStruct<SCH> =
+inline fun <SCH : Schema<SCH>, ID : IdBound>
+    Record<SCH, ID>.transactional(): TransactionalPropertyStruct<SCH> =
     RecordTransactionalAdapter(this)

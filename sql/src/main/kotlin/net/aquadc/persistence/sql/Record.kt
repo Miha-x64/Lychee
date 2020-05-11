@@ -66,8 +66,8 @@ internal constructor(
 
     @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
     @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
-    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound, ForeREC : Record<ForeSCH, ForeID>>
-            FieldDef.Mutable<SCH, ForeID, *>.toOne(foreignTable: Table<ForeSCH, ForeID>): SqlProperty<ForeREC> =
+    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound>
+            FieldDef.Mutable<SCH, ForeID, *>.toOne(foreignTable: Table<ForeSCH, ForeID>): SqlProperty<Record<ForeSCH, ForeID>> =
             throw AssertionError()
 
     @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)

@@ -78,7 +78,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
      * @param FR foreign record
      */
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
-    class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, FR : Record<FS, FID>, C : Collection<FR>> private constructor(
+    class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, C : Collection<Record<FS, FID>>> private constructor(
             ourTable: Table<S, ID>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinColumn: StoredLens<FS, *, *>
     ) : Relation<S, ID, C>(path) {
         init {
@@ -87,7 +87,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
         }
 
         companion object {
-            operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, R : Record<S, ID>, FID : IdBound, C : Collection<Record<FS, FID>>> Table<S, ID>.invoke(
+            operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, C : Collection<Record<FS, FID>>> Table<S, ID>.invoke(
                     path: Lens<S, Record<S, ID>, Record<S, ID>, C, *>, foreignTable: Table<FS, *>, joinColumn: Lens<FS, Record<FS, *>, Record<FS, *>, *, *>
             ): Nothing = TODO() // ToMany<S, ID, FS, R, FID, FR, C> = ToMany(this, path, foreignTable, joinColumn)
         }

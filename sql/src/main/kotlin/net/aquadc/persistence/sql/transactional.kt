@@ -13,8 +13,8 @@ import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.persistence.TransactionalPropertyStruct
 
 
-@PublishedApi internal class RecordTransactionalAdapter<SCH : Schema<SCH>, ID : IdBound, REC : Record<SCH, ID>>(
-        @JvmField @JvmSynthetic internal val record: REC
+@PublishedApi internal class RecordTransactionalAdapter<SCH : Schema<SCH>, ID : IdBound>(
+        @JvmField @JvmSynthetic internal val record: Record<SCH, ID>
 ) : BaseStruct<SCH>(record.schema), TransactionalPropertyStruct<SCH> {
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T =
