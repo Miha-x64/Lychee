@@ -2,6 +2,7 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.struct.Named
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
@@ -40,7 +41,7 @@ class RelationSchemas {
     @Test(expected = IllegalStateException::class) fun `same name as nested`() {
         tableOf(dupeEmbed, "", "a", i64) {
             arrayOf(
-                    Relation.Embedded(SnakeCase, dupeEmbed.Second)
+                embed(SnakeCase, dupeEmbed.Second)
             )
         }.columns
     }
@@ -70,7 +71,7 @@ class RelationSchemas {
     @Test fun `embed struct`() {
         val table = tableOf(embedSchema, "zzz", "_id", i64) {
             arrayOf(
-                    Relation.Embedded(SnakeCase, embedSchema.Second)
+                embed(SnakeCase, embedSchema.Second)
             )
         }
         assertEquals(arrayOf("_id", "a", "b_a", "b_b"), table.columns.namesIn(embedSchema))
@@ -88,7 +89,7 @@ class RelationSchemas {
     @Test fun `embed partial`() {
         val table = tableOf(embedPartial, "zzz", "_id", i64) {
             arrayOf(
-                    Relation.Embedded(SnakeCase, embedPartial.Second, "fieldsSet")
+                embed(SnakeCase, embedPartial.Second, "fieldsSet")
             )
         }
         assertEquals(arrayOf("_id", "a", "b_fieldsSet", "b_a", "b_b"), table.columns.namesIn(embedPartial))
@@ -107,7 +108,7 @@ class RelationSchemas {
     @Test fun `embed nullable`() {
         val table = tableOf(embedNullable, "zzz", "_id", i64) {
             arrayOf(
-                    Relation.Embedded(SnakeCase, embedNullable.Second, "nullability")
+                embed(SnakeCase, embedNullable.Second, "nullability")
             )
         }
         assertEquals(arrayOf("_id", "a", "b_nullability", "b_a", "b_b"), table.columns.namesIn(embedNullable))
@@ -126,7 +127,7 @@ class RelationSchemas {
     @Test fun `embed nullable partial`() {
         val table = tableOf(embedNullablePartial, "zzz", "_id", i64) {
             arrayOf(
-                    Relation.Embedded(SnakeCase, embedNullablePartial.Second, "fieldSetAndNullability")
+                embed(SnakeCase, embedNullablePartial.Second, "fieldSetAndNullability")
             )
         }
         assertEquals(

@@ -6,55 +6,89 @@ import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 
+@Deprecated("renamed")
+@Suppress("UNUSED_TYPEALIAS_PARAMETER")
+typealias Relation<S, ID, T> = ColMeta<S>
+
 /**
- * Describes which way a value of [DataType.Partial] of [Struct]/[Schema] type should be persisted in a relational database.
+ * A piece of metadata about table columns: relations, indices, type overrides.
  */
-sealed class Relation<S : Schema<S>, ID : IdBound, T>(
-        @JvmField val path: StoredLens<S, T, *>
+sealed class ColMeta<S : Schema<S>>(
+    @JvmField val path: StoredLens<S, *, *>
 ) {
 
     @Suppress("NOTHING_TO_INLINE")
     companion object {
-        // looks like constructor to preserve source compatibility
         /**
          * @param naming which will concat names
-         * @param path a path to a value stored as a [DataType.Partial]
+         * @param path to a value stored as a [DataType.Partial]
          * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
          */
+        @Deprecated("renamed", ReplaceWith("embed(naming, path, fieldSetColName)", "net.aquadc.persistence.sql.ColMeta.Companion.*"))
         @JvmName("embeddedNullable")
-        inline fun <S : Schema<S>, ID : IdBound, ET : Any, EDT : DataType.Nullable<ET, out DataType.Partial<ET, *>>>
-                Embedded(naming: NamingConvention, path: StoredLens<S, ET?, EDT>, fieldSetColName: String): Embedded<S, ID, ET?> =
-                Embedded<S, ID, ET?>(naming, path, fieldSetColName, null)
+        inline fun <S : Schema<S>, ET : Any, EDT : DataType.Nullable<ET, out DataType.Partial<ET, *>>>
+                Embedded(naming: NamingConvention, path: StoredLens<S, ET?, EDT>, fieldSetColName: String): ColMeta<S> =
+                Embed<S>(naming, path, fieldSetColName)
         /**
          * @param naming which will concat names
-         * @param path a path to a value stored as a [DataType.Partial]
+         * @param path to a value stored as a [DataType.Partial]
          * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
          */
+        @Deprecated("renamed", ReplaceWith("embed(naming, path, fieldSetColName)", "net.aquadc.persistence.sql.ColMeta.Companion.*"))
         @JvmName("embeddedPartial")
-        inline fun <S : Schema<S>, ID : IdBound, ET, EDT : DataType.Partial<ET, *>>
-                Embedded(naming: NamingConvention, path: StoredLens<S, ET, EDT>, fieldSetColName: String): Embedded<S, ID, ET> =
-                Embedded<S, ID, ET>(naming, path, fieldSetColName, null)
+        inline fun <S : Schema<S>, ET, EDT : DataType.Partial<ET, *>>
+                Embedded(naming: NamingConvention, path: StoredLens<S, ET, EDT>, fieldSetColName: String): ColMeta<S> =
+                Embed<S>(naming, path, fieldSetColName)
         /**
          * @param naming which will concat names
-         * @param path a path to a value stored as a struct with [Schema]
+         * @param path to a value stored as a struct with [Schema]
          */
+        @Deprecated("renamed", ReplaceWith("embed(naming, path)", "net.aquadc.persistence.sql.ColMeta.Companion.*"))
         @JvmName("embeddedStruct")
-        inline fun <S : Schema<S>, ID : IdBound, ES : Schema<ES>>
-                Embedded(naming: NamingConvention, path: StoredLens<S, Struct<ES>, ES>): Embedded<S, ID, Struct<ES>> =
-                Embedded<S, ID, Struct<ES>>(naming, path, null, null)
+        inline fun <S : Schema<S>, ES : Schema<ES>>
+                Embedded(naming: NamingConvention, path: StoredLens<S, Struct<ES>, ES>): ColMeta<S> =
+                Embed<S>(naming, path, null)
+
+
+        /**
+         * @param naming which will concat names
+         * @param path to a value stored as a [DataType.Partial]
+         * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
+         */
+        @JvmName("embedNullable")
+        inline fun <S : Schema<S>, ET : Any, EDT : DataType.Nullable<ET, out DataType.Partial<ET, *>>>
+            embed(naming: NamingConvention, path: StoredLens<S, ET?, EDT>, fieldSetColName: String): ColMeta<S> =
+            Embed<S>(naming, path, fieldSetColName)
+
+        /**
+         * @param naming which will concat names
+         * @param path to a value stored as a [DataType.Partial]
+         * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
+         */
+        @JvmName("embedPartial")
+        inline fun <S : Schema<S>, ET, EDT : DataType.Partial<ET, *>>
+            embed(naming: NamingConvention, path: StoredLens<S, ET, EDT>, fieldSetColName: String): ColMeta<S> =
+            Embed<S>(naming, path, fieldSetColName)
+
+        /**
+         * @param naming which will concat names
+         * @param path to a value stored as a struct with [Schema]
+         */
+        @JvmName("embedStruct")
+        inline fun <S : Schema<S>, ES : Schema<ES>>
+            embed(naming: NamingConvention, path: StoredLens<S, Struct<ES>, ES>): ColMeta<S> =
+            Embed<S>(naming, path, null)
     }
 
     /**
      * Embed a (Partial)[Struct] of type [ET] into current table.
      * @param S outer [Schema]
      */
-    class Embedded<S : Schema<S>, ID : IdBound, ET>
-    @PublishedApi internal constructor(
-            val naming: NamingConvention,
-            path: StoredLens<S, ET, *>,
-            val fieldSetColName: String?,
-            iAmConstructor: Nothing?
-    ) : Relation<S, ID, ET>(path)
+    @PublishedApi internal class Embed<S : Schema<S>> constructor(
+        val naming: NamingConvention,
+        path: StoredLens<S, *, *>,
+        val fieldSetColName: String?
+    ) : ColMeta<S>(path)
 
     /**
      * Reference a single entity by its primary key.
@@ -64,7 +98,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR) // todo
     class ToOne<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound>(
             path: StoredLens<S, Record<FS, FID>?, *>, foreignTable: Table<FS, *>
-    ) : Relation<S, ID, Record<FS, FID>?>(path) {
+    ) : ColMeta<S>(path) {
         init {
             checkToOne(TODO(), path, foreignTable)
         }
@@ -80,7 +114,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, C : Collection<Record<FS, FID>>> private constructor(
             ourTable: Table<S, ID>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinColumn: StoredLens<FS, *, *>
-    ) : Relation<S, ID, C>(path) {
+    ) : ColMeta<S>(path) {
         init {
             checkToMany(ourTable.schema, path, foreignTable)
             checkToOne(foreignTable.schema, joinColumn, ourTable) // ToMany is actually many ToOnes
@@ -96,7 +130,7 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
     @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
     class ManyToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, C : Collection<Record<FS, *>>>(
             path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinTable: JoinTable
-    ) : Relation<S, ID, C>(path) {
+    ) : ColMeta<S>(path) {
         init {
             checkToMany(TODO(), path, foreignTable)
         }
@@ -104,9 +138,10 @@ sealed class Relation<S : Schema<S>, ID : IdBound, T>(
 
     // for tests
 
-    override fun hashCode(): Int = path.hashCode()
+    override fun hashCode(): Int =
+        javaClass.hashCode() xor path.hashCode()
     override fun equals(other: Any?): Boolean =
-            other is Relation<*, *, *> && javaClass === other.javaClass && path == other.path
+            other is ColMeta<*> && javaClass === other.javaClass && path == other.path
 
 }
 

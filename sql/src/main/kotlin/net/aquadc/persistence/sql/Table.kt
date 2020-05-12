@@ -46,7 +46,16 @@ private constructor(
      * Returns all relations for this table.
      * This must describe how to store all [Struct] columns relationally.
      */
-    protected open fun relations(): Array<out Relation<SCH, ID, *>> = noRelations as Array<Relation<SCH, ID, *>>
+    @Deprecated("now override meta() for relations, indices, type overrides, etc")
+    protected open fun relations(): Array<out ColMeta<SCH>> = noMeta as Array<out ColMeta<SCH>>
+
+    /**
+     * Returns all metadata for this table: relations, indices, type overrides.
+     * This helps building a list of columns, binding and reading values, constructing 'CREATE TABLE etc.
+     * Relations could form dependency circles, that's why we don't require them in constructor.
+     * This method could mention other tables but must not touch their columns.
+     */
+    protected open fun meta(): Array<out ColMeta<SCH>> = relations()
 
     @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null
     @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
@@ -54,8 +63,8 @@ private constructor(
     @JvmSynthetic @JvmField internal var _managedColNames: Array<out CharSequence>? = null
     @JvmSynthetic @JvmField internal var _managedColTypes: Array<out DataType<*>>? = null
     private val _columns: Lazy<Array<out StoredNamedLens<SCH, *, *>>> = lazy {
-        val rels = relations().let { rels ->
-            rels.associateByTo(newMap<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>(rels.size), Relation<SCH, ID, *>::path)
+        val meta = meta().let { meta ->
+            meta.associateByTo(newMap<StoredLens<SCH, *, *>, ColMeta<SCH>>(meta.size), ColMeta<SCH>::path)
         }
         val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(schema.fields.size)
         if (pkField == null) {
@@ -91,11 +100,11 @@ private constructor(
 
     // some bad code with raw types here
     @Suppress("UPPER_BOUND_VIOLATED") @JvmSynthetic internal fun embed(
-            rels: MutableMap<StoredLens<SCH, *, *>, Relation<SCH, ID, *>>, schema: Schema<*>,
-            naming: NamingConvention?, prefix: StoredNamedLens<SCH, *, *>?,
-            outColumns: CheckNamesList<StoredNamedLens<SCH, *, *>>,
-            outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?,
-            outRecipe: ArrayList<Nesting>
+        metas: MutableMap<StoredLens<SCH, *, *>, ColMeta<SCH>>, schema: Schema<*>,
+        naming: NamingConvention?, prefix: StoredNamedLens<SCH, *, *>?,
+        outColumns: CheckNamesList<StoredNamedLens<SCH, *, *>>,
+        outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?,
+        outRecipe: ArrayList<Nesting>
     ) {
         val fields = schema.fields
         val fieldCount = fields.size
@@ -118,8 +127,8 @@ private constructor(
                 val rel = rels.remove(path)
                         ?: throw NoSuchElementException("${this@Table} requires a Relation to be declared for path $path storing values of type $relType")
 
-                when (rel) {
-                    is Relation.Embedded<*, *, *> -> {
+                when (meta) {
+                    is ColMeta.Embed<*> -> {
                         val start = outColumns.size
                         val fieldSetCol = rel.fieldSetColName?.let { fieldSetColName ->
                             (rel.naming.concatErased(this.schema, schema, path, FieldSetLens<Schema<*>>(fieldSetColName)) as StoredNamedLens<SCH, out Long?, *>)
@@ -244,7 +253,7 @@ private constructor(
 
     private companion object {
         private val simpleDelegate = Simple<Nothing, Nothing>()
-        private val noRelations = emptyArray<Relation<Nothing, Nothing, Nothing>>()
+        private val noMeta = emptyArray<ColMeta<Nothing>>()
     }
 
 }
@@ -263,27 +272,29 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: ImmutableField<SCH, ID, out DataType.Simple<ID>>): SimpleTable<SCH, ID> =
         Table(schema, name, idCol)
 
-// just extend SimpleTable, but infer type arguments instead of forcing client to specify them explicitly in object expression:
+// just extend Table,
+// but infer type arguments instead of forcing client to specify them explicitly in object expression
+// (he-he, modern Java allows writing `new Table<>() {}`):
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         schema: SCH, name: String, idColName: String, idColType: DataType.Simple<ID>,
-        crossinline relations: SCH.() -> Array<out Relation<SCH, ID, *>>
+        crossinline meta: SCH.() -> Array<out ColMeta<SCH>>
 ): Table<SCH, ID> =
         object : Table<SCH, ID>(schema, name, idColName, idColType) {
-            override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke(schema)
+            override fun meta(): Array<out ColMeta<SCH>> = meta.invoke(schema)
         }
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
         schema: SCH, name: String, idCol: ImmutableField<SCH, ID, out DataType.Simple<ID>>,
-        crossinline relations: () -> Array<out Relation<SCH, ID, *>>
+        crossinline meta: () -> Array<out ColMeta<SCH>>
 ): Table<SCH, ID> =
         object : Table<SCH, ID>(schema, name, idCol) {
-            override fun relations(): Array<out Relation<SCH, ID, *>> = relations.invoke()
+            override fun meta(): Array<out ColMeta<SCH>> = meta.invoke()
         }
 
 @Suppress("NOTHING_TO_INLINE") // just to be consistent with other functions
 inline fun <SCH : Schema<SCH>> projection(schema: SCH): Table<SCH, Nothing> =
         tableOf(schema, "<anonymous>", "<none>", nothing)
 
-inline fun <SCH : Schema<SCH>> projection(schema: SCH, crossinline relations: SCH.() -> Array<out Relation<SCH, Nothing, *>>): Table<SCH, Nothing> =
+inline fun <SCH : Schema<SCH>> projection(schema: SCH, crossinline relations: SCH.() -> Array<out ColMeta<SCH>>): Table<SCH, Nothing> =
         tableOf(schema, "<anonymous>", "<none>", nothing, relations)

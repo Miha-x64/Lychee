@@ -5,6 +5,7 @@ import net.aquadc.persistence.extended.component1
 import net.aquadc.persistence.extended.component2
 import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.extended.times
+import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
 import net.aquadc.persistence.sql.blocking.Lazily
@@ -128,8 +129,8 @@ open class TemplatesTest {
         val userAndContact = Tuple("u", User, "c", Contact)
         //  ^^^^^^^^^^^^^^ should inline this variable after inference fix
         val joined = projection(userAndContact) { arrayOf(
-                Relation.Embedded(NestingCase, First)
-              , Relation.Embedded(NestingCase, Second)
+            embed(NestingCase, First)
+              , embed(NestingCase, Second)
         ) }
 
         val USER_BY_NAME = "SELECT u.name as 'u.name', u.email as 'u.email'," +

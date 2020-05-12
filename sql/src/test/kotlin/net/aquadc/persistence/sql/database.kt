@@ -4,6 +4,7 @@ import net.aquadc.persistence.extended.Tuple
 import net.aquadc.persistence.extended.Tuple3
 import net.aquadc.persistence.extended.either.plus
 import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.struct.Schema
@@ -36,7 +37,7 @@ object WithNested : Schema<WithNested>() {
 }
 val TableWithEmbed = tableOf(WithNested, "with_nested", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, Nested)
+        embed(SnakeCase, Nested)
     )
 }
 
@@ -46,8 +47,8 @@ object DeeplyNested : Schema<DeeplyNested>() {
 }
 val TableWithDeepEmbed = tableOf(DeeplyNested, "deep", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, Nested),
-            Relation.Embedded(SnakeCase, Nested / WithNested.Nested)
+        embed(SnakeCase, Nested),
+        embed(SnakeCase, Nested / WithNested.Nested)
     )
 }
 
@@ -59,13 +60,13 @@ val goDeeper = Tuple3(
 
 val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, First)
-          , Relation.Embedded(SnakeCase, First / DeeplyNested.Nested)
-          , Relation.Embedded(SnakeCase, First / DeeplyNested.Nested / WithNested.Nested)
-          , Relation.Embedded(SnakeCase, Second)
-          , Relation.Embedded(SnakeCase, Second / WithNullableNested.Nested, "fieldSet")
-          , Relation.Embedded(SnakeCase, Third, "which")
-          , Relation.Embedded(SnakeCase, Third % goDeeper.typeOf(goDeeper.Third).schema.Second, "fieldSet")
+        embed(SnakeCase, First)
+      , embed(SnakeCase, First / DeeplyNested.Nested)
+      , embed(SnakeCase, First / DeeplyNested.Nested / WithNested.Nested)
+      , embed(SnakeCase, Second)
+      , embed(SnakeCase, Second / WithNullableNested.Nested, "fieldSet")
+      , embed(SnakeCase, Third, "which")
+      , embed(SnakeCase, Third % goDeeper.typeOf(goDeeper.Third).schema.Second, "fieldSet")
     )
 }
 
@@ -77,7 +78,7 @@ object WithNullableNested : Schema<WithNullableNested>() {
 }
 val TableWithNullableEmbed = tableOf(WithNullableNested, "with_nullable_nested", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, Nested, "nested_fields")
+        embed(SnakeCase, Nested, "nested_fields")
     )
 }
 
@@ -87,7 +88,7 @@ object WithPartialNested : Schema<WithPartialNested>() {
 }
 val TableWithPartialEmbed = tableOf(WithPartialNested, "with_partial_nested", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, Nested, "nested_fields")
+        embed(SnakeCase, Nested, "nested_fields")
     )
 }
 
@@ -97,9 +98,9 @@ object WithEverything : Schema<WithEverything>() {
 }
 val TableWithEverything = tableOf(WithEverything, "with_everything", "_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, Nest1, "fields"),
-            Relation.Embedded(SnakeCase, Nest1 / WithPartialNested.Nested, "fields"),
-            Relation.Embedded(SnakeCase, Nest2)
+        embed(SnakeCase, Nest1, "fields"),
+        embed(SnakeCase, Nest1 / WithPartialNested.Nested, "fields"),
+        embed(SnakeCase, Nest2)
     )
 }
 
@@ -107,8 +108,8 @@ val stringOrNullableString = string + nullable(string)
 val schemaWithNullableEither = Tuple("1", stringOrNullableString, "2", nullable(stringOrNullableString))
 val TableWithNullableEither = tableOf(schemaWithNullableEither, "tableContainingEither","_id", i64) {
     arrayOf(
-            Relation.Embedded(SnakeCase, First, "which"),
-            Relation.Embedded(SnakeCase, Second, "whetherAndWhich")
+        embed(SnakeCase, First, "which"),
+        embed(SnakeCase, Second, "whetherAndWhich")
     )
 }
 
