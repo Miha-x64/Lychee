@@ -1,11 +1,12 @@
-package net.aquadc.persistence.sql.dialect.sqlite
+package net.aquadc.persistence.sql.dialect
 
+import androidx.annotation.RestrictTo
+import net.aquadc.collections.InlineEnumMap
+import net.aquadc.collections.get
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.WhereCondition
-import net.aquadc.persistence.sql.dialect.Dialect
-import net.aquadc.persistence.sql.dialect.appendPlaceholders
-import net.aquadc.persistence.sql.dialect.appendReplacing
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
@@ -14,10 +15,11 @@ import net.aquadc.persistence.type.DataType
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
-/**
- * Implements SQLite [Dialect].
- */
-object SqliteDialect : Dialect {
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+/*internal*/ open class BaseDialect(
+    private val types: InlineEnumMap<DataType.Simple.Kind, String>,
+    private val truncate: String
+) : Dialect {
 
     override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *>): String = buildString {
         val cols = table.managedColNames
@@ -45,7 +47,10 @@ object SqliteDialect : Dialect {
                 .let { if (columns == null) it.append("COUNT(*)") else it.appendNames(columns) }
                 .append(" FROM ").appendName(table.name)
                 .append(" WHERE ")
-        sb.appendWhereClause(table, condition)
+
+        val afterWhere = sb.length
+        condition.appendSqlTo(table, this@BaseDialect, sb)
+        sb.length.let { if (it == afterWhere) sb.setLength(it - 7) } // erase " WHERE "
 
         if (order.isNotEmpty())
             sb.append(" ORDER BY ").appendOrderClause(table.schema, order)
@@ -58,9 +63,10 @@ object SqliteDialect : Dialect {
             condition: WhereCondition<SCH>
     ): StringBuilder = apply {
         val afterWhere = length
-        condition.appendSqlTo(context, this@SqliteDialect, this)
+        condition.appendSqlTo(context, this@BaseDialect, this)
 
-        if (length == afterWhere) append('1') // no condition: SELECT "whatever" FROM "somewhere" WHERE 1
+        // no condition: SELECT "whatever" FROM "somewhere" WHERE true
+        if (length == afterWhere) append(if (this@BaseDialect === SqliteDialect) "1" else "true")
     }
 
     override fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(
@@ -73,12 +79,11 @@ object SqliteDialect : Dialect {
 
     override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *>, cols: Array<out CharSequence>): String =
             buildString {
-                append("UPDATE ").appendName(table.name).append(" SET ")
+                check(cols.isNotEmpty())
 
-                cols.forEach { col ->
-                    appendName(col).append(" = ?, ")
-                }
-                setLength(length - 2) // assume not empty
+                append("UPDATE ").appendName(table.name).append(" SET ")
+                cols.forEach { col -> appendName(col).append(" = ?, ") }
+                setLength(length - 2)
 
                 append(" WHERE ").appendName(table.idColName).append(" = ?;")
             }
@@ -100,14 +105,16 @@ object SqliteDialect : Dialect {
         }
     }
 
-    override fun createTable(table: Table<*, *>): String {
-        val sb = StringBuilder("CREATE TABLE ").appendName(table.name).append(" (")
-                .appendName(table.idColName).append(' ').appendNameOf(table.idColType).append(" PRIMARY KEY")
+    override fun createTable(table: Table<*, *>, temporary: Boolean): String {
+        val managedPk = table.pkField != null
+        val sb = StringBuilder("CREATE").append(' ')
+            .appendIf(temporary, "TEMP ").append("TABLE").append(' ').appendName(table.name).append(" (")
+            .appendName(table.idColName).append(' ').appendPkType(table.idColType, managedPk).append(" PRIMARY KEY")
 
         val colNames = table.managedColNames
         val colTypes = table.managedColTypes
 
-        val startIndex = if (table.pkField == null) 0 else 1
+        val startIndex = if (managedPk) 1 else 0
         val endExclusive = colNames.size
         if (endExclusive != startIndex) {
             sb.append(", ")
@@ -125,6 +132,10 @@ object SqliteDialect : Dialect {
         sb.setLength(sb.length - 2) // trim last comma; schema.fields must not be empty
         return sb.append(");").toString()
     }
+    private inline fun StringBuilder.appendIf(cond: Boolean, what: String): StringBuilder =
+        if (cond) append(what) else this
+    protected open fun StringBuilder.appendPkType(type: DataType.Simple<*>, managed: Boolean): StringBuilder =
+        appendNameOf(type) // used by SQLite, overridden for Postgres
 
     private fun <T> StringBuilder.appendDefault(type: DataType<T>, default: T) {
         val type = if (type is DataType.Nullable<*, *>) {
@@ -154,20 +165,11 @@ object SqliteDialect : Dialect {
         }
     }
 
-    private fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {
+    protected fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {
         val act = if (dataType is DataType.Nullable<*, *>) dataType.actualType else dataType
         when (act) {
             is DataType.Nullable<*, *> -> throw AssertionError()
-            is DataType.Simple<*> -> append(when (act.kind) {
-                DataType.Simple.Kind.Bool,
-                DataType.Simple.Kind.I32,
-                DataType.Simple.Kind.I64 -> "INTEGER"
-                DataType.Simple.Kind.F32,
-                DataType.Simple.Kind.F64 -> "REAL"
-                DataType.Simple.Kind.Str -> "TEXT"
-                DataType.Simple.Kind.Blob -> "BLOB"
-                else -> throw AssertionError()
-            })
+            is DataType.Simple<*> -> append(types[act.kind]!!)
             is DataType.Collect<*, *, *> -> append("BLOB")
             is DataType.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
         }
@@ -181,7 +183,7 @@ object SqliteDialect : Dialect {
      */
     override fun truncate(table: Table<*, *>): String =
             buildString(13 + table.name.length) {
-                append("DELETE FROM").appendName(table.name)
+                append(truncate).append(' ').appendName(table.name)
             }
 
 }

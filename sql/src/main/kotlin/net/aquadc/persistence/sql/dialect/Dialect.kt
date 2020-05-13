@@ -31,6 +31,7 @@ interface Dialect {
     /**
      * Appends WHERE clause (without WHERE itself) to [this] builder.
      */
+    @Deprecated("unused by Session")
     fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(context: Table<SCH, *>, condition: WhereCondition<SCH>): StringBuilder
 
     /**
@@ -57,7 +58,7 @@ interface Dialect {
     /**
      * Returns an SQL query to create the given [table].
      */
-    fun createTable(table: Table<*, *>): String
+    fun createTable(table: Table<*, *>, temporary: Boolean = false): String
 
     /**
      * Returns `TRUNCATE` query to clear the whole table.

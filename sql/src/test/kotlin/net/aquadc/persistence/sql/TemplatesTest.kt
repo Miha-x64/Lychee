@@ -20,9 +20,9 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 
-open class TemplatesTest {
+abstract class TemplatesTest {
 
-    open val session: Session<out Blocking<*>> get() = jdbcSession
+    protected abstract val session: Session<out Blocking<*>>
 
     @Test fun <CUR> cell() {
         val session = session as Session<Blocking<CUR>>
@@ -133,12 +133,12 @@ open class TemplatesTest {
               , embed(NestingCase, Second)
         ) }
 
-        val USER_BY_NAME = "SELECT u.name as 'u.name', u.email as 'u.email'," +
-                "c.value as 'c.value', c.user_id as 'c.user_id' " +
-                "FROM users u INNER JOIN contacts c ON u._id = c.user_id WHERE u.name = ? LIMIT 1"
-        val USERS_BY_NAME_AND_EMAIL_START = "SELECT u.name as 'u.name', u.email as 'u.email'," +
-                "c.value as 'c.value', c.user_id as 'c.user_id' " +
-                "FROM users u INNER JOIN contacts c ON u._id = c.user_id WHERE u.name = ? AND u.email LIKE (? || '%') LIMIT 1"
+        val USER_BY_NAME =
+            """SELECT u.name as "u.name", u.email as "u.email", c.value as "c.value", c.user_id as "c.user_id"
+            FROM users u INNER JOIN contacts c ON u._id = c.user_id WHERE u.name = ? LIMIT 1"""
+        val USERS_BY_NAME_AND_EMAIL_START =
+            """SELECT u.name as "u.name", u.email as "u.email", c.value as "c.value", c.user_id as "c.user_id"
+            FROM users u INNER JOIN contacts c ON u._id = c.user_id WHERE u.name = ? AND u.email LIKE (? || '%') LIMIT 1"""
         val expectedJohn = joined.schema(
                 User("John", "john@doe.com"),
                 Contact("@johnDoe", johnPk)

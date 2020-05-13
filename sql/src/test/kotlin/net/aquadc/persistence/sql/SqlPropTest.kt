@@ -9,13 +9,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.fail
+import org.junit.AssumptionViolatedException
 import org.junit.Test
 import java.sql.SQLException
 
 
-open class SqlPropTest {
-
-    open val session: Session<*> get() = jdbcSession
+abstract class SqlPropTest {
+    protected abstract val session: Session<*>
 
     private val someDao get() = session[SomeTable]
 
@@ -163,8 +163,9 @@ open class SqlPropTest {
                 })
             }
         } catch (e: Exception) {
+            if (e is AssumptionViolatedException) throw e
             if (!duplicatePkExceptionClass.isInstance(e)) {
-                fail()
+                fail("expected:<" + duplicatePkExceptionClass.name + "> but was:<" + e.javaClass + ">")
             }
         }
     }
@@ -201,6 +202,15 @@ open class SqlPropTest {
             })
         }
     }
+
+    private fun Session<*>.createTestRecord() =
+        withTransaction {
+            insert(SomeTable, SomeSchema {
+                it[A] = "first"
+                it[B] = 2
+                it[C] = 3
+            })
+        }
 
 }
 

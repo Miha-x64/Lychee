@@ -74,12 +74,12 @@ private constructor(
         val recipe = ArrayList<Nesting>()
         val ss = Nesting.StructStart(false, null, null, schema)
         recipe.add(ss)
-        embed(rels, schema, null, null, columns, delegates, recipe)
+        embed(meta, schema, null, null, columns, delegates, recipe)
         ss.colCount = columns.size
         recipe.add(Nesting.StructEnd)
         this._recipe = recipe.array()
 
-        if (rels.isNotEmpty()) throw RuntimeException("cannot consume relations: $rels")
+        if (meta.isNotEmpty()) throw RuntimeException("cannot consume meta: ${meta.values}")
 
         this._delegates = delegates
         val colsArray = columns.array()
@@ -124,14 +124,14 @@ private constructor(
 
             if (relType != null) {
                 // got a struct type, a relation must be declared
-                val rel = rels.remove(path)
+                val meta = metas.remove(path)
                         ?: throw NoSuchElementException("${this@Table} requires a Relation to be declared for path $path storing values of type $relType")
 
                 when (meta) {
                     is ColMeta.Embed<*> -> {
                         val start = outColumns.size
-                        val fieldSetCol = rel.fieldSetColName?.let { fieldSetColName ->
-                            (rel.naming.concatErased(this.schema, schema, path, FieldSetLens<Schema<*>>(fieldSetColName)) as StoredNamedLens<SCH, out Long?, *>)
+                        val fieldSetCol = meta.fieldSetColName?.let { fieldSetColName ->
+                            (meta.naming.concatErased(this.schema, schema, path, FieldSetLens<Schema<*>>(fieldSetColName)) as StoredNamedLens<SCH, out Long?, *>)
                                     .also { outColumns.add(it, it.name(this.schema)) }
                         }
 
@@ -139,7 +139,7 @@ private constructor(
                         val recipeStart = outRecipe.size
                         val ss = Nesting.StructStart(fieldSetCol != null, field, type, relType)
                         outRecipe.add(ss)
-                        /*val nestedLenses =*/ embed(rels, relSchema, rel.naming, path, outColumns, null, outRecipe)
+                        /*val nestedLenses =*/ embed(metas, relSchema, meta.naming, path, outColumns, null, outRecipe)
                         ss.colCount = outColumns.size - start
                         outRecipe.add(Nesting.StructEnd)
 
@@ -179,7 +179,12 @@ private constructor(
         get() = _columns.value
 
     val pkColumn: NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.Simple<ID>>
-        get() = columns[0] as NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.Simple<ID>>
+        get() = _columns.let {
+            if (it.isInitialized())
+                it.value[0] as NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.Simple<ID>>
+            else
+                TODO("allow getting PK within meta() without reentrancy")
+        }
 
     internal val recipe: Array<out Nesting>
         get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }

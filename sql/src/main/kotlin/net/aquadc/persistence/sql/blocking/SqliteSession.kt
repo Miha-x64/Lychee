@@ -150,7 +150,10 @@ class SqliteSession(
                         table.name,
                         if (columnNames == null) arrayOf("COUNT(*)")
                         else columnNames.mapIndexedToArray { _, name -> name.toString() },
-                        StringBuilder().appendWhereClause(table, condition).toString(),
+                        StringBuilder().let {
+                            condition.appendSqlTo(table, SqliteDialect, it)
+                            if (it.isEmpty()) null/*todo deallocate SB*/ else it.toString()
+                        },
                         /*groupBy=*/null,
                         /*having=*/null,
                         if (order.isEmpty()) null else StringBuilder().appendOrderClause(table.schema, order).toString(),
@@ -380,6 +383,6 @@ class SqliteSession(
 /**
  * Calls [SQLiteDatabase.execSQL] for the given [table] in [this] database.
  */
-fun <SCH : Schema<SCH>> SQLiteDatabase.createTable(table: Table<SCH, *>) {
+fun SQLiteDatabase.createTable(table: Table<*, *>) {
     execSQL(SqliteDialect.createTable(table))
 }

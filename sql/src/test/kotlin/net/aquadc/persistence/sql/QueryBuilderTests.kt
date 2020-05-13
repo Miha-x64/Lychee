@@ -8,9 +8,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 
-open class QueryBuilderTests {
+abstract class QueryBuilderTests {
 
-    open val session: Session<*> get() = jdbcSession
+    protected abstract val session: Session<*>
 
     @Test fun between() {
         session.withTransaction {

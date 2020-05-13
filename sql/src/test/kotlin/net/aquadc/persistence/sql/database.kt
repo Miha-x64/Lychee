@@ -6,9 +6,9 @@ import net.aquadc.persistence.extended.either.plus
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.blocking.JdbcSession
+import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
@@ -127,21 +127,9 @@ val TestTables = arrayOf(
         UserTable, ContactTable
 )
 
-val jdbcSession by lazy { // init only when requested, unused in Robolectric tests
-    JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
+fun session(dialect: Dialect, url: String): JdbcSession =
+    JdbcSession(DriverManager.getConnection(url).also { conn ->
         val stmt = conn.createStatement()
-        TestTables.forEach {
-            stmt.execute(SqliteDialect.createTable(it))
-        }
+        TestTables.forEach { stmt.execute(dialect.createTable(it, temporary = true)) }
         stmt.close()
     }, SqliteDialect)
-}
-
-fun Session<*>.createTestRecord() =
-        withTransaction {
-            insert(SomeTable, SomeSchema {
-                it[A] = "first"
-                it[B] = 2
-                it[C] = 3
-            })
-        }

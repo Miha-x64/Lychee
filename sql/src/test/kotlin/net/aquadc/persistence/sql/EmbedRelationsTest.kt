@@ -20,9 +20,9 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 
-open class EmbedRelationsTest {
+abstract class EmbedRelationsTest {
 
-    open val session: Session<*> get() = jdbcSession
+    protected abstract val session: Session<*>
 
     @Test fun embed() {
         val rec = session.withTransaction {
