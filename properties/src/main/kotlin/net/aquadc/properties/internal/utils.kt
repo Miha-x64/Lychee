@@ -90,3 +90,23 @@ inline fun <T> emptyArrayOf(): Array<T> =
 @[JvmField JvmSynthetic PublishedApi] internal val TRUE = `Immutable-`(true)
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)
 @[JvmField JvmSynthetic PublishedApi] internal val UNIT = `Immutable-`(Unit)
+
+/**
+ * Represents a function which can be un-applied.
+ * For example, when `invoke(arg) = 10 * arg`, `backwards(arg) = arg / 10`.
+ */
+internal interface TwoWay<T, R> : (T) -> R {
+
+    /**
+     * Represents an action opposite to invoking this function.
+     */
+    fun backwards(arg: R): T
+}
+
+@PublishedApi internal inline fun <R, T> TwoWay(
+    crossinline forward: (T) -> R, crossinline backwards: (R) -> T
+): TwoWay<T, R> =
+    object : TwoWay<T, R> {
+        override fun invoke(p1: T): R = forward.invoke(p1)
+        override fun backwards(arg: R): T = backwards.invoke(arg)
+    }

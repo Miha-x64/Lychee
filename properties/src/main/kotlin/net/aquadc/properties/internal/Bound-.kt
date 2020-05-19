@@ -18,9 +18,10 @@ internal class `Bound-`<TRANSACTION, T, R>(
             mOrig.value = mapping.backwards(value)
         }
 
-    override fun setValue(transaction: TRANSACTION, value: R) {
-        tOrig.setValue(transaction, mapping.backwards(value))
-    }
+    @Suppress("UNCHECKED_CAST")
+    override fun setValue(transaction: TRANSACTION, value: R) =
+        (original as TransactionalProperty<TRANSACTION, T>)
+            .setValue(transaction, mapping.backwards(value))
 
     override fun bindTo(sample: Property<R>) {
         mOrig.bindTo(sample.map(Backwards(mapping)))
@@ -36,20 +37,7 @@ internal class `Bound-`<TRANSACTION, T, R>(
     }
 
     private inline val mOrig get() = original as MutableProperty<T>
-    private inline val tOrig get() = original as TransactionalProperty<TRANSACTION, T>
     private inline val mapping get() = map as TwoWay<T, R>
-
-    /**
-     * Represents a function which can be un-applied.
-     * For example, when `invoke(arg) = 10 * arg`, `backwards(arg) = arg / 10`.
-     */
-    interface TwoWay<T, R> : (T) -> R {
-
-        /**
-         * Represents an action opposite to invoking this function.
-         */
-        fun backwards(arg: R): T
-    }
 
     private class Backwards<T, R>(
             private val twoWay: TwoWay<T, R>

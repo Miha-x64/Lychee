@@ -81,10 +81,7 @@ inline fun <T, R> MutableProperty<T>.bind(
         crossinline forward: (T) -> R,
         crossinline backwards: (R) -> T
 ): MutableProperty<R> =
-        `Bound-`<Nothing, T, R>(this, object : `Bound-`.TwoWay<T, R> {
-            override fun invoke(p1: T): R = forward.invoke(p1)
-            override fun backwards(arg: R): T = backwards.invoke(arg)
-        })
+        `Bound-`<Nothing, T, R>(this, TwoWay(forward, backwards))
 
 /**
  * Returns a new [TransactionalProperty] with value equal to `forward(original.value)`.
@@ -94,10 +91,7 @@ inline fun <TRANSACTION, T, R> TransactionalProperty<TRANSACTION, T>.bind(
         crossinline forward: (T) -> R,
         crossinline backwards: (R) -> T
 ): TransactionalProperty<TRANSACTION, R> =
-        `Bound-`(this, object : `Bound-`.TwoWay<T, R> {
-            override fun invoke(p1: T): R = forward.invoke(p1)
-            override fun backwards(arg: R): T = backwards.invoke(arg)
-        })
+        `Bound-`(this, TwoWay(forward, backwards))
 
 /**
  * Returns a property which notifies its subscribers only when old and new values are not equal.
