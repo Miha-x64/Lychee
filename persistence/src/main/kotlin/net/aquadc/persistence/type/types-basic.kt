@@ -6,7 +6,7 @@ import net.aquadc.persistence.fatTo
 import java.util.EnumSet
 
 
-private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
+private class SimpleNoOp<T>(kind: Kind) : DataType.NotNull.Simple<T>(kind) {
 
     @Suppress("UNCHECKED_CAST")
     override fun load(value: SimpleValue): T {
@@ -39,7 +39,7 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.Simple<T>(kind) {
 /**
  * Describes [Boolean] instances.
  */
-@JvmField val bool: DataType.Simple<Boolean> = SimpleNoOp(DataType.Simple.Kind.Bool)
+@JvmField val bool: DataType.NotNull.Simple<Boolean> = SimpleNoOp(DataType.NotNull.Simple.Kind.Bool)
 
 /**
  * Describes [Byte] instances.
@@ -60,31 +60,31 @@ val short: Nothing get() = throw AssertionError()
 /**
  * Describes [Int] instances.
  */
-@JvmField val i32: DataType.Simple<Int> = SimpleNoOp(DataType.Simple.Kind.I32)
+@JvmField val i32: DataType.NotNull.Simple<Int> = SimpleNoOp(DataType.NotNull.Simple.Kind.I32)
 @JvmField @Deprecated("renamed", ReplaceWith("i32"), level = DeprecationLevel.ERROR) val int = i32
 
 /**
  * Describes [Long] instances.
  */
-@JvmField val i64: DataType.Simple<Long> = SimpleNoOp(DataType.Simple.Kind.I64)
+@JvmField val i64: DataType.NotNull.Simple<Long> = SimpleNoOp(DataType.NotNull.Simple.Kind.I64)
 @JvmField @Deprecated("renamed", ReplaceWith("i64"), level = DeprecationLevel.ERROR) val long = i64
 
 /**
  * Describes [Float] instances.
  */
-@JvmField val f32: DataType.Simple<Float> = SimpleNoOp(DataType.Simple.Kind.F32)
+@JvmField val f32: DataType.NotNull.Simple<Float> = SimpleNoOp(DataType.NotNull.Simple.Kind.F32)
 @JvmField @Deprecated("renamed", ReplaceWith("f32"), level = DeprecationLevel.ERROR) val float = f32
 
 /**
  * Describes [Double] instances.
  */
-@JvmField val f64: DataType.Simple<Double> = SimpleNoOp(DataType.Simple.Kind.F64)
+@JvmField val f64: DataType.NotNull.Simple<Double> = SimpleNoOp(DataType.NotNull.Simple.Kind.F64)
 @JvmField @Deprecated("renamed", ReplaceWith("f64"), level = DeprecationLevel.ERROR) val double = f64
 
 /**
  * Describes [String] instances.
  */
-@JvmField val string: DataType.Simple<String> = SimpleNoOp(DataType.Simple.Kind.Str)
+@JvmField val string: DataType.NotNull.Simple<String> = SimpleNoOp(DataType.NotNull.Simple.Kind.Str)
 
 /**
  * Describes [ByteArray] instances.
@@ -96,7 +96,7 @@ val short: Nothing get() = throw AssertionError()
                 "Consider using immutable ByteString instead.",
         ReplaceWith("byteString")
 )
-@JvmField val byteArray: DataType.Simple<ByteArray> = SimpleNoOp(DataType.Simple.Kind.Blob)
+@JvmField val byteArray: DataType.NotNull.Simple<ByteArray> = SimpleNoOp(DataType.NotNull.Simple.Kind.Blob)
 
 /**
  * Describes `T?` instances.
@@ -106,7 +106,7 @@ inline fun <T : Any, DT : DataType<T>> nullable(type: DT): DataType.Nullable<T, 
         DataType.Nullable(type)
 
 internal abstract class CollectBase<C : Collection<E>, E, DE : DataType<E>>(elementType: DE)
-    : DataType.Collect<C, E, DE>(elementType) {
+    : DataType.NotNull.Collect<C, E, DE>(elementType) {
 
     override fun store(value: C): AnyCollection =
             value
@@ -117,7 +117,7 @@ internal abstract class CollectBase<C : Collection<E>, E, DE : DataType<E>>(elem
  * Represents a [Collection] of [E].
  * Despite it is represented as a [List], duplicates handling depends on the underlying storage.
  */
-fun <E, DE : DataType<E>> collection(elementType: DE): DataType.Collect<List<E>, E, DE> =
+fun <E, DE : DataType<E>> collection(elementType: DE): DataType.NotNull.Collect<List<E>, E, DE> =
         object : CollectBase<List<E>, E, DE>(elementType) {
             override fun load(value: AnyCollection): List<E> =
                     value.fatAsList() as List<E> // almost always zero copy
@@ -126,7 +126,7 @@ fun <E, DE : DataType<E>> collection(elementType: DE): DataType.Collect<List<E>,
 /**
  * Represents a [Set] of [E].
  */
-fun <E, DE : DataType<E>> set(elementType: DE): DataType.Collect<Set<E>, E, DE> =
+fun <E, DE : DataType<E>> set(elementType: DE): DataType.NotNull.Collect<Set<E>, E, DE> =
         setInternal(elementType, null)
 
 @PublishedApi internal fun <E, DE : DataType<E>> setInternal(elementType: DE, enumType: Class<E>?): CollectBase<Set<E>, E, DE> {
@@ -152,7 +152,7 @@ fun <E, DE : DataType<E>> set(elementType: DE): DataType.Collect<Set<E>, E, DE> 
 fun <E> list(@Suppress("UNUSED_PARAMETER") elementType: DataType<E>): Nothing =
         throw UnsupportedOperationException()
 
-@JvmField val nothing: DataType.Simple<Nothing> = object : DataType.Simple<Nothing>(Kind.I32) {
+@JvmField val nothing: DataType.NotNull.Simple<Nothing> = object : DataType.NotNull.Simple<Nothing>(Kind.I32) {
     override fun load(value: SimpleValue): Nothing =
             throw UnsupportedOperationException()
 
@@ -163,13 +163,13 @@ fun <E> list(@Suppress("UNUSED_PARAMETER") elementType: DataType<E>): Nothing =
 // originally these typealiases were in types.kt, but they were the only top-level declarations
 
 /**
- * Used by [DataType.Simple] and represents the following type, according to [DataType.Simple.Kind]:
+ * Used by [DataType.NotNull.Simple] and represents the following type, according to [DataType.NotNull.Simple.Kind]:
  * [Boolean] | [Byte] | [Short] | [Int] | [Long] | [Float] | [Double] | [String] | [ByteArray]
  */
 typealias SimpleValue = Any
 
 /**
- * Used by [DataType.Collect] and represents the following type:
+ * Used by [DataType.NotNull.Collect] and represents the following type:
  * [Collection]<E> | [Array]<E> | EArray
  * where E represents [Byte], [Short], [Int], [Long], [Float], [Double],
  * EArray means [ByteArray], [ShortArray], [IntArray], [LongArray], [FloatArray], [DoubleArray] accordingly
@@ -177,4 +177,4 @@ typealias SimpleValue = Any
 typealias AnyCollection = Any
 // @see fatMap, fatMapTo, fatAsList, don't forget to update them
 
-typealias SimpleNullable<T> = DataType.Nullable<T, DataType.Simple<T>>
+typealias SimpleNullable<T> = DataType.Nullable<T, DataType.NotNull.Simple<T>>

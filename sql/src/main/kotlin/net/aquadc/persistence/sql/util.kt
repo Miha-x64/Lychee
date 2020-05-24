@@ -13,7 +13,9 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.contains as originalContains
 import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.size
+import net.aquadc.persistence.type.CustomType
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.serialized
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentMap
@@ -39,23 +41,23 @@ internal inline fun UpdatesMap() = newMap<
                 >
         >()
 
-internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.Simple<T>) -> R): R =
+internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.NotNull.Simple<T>) -> R): R =
         when (this) {
             is DataType.Nullable<*, *> -> {
                 when (val actualType = actualType as DataType<T>) {
                     is DataType.Nullable<*, *> -> throw AssertionError()
-                    is DataType.Simple -> func(true, actualType)
-                    is DataType.Collect<*, *, *>,
-                    is DataType.Partial<*, *> -> func(true, serialized(actualType))
+                    is DataType.NotNull.Simple -> func(true, actualType)
+                    is DataType.NotNull.Collect<*, *, *>,
+                    is DataType.NotNull.Partial<*, *> -> func(true, serialized(actualType))
                 }
             }
-            is DataType.Simple -> func(false, this)
-            is DataType.Collect<*, *, *>,
-            is DataType.Partial<*, *> -> func(false, serialized(this))
+            is DataType.NotNull.Simple -> func(false, this)
+            is DataType.NotNull.Collect<*, *, *>,
+            is DataType.NotNull.Partial<*, *> -> func(false, serialized(this))
         }
 
 internal inline fun <SCH : Schema<SCH>> bindQueryParams(
-        condition: WhereCondition<SCH>, table: Table<SCH, *>, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
+        condition: WhereCondition<SCH>, table: Table<SCH, *>, bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
 ) {
     val size = condition.size
     if (size > 0) {
@@ -67,37 +69,34 @@ internal inline fun <SCH : Schema<SCH>> bindQueryParams(
         for (i in 0 until size) {
             val colIndex = indices[argCols[i]]!!
             val column = cols[colIndex]
-            check(argCols[i]!!.type(table.schema) == column.type(table.schema))
-            // I hope `argCols[i].type` is the same as `column.type`, but let's overcare :)
-
-            bind(column.type(table.schema) as DataType<Any?>, i, argValues[i])
+            bind(table.typeOf(column) as Ilk<Any?, *>, i, argValues[i])
             // erase its type and assume that caller is clever enough
         }
     }
 }
 
 internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
-        table: Table<SCH, *>,
-        data: Struct<SCH>,
-        bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
+    table: Table<SCH, *>,
+    data: Struct<SCH>,
+    bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
 ) {
-    val columns = table.managedColumns
+    val columns = table.managedColTypes
     arrayOfNulls<Any>(columns.size).also { flatten(table.recipe, it, data, 0, 0) }.forEachIndexed { idx, value ->
-        bind(columns[idx].type(table.schema) as DataType<Any?>, idx, value)
+        bind(columns[idx] as Ilk<Any?, *>, idx, value)
     }
 }
 
 internal inline fun bindValues(
-        columnTypes: Any, values: Any?, bind: (DataType<Any?>, idx: Int, value: Any?) -> Unit
+        columnTypes: Any, values: Any?, bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
 ): Int = if (columnTypes is Array<*>) {
-    columnTypes as Array<DataType<*>>
+    columnTypes as Array<out Ilk<*, *>>
     values as Array<*>?
     columnTypes.forEachIndexed { i, type ->
-        bind(type as DataType<Any?>, i, values?.get(i))
+        bind(type as Ilk<Any?, *>, i, values?.get(i))
     }
     columnTypes.size
 } else {
-    bind(columnTypes as DataType<Any?>, 0, values)
+    bind(columnTypes as Ilk<Any?, *>, 0, values)
     1
 }
 
@@ -197,7 +196,7 @@ internal fun inflate(
     }
 
     // yay! commit & push
-    val t = start.unwrappedType as DataType.Partial<Any?, Any?>
+    val t = start.unwrappedType as DataType.NotNull.Partial<Any?, Any?>
     fieldSet as FieldSet<Any?, FieldDef<Any?, *, *>>?
     mutColumnValues[_dstPos] =
             if (fieldSet == null) null
@@ -227,7 +226,7 @@ internal fun flatten(
     if (start.hasFieldSet && type is DataType.Nullable<*, *> && value === null)
         return // fieldSet is null, all fields are nulls, nothing to do here -------------------------------------------
 
-    val erased = start.unwrappedType as DataType.Partial<Any?, *>
+    val erased = start.unwrappedType as DataType.NotNull.Partial<Any?, *>
 
     val fieldSet =
             if (start.hasFieldSet) (erased.fields(value) as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>).also {
@@ -307,32 +306,34 @@ private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, 
         this != null && this.originalContains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
 
 internal fun <CUR> Blocking<CUR>.row(
-        cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, bindBy: BindBy
+    cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy
 ): Array<Any?> = when (bindBy) {
     BindBy.Name -> rowByName(cursor, columnNames, columnTypes)
     BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
 }
 
-internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell(
-        cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
-): R = when (bindBy) {
-    BindBy.Name -> cellByName(cursor, column.name(table.schema), column.type(table.schema))
-    BindBy.Position -> cellAt(cursor, table.managedColumns.forceIndexOf(column), column.type(table.schema))
+internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell( // todo inline me
+    cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
+): R {
+    val type = column.type(table.schema)
+    return when (bindBy) {
+        BindBy.Name -> cellByName(cursor, column.name(table.schema), type as Ilk<R, *>)
+        //  oh... every DataType case implements Ilk, so we can cast ^^^^^^^^^^^^^^^^^
+        BindBy.Position -> cellAt(cursor, forceIndexOfManaged(table, column), type as Ilk<R, *>)
+    }
 }
 
-private fun Array<out Any>.forceIndexOf(element: Any): Int {
-    //      note: ^^^^^^^ unlike indexOf, there's no special case for null, just 'cause we don't need it
-    for (index in indices)
-        if (element == this[index])
-            return index
-    throw NoSuchElementException(element.toString() + " !in " + contentToString())
-}
+private fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>): Int =
+    table.indexOfManaged(column).let { idx ->
+        if (idx >= 0) idx
+        else throw NoSuchElementException(table.run { column.name } + " !in " + table.managedColNames.contentToString())
+    }
 
 internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
         bindBy: BindBy,
         cur: CUR,
         colNames: Array<out CharSequence>,
-        colTypes: Array<out DataType<*>>,
+        colTypes: Array<out Ilk<*, *>>,
         recipe: Array<out Table.Nesting>
 ): StructSnapshot<SCH> {
     val firstValues = row(cur, 0, colNames, colTypes, bindBy)
@@ -342,3 +343,14 @@ internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
 }
 
 @PublishedApi @JvmField internal val throwNse = { throw NoSuchElementException() }
+
+@PublishedApi internal open class NativeType<T, DT : DataType<T>>(
+    name: CharSequence,
+    override val type: DT
+) : CustomType<T>(name), Ilk<T, DT> {
+    override fun invoke(p1: T): Any? = p1
+    @Suppress("UNCHECKED_CAST")
+    override fun back(p: Any?): T = p as T
+
+    override val custom: CustomType<T>? get() = this
+}

@@ -12,7 +12,7 @@ import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-typealias ShallowSchema = Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>
+typealias ShallowSchema = Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>
 val shallowSchema = Tuple("a", string, "b", i64)
 
 val dupeEmbed = Tuple("a_b", string, "a", shallowSchema)
@@ -30,7 +30,7 @@ class RelationSchemas {
     @Test fun `no rels`() {
         val table = tableOf(shallowSchema, "zzz", "_id", i64)
         assertEquals(
-                arrayOf(PkLens(table), shallowSchema.First, shallowSchema.Second),
+                arrayOf(PkLens(table, i64), shallowSchema.First, shallowSchema.Second),
                 table.columns
         )
     }
@@ -77,7 +77,7 @@ class RelationSchemas {
         assertEquals(arrayOf("_id", "a", "b_a", "b_b"), table.columns.namesIn(embedSchema))
         assertEquals(
                 arrayOf(
-                        PkLens(table),
+                        PkLens(table, i64),
                         embedSchema.First,
                         Telescope("", embedSchema.Second, shallowSchema.First),
                         Telescope("", embedSchema.Second, shallowSchema.Second)
@@ -95,7 +95,7 @@ class RelationSchemas {
         assertEquals(arrayOf("_id", "a", "b_fieldsSet", "b_a", "b_b"), table.columns.namesIn(embedPartial))
         assertEquals(
                 arrayOf(
-                        PkLens(table),
+                        PkLens(table, i64),
                         embedPartial.First,
                         embedPartial.Second / FieldSetLens<ShallowSchema>("fieldsSet"),
                         Telescope("b_a", embedPartial.Second, shallowSchema.First),
@@ -114,7 +114,7 @@ class RelationSchemas {
         assertEquals(arrayOf("_id", "a", "b_nullability", "b_a", "b_b"), table.columns.namesIn(embedNullable))
         assertEquals(
                 arrayOf(
-                        PkLens(table),
+                        PkLens(table, i64),
                         embedNullable.First,
                         embedNullable.Second / FieldSetLens("nullability"),
                         Telescope("b_a", embedNullable.Second, shallowSchema.First),
@@ -136,7 +136,7 @@ class RelationSchemas {
         )
         assertEquals(
                 arrayOf(
-                        PkLens(table),
+                        PkLens(table, i64),
                         embedNullablePartial.First,
                         embedNullablePartial.Second / FieldSetLens<ShallowSchema>("fieldSetAndNullability"),
                         Telescope("b_a", embedNullablePartial.Second, shallowSchema.First),

@@ -1,6 +1,5 @@
 package net.aquadc.persistence
 
-import android.annotation.SuppressLint
 import androidx.annotation.RestrictTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -18,7 +17,6 @@ import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import java.util.Arrays
-import java.util.Collections
 import kotlin.concurrent.getOrSet
 
 
@@ -206,9 +204,9 @@ fun <SCH : Schema<SCH>> PartialStruct<SCH>.fieldValues(): Any? {
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 inline fun <T, SCH : Schema<SCH>> readPartial(
-        type: DataType.Partial<T, SCH>, fieldValues: ThreadLocal<ArrayList<Any?>>,
-        maybeReadNextField: () -> FieldDef<SCH, *, *>?,
-        readNextValue: (DataType<*>) -> Any?
+    type: DataType.NotNull.Partial<T, SCH>, fieldValues: ThreadLocal<ArrayList<Any?>>,
+    maybeReadNextField: () -> FieldDef<SCH, *, *>?,
+    readNextValue: (DataType<*>) -> Any?
 ): T {
     var fields = emptyFieldSet<SCH, FieldDef<SCH, *, *>>()
     var values: Any? = null

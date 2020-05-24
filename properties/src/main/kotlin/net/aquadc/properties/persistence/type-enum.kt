@@ -12,6 +12,6 @@ import net.aquadc.properties.function.Enumz
  */
 @JvmName("enumeration") @Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Enum<E>> enum(
-        noinline fallback: (String) -> E = NoConstant(E::class.java) as (Any?) -> Nothing
-): DataType.Simple<E> =
-        enum(enumValues(), string, Enumz.Name, fallback)
+    noinline fallback: (String) -> E = NoConstant(E::class.java) as (Any?) -> Nothing
+): DataType.NotNull.Simple<E> =
+    enum(enumValues(), string, Enumz.Name, fallback)

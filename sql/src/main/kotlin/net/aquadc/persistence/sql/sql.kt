@@ -5,7 +5,6 @@
 ]
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.PartialStruct
@@ -55,7 +54,7 @@ interface Session<SRC> {
      */
     fun beginTransaction(): Transaction
 
-    fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out DataType.Simple<*>>, fetch: Fetch<SRC, R>): VarFunc<Any, R>
+    fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, fetch: Fetch<SRC, R>): VarFunc<Any, R>
     //               ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
 
 }

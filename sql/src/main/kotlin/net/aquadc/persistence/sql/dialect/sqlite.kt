@@ -12,13 +12,13 @@ import net.aquadc.persistence.type.DataType
 // wannabe `@JvmField val` but this breaks compilation. Dafuq?
 object SqliteDialect : BaseDialect(
     enumMapOf(
-        DataType.Simple.Kind.Bool, "INTEGER",
-        DataType.Simple.Kind.I32, "INTEGER",
-        DataType.Simple.Kind.I64, "INTEGER",
-        DataType.Simple.Kind.F32, "REAL",
-        DataType.Simple.Kind.F64, "REAL",
-        DataType.Simple.Kind.Str, "TEXT",
-        DataType.Simple.Kind.Blob, "BLOB"
+        DataType.NotNull.Simple.Kind.Bool, "INTEGER",
+        DataType.NotNull.Simple.Kind.I32, "INTEGER",
+        DataType.NotNull.Simple.Kind.I64, "INTEGER",
+        DataType.NotNull.Simple.Kind.F32, "REAL",
+        DataType.NotNull.Simple.Kind.F64, "REAL",
+        DataType.NotNull.Simple.Kind.Str, "TEXT",
+        DataType.NotNull.Simple.Kind.Blob, "BLOB"
     ),
     truncate = "DELETE FROM"
 )

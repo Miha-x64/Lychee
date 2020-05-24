@@ -17,7 +17,7 @@ import java.io.DataOutputStream
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 /*internal*/ open class BaseDialect(
-    private val types: InlineEnumMap<DataType.Simple.Kind, String>,
+    private val types: InlineEnumMap<DataType.NotNull.Simple.Kind, String>,
     private val truncate: String
 ) : Dialect {
 
@@ -109,10 +109,14 @@ import java.io.DataOutputStream
         val managedPk = table.pkField != null
         val sb = StringBuilder("CREATE").append(' ')
             .appendIf(temporary, "TEMP ").append("TABLE").append(' ').appendName(table.name).append(" (")
-            .appendName(table.idColName).append(' ').appendPkType(table.idColType, managedPk).append(" PRIMARY KEY")
+            .appendName(table.idColName).append(' ').let {
+                val t = table.idColTypeName
+                if (t is DataType<*>) it.appendPkType(t as DataType.NotNull.Simple<*>, managedPk)
+                else it.append(t as CharSequence)
+            }.append(" PRIMARY KEY")
 
         val colNames = table.managedColNames
-        val colTypes = table.managedColTypes
+        val colTypes = table.managedColTypeNames
 
         val startIndex = if (managedPk) 1 else 0
         val endExclusive = colNames.size
@@ -121,12 +125,17 @@ import java.io.DataOutputStream
 
             // skip
             for (i in startIndex until endExclusive) {
-                sb.appendName(colNames[i]).append(' ').appendNameOf(colTypes[i])
+                sb.appendName(colNames[i]).append(' ')
+                    .let {
+                        val t = colTypes[i]
+                        if (t is DataType<*>) it.appendNameOf(t)
+                        else it.append(t as CharSequence)
+                    }
 
                 /* this is useless since we can store only a full struct with all fields filled:
                 if (hasDefault) sb.appendDefault(...) */
 
-                .append(", ")
+                    .append(", ")
             }
         }
         sb.setLength(sb.length - 2) // trim last comma; schema.fields must not be empty
@@ -134,7 +143,7 @@ import java.io.DataOutputStream
     }
     private inline fun StringBuilder.appendIf(cond: Boolean, what: String): StringBuilder =
         if (cond) append(what) else this
-    protected open fun StringBuilder.appendPkType(type: DataType.Simple<*>, managed: Boolean): StringBuilder =
+    protected open fun StringBuilder.appendPkType(type: DataType.NotNull.Simple<*>, managed: Boolean): StringBuilder =
         appendNameOf(type) // used by SQLite, overridden for Postgres
 
     private fun <T> StringBuilder.appendDefault(type: DataType<T>, default: T) {
@@ -146,22 +155,22 @@ import java.io.DataOutputStream
 
         when (type) {
             is DataType.Nullable<*, *> -> throw AssertionError()
-            is DataType.Simple<T> -> type.store(default).let { v ->
+            is DataType.NotNull.Simple<T> -> type.store(default).let { v ->
                 when (type.kind) {
-                    DataType.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
-                    DataType.Simple.Kind.I32,
-                    DataType.Simple.Kind.I64,
-                    DataType.Simple.Kind.F32,
-                    DataType.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
-                    DataType.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
-                    DataType.Simple.Kind.Blob -> append("x'").append(TODO("append HEX") as String).append('\'')
+                    DataType.NotNull.Simple.Kind.Bool -> append(if (v as Boolean) '1' else '0')
+                    DataType.NotNull.Simple.Kind.I32,
+                    DataType.NotNull.Simple.Kind.I64,
+                    DataType.NotNull.Simple.Kind.F32,
+                    DataType.NotNull.Simple.Kind.F64 -> append('\'').append(v.toString()).append('\'')
+                    DataType.NotNull.Simple.Kind.Str -> append('\'').append(v as String).append('\'')
+                    DataType.NotNull.Simple.Kind.Blob -> append("x'").append(TODO("append HEX") as String).append('\'')
                 }//.also { }
                 Unit
             }
-            is DataType.Collect<*, *, *> -> append("x'").append(
+            is DataType.NotNull.Collect<*, *, *> -> append("x'").append(
                 TODO("append HEX" + ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), default) }.toByteArray()) as String
             ).append('\'')
-            is DataType.Partial<*, *> -> throw UnsupportedOperationException()
+            is DataType.NotNull.Partial<*, *> -> throw UnsupportedOperationException()
         }
     }
 
@@ -169,9 +178,9 @@ import java.io.DataOutputStream
         val act = if (dataType is DataType.Nullable<*, *>) dataType.actualType else dataType
         when (act) {
             is DataType.Nullable<*, *> -> throw AssertionError()
-            is DataType.Simple<*> -> append(types[act.kind]!!)
-            is DataType.Collect<*, *, *> -> append("BLOB")
-            is DataType.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
+            is DataType.NotNull.Simple<*> -> append(types[act.kind]!!)
+            is DataType.NotNull.Collect<*, *, *> -> append(types[DataType.NotNull.Simple.Kind.Blob]!!)
+            is DataType.NotNull.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
         }
         if (dataType === act) {
             append(" NOT NULL")

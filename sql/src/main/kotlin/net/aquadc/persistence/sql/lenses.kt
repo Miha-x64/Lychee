@@ -17,13 +17,13 @@ import net.aquadc.persistence.type.nullable
  * String concatenation factory to build names for nested lenses.
  */
 interface NamingConvention {
-    fun concatNames(outer: CharSequence, nested: CharSequence): String
+    fun concatNames(outer: CharSequence, nested: CharSequence): CharSequence
 }
 
 
 @JvmName("structLens") inline operator fun <
         TS : Schema<TS>,
-        US : Schema<US>, UD : DataType.Partial<Struct<US>, US>,
+        US : Schema<US>, UD : DataType.NotNull.Partial<Struct<US>, US>,
         V, VD : DataType<V>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, Struct<US>, UD>.div(
@@ -33,7 +33,7 @@ interface NamingConvention {
 
 @JvmName("partialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
-        US : Schema<US>, UD : DataType.Partial<PartialStruct<US>, US>,
+        US : Schema<US>, UD : DataType.NotNull.Partial<PartialStruct<US>, US>,
         V : Any, VD : DataType<V>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, PartialStruct<US>, UD>.div(
@@ -43,7 +43,7 @@ interface NamingConvention {
 
 @JvmName("partialToNullableLens") inline operator fun <
         TS : Schema<TS>,
-        US : Schema<US>, UD : DataType.Partial<PartialStruct<US>, US>,
+        US : Schema<US>, UD : DataType.NotNull.Partial<PartialStruct<US>, US>,
         V : Any, VD : DataType.Nullable<V, *>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, PartialStruct<US>, UD>.div(
@@ -53,7 +53,7 @@ interface NamingConvention {
 
 @JvmName("nullablePartialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
-        US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.Partial<UR, US>>,
+        US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.NotNull.Partial<UR, US>>,
         V : Any, VD : DataType<V>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, UR?, UD>.div(
@@ -63,7 +63,7 @@ interface NamingConvention {
 
 @JvmName("nullablePartialToNullableLens") inline operator fun <
         TS : Schema<TS>,
-        US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.Partial<UR, US>>,
+        US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.NotNull.Partial<UR, US>>,
         V : Any, VD : DataType.Nullable<V, *>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, UR?, UD>.div(
@@ -88,7 +88,7 @@ interface NamingConvention {
         US : Schema<US>,
         V : Any, VD : DataType<V>
         >
-        StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
+        StoredLens<TS, T, out DataType.NotNull.Partial<T, US>>.rem(
         nested: StoredLens<US, V, VD>
 ): StoredLens<TS, V?, DataType.Nullable<V, VD>> =
         Telescope(null, nullable(nested.type), this, nested)
@@ -98,7 +98,7 @@ interface NamingConvention {
         US : Schema<US>,
         V : Any, VD : DataType.Nullable<V, *>
         >
-        StoredLens<TS, T, out DataType.Partial<T, US>>.rem(
+        StoredLens<TS, T, out DataType.NotNull.Partial<T, US>>.rem(
         nested: StoredLens<US, V?, VD>
 ): StoredLens<TS, V?, VD> =
         Telescope(null, nested.type, this, nested)
@@ -108,7 +108,7 @@ interface NamingConvention {
         US : Schema<US>,
         V : Any, VD : DataType<V>
         >
-        StoredLens<TS, T?, out DataType.Nullable<T, out DataType.Partial<T, US>>>.rem(
+        StoredLens<TS, T?, out DataType.Nullable<T, out DataType.NotNull.Partial<T, US>>>.rem(
         nested: StoredLens<US, V, VD>
 ): StoredLens<TS, V?, DataType.Nullable<V, VD>> =
         Telescope(null, nullable(nested.type), this, nested)
@@ -118,7 +118,7 @@ interface NamingConvention {
         US : Schema<US>,
         V : Any, VD : DataType.Nullable<V, *>
         >
-        StoredLens<TS, T?, out DataType.Nullable<T, out DataType.Partial<T, US>>>.rem(
+        StoredLens<TS, T?, out DataType.Nullable<T, out DataType.NotNull.Partial<T, US>>>.rem(
         nested: StoredLens<US, V?, VD>
 ): StoredLens<TS, V?, VD> =
         Telescope(null, nested.type, this, nested)
@@ -179,21 +179,22 @@ private class ConcatConvention(private val delimiter: Char) : NamingConvention {
 @PublishedApi internal class
 Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<US>, T, U, UD : DataType<U>>
 @PublishedApi internal constructor(
-        name: String?,
+        name: CharSequence?,
         exactType: UD,
         private val outer: StoredLens<TS, out T?, *>,
         private val nested: StoredLens<US, out U, *>
 ) : BaseLens<TS, TR, S, U, UD>(name, exactType) {
 
     @PublishedApi internal constructor(
-            name: String?,
+            name: CharSequence?,
             exactType: UD,
             outer: Lens<TS, TR, S, out T?, *>,
             nested: Lens<US, PartialStruct<US>, Struct<US>, out U, *>
     ) : this(name, exactType, outer as StoredLens<TS, out T?, *>, nested as StoredLens<US, out U, *>)
 
-    @PublishedApi
-    internal constructor(name: String?, outer: Lens<TS, TR, S, out T?, *>, nested: Lens<US, PartialStruct<US>, Struct<US>, out U, *>) : this(
+    @PublishedApi internal constructor(
+        name: CharSequence?, outer: Lens<TS, TR, S, out T?, *>, nested: Lens<US, PartialStruct<US>, Struct<US>, out U, *>
+    ) : this(
             name,
             Unit.run {
                 if (outer.type is Schema<*> || nested.type is DataType.Nullable<*, *>) nested.type
@@ -256,9 +257,9 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<U
 // region special lenses
 
 internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
-        private val table: Table<S, ID>
-) : BaseLens<S, Record<S, ID>, Record<S, ID>, ID, DataType.Simple<ID>>(
-        table.idColName, table.idColType
+        private val table: Table<S, ID>, type: DataType.NotNull.Simple<ID>
+) : BaseLens<S, Record<S, ID>, Record<S, ID>, ID, DataType.NotNull.Simple<ID>>(
+    table.idColName, type
 ) {
 
     override fun hasValue(struct: Record<S, ID>): Boolean =
@@ -270,7 +271,7 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
     override fun hashCode(): Int =
             64 // FieldDef.hashCode() is in [0; 63], be different!
 
-    override fun equals(other: Any?): Boolean = // for tests
+    override fun equals(other: Any?): Boolean =
             other is PkLens<*, *> && other.table === table
 
     override fun toString(): String =
@@ -284,8 +285,8 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
 }
 
 internal class FieldSetLens<S : Schema<S>>(
-        name: String
-) : BaseLens<S, PartialStruct<S>,  Struct<S>, Long, DataType.Simple<Long>>(name, i64) {
+        name: CharSequence
+) : BaseLens<S, PartialStruct<S>, Struct<S>, Long, DataType.NotNull.Simple<Long>>(name, i64) {
 
     override fun hasValue(struct: PartialStruct<S>): Boolean =
             true

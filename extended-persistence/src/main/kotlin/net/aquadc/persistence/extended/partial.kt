@@ -25,8 +25,8 @@ import kotlin.contracts.contract
 
 
 private val EmptyArray = emptyArray<Any?>()
-fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.Partial<PartialStruct<SCH>, SCH> =
-        object : DataType.Partial<PartialStruct<SCH>, SCH>(schema) {
+fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.NotNull.Partial<PartialStruct<SCH>, SCH> =
+        object : DataType.NotNull.Partial<PartialStruct<SCH>, SCH>(schema) {
 
             override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): PartialStruct<SCH> =
                     PartialStructSnapshot(schema, fields, when (fields.size) {

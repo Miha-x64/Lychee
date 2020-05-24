@@ -11,6 +11,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.SimpleNullable
 import java.io.InputStream
 
@@ -20,23 +21,23 @@ import java.io.InputStream
 interface Blocking<CUR> {
     // Android SQLite API has special methods for single-cell selections
     fun <T> cell(
-            query: String,
-            argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>,
-            type: DataType<T>, orElse: () -> T
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
+        type: Ilk<T, *>, orElse: () -> T
     ): T
 
     fun select(
-            query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, expectedCols: Int
+        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
     ): CUR
 
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
 
-    fun <T> cellByName(cursor: CUR, name: CharSequence, type: DataType<T>): T
-    fun <T> cellAt(cursor: CUR, col: Int, type: DataType<T>): T
+    fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
+    fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
 
-    fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>): Array<Any?>
-    fun rowByPosition(cursor: CUR, offset: Int, types: Array<out DataType<*>>): Array<Any?>
+    fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?>
+    fun rowByPosition(cursor: CUR, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?>
 
     /**
      * Closes the given cursor.
@@ -50,7 +51,7 @@ interface Blocking<CUR> {
 
 object Eagerly {
     inline fun <CUR, R> cell(
-            returnType: DataType.Simple<R>, noinline orElse: () -> R = throwNse
+        returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R> =
             FetchCellEagerly(returnType, orElse)
 
@@ -59,7 +60,7 @@ object Eagerly {
     ): Fetch<Blocking<CUR>, R?> =
             FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR, R> col(elementType: DataType.Simple<R>): Fetch<Blocking<CUR>, List<R>> =
+    inline fun <CUR, R> col(elementType: DataType.NotNull.Simple<R>): Fetch<Blocking<CUR>, List<R>> =
             FetchColEagerly(elementType)
 
     inline fun <CUR, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, List<R?>> =
@@ -78,7 +79,7 @@ object Eagerly {
 
 object Lazily {
     inline fun <CUR, R> cell(
-            returnType: DataType.Simple<R>, noinline orElse: () -> R = throwNse
+        returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R>> =
             FetchCellLazily(returnType, orElse)
 
@@ -88,7 +89,7 @@ object Lazily {
             FetchCellLazily(returnType, orElse)
 
     inline fun <CUR, R> col(
-            elementType: DataType.Simple<R>
+            elementType: DataType.NotNull.Simple<R>
     ): Fetch<Blocking<CUR>, CloseableIterator<R>> =
             FetchColLazily(elementType)
 

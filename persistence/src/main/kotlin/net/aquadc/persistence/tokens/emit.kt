@@ -29,27 +29,27 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
 
     when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
-        is DataType.Simple -> {
+        is DataType.NotNull.Simple -> {
             val token = if (type.hasStringRepresentation) Token.Str else kindToToken[type.kind]!!
             offer(token).let { coerceTo -> // internal API, he-he
                 if (coerceTo != false) {
-                    val stored = (type as DataType.Simple<Any?>)
+                    val stored = (type as DataType.NotNull.Simple<Any?>)
                         .let { if (it.hasStringRepresentation) it.storeAsString(value) else it.store(value) }
                     yield((coerceTo as Token?).coerce(stored))
                 }
             }
         }
-        is DataType.Collect<*, *, *> -> {
+        is DataType.NotNull.Collect<*, *, *> -> {
             yieldSequence {
                 val elT = type.elementType
-                (type as DataType.Collect<Any?, *, *>).store(value).fatAsList().forEach {
+                (type as DataType.NotNull.Collect<Any?, *, *>).store(value).fatAsList().forEach {
                     yield(elT as DataType<Any?>, it)
                 }
             }
         }
-        is DataType.Partial<*, *> -> {
+        is DataType.NotNull.Partial<*, *> -> {
             yieldDictionary {
-                type as DataType.Partial<Any?, Schema<*>>
+                type as DataType.NotNull.Partial<Any?, Schema<*>>
                 val fields = type.fields(value)
                 val values = type.store(value)
                 val schema: Schema<Schema<*>> = type.schema as Schema<Schema<*>>

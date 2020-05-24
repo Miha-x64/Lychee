@@ -31,21 +31,21 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
 
     return when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
-        is DataType.Simple -> {
+        is DataType.NotNull.Simple -> {
             val token =
                 if (type.hasStringRepresentation) Token.Str
                 else kindToToken[type.kind]!! // !! exhaustive mapping
             type.load(poll(token)!!) as T // !! we never pass Token.Null so source must not return `null`s
         }
-        is DataType.Collect<*, *, *> -> {
+        is DataType.NotNull.Collect<*, *, *> -> {
             type.load(readListOf(type.elementType)) as T
         }
-        is DataType.Partial<*, *> -> {
+        is DataType.NotNull.Partial<*, *> -> {
             poll(Token.BeginDictionary)
             val sch = type.schema
             val struct = readPartial(
-                    type as DataType.Partial<Any?, NullSchema>, fieldValues,
-                    { nextField(sch) as FieldDef<NullSchema, *, *>? }, { readAs(it) }
+                type as DataType.NotNull.Partial<Any?, NullSchema>, fieldValues,
+                { nextField(sch) as FieldDef<NullSchema, *, *>? }, { readAs(it) }
             )
             poll(Token.EndDictionary)
             struct as T
@@ -197,12 +197,12 @@ internal class TokensIterator<SCH : Schema<SCH>, T>(
 }
 
 @JvmSynthetic internal val kindToToken = enumMapOf(
-        DataType.Simple.Kind.Bool, Token.Bool,
-        DataType.Simple.Kind.I32, Token.I32,
-        DataType.Simple.Kind.I64, Token.I64,
-        DataType.Simple.Kind.F32, Token.F32,
-        DataType.Simple.Kind.F64, Token.F64,
-        DataType.Simple.Kind.Str, Token.Str
+    DataType.NotNull.Simple.Kind.Bool, Token.Bool,
+    DataType.NotNull.Simple.Kind.I32, Token.I32,
+    DataType.NotNull.Simple.Kind.I64, Token.I64,
+    DataType.NotNull.Simple.Kind.F32, Token.F32,
+    DataType.NotNull.Simple.Kind.F64, Token.F64,
+    DataType.NotNull.Simple.Kind.Str, Token.Str
 ).also {
-    it[DataType.Simple.Kind.Blob] = Token.Blob // enumMapOf has max. 8 key-value pairs
+    it[DataType.NotNull.Simple.Kind.Blob] = Token.Blob // enumMapOf has max. 8 key-value pairs
 }

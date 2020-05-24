@@ -36,7 +36,7 @@ fun <T> JsonReader.readListOf(type: DataType<T>): Nothing =
 /**
  * Reads a JSON value denoted by [type] as [T].
  *
- * For [Schema]s and [DataType.Partial]s,
+ * For [Schema]s and [DataType.NotNull.Partial]s,
  * this ignores key-value pairs not listed in schema,
  * and consumes both opening and closing curly braces.
  * Throws an exception if there was no value for any [FieldDef] without a default value,

@@ -6,7 +6,7 @@ import okio.ByteString
 
 @PublishedApi internal class ByteStr(
         private val blob: Simple<ByteArray>
-) : DataType.Simple<Any?>(Kind.Blob) {
+) : DataType.NotNull.Simple<Any?>(Kind.Blob) {
 
     override fun load(value: SimpleValue): Any? =
             blob.load(value).let { ByteString.of(it, 0, it.size) }
@@ -29,5 +29,5 @@ import okio.ByteString
         "NOTHING_TO_INLINE", // single constructor call is a great candidate for inlining
         "UNCHECKED_CAST" // ByteStr is erased to avoid bridge methods
 )
-inline fun byteString(blobType: DataType.Simple<ByteArray>): DataType<ByteString> =
+inline fun byteString(blobType: DataType.NotNull.Simple<ByteArray>): DataType<ByteString> =
         ByteStr(blobType) as DataType<ByteString>

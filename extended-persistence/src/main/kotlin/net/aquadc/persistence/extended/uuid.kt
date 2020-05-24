@@ -3,16 +3,17 @@ package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.SimpleValue
-import java.util.*
+import java.util.UUID
 
 
-val uuid: DataType.Simple<UUID> = object : StringableSimpleType<UUID>(Kind.Blob) {
+val uuid: DataType.NotNull.Simple<UUID> = object : StringableSimpleType<UUID>(Kind.Blob) {
     override fun load(value: SimpleValue): UUID =
         if (value is CharSequence) UUID.fromString(value.toString())
         else fromBytes(value as ByteArray)
     override fun store(value: UUID): SimpleValue = toBytes(value.mostSignificantBits, value.leastSignificantBits)
     override fun storeAsString(value: UUID): CharSequence = value.toString()
 
+    // copy-paste from https://stackoverflow.com/a/27610608/3050249
     private fun fromBytes(b: ByteArray): UUID = UUID(
         b2l(b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]), b2l(b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15])
     )
@@ -25,7 +26,6 @@ val uuid: DataType.Simple<UUID> = object : StringableSimpleType<UUID>(Kind.Blob)
             (b2.toLong() and 0xff shl 16) or
             (b1.toLong() and 0xff shl 8) or
             (b0.toLong() and 0xff)
-
     private fun toBytes(hi: Long, lo: Long): ByteArray = byteArrayOf(
         (hi shr 56).toByte(),
         (hi shr 48).toByte(),

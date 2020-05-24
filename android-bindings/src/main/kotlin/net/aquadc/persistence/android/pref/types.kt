@@ -30,7 +30,7 @@ internal fun <T> DataType<T>.get(prefs: SharedPreferences, name: String, default
  * we store 'null' ourselves. If a field has String type, 'null' is stored as Boolean 'false'.
  * Otherwise 'null' is stored as a String "null".
  */
-@JvmSynthetic internal val storedAsString = DataType.Simple.Kind.Str + DataType.Simple.Kind.Blob
+@JvmSynthetic internal val storedAsString = DataType.NotNull.Simple.Kind.Str + DataType.NotNull.Simple.Kind.Blob
 
 @Suppress("UNCHECKED_CAST")
 private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
@@ -45,35 +45,35 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
         val act = actualType
         when (act) {
             is DataType.Nullable<*, *> -> throw AssertionError()
-            is DataType.Simple<*> -> if (value == (if (act.kind in storedAsString) false else "null")) return null as T
-            is DataType.Collect<*, *, *>, is DataType.Partial<*, *> -> if (value == false) return null as T
+            is DataType.NotNull.Simple<*> -> if (value == (if (act.kind in storedAsString) false else "null")) return null as T
+            is DataType.NotNull.Collect<*, *, *>, is DataType.NotNull.Partial<*, *> -> if (value == false) return null as T
         }
         act as DataType<T/*!!*/>
     } else this
 
     return when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
-        is DataType.Simple -> type.load(
+        is DataType.NotNull.Simple -> type.load(
             if (type.hasStringRepresentation) value as CharSequence
             else when (type.kind) {
-                DataType.Simple.Kind.Bool -> value as Boolean
-                DataType.Simple.Kind.I32 -> value as Int
-                DataType.Simple.Kind.I64 -> value as Long
-                DataType.Simple.Kind.F32 -> value as Float
-                DataType.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(value as Long)
-                DataType.Simple.Kind.Str -> value as String
-                DataType.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
+                DataType.NotNull.Simple.Kind.Bool -> value as Boolean
+                DataType.NotNull.Simple.Kind.I32 -> value as Int
+                DataType.NotNull.Simple.Kind.I64 -> value as Long
+                DataType.NotNull.Simple.Kind.F32 -> value as Float
+                DataType.NotNull.Simple.Kind.F64 -> JavaLangDouble.longBitsToDouble(value as Long)
+                DataType.NotNull.Simple.Kind.Str -> value as String
+                DataType.NotNull.Simple.Kind.Blob -> Base64.decode(value as String, Base64.DEFAULT)
                 else -> throw AssertionError()
             }
         )
-        is DataType.Collect<T, *, *> -> type.elementType.let { elementType ->
-            if (elementType is DataType.Simple<*> &&
-                (elementType.hasStringRepresentation || elementType.kind == DataType.Simple.Kind.Str)) // TODO should store everything in strings
+        is DataType.NotNull.Collect<T, *, *> -> type.elementType.let { elementType ->
+            if (elementType is DataType.NotNull.Simple<*> &&
+                (elementType.hasStringRepresentation || elementType.kind == DataType.NotNull.Simple.Kind.Str)) // TODO should store everything in strings
                 type.load((value as Set<String>).map(elementType::load)) // todo zero-copy
             else /* here we have a Collection<Whatever>, including potentially a collection of collections, structs, etc */
                 serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
         }
-        is DataType.Partial<*, *> -> serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
+        is DataType.NotNull.Partial<*, *> -> serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
     }
 }
 
@@ -83,11 +83,11 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
         if (value == null) when (act) {
             is DataType.Nullable<*, *> ->
                 throw AssertionError()
-            is DataType.Simple<*> ->
+            is DataType.NotNull.Simple<*> ->
                 if (act.kind in storedAsString) editor.putBoolean(key, false) else editor.putString(key, "null")
-            is DataType.Collect<*, *, *> ->
+            is DataType.NotNull.Collect<*, *, *> ->
                 editor.putBoolean(key, false)
-            is DataType.Partial<*, *> ->
+            is DataType.NotNull.Partial<*, *> ->
                 editor.putBoolean(key, false)
         }.also { return }
 
@@ -96,25 +96,25 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
 
     when (type) {
         is DataType.Nullable<*, *> -> throw AssertionError()
-        is DataType.Simple<T> ->
+        is DataType.NotNull.Simple<T> ->
             if (type.hasStringRepresentation) editor.putString(key, type.storeAsString(value).toString())
             else type.store(value).let { v -> when (type.kind) {
-                DataType.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean)
-                DataType.Simple.Kind.I32 -> editor.putInt(key, v as Int)
-                DataType.Simple.Kind.I64 -> editor.putLong(key, v as Long)
-                DataType.Simple.Kind.F32 -> editor.putFloat(key, v as Float)
-                DataType.Simple.Kind.F64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(v as Double))
-                DataType.Simple.Kind.Str -> editor.putString(key, v as String)
-                DataType.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
+                DataType.NotNull.Simple.Kind.Bool -> editor.putBoolean(key, v as Boolean)
+                DataType.NotNull.Simple.Kind.I32 -> editor.putInt(key, v as Int)
+                DataType.NotNull.Simple.Kind.I64 -> editor.putLong(key, v as Long)
+                DataType.NotNull.Simple.Kind.F32 -> editor.putFloat(key, v as Float)
+                DataType.NotNull.Simple.Kind.F64 -> editor.putLong(key, java.lang.Double.doubleToLongBits(v as Double))
+                DataType.NotNull.Simple.Kind.Str -> editor.putString(key, v as String)
+                DataType.NotNull.Simple.Kind.Blob -> editor.putString(key, Base64.encodeToString(v as ByteArray, Base64.DEFAULT))
                 else -> throw AssertionError()
             } }
-        is DataType.Collect<T, *, *> -> type.elementType.let { elementType ->
-            if (elementType is DataType.Simple && (elementType.hasStringRepresentation || elementType.kind == DataType.Simple.Kind.Str))
+        is DataType.NotNull.Collect<T, *, *> -> type.elementType.let { elementType ->
+            if (elementType is DataType.NotNull.Simple && (elementType.hasStringRepresentation || elementType.kind == DataType.NotNull.Simple.Kind.Str))
                 editor.putStringSet(
                     key,
                     type.store(value)
                         .fatMapTo<HashSet<String>, T, String>(HashSet()) { v ->
-                            (elementType as DataType.Simple<T>)
+                            (elementType as DataType.NotNull.Simple<T>)
                                 .let { if (it.hasStringRepresentation) it.storeAsString(v) else it.store(v) as CharSequence }
                                 .toString()
                         }
@@ -122,7 +122,7 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
             else
                 editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))
         }
-        is DataType.Partial<*, *> ->
+        is DataType.NotNull.Partial<*, *> ->
             editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))
     }
 }

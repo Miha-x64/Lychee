@@ -13,7 +13,7 @@ import java.io.DataOutputStream
 /**
  * Represents [T] as a [ByteArray] (blob).
  */
-fun <T> serialized(type: DataType<T>): DataType.Simple<T> = object : DataType.Simple<T>(Kind.Blob) {
+fun <T> serialized(type: DataType<T>): DataType.NotNull.Simple<T> = object : DataType.NotNull.Simple<T>(Kind.Blob) {
 
     override fun load(value: SimpleValue): T =
             DataStreams.read(DataInputStream(ByteArrayInputStream(value as ByteArray)), type)

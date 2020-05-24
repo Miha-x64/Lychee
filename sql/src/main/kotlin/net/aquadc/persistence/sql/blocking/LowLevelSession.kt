@@ -17,20 +17,25 @@ import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
 
 
 internal class BlockingQuery<CUR, R>(
-        private val session: Blocking<CUR>,
-        private val query: String,
-        private val argumentTypes: Array<out DataType.Simple<*>>,
-        private val fetch: Fetch<Blocking<CUR>, R>
+    private val session: Blocking<CUR>,
+    private val query: String,
+    private val argumentTypes: Array<out DataType.NotNull.Simple<*>>,
+    private val fetch: Fetch<Blocking<CUR>, R>
 ) : VarFuncImpl<Any, R>(), VarFunc<Any, R> {
 
     override fun invokeUnchecked(vararg arg: Any): R =
             fetch.fetch(session, query, argumentTypes, arg)
+
+    // for debugging
+    override fun toString(): String =
+        fetch.javaClass.simpleName + '(' + query + ')'
 
 }
 
@@ -39,8 +44,8 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
 
     /** [columnNames] : [values] is a map */
     abstract fun <SCH : Schema<SCH>, ID : IdBound> update(
-            table: Table<SCH, ID>, id: ID,
-            columnNames: Any/*=[arrayOf]CharSequence*/, columnTypes: Any/*=[arrayOf]DataType*/, values: Any?/*=[arrayOf]Any?*/
+        table: Table<SCH, ID>, id: ID,
+        columnNames: Any/*=[arrayOf]CharSequence*/, columnTypes: Any/*=[arrayOf]Ilk*/, values: Any?/*=[arrayOf]Any?*/
     )
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID)
@@ -50,7 +55,7 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
     abstract fun onTransactionEnd(successful: Boolean)
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID>, colName: CharSequence, colType: DataType<T>, id: ID
+        table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
     ): T
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
@@ -62,7 +67,7 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
     ): Long
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-            table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
+        table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
     ): Array<Any?>
 
     abstract val transaction: RealTransaction?

@@ -3,12 +3,10 @@ package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
-import net.aquadc.persistence.type.i8
 import net.aquadc.persistence.type.f64
 import net.aquadc.persistence.type.f32
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
-import net.aquadc.persistence.type.i16
 
 
 /**
@@ -27,28 +25,28 @@ val shortCollection: Nothing get() = throw AssertionError()
  * Stores [IntArray] instances as collections of [Int]s.
  */
 @JvmField
-val intCollection: DataType.Collect<IntArray, Int, DataType.Simple<Int>> = ArrayNoOp(i32)
+val intCollection: DataType.NotNull.Collect<IntArray, Int, DataType.NotNull.Simple<Int>> = ArrayNoOp(i32)
 
 /**
  * Stores [LongArray] instances as collections of [Long]s.
  */
 @JvmField
-val longCollection: DataType.Collect<LongArray, Long, DataType.Simple<Long>> = ArrayNoOp(i64)
+val longCollection: DataType.NotNull.Collect<LongArray, Long, DataType.NotNull.Simple<Long>> = ArrayNoOp(i64)
 
 /**
  * Stores [FloatArray] instances as collections of [Float]s.
  */
 @JvmField
-val floatCollection: DataType.Collect<FloatArray, Float, DataType.Simple<Float>> = ArrayNoOp(f32)
+val floatCollection: DataType.NotNull.Collect<FloatArray, Float, DataType.NotNull.Simple<Float>> = ArrayNoOp(f32)
 
 /**
  * Stores [DoubleArray] instances as collections of [Double]s.
  */
 @JvmField
-val doubleCollection: DataType.Collect<DoubleArray, Double, DataType.Simple<Double>> = ArrayNoOp(f64)
+val doubleCollection: DataType.NotNull.Collect<DoubleArray, Double, DataType.NotNull.Simple<Double>> = ArrayNoOp(f64)
 
 
-private class ArrayNoOp<C, E>(type: Simple<E>) : DataType.Collect<C, E, DataType.Simple<E>>(type) {
+private class ArrayNoOp<C, E>(type: Simple<E>) : DataType.NotNull.Collect<C, E, DataType.NotNull.Simple<E>>(type) {
 
     override fun load(value: AnyCollection): C {
         val kind = elementType.kind

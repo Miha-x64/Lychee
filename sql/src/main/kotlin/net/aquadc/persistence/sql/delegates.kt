@@ -6,6 +6,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 
 /**
  * Responsible for fetching and updating data.
@@ -34,7 +35,7 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
     ): T = table.schema.let { sch -> // the following cast seems to be unnecessary with new inference
-        lowSession.fetchSingle(table, sch.nameOf(field), sch.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
+        lowSession.fetchSingle(table, sch.nameOf(field), table.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
     }
 
     override fun <T, CUR> get(
@@ -47,18 +48,16 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
             previous: T, update: T
     ): Unit = table.schema.let { sch ->
-        lowSession.update(table, id, field.name(sch), field.type(sch), update)
+        lowSession.update(table, id, field.name(sch), table.typeOf(field), update)
     }
 }
 
 internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
-        private val schema: SCH,
-        tmpColumns: List<StoredNamedLens<SCH, *, *>>,
         private val recipe: Array<Table.Nesting>, // contains a single start-end pair with (flattened) nesting inside
-        private val myOffset: Int
+        private val myOffset: Int,
+        private val columnNames: Array<out CharSequence>,
+        private val columnTypes: Array<Ilk<*, *>>
 ) : SqlPropertyDelegate<SCH, ID> {
-    private val columnNames = Array(tmpColumns.size) { i -> tmpColumns[i].name(schema) }
-    private val columnTypes = Array(tmpColumns.size) { i -> tmpColumns[i].type(schema) }
 
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID

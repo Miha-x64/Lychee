@@ -9,7 +9,7 @@ import net.aquadc.persistence.type.SimpleValue
  * Represents AARRGGBB colour as an [Int].
  * For text formats, uses #AARRGGBB; when alpha==FF, uses #RRGGBB.
  */
-val colour: DataType.Simple<Int> = object : StringableSimpleType<Int>(Kind.I32) {
+val colour: DataType.NotNull.Simple<Int> = object : StringableSimpleType<Int>(Kind.I32) {
     override fun load(value: SimpleValue): Int =
         if (value is CharSequence) parse(value) else value as Int
     override fun store(value: Int): SimpleValue = value

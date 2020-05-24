@@ -19,11 +19,11 @@ import kotlin.collections.HashSet
  */
 @JvmName("enumeration") @Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Any, U : Any> enum(
-        values: Array<E>,
-        encodeAs: DataType.Simple<U>,
-        noinline encode: (E) -> U,
-        noinline fallback: (U) -> E = NoConstant(E::class.java) as (Any?) -> Nothing
-): DataType.Simple<E> =
+    values: Array<E>,
+    encodeAs: DataType.NotNull.Simple<U>,
+    noinline encode: (E) -> U,
+    noinline fallback: (U) -> E = NoConstant(E::class.java) as (Any?) -> Nothing
+): DataType.NotNull.Simple<E> =
         enumInternal(values, encodeAs, encode, fallback)
 
 /**
@@ -35,12 +35,12 @@ inline fun <reified E : Any, U : Any> enum(
  */
 @Suppress("UNCHECKED_CAST")
 @PublishedApi internal fun <E : Any, U : Any> enumInternal(
-        values: Array<E>,
-        encodeAs: DataType.Simple<U>,
-        encode: (E) -> U,
-        fallback: (U) -> E
-): DataType.Simple<E> =
-        object : DataType.Simple<Any?>(encodeAs.kind) {
+    values: Array<E>,
+    encodeAs: DataType.NotNull.Simple<U>,
+    encode: (E) -> U,
+    fallback: (U) -> E
+): DataType.NotNull.Simple<E> =
+        object : DataType.NotNull.Simple<Any?>(encodeAs.kind) {
 
             private val lookup =
                     values.associateByTo(newMap(values.size), encode).also { check(it.size == values.size) {
@@ -55,7 +55,7 @@ inline fun <reified E : Any, U : Any> enum(
             override fun store(value: Any?): SimpleValue =
                     encodeAs.store(encode.invoke(value as E))
 
-        } as DataType.Simple<E>
+        } as DataType.NotNull.Simple<E>
 
 
 // EnumSet
@@ -68,10 +68,10 @@ inline fun <reified E : Any, U : Any> enum(
  * @param ordinal a getter for `values.indexOf(value)`
  */
 inline fun <reified E> enumSet(
-        values: Array<E>,
-        encodeAs: DataType.Simple<Long>,
-        noinline ordinal: (E) -> Int
-): DataType.Simple<Set<E>> =
+    values: Array<E>,
+    encodeAs: DataType.NotNull.Simple<Long>,
+    noinline ordinal: (E) -> Int
+): DataType.NotNull.Simple<Set<E>> =
         enumSetInternal(E::class.java, values, encodeAs, ordinal)
 
 /**
@@ -79,20 +79,20 @@ inline fun <reified E> enumSet(
  * Finds an array of values automatically.
  */
 inline fun <reified E : Enum<E>> enumSet(
-        encodeAs: DataType.Simple<Long>,
-        noinline ordinal: (E) -> Int
-): DataType.Simple<Set<E>> =
+    encodeAs: DataType.NotNull.Simple<Long>,
+    noinline ordinal: (E) -> Int
+): DataType.NotNull.Simple<Set<E>> =
         enumSetInternal(E::class.java, enumValues(), encodeAs, ordinal)
 
 
 @Suppress("UNCHECKED_CAST")
 @PublishedApi internal fun <E> enumSetInternal(
-        type: Class<E>,
-        values: Array<E>,
-        encodeAs: DataType.Simple<Long>,
-        ordinal: (E) -> Int
-): DataType.Simple<Set<E>> =
-        object : DataType.Simple<Any?>(encodeAs.kind) {
+    type: Class<E>,
+    values: Array<E>,
+    encodeAs: DataType.NotNull.Simple<Long>,
+    ordinal: (E) -> Int
+): DataType.NotNull.Simple<Set<E>> =
+        object : DataType.NotNull.Simple<Any?>(encodeAs.kind) {
 
             init {
                 if (values.size > 64) throw UnsupportedOperationException("Enums with >64 values (JumboEnumSets) are not supported.")
@@ -117,7 +117,7 @@ inline fun <reified E : Enum<E>> enumSet(
             override fun store(value: Any?): SimpleValue =
                     encodeAs.store((value as Set<E>).fold(0L) { acc, e -> acc or (1L shl ordinal(e)) })
 
-        } as DataType.Simple<Set<E>>
+        } as DataType.NotNull.Simple<Set<E>>
 
 /**
  * Creates a [Set]<[Enum]> type implementation for storing enum set as a collection of values.
@@ -125,7 +125,7 @@ inline fun <reified E : Enum<E>> enumSet(
  */
 inline fun <reified E, DE : DataType<E>> enumSet(
         encodeAs: DE
-): DataType.Collect<Set<E>, E, DE> =
+): DataType.NotNull.Collect<Set<E>, E, DE> =
         setInternal(encodeAs, E::class.java.takeIf { it.isEnum })
 
 

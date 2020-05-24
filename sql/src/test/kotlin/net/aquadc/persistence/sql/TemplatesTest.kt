@@ -68,7 +68,7 @@ abstract class TemplatesTest {
         Eagerly.run {
             val sumAndMul = session.query(
                     "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
+                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
             val (f, s) = sumAndMul(80, 4, 6, 8)
             assertEquals(Pair(84, 48), Pair(f, s))
@@ -76,7 +76,7 @@ abstract class TemplatesTest {
         Lazily.run {
             val sumAndMul = session.query(
                     "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
+                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
             sumAndMul(80, 4, 6, 8).use {
                 val (f, s) = it
@@ -91,12 +91,12 @@ abstract class TemplatesTest {
         Eagerly.run {
             try { session.query(
                     "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position)
+                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position)
             )(); fail() } catch (expected: NoSuchElementException) {}
 
             val (f, s) = session.query(
                     "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
             )()
             assertEquals(1, f)
             assertEquals(2, s)
@@ -104,12 +104,12 @@ abstract class TemplatesTest {
         Lazily.run {
             try { session.query(
                     "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position)
+                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position)
             )(); fail() } catch (expected: NoSuchElementException) {}
 
             session.query(
                     "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.Simple<Int>, Int, DataType.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
             )().use {
                 val (f, s) = it
                 assertEquals(1, f)
@@ -146,14 +146,14 @@ abstract class TemplatesTest {
         Eagerly.run {
             val userContact = session.query(
                     USER_BY_NAME, string,
-                    struct<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
+                    struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
             val contact = userContact("John")
             assertEquals(expectedJohn, contact)
 
             val userContacts = session.query(
                     USERS_BY_NAME_AND_EMAIL_START, string, string,
-                    structs<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
+                    structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
             val contacts = userContacts("John", "john")
             assertEquals(listOf(expectedJohn), contacts)
@@ -161,7 +161,7 @@ abstract class TemplatesTest {
         Lazily.run {
             val userContact = session.query(
                     USER_BY_NAME, string,
-                    struct<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
+                    struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
             userContact("John").use { he ->
                 assertEquals(expectedJohn, he)
@@ -169,7 +169,7 @@ abstract class TemplatesTest {
 
             val userContacts = session.query(
                     USERS_BY_NAME_AND_EMAIL_START, string, string,
-                    structs<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
+                    structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
             userContacts("John", "john").use { iter ->
                 assertEquals(expectedJohn, iter.next())
@@ -187,7 +187,7 @@ abstract class TemplatesTest {
 
             val transientUserContacts = session.query(
                     USERS_BY_NAME_AND_EMAIL_START, string, string,
-                    structs<CUR, Tuple<Struct<Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>>, Tuple<String, DataType.Simple<String>, String, DataType.Simple<String>>, Struct<Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>, Tuple<String, DataType.Simple<String>, Long, DataType.Simple<Long>>>>(joined, BindBy.Name)
+                    structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
             transientUserContacts("John", "john").use { iter -> // don't collect TemporaryStructs!
                 assertEquals(expectedJohn, iter.next())

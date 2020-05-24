@@ -39,20 +39,20 @@ fun <D, T> DataType<T>.write(writer: BetterDataOutput<D>, output: D, value: T) {
     when (type) {
         is DataType.Nullable<*, *> ->
             throw AssertionError()
-        is DataType.Simple<T> ->
+        is DataType.NotNull.Simple<T> ->
             output.simple(value, nullable, type, writer)
-        is DataType.Collect<T, *, *> ->
-            output.collection(value, nullable, type as DataType.Collect<T, Any?, out DataType<Any?>>, writer)
-        is DataType.Partial<*, *> ->
-            output.partial(value, nullable, type as DataType.Partial<T, NullSchema>, writer)
+        is DataType.NotNull.Collect<T, *, *> ->
+            output.collection(value, nullable, type as DataType.NotNull.Collect<T, Any?, out DataType<Any?>>, writer)
+        is DataType.NotNull.Partial<*, *> ->
+            output.partial(value, nullable, type as DataType.NotNull.Partial<T, NullSchema>, writer)
     }
 }
 
-private fun <D, T> D.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>, output: BetterDataOutput<D>) {
+private fun <D, T> D.simple(arg: T, nullable: Boolean, type: DataType.NotNull.Simple<T>, output: BetterDataOutput<D>) {
     val arg: SimpleValue? = if (nullable && arg === null) null else type.store(arg)
     // these values can be put into stream along with nullability info
     when (type.kind) {
-        DataType.Simple.Kind.Bool ->
+        DataType.NotNull.Simple.Kind.Bool ->
             return output.writeByte(this,
                     when (arg as Boolean?) {
                         true -> 1
@@ -60,8 +60,8 @@ private fun <D, T> D.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>,
                         null -> -1
                     }.toByte()
             )
-        DataType.Simple.Kind.Str -> return output.writeString(this, arg as String?)
-        DataType.Simple.Kind.Blob -> return output.writeBytes(this, arg as ByteArray?)
+        DataType.NotNull.Simple.Kind.Str -> return output.writeString(this, arg as String?)
+        DataType.NotNull.Simple.Kind.Blob -> return output.writeBytes(this, arg as ByteArray?)
         else -> { /* continue */ }
     }
 
@@ -73,15 +73,15 @@ private fun <D, T> D.simple(arg: T, nullable: Boolean, type: DataType.Simple<T>,
     }
 
     when (type.kind) {
-        DataType.Simple.Kind.I32 -> output.writeInt(this, arg as Int)
-        DataType.Simple.Kind.I64 -> output.writeLong(this, arg as Long)
-        DataType.Simple.Kind.F32 -> output.writeInt(this, java.lang.Float.floatToIntBits(arg as Float))
-        DataType.Simple.Kind.F64 -> output.writeLong(this, java.lang.Double.doubleToLongBits(arg as Double))
-        DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
+        DataType.NotNull.Simple.Kind.I32 -> output.writeInt(this, arg as Int)
+        DataType.NotNull.Simple.Kind.I64 -> output.writeLong(this, arg as Long)
+        DataType.NotNull.Simple.Kind.F32 -> output.writeInt(this, java.lang.Float.floatToIntBits(arg as Float))
+        DataType.NotNull.Simple.Kind.F64 -> output.writeLong(this, java.lang.Double.doubleToLongBits(arg as Double))
+        DataType.NotNull.Simple.Kind.Bool, DataType.NotNull.Simple.Kind.Str, DataType.NotNull.Simple.Kind.Blob -> throw AssertionError()
     }//.also { ]
 }
 
-private fun <D, T, E> D.collection(arg: T, nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>, output: BetterDataOutput<D>) {
+private fun <D, T, E> D.collection(arg: T, nullable: Boolean, type: DataType.NotNull.Collect<T, E, out DataType<E>>, output: BetterDataOutput<D>) {
     val arg: AnyCollection? = if (nullable && arg === null) null else type.store(arg)
     if (arg === null) {
         output.writeInt(this, -1)
@@ -94,7 +94,7 @@ private fun <D, T, E> D.collection(arg: T, nullable: Boolean, type: DataType.Col
     }
 }
 
-private fun <SCH : Schema<SCH>, D, T> D.partial(arg: T, nullable: Boolean, type: DataType.Partial<T, SCH>, output: BetterDataOutput<D>) {
+private fun <SCH : Schema<SCH>, D, T> D.partial(arg: T, nullable: Boolean, type: DataType.NotNull.Partial<T, SCH>, output: BetterDataOutput<D>) {
     if (nullable && arg === null) {
         output.writeByte(this, (-1).toByte())
     } else {
@@ -131,22 +131,22 @@ fun <D, T> BetterDataInput<D>.read(input: D, type: DataType<T>): T {
     return when (actual) {
         is DataType.Nullable<*, *> ->
             throw AssertionError()
-        is DataType.Simple<T> ->
+        is DataType.NotNull.Simple<T> ->
             input.simple(nullable, actual, this)
-        is DataType.Collect<T, *, *> ->
-            input.collection(nullable, actual as DataType.Collect<T, Any?, out DataType<Any?>>, this)
-        is DataType.Partial<*, *> ->
-            input.partial(nullable, actual as DataType.Partial<T, NullSchema>, this)
+        is DataType.NotNull.Collect<T, *, *> ->
+            input.collection(nullable, actual as DataType.NotNull.Collect<T, Any?, out DataType<Any?>>, this)
+        is DataType.NotNull.Partial<*, *> ->
+            input.partial(nullable, actual as DataType.NotNull.Partial<T, NullSchema>, this)
     }
 }
 
 private val boolDictionary = arrayOf(null, false, true)
 
-private fun <T, D> D.simple(nullable: Boolean, type: DataType.Simple<T>, input: BetterDataInput<D>): T {
+private fun <T, D> D.simple(nullable: Boolean, type: DataType.NotNull.Simple<T>, input: BetterDataInput<D>): T {
     @Suppress("IMPLICIT_CAST_TO_ANY") val value = when (type.kind) {
-        DataType.Simple.Kind.Bool -> boolDictionary[input.readByte(this).toInt() + 1]
-        DataType.Simple.Kind.Str -> input.readString(this)
-        DataType.Simple.Kind.Blob -> input.readBytes(this)
+        DataType.NotNull.Simple.Kind.Bool -> boolDictionary[input.readByte(this).toInt() + 1]
+        DataType.NotNull.Simple.Kind.Str -> input.readString(this)
+        DataType.NotNull.Simple.Kind.Blob -> input.readBytes(this)
         else -> Unit // continue
     }
     if (value != Unit) {
@@ -160,16 +160,16 @@ private fun <T, D> D.simple(nullable: Boolean, type: DataType.Simple<T>, input: 
     }
 
     return type.load(when (type.kind) {
-        DataType.Simple.Kind.I32 -> input.readInt(this)
-        DataType.Simple.Kind.I64 -> input.readLong(this)
-        DataType.Simple.Kind.F32 -> java.lang.Float.intBitsToFloat(input.readInt(this))
-        DataType.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(input.readLong(this))
-        DataType.Simple.Kind.Bool, DataType.Simple.Kind.Str, DataType.Simple.Kind.Blob -> throw AssertionError()
+        DataType.NotNull.Simple.Kind.I32 -> input.readInt(this)
+        DataType.NotNull.Simple.Kind.I64 -> input.readLong(this)
+        DataType.NotNull.Simple.Kind.F32 -> java.lang.Float.intBitsToFloat(input.readInt(this))
+        DataType.NotNull.Simple.Kind.F64 -> java.lang.Double.longBitsToDouble(input.readLong(this))
+        DataType.NotNull.Simple.Kind.Bool, DataType.NotNull.Simple.Kind.Str, DataType.NotNull.Simple.Kind.Blob -> throw AssertionError()
         else -> throw AssertionError()
     })
 }
 
-private fun <T, D, E> D.collection(nullable: Boolean, type: DataType.Collect<T, E, out DataType<E>>, input: BetterDataInput<D>): T {
+private fun <T, D, E> D.collection(nullable: Boolean, type: DataType.NotNull.Collect<T, E, out DataType<E>>, input: BetterDataInput<D>): T {
     return when (val count = input.readInt(this)) {
         -1 -> check(nullable).let { null as T }
         0 -> type.load(emptyList<Nothing>())
@@ -180,7 +180,7 @@ private fun <T, D, E> D.collection(nullable: Boolean, type: DataType.Collect<T, 
 }
 
 private val fieldValues = ThreadLocal<ArrayList<Any?>>()
-private fun <T, D, SCH : Schema<SCH>> D.partial(nullable: Boolean, type: DataType.Partial<T, SCH>, input: BetterDataInput<D>): T =
+private fun <T, D, SCH : Schema<SCH>> D.partial(nullable: Boolean, type: DataType.NotNull.Partial<T, SCH>, input: BetterDataInput<D>): T =
         input.readByte(this).toInt().let { size ->
             if (size == -1) {
                 check(nullable)

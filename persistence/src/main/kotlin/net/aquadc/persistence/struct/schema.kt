@@ -14,7 +14,7 @@ import net.aquadc.persistence.type.DataType
  * @see Struct
  * @see FieldDef
  */
-abstract class Schema<SELF : Schema<SELF>> : DataType.Partial<Struct<SELF>, SELF>() {
+abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SELF>, SELF>() {
 
     /**
      * A temporary list of [FieldDef]s used while [Schema] is getting constructed.

@@ -23,6 +23,7 @@ import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i64
 import org.intellij.lang.annotations.Language
 import java.sql.Connection
@@ -162,7 +163,7 @@ class JdbcSession(
         }
 
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-                table: Table<SCH, ID>, colName: CharSequence, colType: DataType<T>, id: ID
+            table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
         ): T =
                 select<SCH, ID>(table /* fixme allocation */, arrayOf(colName), pkCond<SCH, ID>(table, id), noOrder())
                         .fetchSingle(colType)
@@ -180,14 +181,14 @@ class JdbcSession(
                 select<SCH, ID>(table, null, condition, noOrder()).fetchSingle(i64)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-                table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>, id: ID
+            table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
         ): Array<Any?> =
                 select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
 
-        private fun <T> ResultSet.fetchAllRows(type: DataType<T>): List<T> {
+        private fun <T> ResultSet.fetchAllRows(type: Ilk<T, *>): List<T> {
             // TODO pre-size collection && try not to box primitives
             val values = ArrayList<T>()
             while (next())
@@ -196,7 +197,7 @@ class JdbcSession(
             return values
         }
 
-        private fun <T> ResultSet.fetchSingle(type: DataType<T>): T =
+        private fun <T> ResultSet.fetchSingle(type: Ilk<T, *>): T =
                 try {
                     check(next())
                     type.get(this, 0)
@@ -204,7 +205,7 @@ class JdbcSession(
                     close()
                 }
 
-        private fun ResultSet.fetchColumns(types: Array<out DataType<*>>): Array<Any?> =
+        private fun ResultSet.fetchColumns(types: Array<out Ilk<*, *>>): Array<Any?> =
                 try {
                     check(next())
                     types.mapIndexedToArray { index, type ->
@@ -214,54 +215,62 @@ class JdbcSession(
                     close()
                 }
 
-        private fun <T> DataType<T>.bind(statement: PreparedStatement, index: Int, value: T) {
+        private fun <T> Ilk<T, *>.bind(statement: PreparedStatement, index: Int, value: T) {
             val i = 1 + index
-            flattened { isNullable, simple ->
-                if (value == null) {
-                    check(isNullable)
-                    statement.setNull(i, Types.NULL)
-                } else {
-                    val v = simple.store(value)
-                    when (simple.kind) {
-                        DataType.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
-                        DataType.Simple.Kind.I32 -> statement.setInt(i, v as Int)
-                        DataType.Simple.Kind.I64 -> statement.setLong(i, v as Long)
-                        DataType.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
-                        DataType.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
-                        DataType.Simple.Kind.Str -> statement.setString(i, v as String)
-                        // not sure whether setBlob should be used:
-                        DataType.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
-                    }//.also { }
+            val custom = this.custom
+            if (custom == null) {
+                (type as DataType<T>).flattened { isNullable, simple ->
+                    if (value == null) {
+                        check(isNullable)
+                        statement.setNull(i, Types.NULL)
+                    } else {
+                        val v = simple.store(value)
+                        when (simple.kind) {
+                            DataType.NotNull.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
+                            DataType.NotNull.Simple.Kind.I32 -> statement.setInt(i, v as Int)
+                            DataType.NotNull.Simple.Kind.I64 -> statement.setLong(i, v as Long)
+                            DataType.NotNull.Simple.Kind.F32 -> statement.setFloat(i, v as Float)
+                            DataType.NotNull.Simple.Kind.F64 -> statement.setDouble(i, v as Double)
+                            DataType.NotNull.Simple.Kind.Str -> statement.setString(i, v as String)
+                            // not sure whether setBlob should be used:
+                            DataType.NotNull.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
+                        }//.also { }
+                    }
                 }
+            } else {
+                statement.setObject(i, custom.invoke(value), Types.OTHER)
             }
         }
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        private /*wannabe inline*/ fun <T> DataType<T>.get(resultSet: ResultSet, index: Int): T {
+        private /*wannabe inline*/ fun <T> Ilk<T, *>.get(resultSet: ResultSet, index: Int): T {
             return get1indexed(resultSet, 1 + index)
         }
 
-        private fun <T> DataType<T>.get1indexed(resultSet: ResultSet, i: Int): T {
-            return flattened { isNullable, simple ->
-                val v = when (simple.kind) {
-                    DataType.Simple.Kind.Bool -> resultSet.getBoolean(i)
-                    DataType.Simple.Kind.I32 -> resultSet.getInt(i)
-                    DataType.Simple.Kind.I64 -> resultSet.getLong(i)
-                    DataType.Simple.Kind.F32 -> resultSet.getFloat(i)
-                    DataType.Simple.Kind.F64 -> resultSet.getDouble(i)
-                    DataType.Simple.Kind.Str -> resultSet.getString(i)
-                    DataType.Simple.Kind.Blob -> resultSet.getBytes(i)
-                    else -> throw AssertionError()
+        private fun <T> Ilk<T, *>.get1indexed(resultSet: ResultSet, i: Int): T = custom.let { custom ->
+            if (custom == null) {
+                (type as DataType<T>).flattened { isNullable, simple ->
+                    val v = when (simple.kind) {
+                        DataType.NotNull.Simple.Kind.Bool -> resultSet.getBoolean(i)
+                        DataType.NotNull.Simple.Kind.I32 -> resultSet.getInt(i)
+                        DataType.NotNull.Simple.Kind.I64 -> resultSet.getLong(i)
+                        DataType.NotNull.Simple.Kind.F32 -> resultSet.getFloat(i)
+                        DataType.NotNull.Simple.Kind.F64 -> resultSet.getDouble(i)
+                        DataType.NotNull.Simple.Kind.Str -> resultSet.getString(i)
+                        DataType.NotNull.Simple.Kind.Blob -> resultSet.getBytes(i)
+                        else -> throw AssertionError()
+                    }
+                    // must check, will get zeroes otherwise
+                    if (resultSet.wasNull()) check(isNullable).let { null as T }
+                    else simple.load(v)
                 }
-
-                // must check, will get zeroes otherwise
-                if (resultSet.wasNull()) check(isNullable).let { null as T }
-                else simple.load(v)
+            } else {
+                custom.back(resultSet.getObject(i))
             }
         }
 
         override fun <T> cell(
-                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, type: DataType<T>, orElse: () -> T
+            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, type: Ilk<T, *>, orElse: () -> T
         ): T {
             val rs = select(query, argumentTypes, arguments, 1)
             try {
@@ -275,13 +284,13 @@ class JdbcSession(
         }
 
         override fun select(
-                query: String, argumentTypes: Array<out DataType.Simple<*>>, arguments: Array<out Any>, expectedCols: Int
+            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
         ): ResultSet = selectStatements
                 .getOrSet(::HashMap)
                 .getOrPut(query) { connection.prepareStatement(query) }
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
-                        (argumentTypes[idx] as DataType<Any?>).bind(stmt, idx, arguments[idx])
+                        (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, arguments[idx])
                     }
                 }
                 .executeQuery()
@@ -297,13 +306,13 @@ class JdbcSession(
         override fun sizeHint(cursor: ResultSet): Int = -1
         override fun next(cursor: ResultSet): Boolean = cursor.next()
 
-        override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: DataType<T>): T =
+        override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: Ilk<T, *>): T =
                 type.get1indexed(cursor, cursor.findColumn(name.toString()))
-        override fun <T> cellAt(cursor: ResultSet, col: Int, type: DataType<T>): T =
+        override fun <T> cellAt(cursor: ResultSet, col: Int, type: Ilk<T, *>): T =
                 type.get(cursor, col)
-        override fun rowByName(cursor: ResultSet, columnNames: Array<out CharSequence>, columnTypes: Array<out DataType<*>>): Array<Any?> =
+        override fun rowByName(cursor: ResultSet, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?> =
                 Array(columnNames.size) { idx -> cellByName(cursor, columnNames[idx], columnTypes[idx]) }
-        override fun rowByPosition(cursor: ResultSet, offset: Int, types: Array<out DataType<*>>): Array<Any?> =
+        override fun rowByPosition(cursor: ResultSet, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?> =
                 Array(types.size) { idx -> types[idx].get(cursor, offset + idx) }
 
         override fun close(cursor: ResultSet) =
@@ -342,9 +351,9 @@ class JdbcSession(
     }
 
     override fun <R> rawQuery(
-            @Language("SQL") query: String,
-            argumentTypes: Array<out DataType.Simple<*>>,
-            fetch: Fetch<Blocking<ResultSet>, R>
+        @Language("SQL") query: String,
+        argumentTypes: Array<out DataType.NotNull.Simple<*>>,
+        fetch: Fetch<Blocking<ResultSet>, R>
     ): VarFunc<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
 

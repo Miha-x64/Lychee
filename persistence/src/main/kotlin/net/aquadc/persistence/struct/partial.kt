@@ -7,7 +7,7 @@ import net.aquadc.persistence.type.DataType
  * a map with [FieldDef] keys (can be treated as [String] or [Byte])
  * and heterogeneous statically typed values. Having a value for each key is not required.
  * @see Schema
- * @see DataType.Partial
+ * @see DataType.NotNull.Partial
  * @see FieldDef
  * @see PartialStruct
  * see extended-persistence
