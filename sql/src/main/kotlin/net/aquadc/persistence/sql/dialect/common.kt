@@ -19,3 +19,9 @@ internal fun StringBuilder.appendReplacing(what: CharSequence, needle: Char, rep
     }
     return append(what, start, what.length)
 }
+
+internal inline fun StringBuilder.appendIf(cond: Boolean, what: String): StringBuilder =
+    if (cond) append(what) else this
+
+internal inline fun StringBuilder.appendIf(cond: Boolean, what: Char): StringBuilder =
+    if (cond) append(what) else this

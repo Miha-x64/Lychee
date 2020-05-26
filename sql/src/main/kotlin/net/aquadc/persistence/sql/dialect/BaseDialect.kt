@@ -141,8 +141,6 @@ import java.io.DataOutputStream
         sb.setLength(sb.length - 2) // trim last comma; schema.fields must not be empty
         return sb.append(");").toString()
     }
-    private inline fun StringBuilder.appendIf(cond: Boolean, what: String): StringBuilder =
-        if (cond) append(what) else this
     protected open fun StringBuilder.appendPkType(type: DataType.NotNull.Simple<*>, managed: Boolean): StringBuilder =
         appendNameOf(type) // used by SQLite, overridden for Postgres
 
@@ -183,7 +181,7 @@ import java.io.DataOutputStream
             is DataType.NotNull.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
         }
         if (dataType === act) {
-            append(" NOT NULL")
+            append(' ').append("NOT NULL")
         }
     }
 

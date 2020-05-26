@@ -1,9 +1,12 @@
 @file:JvmName("PostgresDialect")
 package net.aquadc.persistence.sql.dialect.postgres
 
+import net.aquadc.collections.contains
 import net.aquadc.collections.enumMapOf
+import net.aquadc.collections.plus
 import net.aquadc.persistence.sql.dialect.BaseDialect
 import net.aquadc.persistence.sql.dialect.Dialect
+import net.aquadc.persistence.sql.dialect.appendIf
 import net.aquadc.persistence.type.DataType
 
 /**
@@ -22,12 +25,13 @@ val PostgresDialect: Dialect = object : BaseDialect(
     ),
     truncate = "TRUNCATE TABLE"
 ) {
+    private val serial = DataType.NotNull.Simple.Kind.I32 + DataType.NotNull.Simple.Kind.I64
     override fun StringBuilder.appendPkType(type: DataType.NotNull.Simple<*>, managed: Boolean): StringBuilder =
-        if (managed) appendNameOf(type)
-        else { // If PK column is 'managed', we just take `structToInsert[pkField]`.
-            // Otherwise, its our responsibility to make PK auto-generated
-            if (type.kind == DataType.NotNull.Simple.Kind.I32) append("serial NOT NULL")
-            else if (type.kind == DataType.NotNull.Simple.Kind.I64) append("serial8 NOT NULL")
-            else throw UnsupportedOperationException() // wat? Boolean, float, double, string, byte[] primary key? O_o
-        }
+        // If PK column is 'managed', we just take `structToInsert[pkField]`.
+        if (managed || type.kind !in serial) appendNameOf(type)
+        // Otherwise its our responsibility to make PK auto-generated
+        else append("serial")
+            .appendIf(type.kind == DataType.NotNull.Simple.Kind.I64, '8')
+            .append(' ')
+            .append("NOT NULL")
 }
