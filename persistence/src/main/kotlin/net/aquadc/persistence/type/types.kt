@@ -52,7 +52,7 @@ sealed class DataType<T> {
      * (However, some [NotNull.Simple], [NotNull.Collect], or [NotNull.Partial] implementations
      * may have nullable in-memory representation, and thus cannot be wrapped into [Nullable])
      */
-    class Nullable<T : Any, DT : DataType<T>>(
+    class Nullable<T : Any, DT : NotNull<T>>(
             /**
              * Wrapped non-nullable type.
              */

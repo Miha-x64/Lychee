@@ -102,7 +102,7 @@ val short: Nothing get() = throw AssertionError()
  * Describes `T?` instances.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T : Any, DT : DataType<T>> nullable(type: DT): DataType.Nullable<T, DT> =
+inline fun <T : Any, DT : DataType.NotNull<T>> nullable(type: DT): DataType.Nullable<T, DT> =
         DataType.Nullable(type)
 
 internal abstract class CollectBase<C : Collection<E>, E, DE : DataType<E>>(elementType: DE)

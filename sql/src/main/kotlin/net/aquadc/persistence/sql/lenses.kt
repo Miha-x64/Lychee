@@ -34,7 +34,7 @@ interface NamingConvention {
 @JvmName("partialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
         US : Schema<US>, UD : DataType.NotNull.Partial<PartialStruct<US>, US>,
-        V : Any, VD : DataType<V>
+        V : Any, VD : DataType.NotNull<V>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, PartialStruct<US>, UD>.div(
         nested: Lens<US, PartialStruct<US>, Struct<US>, V, VD>
@@ -54,7 +54,7 @@ interface NamingConvention {
 @JvmName("nullablePartialToNonNullableLens") inline operator fun <
         TS : Schema<TS>,
         US : Schema<US>, UR : PartialStruct<US>, UD : DataType.Nullable<UR, out DataType.NotNull.Partial<UR, US>>,
-        V : Any, VD : DataType<V>
+        V : Any, VD : DataType.NotNull<V>
         >
         Lens<TS, PartialStruct<TS>, Struct<TS>, UR?, UD>.div(
         nested: Lens<US, PartialStruct<US>, Struct<US>, V, VD>
@@ -86,7 +86,7 @@ interface NamingConvention {
 @JvmName("partialToNonNullableLens") inline operator fun <
         TS : Schema<TS>, T,
         US : Schema<US>,
-        V : Any, VD : DataType<V>
+        V : Any, VD : DataType.NotNull<V>
         >
         StoredLens<TS, T, out DataType.NotNull.Partial<T, US>>.rem(
         nested: StoredLens<US, V, VD>
@@ -106,7 +106,7 @@ interface NamingConvention {
 @JvmName("nullablePartialToNonNullableLens") inline operator fun <
         TS : Schema<TS>, T : Any,
         US : Schema<US>,
-        V : Any, VD : DataType<V>
+        V : Any, VD : DataType.NotNull<V>
         >
         StoredLens<TS, T?, out DataType.Nullable<T, out DataType.NotNull.Partial<T, US>>>.rem(
         nested: StoredLens<US, V, VD>
@@ -199,7 +199,7 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<U
             Unit.run {
                 if (outer.type is Schema<*> || nested.type is DataType.Nullable<*, *>) nested.type
                 //  ^^^^^^leave as is^^^^^^ or ^^^^^^^ it is already nullable ^^^^^^^
-                else nullable(nested.type as DataType<Any>)
+                else nullable(nested.type as DataType.NotNull<Any>)
             } as UD,
             outer,
             nested
