@@ -24,12 +24,14 @@ import kotlin.concurrent.getOrSet
 fun reallyEqual(a: Any?, b: Any?): Boolean = when {
     a == b -> true
     a === null || b === null -> false
-    // popular array types
-    a is Array<*> -> b is Array<*> && a.size == b.size && elementsEq(a, b)
+    // popular collection types
+    a is Array<*> -> b is Array<*> && elementsEq(a, b)
+    a is Collection<*> -> b is Collection<*> && elementsEq(a, b)
+    a is CharSequence -> b is CharSequence && a.eq(b, false)
     a is ByteArray -> b is ByteArray && Arrays.equals(a, b)
     a is IntArray -> b is IntArray && Arrays.equals(a, b)
     a is CharArray -> b is CharArray && Arrays.equals(a, b)
-    // other array types
+    // other collection types
     a is BooleanArray -> b is BooleanArray && Arrays.equals(a, b)
     a is ShortArray -> b is ShortArray && Arrays.equals(a, b)
     a is LongArray -> b is LongArray && Arrays.equals(a, b)
@@ -39,8 +41,18 @@ fun reallyEqual(a: Any?, b: Any?): Boolean = when {
     else -> false
 }
 private fun elementsEq(a: Array<*>, b: Array<*>): Boolean {
+    if (a.size != b.size) return false
     for (i in a.indices)
         if (!reallyEqual(a[i], b[i]))
+            return false
+    return true
+}
+private fun elementsEq(a: Collection<*>, b: Collection<*>): Boolean {
+    if (a.size != b.size) return false
+    val ai = a.iterator()
+    val bi = b.iterator()
+    while (ai.hasNext())
+        if (!bi.hasNext() || !reallyEqual(ai.next(), bi.next()))
             return false
     return true
 }
@@ -49,7 +61,10 @@ private fun elementsEq(a: Array<*>, b: Array<*>): Boolean {
 fun Any?.realHashCode(): Int = when (this) {
     null -> 0
 
-    is Array<*> -> Arrays.deepHashCode(this)
+    is Array<*> -> hash(this)
+    is Collection<*> -> hash(this)
+    is String -> hashCode()
+    is CharSequence -> hash(this)
     is ByteArray -> Arrays.hashCode(this)
     is IntArray -> Arrays.hashCode(this)
     is CharArray -> Arrays.hashCode(this)
@@ -62,12 +77,28 @@ fun Any?.realHashCode(): Int = when (this) {
 
     else -> hashCode()
 }
+private fun hash(a: Array<*>): Int {
+    var hashCode = 1
+    for (e in a) hashCode = 31 * hashCode + (e?.realHashCode() ?: 0)
+    return hashCode
+}
+private fun hash(a: Collection<*>): Int {
+    var hashCode = 1
+    for (e in a) hashCode = 31 * hashCode + (e?.realHashCode() ?: 0)
+    return hashCode
+}
+private fun hash(a: CharSequence): Int {
+    var h = 0
+    for (ch in a) h = 31 * h + ch.toInt()
+    return h
+}
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun Any?.realToString(): String = when (this) {
     null -> "null"
 
     is Array<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", "[", "]", -1, "…", null)
+    is Collection<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", "[", "]", -1, "…", null)
     is ByteArray -> toHexString()
     is IntArray -> Arrays.toString(this)
     is CharArray -> Arrays.toString(this)
@@ -136,7 +167,7 @@ internal fun <C : MutableCollection<T>, T> AnyCollection.fatTo(dest: C): C {
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun AnyCollection.fatAsList(): List<Any?> = when (this) {
     is List<*> -> this
-    is Collection<*> -> (this).toList()
+    is Collection<*> -> this.toList()
     is Array<*> -> this.asList()
     is ByteArray -> this.asList()
     is ShortArray -> this.asList()
@@ -257,8 +288,8 @@ inline fun <T, SCH : Schema<SCH>> readPartial(
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>.forceAddField(
-        that: FieldDef<SCH, *, *>,
-        schema: SCH
+    that: FieldDef<SCH, *, *>,
+    schema: SCH
 ): FieldSet<SCH, FieldDef<SCH, *, *>> {
     val newFields = this + that
     if (bitSet == newFields.bitSet) {
