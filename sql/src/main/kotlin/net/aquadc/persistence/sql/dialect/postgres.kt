@@ -23,12 +23,13 @@ val PostgresDialect: Dialect = object : BaseDialect(
         DataType.NotNull.Simple.Kind.Str, "text",
         DataType.NotNull.Simple.Kind.Blob, "bytea"
     ),
-    truncate = "TRUNCATE TABLE"
+    truncate = "TRUNCATE TABLE",
+    arrayPostfix = "[]"
 ) {
     private val serial = DataType.NotNull.Simple.Kind.I32 + DataType.NotNull.Simple.Kind.I64
     override fun StringBuilder.appendPkType(type: DataType.NotNull.Simple<*>, managed: Boolean): StringBuilder =
-        // If PK column is 'managed', we just take `structToInsert[pkField]`.
-        if (managed || type.kind !in serial) appendNameOf(type)
+        // If PK column is 'managed', we just take `structToInsert[pkField]`. todo unique constraint
+        if (managed || type.kind !in serial) appendTwN(type)
         // Otherwise its our responsibility to make PK auto-generated
         else append("serial")
             .appendIf(type.kind == DataType.NotNull.Simple.Kind.I64, '8')

@@ -4,6 +4,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.WhereCondition
+import net.aquadc.persistence.type.DataType
 
 /**
  * Represents an SQL dialect. Provides functions for building queries.
@@ -64,5 +65,15 @@ interface Dialect {
      * Returns `TRUNCATE` query to clear the whole table.
      */
     fun truncate(table: Table<*, *>): String
+
+    /**
+     * Whether database has support for arrays.
+     */
+    val hasArraySupport: Boolean
+
+    /**
+     * Figures out simple name of a primitive type.
+     */
+    fun nameOf(kind: DataType.NotNull.Simple.Kind): String
 
 }

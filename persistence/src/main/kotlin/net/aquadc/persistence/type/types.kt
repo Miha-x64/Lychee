@@ -137,9 +137,6 @@ sealed class DataType<T> {
             open fun storeAsString(value: T): CharSequence =
                 throw UnsupportedOperationException()
 
-            /*open val sqlType: CharSequence? get() = null
-            open fun storeSqlObject(value: T): Any? = throw UnsupportedOperationException()*/
-
             override val type: Simple<T> get() = this
         }
 

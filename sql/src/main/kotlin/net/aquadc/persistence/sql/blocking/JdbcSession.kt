@@ -1,6 +1,8 @@
 package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.persistence.array
+import net.aquadc.persistence.fatAsList
+import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
@@ -17,14 +19,16 @@ import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.Dialect
-import net.aquadc.persistence.sql.flattened
+import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i64
+import net.aquadc.persistence.type.serialized
 import org.intellij.lang.annotations.Language
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -218,14 +222,22 @@ class JdbcSession(
         private fun <T> Ilk<T, *>.bind(statement: PreparedStatement, index: Int, value: T) {
             val i = 1 + index
             val custom = this.custom
-            if (custom == null) {
-                (type as DataType<T>).flattened { isNullable, simple ->
+            if (custom != null) {
+                statement.setObject(i, custom.invoke(value))
+            } else {
+                val t = type as DataType<T>
+                val type = if (t is DataType.Nullable<*, *>) {
                     if (value == null) {
-                        check(isNullable)
                         statement.setNull(i, Types.NULL)
-                    } else {
-                        val v = simple.store(value)
-                        when (simple.kind) {
+                        return
+                    }
+                    t.actualType as DataType.NotNull<T>
+                } else type as DataType.NotNull<T>
+
+                when (type) {
+                    is DataType.NotNull.Simple -> {
+                        val v = type.store(value)
+                        when (type.kind) {
                             DataType.NotNull.Simple.Kind.Bool -> statement.setBoolean(i, v as Boolean)
                             DataType.NotNull.Simple.Kind.I32 -> statement.setInt(i, v as Int)
                             DataType.NotNull.Simple.Kind.I64 -> statement.setLong(i, v as Long)
@@ -236,11 +248,42 @@ class JdbcSession(
                             DataType.NotNull.Simple.Kind.Blob -> statement.setObject(i, v as ByteArray)
                         }//.also { }
                     }
+                    is DataType.NotNull.Collect<T, *, *> -> {
+                        foldArrayType(
+                            dialect.hasArraySupport, type.elementType,
+                            { nullable, elT ->
+                                statement.setArray(i,
+                                    connection.createArrayOf(
+                                        jdbcElType(type.elementType),
+                                        toArray(type.store(value), nullable, elT)
+                                    )
+                                )
+                            },
+                            {
+                                statement.setObject(i, serialized(type).store(value))
+                            }
+                        )
+                    }
+                    is DataType.NotNull.Partial<T, *> -> {
+                        throw AssertionError() // 🤔 btw, Oracle supports Struct type
+                    }
                 }
-            } else {
-                statement.setObject(i, custom.invoke(value), Types.OTHER)
             }
         }
+        private fun jdbcElType(t: DataType<*>): String = when (t) {
+            is DataType.Nullable<*, *> -> jdbcElType(t.actualType)
+            is DataType.NotNull.Simple -> dialect.nameOf(t.kind)
+            is DataType.NotNull.Collect<*, *, *> -> jdbcElType(t.elementType)
+            is DataType.NotNull.Partial<*, *> -> dialect.nameOf(DataType.NotNull.Simple.Kind.Blob)
+        }
+        private fun <T> toArray(value: AnyCollection, nullable: Boolean, elT: DataType.NotNull.Simple<T>): Array<out Any?> =
+            (value.fatAsList() as List<T?>).let { value ->
+                Array<Any?>(value.size) {
+                    val el = value[it]
+                    if (el == null) check(nullable).let { null }
+                    else elT.store(el)
+                }
+            }
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         private /*wannabe inline*/ fun <T> Ilk<T, *>.get(resultSet: ResultSet, index: Int): T {
@@ -248,26 +291,55 @@ class JdbcSession(
         }
 
         private fun <T> Ilk<T, *>.get1indexed(resultSet: ResultSet, i: Int): T = custom.let { custom ->
-            if (custom == null) {
-                (type as DataType<T>).flattened { isNullable, simple ->
-                    val v = when (simple.kind) {
-                        DataType.NotNull.Simple.Kind.Bool -> resultSet.getBoolean(i)
-                        DataType.NotNull.Simple.Kind.I32 -> resultSet.getInt(i)
-                        DataType.NotNull.Simple.Kind.I64 -> resultSet.getLong(i)
-                        DataType.NotNull.Simple.Kind.F32 -> resultSet.getFloat(i)
-                        DataType.NotNull.Simple.Kind.F64 -> resultSet.getDouble(i)
-                        DataType.NotNull.Simple.Kind.Str -> resultSet.getString(i)
-                        DataType.NotNull.Simple.Kind.Blob -> resultSet.getBytes(i)
-                        else -> throw AssertionError()
-                    }
-                    // must check, will get zeroes otherwise
-                    if (resultSet.wasNull()) check(isNullable).let { null as T }
-                    else simple.load(v)
-                }
-            } else {
+            if (custom != null) {
                 custom.back(resultSet.getObject(i))
+            } else {
+                val t = type as DataType<T>
+                val nullable: Boolean
+                val type =
+                    if (t is DataType.Nullable<*, *>) { nullable = true; t.actualType as DataType.NotNull<T> }
+                    else { nullable = false; type as DataType.NotNull<T> }
+                when (type) {
+                    is DataType.NotNull.Simple -> {
+                        val v = when (type.kind) {
+                            DataType.NotNull.Simple.Kind.Bool -> resultSet.getBoolean(i)
+                            DataType.NotNull.Simple.Kind.I32 -> resultSet.getInt(i)
+                            DataType.NotNull.Simple.Kind.I64 -> resultSet.getLong(i)
+                            DataType.NotNull.Simple.Kind.F32 -> resultSet.getFloat(i)
+                            DataType.NotNull.Simple.Kind.F64 -> resultSet.getDouble(i)
+                            DataType.NotNull.Simple.Kind.Str -> resultSet.getString(i)
+                            DataType.NotNull.Simple.Kind.Blob -> resultSet.getBytes(i)
+                            else -> throw AssertionError()
+                        }
+                        // must check, will get zeroes otherwise
+                        if (resultSet.wasNull()) check(nullable).let { null as T }
+                        else type.load(v)
+                    }
+                    is DataType.NotNull.Collect<T, *, *> -> {
+                        foldArrayType(dialect.hasArraySupport, type.elementType,
+                            { nullable, elT ->
+                                val arr = resultSet.getArray(i)
+                                if (resultSet.wasNull()) { check(nullable); null as T }
+                                else fromArray(type, arr.array as Array<out Any?>, nullable, elT)
+                            },
+                            {
+                                val obj = resultSet.getObject(i)
+                                if (resultSet.wasNull()) { check(nullable); null as T }
+                                else serialized(type).load(obj)
+                            }
+                        )
+                    }
+                    is DataType.NotNull.Partial<T, *> -> {
+                        throw AssertionError()
+                    }
+                }
             }
         }
+        private fun <T> fromArray(type: DataType.NotNull.Collect<T, *, *>, value: AnyCollection, nullable: Boolean, elT: DataType.NotNull.Simple<*>): T =
+            type.load(value.fatMapTo(ArrayList<Any?>()) { it: Any? ->
+                if (it == null) { check(nullable); null } else elT.load(it)
+            })
+
 
         override fun <T> cell(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, type: Ilk<T, *>, orElse: () -> T

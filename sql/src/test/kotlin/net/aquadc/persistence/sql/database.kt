@@ -132,4 +132,4 @@ fun session(dialect: Dialect, url: String): JdbcSession =
         val stmt = conn.createStatement()
         TestTables.forEach { stmt.execute(dialect.createTable(it, temporary = true)) }
         stmt.close()
-    }, SqliteDialect)
+    }, dialect)

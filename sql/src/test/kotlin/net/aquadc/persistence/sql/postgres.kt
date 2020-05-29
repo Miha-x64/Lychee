@@ -3,6 +3,7 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.fold
+import net.aquadc.persistence.extended.intCollection
 import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.ColMeta.Companion.nativeType
@@ -14,7 +15,6 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.collection
-import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.string
@@ -57,7 +57,8 @@ class TemplatesPostgres : TemplatesTest() {
         val Id = "id" let uuid
         val Name = "name" let string
         val Extras = "extras" let SomeSchema
-        val Numbers = "numbers" let collection(i32)
+        val Numbers = "numbers" let intCollection
+        val MoreNumbers = "more_numbers" let collection(intCollection)
     }
     private fun PGobject(type: String, value: String) = PGobject().also {
         it.type = type
@@ -71,21 +72,23 @@ class TemplatesPostgres : TemplatesTest() {
             it[B] = 123
             it[C] = 10_987_654_321L
         }
-        it[Numbers] = intArrayOf(1, 2, 3).asList()
+        it[Numbers] = intArrayOf(0, 1, 2)
+        it[MoreNumbers] = listOf(intArrayOf(1, 2, 3), intArrayOf(4, 5, 6))
     }
 
     @Test fun `just a table`() {
         val Yuzerz = tableOf(Yoozer, "yoozerz1", "_id", i64) { arrayOf(embed(SnakeCase, Extras)) }
-        val schema = PostgresDialect.createTable(Yuzerz)
+        val schema = PostgresDialect.createTable(Yuzerz, true)
         assertEquals(
-            """CREATE TABLE "yoozerz1"
+            """CREATE TEMP TABLE "yoozerz1"
                 ("_id" serial8 NOT NULL PRIMARY KEY,
                 "id" bytea NOT NULL,
                 "name" text NOT NULL,
                 "extras_a" text NOT NULL,
                 "extras_b" int NOT NULL,
                 "extras_c" int8 NOT NULL,
-                "numbers" bytea NOT NULL);""".replace(Regex("\n\\s+"), " "),
+                "numbers" int[] NOT NULL,
+                "more_numbers" bytea NOT NULL);""".replace(Regex("\n\\s+"), " "),
             schema
         )
         assertInserts(schema, Yuzerz)
@@ -98,14 +101,15 @@ class TemplatesPostgres : TemplatesTest() {
                 nativeType(Extras, serialized(SomeSchema))
             )
         }
-        val schema = PostgresDialect.createTable(Yuzerz)
+        val schema = PostgresDialect.createTable(Yuzerz, true)
         assertEquals(
-            """CREATE TABLE "yoozerz2"
+            """CREATE TEMP TABLE "yoozerz2"
                 ("_id" serial NOT NULL PRIMARY KEY,
                 "id" bytea NOT NULL,
                 "name" text NOT NULL,
                 "extras" bytea NOT NULL,
-                "numbers" bytea NOT NULL);""".replace(Regex("\n\\s+"), " "),
+                "numbers" int[] NOT NULL,
+                "more_numbers" bytea NOT NULL);""".replace(Regex("\n\\s+"), " "),
             schema
         )
         assertInserts(schema, Yuzerz)
@@ -128,47 +132,59 @@ class TemplatesPostgres : TemplatesTest() {
                     }
                 }
         }
-        val intArray = object : NativeType<List<Int>, DataType.NotNull.Collect<List<Int>, Int, DataType.NotNull.Simple<Int>>>("int ARRAY NOT NULL", collection(i32)) {
-            override fun invoke(p1: List<Int>): Any? =
-                db.connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toIntArray())
-            override fun back(p: Any?): List<Int> =
-                ((p as java.sql.Array).array as Array<Int>).asList()
+        val intMatrix = object : NativeType<
+            List<IntArray>,
+            DataType.NotNull.Collect<
+                List<IntArray>,
+                IntArray,
+                DataType.NotNull.Collect<IntArray, Int, DataType.NotNull.Simple<Int>>>
+            >(
+            "int[][] NOT NULL", collection(intCollection)
+        ) {
+            override fun invoke(p1: List<IntArray>): Any? =
+                db.connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toTypedArray())
+            override fun back(p: Any?): List<IntArray> =
+                ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() }
+        //  never cast to Array<Array<Int>>: ^^^^^^^^^^^ empty array will be returned as Array<Int>
         }
         val Yoozerz = tableOf(Yoozer, "yoozerz3", Yoozer.Id) { arrayOf(
             nativeType(Id, "uuid NOT NULL DEFAULT uuid_generate_v4()"),
             type(Name, "varchar(128) NOT NULL"),
             nativeType(Extras, someJsonb),
-            nativeType(Numbers, intArray)
+            nativeType(MoreNumbers, intMatrix)
         ) }
 
-        val schema = PostgresDialect.createTable(Yoozerz)
+        val schema = PostgresDialect.createTable(Yoozerz, true)
         assertEquals(
-            """CREATE TABLE "yoozerz3"
+            """CREATE TEMP TABLE "yoozerz3"
                 ("id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
                 "name" varchar(128) NOT NULL,
                 "extras" jsonb NOT NULL,
-                "numbers" int ARRAY NOT NULL);""".replace(Regex("\n\\s+"), " "),
+                "numbers" int[] NOT NULL,
+                "more_numbers" int[][] NOT NULL);""".replace(Regex("\n\\s+"), " "),
             schema
         )
         assertInserts(schema, Yoozerz)
     }
     private fun assertInserts(create: String, table: Table<Yoozer, *>) {
+        var e: Throwable? = null
         db.withTransaction {
+            db.connection.createStatement().run {
+                execute(create)
+                close()
+            }
             try {
-                db.connection.createStatement().run {
-                    execute(create)
-                    close()
-                }
-
                 val rec = insert(table, sampleYoozer)
                 assertNotSame(sampleYoozer, rec)
                 assertEquals(sampleYoozer, rec)
-            } finally {
-                db.connection.createStatement().run {
-                    execute("DROP TABLE " + table.name)
-                    close()
-                }
+            } catch (t: Throwable) {
+                e = t
+            }
+            db.connection.createStatement().run {
+                execute("DROP TABLE " + table.name)
+                close()
             }
         }
+        e?.let { throw it }
     }
 }

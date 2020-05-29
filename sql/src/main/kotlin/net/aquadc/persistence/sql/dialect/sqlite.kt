@@ -20,5 +20,6 @@ object SqliteDialect : BaseDialect(
         DataType.NotNull.Simple.Kind.Str, "TEXT",
         DataType.NotNull.Simple.Kind.Blob, "BLOB"
     ),
-    truncate = "DELETE FROM"
+    truncate = "DELETE FROM", // SQLite does not have TRUNCATE statement
+    arrayPostfix = null // no array support
 )

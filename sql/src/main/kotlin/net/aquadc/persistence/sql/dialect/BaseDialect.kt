@@ -16,9 +16,10 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-/*internal*/ open class BaseDialect(
+/*wannabe internal*/ open class BaseDialect(
     private val types: InlineEnumMap<DataType.NotNull.Simple.Kind, String>,
-    private val truncate: String
+    private val truncate: String,
+    private val arrayPostfix: String?
 ) : Dialect {
 
     override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *>): String = buildString {
@@ -128,7 +129,7 @@ import java.io.DataOutputStream
                 sb.appendName(colNames[i]).append(' ')
                     .let {
                         val t = colTypes[i]
-                        if (t is DataType<*>) it.appendNameOf(t)
+                        if (t is DataType<*>) it.appendTwN(t)
                         else it.append(t as CharSequence)
                     }
 
@@ -142,7 +143,7 @@ import java.io.DataOutputStream
         return sb.append(");").toString()
     }
     protected open fun StringBuilder.appendPkType(type: DataType.NotNull.Simple<*>, managed: Boolean): StringBuilder =
-        appendNameOf(type) // used by SQLite, overridden for Postgres
+        appendTwN(type) // used by SQLite, overridden for Postgres
 
     private fun <T> StringBuilder.appendDefault(type: DataType<T>, default: T) {
         val type = if (type is DataType.Nullable<*, *>) {
@@ -172,25 +173,37 @@ import java.io.DataOutputStream
         }
     }
 
-    protected fun <T> StringBuilder.appendNameOf(dataType: DataType<T>) = apply {
-        val act = if (dataType is DataType.Nullable<*, *>) dataType.actualType else dataType
-        when (act) {
-            is DataType.Nullable<*, *> -> throw AssertionError()
-            is DataType.NotNull.Simple<*> -> append(types[act.kind]!!)
-            is DataType.NotNull.Collect<*, *, *> -> append(types[DataType.NotNull.Simple.Kind.Blob]!!)
-            is DataType.NotNull.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
-        }
-        if (dataType === act) {
-            append(' ').append("NOT NULL")
-        }
+    /** Appends type along with its non-nullability */
+    protected fun StringBuilder.appendTwN(dataType: DataType<*>): StringBuilder {
+        val nn = dataType is DataType.NotNull<*>
+        return appendTnN(if (nn) dataType as DataType.NotNull else (dataType as DataType.Nullable<*, *>).actualType)
+            .appendIf(nn, ' ', "NOT NULL")
     }
 
-    /**
-     * {@implNote SQLite does not have TRUNCATE statement}
-     */
+    /** Appends type without its nullability info, i. e. like it is nullable. */
+    private fun StringBuilder.appendTnN(dataType: DataType.NotNull<*>): StringBuilder = when (dataType) {
+        is DataType.NotNull.Simple<*> -> append(nameOf(dataType.kind))
+        is DataType.NotNull.Collect<*, *, *> -> appendTArray(dataType.elementType)
+        is DataType.NotNull.Partial<*, *> -> throw UnsupportedOperationException() // column can't be of Partial type at this point
+    }
+    private fun StringBuilder.appendTArray(elementType: DataType<*>): StringBuilder =
+        foldArrayType(arrayPostfix != null, elementType,
+            { _, elT -> appendTnN(elT).append(arrayPostfix) },
+            //^ all array elements are nullable in Postgres, there's nothing we can do about it.
+            // Are there any databases which work another way?
+            { append(nameOf(DataType.NotNull.Simple.Kind.Blob)) }
+        )
+
+
     override fun truncate(table: Table<*, *>): String =
             buildString(13 + table.name.length) {
                 append(truncate).append(' ').appendName(table.name)
             }
+
+    override val hasArraySupport: Boolean
+        get() = arrayPostfix != null
+
+    override fun nameOf(kind: DataType.NotNull.Simple.Kind): String =
+        types[kind]!!
 
 }
