@@ -22,7 +22,7 @@ import org.junit.Test
 
 abstract class TemplatesTest {
 
-    protected abstract val session: Session<out Blocking<*>>
+    protected lateinit var session: Session<out Blocking<*>>
 
     @Test fun <CUR> cell() {
         val session = session as Session<Blocking<CUR>>

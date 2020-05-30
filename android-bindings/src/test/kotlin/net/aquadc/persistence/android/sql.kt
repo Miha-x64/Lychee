@@ -40,7 +40,6 @@ class SqlPropRoboTest : SqlPropTest() {
 
     // Robolectric Kills SQLite DB after each test, let's recreate it
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session<*>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)
@@ -73,7 +72,6 @@ class SqlPropRoboTest : SqlPropTest() {
 @Config(manifest = Config.NONE)
 class EmbedRelationsRoboTest : EmbedRelationsTest() {
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session<*>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)
@@ -87,7 +85,6 @@ class EmbedRelationsRoboTest : EmbedRelationsTest() {
 @Config(manifest = Config.NONE)
 class QueryBuilderRoboTests : QueryBuilderTests() {
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session<*>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)
@@ -101,7 +98,6 @@ class QueryBuilderRoboTests : QueryBuilderTests() {
 @Config(manifest = Config.NONE)
 class TemplatesRoboTests : TemplatesTest() {
     private lateinit var db: SQLiteDatabase
-    override lateinit var session: Session<out Blocking<*>>
     @Before fun init() {
         db = sqliteDb()
         session = SqliteSession(db)

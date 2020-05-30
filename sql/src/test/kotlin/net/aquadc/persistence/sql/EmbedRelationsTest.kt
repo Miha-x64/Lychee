@@ -22,7 +22,7 @@ import org.junit.Test
 
 abstract class EmbedRelationsTest {
 
-    protected abstract val session: Session<*>
+    protected lateinit var session: Session<*>
 
     @Test fun embed() {
         val rec = session.withTransaction {

@@ -1,24 +1,20 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import org.junit.Before
 
 
-private val db = session(SqliteDialect, "jdbc:sqlite::memory:")
+private val db get() = session(SqliteDialect, "jdbc:sqlite::memory:")
 
 class SqlPropSqlite : SqlPropTest() {
-    override val session: Session<*>
-        get() = db
+    @Before fun init() { session = db }
 }
 class EmbedRelationsSqlite : EmbedRelationsTest() {
-    override val session: Session<*>
-        get() = db
+    @Before fun init() { session = db }
 }
 class QueryBuilderSqlite : QueryBuilderTests() {
-    override val session: Session<*>
-        get() = db
+    @Before fun init() { session = db }
 }
 class TemplatesSqlite : TemplatesTest() {
-    override val session: Session<out Blocking<*>>
-        get() = db
+    @Before fun init() { session = db }
 }

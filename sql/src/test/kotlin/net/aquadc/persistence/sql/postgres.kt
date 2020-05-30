@@ -1,8 +1,5 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.either.EitherLeft
-import net.aquadc.persistence.extended.either.EitherRight
-import net.aquadc.persistence.extended.either.fold
 import net.aquadc.persistence.extended.intCollection
 import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
@@ -20,9 +17,11 @@ import net.aquadc.persistence.type.collection
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.string
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.AssumptionViolatedException
+import org.junit.Before
 import org.junit.Test
 import org.postgresql.jdbc.PgConnection
 import org.postgresql.util.PGobject
@@ -30,30 +29,30 @@ import org.postgresql.util.PSQLException
 import java.util.UUID
 
 
-private val _db = try {
+private val db get() = try {
     // this relies on `host all all 127.0.0.1/32 trust` in pg_hba.conf:
-    EitherRight(session(PostgresDialect, "jdbc:postgresql://localhost:5432/test?user=postgres"))
+    session(PostgresDialect, "jdbc:postgresql://localhost:5432/test?user=postgres")
 } catch (e: PSQLException) {
-    EitherLeft(e)
+    throw AssumptionViolatedException("no compatible Postgres database found", e)
 }
-private val db get() = _db.fold(
-    { throw AssumptionViolatedException("no compatible Postgres database found", it) },
-    { it }
-)
 
 class SqlPropPostgres : SqlPropTest() {
-    override val session: Session<*> get() = db
+    @Before fun init() { session = db }
+    @After fun close() { (session as JdbcSession).connection.close() }
 //    override val duplicatePkExceptionClass: Class<*> get() =
 }
 
 class EmbedRelationsPostgres : EmbedRelationsTest() {
-    override val session: Session<*> get() = db
+    @Before fun init() { session = db }
+    @After fun close() { (session as JdbcSession).connection.close() }
 }
 class QueryBuilderPostgres : QueryBuilderTests() {
-    override val session: Session<*> get() = db
+    @Before fun init() { session = db }
+    @After fun close() { (session as JdbcSession).connection.close() }
 }
 class TemplatesPostgres : TemplatesTest() {
-    override val session: Session<out Blocking<*>> get() = db
+    @Before fun init() { session = db }
+    @After fun close() { (session as JdbcSession).connection.close() }
 
     object Yoozer : Schema<Yoozer>() {
         val Id = "id" let uuid

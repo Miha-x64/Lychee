@@ -15,7 +15,7 @@ import java.sql.SQLException
 
 
 abstract class SqlPropTest {
-    protected abstract val session: Session<*>
+    protected lateinit var session: Session<*>
 
     private val someDao get() = session[SomeTable]
 

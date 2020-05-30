@@ -10,7 +10,7 @@ import org.junit.Test
 
 abstract class QueryBuilderTests {
 
-    protected abstract val session: Session<*>
+    protected lateinit var session: Session<*>
 
     @Test fun between() {
         session.withTransaction {
