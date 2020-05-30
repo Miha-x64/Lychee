@@ -1,6 +1,6 @@
 @file:JvmName("SqlTemplate")
 @file:Suppress(
-        "NOTHING_TO_INLINE",  // just path-through + unchecked cast functions, nothing to outline
+        "NOTHING_TO_INLINE",  // just pass-through + unchecked cast functions, nothing to outline
         "UNCHECKED_CAST"
 )
 package net.aquadc.persistence.sql
@@ -12,7 +12,7 @@ import org.intellij.lang.annotations.Language
 
 /**
  * A function of unknown arity.
- * Implementors should also ~~implement [Function0]..[Function8]~~
+ * Implementors must also ~~implement [Function0]..[Function8]~~
  * **inherit from [VarFuncImpl]** __until KT-24067 fixed__.
  */
 interface VarFunc<T, R> {

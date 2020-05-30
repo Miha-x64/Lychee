@@ -1,3 +1,4 @@
+@file:Suppress("NOTHING_TO_INLINE") // there are some tiny functions
 package net.aquadc.persistence.sql.dialect
 
 import net.aquadc.persistence.type.DataType

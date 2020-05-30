@@ -209,7 +209,7 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<U
             (outer as Lens<TS, TR, S, out T?, *>).hasValue(struct) &&
                     (nested as Lens<US, PartialStruct<US>, Struct<US>, out U, *>).hasValue(outer.ofPartial(struct) as PartialStruct<US>)
 
-    override fun ofPartial(struct: TR): U? =
+    override fun ofPartial(@Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") struct: TR): U? =
             if ((outer as Lens<TS, TR, S, out T?, *>).hasValue(struct))
                 (nested as Lens<US, PartialStruct<US>, Struct<US>, out U, *>).ofPartial(
                         outer.ofPartial(struct) as PartialStruct<US>
@@ -278,8 +278,7 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
             "${table.name}.${name(table.schema)} (PRIMARY KEY)"
 
 
-    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") // can't be fixed, overrides both invoke(struct) and invoke(partial)
-    override fun ofPartial(record: Record<S, ID>): ID =
+    override fun ofPartial(@Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") record: Record<S, ID>): ID =
             record.primaryKey
 
 }
