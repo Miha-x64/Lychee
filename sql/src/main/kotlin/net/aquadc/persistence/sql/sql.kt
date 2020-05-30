@@ -1,6 +1,6 @@
 @file:[
     JvmName("Sql")
-    UseExperimental(ExperimentalContracts::class)
+    OptIn(ExperimentalContracts::class)
     Suppress("NOTHING_TO_INLINE")
 ]
 package net.aquadc.persistence.sql
@@ -37,7 +37,7 @@ typealias IdBound = Any // Serializable in some frameworks
 typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
 @Retention(AnnotationRetention.BINARY)
-@Experimental(Experimental.Level.WARNING)
+@RequiresOptIn("Under construction.", RequiresOptIn.Level.WARNING)
 annotation class ExperimentalSql
 
 /**

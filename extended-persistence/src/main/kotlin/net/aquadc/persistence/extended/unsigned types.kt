@@ -1,5 +1,5 @@
 @file:JvmName("UnsignedTypes")
-@file:UseExperimental(ExperimentalUnsignedTypes::class)
+@file:OptIn(ExperimentalUnsignedTypes::class)
 package net.aquadc.persistence.extended
 
 // TODO: make DataType sealed, introduce Number(size | var, signed, floating), String, Blob subtypes,

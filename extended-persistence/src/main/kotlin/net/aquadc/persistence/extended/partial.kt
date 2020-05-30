@@ -1,5 +1,5 @@
 @file:JvmName("Partials")
-@file:UseExperimental(ExperimentalContracts::class)
+@file:OptIn(ExperimentalContracts::class)
 package net.aquadc.persistence.extended
 
 import androidx.annotation.RestrictTo

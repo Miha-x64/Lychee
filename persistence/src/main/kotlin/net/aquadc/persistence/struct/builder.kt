@@ -1,4 +1,4 @@
-@file:UseExperimental(ExperimentalContracts::class)
+@file:OptIn(ExperimentalContracts::class)
 @file:JvmName("Build")
 package net.aquadc.persistence.struct
 

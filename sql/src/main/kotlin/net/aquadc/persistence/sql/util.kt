@@ -103,7 +103,7 @@ internal inline fun bindValues(
 internal inline fun <K, V : Any> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V): V =
         getOrPutWeak(key, create) { _, v -> v }
 
-@UseExperimental(ExperimentalContracts::class)
+@OptIn(ExperimentalContracts::class)
 internal inline fun <K, V : Any, R> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V, success: (WeakReference<V>, V) -> R): R {
     contract {
         callsInPlace(success, InvocationKind.EXACTLY_ONCE)

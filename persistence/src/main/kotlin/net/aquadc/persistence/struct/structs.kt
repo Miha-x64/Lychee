@@ -35,7 +35,7 @@ private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(
  * Passes [StructTransaction] as first parameter, so you can write `it[[FieldDef]] = newValue`.
  * In future will retry conflicting transaction by calling [block] more than once.
  */
-@UseExperimental(ExperimentalContracts::class)
+@OptIn(ExperimentalContracts::class)
 inline fun <SCH : Schema<SCH>, R> TransactionalStruct<SCH>.transaction(block: SCH.(StructTransaction<SCH>) -> R): R {
     contract {
         callsInPlace(block, InvocationKind.AT_LEAST_ONCE)

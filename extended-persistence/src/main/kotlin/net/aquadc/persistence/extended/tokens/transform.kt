@@ -7,7 +7,7 @@ import net.aquadc.persistence.tokens.TokenStream
 typealias Predicate = (Any?) -> Boolean
 
 @Retention(AnnotationRetention.BINARY)
-@Experimental(Experimental.Level.WARNING)
+@RequiresOptIn("Kinda complicated implementation, requires more testing.", RequiresOptIn.Level.WARNING)
 annotation class ExperimentalTransforms
 
 // region inlining and outlining
