@@ -23,7 +23,7 @@ import java.sql.SQLFeatureNotSupportedException
     private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, Lazy<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): Lazy<R> {
         val rt = rt; val orElse = orElse // don't capture `this`
         return lazy { from.cell(query, argumentTypes, arguments, rt, orElse) }
@@ -34,7 +34,7 @@ import java.sql.SQLFeatureNotSupportedException
     private val rt: Ilk<R, *>
 ) : Fetch<Blocking<CUR>, CloseableIterator<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): CloseableIterator<R> {
         val rt = rt // don't capture `this`
         return object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, arguments, null, BindBy.Name/*whatever*/, NullSchema) {
@@ -51,7 +51,7 @@ import java.sql.SQLFeatureNotSupportedException
 
     private var fallback: Struct<SCH>? = null
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): CloseableStruct<SCH> {
         val lazy = CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, arguments, table, bindBy, table.schema)
 
@@ -69,7 +69,7 @@ import java.sql.SQLFeatureNotSupportedException
         private val transient: Boolean
 ) : Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): CloseableIterator<Struct<SCH>> {
         val transient = transient // don't capture this
         return object : CurIterator<CUR, SCH, Struct<SCH>>(
@@ -84,7 +84,7 @@ import java.sql.SQLFeatureNotSupportedException
 @PublishedApi internal object InputStreamFromResultSet : Fetch<Blocking<ResultSet>, InputStream> {
 
     override fun fetch(
-        from: Blocking<ResultSet>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<ResultSet>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): InputStream =
             from.select(query, argumentTypes, arguments, 1).let { rs ->
                 check(rs.next()) { rs.close(); "ResultSet is empty." }
@@ -107,7 +107,7 @@ import java.sql.SQLFeatureNotSupportedException
 private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
     protected val from: Blocking<CUR>,
     private val query: String,
-    private val argumentTypes: Array<out DataType.NotNull.Simple<*>>,
+    private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
     private val arguments: Array<out Any>,
 
     private val table: Table<SCH, *>?,

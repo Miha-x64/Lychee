@@ -373,7 +373,7 @@ class SqliteSession(
         }
     }
 
-    override fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, fetch: Fetch<Blocking<Cursor>, R>): VarFunc<Any, R> =
+    override fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, fetch: Fetch<Blocking<Cursor>, R>): VarFunc<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
 
 }

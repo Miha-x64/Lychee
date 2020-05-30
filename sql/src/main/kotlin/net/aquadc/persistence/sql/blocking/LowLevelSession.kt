@@ -26,7 +26,7 @@ import kotlin.concurrent.getOrSet
 internal class BlockingQuery<CUR, R>(
     private val session: Blocking<CUR>,
     private val query: String,
-    private val argumentTypes: Array<out DataType.NotNull.Simple<*>>,
+    private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
     private val fetch: Fetch<Blocking<CUR>, R>
 ) : VarFuncImpl<Any, R>(), VarFunc<Any, R> {
 

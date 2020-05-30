@@ -9,6 +9,8 @@ import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.ColMeta.Companion.nativeType
 import net.aquadc.persistence.sql.ColMeta.Companion.type
 import net.aquadc.persistence.sql.blocking.Blocking
+import net.aquadc.persistence.sql.blocking.Eagerly
+import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.postgres.PostgresDialect
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -76,7 +78,7 @@ class TemplatesPostgres : TemplatesTest() {
         it[MoreNumbers] = listOf(intArrayOf(1, 2, 3), intArrayOf(4, 5, 6))
     }
 
-    @Test fun `just a table`() {
+    @Test fun <CUR> `just a table`() {
         val Yuzerz = tableOf(Yoozer, "yoozerz1", "_id", i64) { arrayOf(embed(SnakeCase, Extras)) }
         val schema = PostgresDialect.createTable(Yuzerz, true)
         assertEquals(
@@ -92,9 +94,15 @@ class TemplatesPostgres : TemplatesTest() {
             schema
         )
         assertInserts(schema, Yuzerz)
+        assertEquals(
+            "Some name",
+            (session as Session<Blocking<CUR>>)
+                .query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"numbers\" = ?", intCollection, Eagerly.cell<CUR, String>(string))
+                .invoke(intArrayOf(0, 1, 2))
+        )
     }
 
-    @Test fun `custom table`() {
+    @Test fun <CUR> `custom table`() {
         val Yuzerz = object : Table<Yoozer, Long>(Yoozer, "yoozerz2", "_id", i64) {
             override fun Yoozer.meta(): Array<out ColMeta<Yoozer>> = arrayOf(
                 type(pkColumn, "serial NOT NULL"), // this.pkColumn would be inaccessible within lambda
@@ -113,10 +121,16 @@ class TemplatesPostgres : TemplatesTest() {
             schema
         )
         assertInserts(schema, Yuzerz)
+        assertEquals(
+            "Some name",
+            (session as Session<Blocking<CUR>>)
+                .query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"extras\" = ?", serialized(SomeSchema), Eagerly.cell<CUR, String>(string))
+                .invoke(sampleYoozer[Yoozer.Extras])
+        )
     }
 
-    @Test fun `very custom table`() {
-        val stmt = db.connection.createStatement()
+    @Test fun <CUR> `very custom table`() {
+        val stmt = (session as JdbcSession).connection.createStatement()
         stmt.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
         stmt.close()
 
@@ -142,7 +156,7 @@ class TemplatesPostgres : TemplatesTest() {
             "int[][] NOT NULL", collection(intCollection)
         ) {
             override fun invoke(p1: List<IntArray>): Any? =
-                db.connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toTypedArray())
+                (session as JdbcSession).connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toTypedArray())
             override fun back(p: Any?): List<IntArray> =
                 ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() }
         //  never cast to Array<Array<Int>>: ^^^^^^^^^^^ empty array will be returned as Array<Int>
@@ -165,26 +179,25 @@ class TemplatesPostgres : TemplatesTest() {
             schema
         )
         assertInserts(schema, Yoozerz)
+        assertEquals(
+            "Some name",
+            (session as Session<Blocking<CUR>>)
+                .query("SELECT \"name\" FROM \"${Yoozerz.name}\" WHERE \"id\" = ? AND \"extras\" = ?",
+                    nativeType("uuid", uuid),
+                    someJsonb,
+                    Eagerly.cell<CUR, String>(string))
+                .invoke(sampleYoozer[Yoozer.Id], sampleYoozer[Yoozer.Extras])
+        )
     }
     private fun assertInserts(create: String, table: Table<Yoozer, *>) {
-        var e: Throwable? = null
-        db.withTransaction {
-            db.connection.createStatement().run {
+        session.withTransaction {
+            (session as JdbcSession).connection.createStatement().run {
                 execute(create)
                 close()
             }
-            try {
-                val rec = insert(table, sampleYoozer)
-                assertNotSame(sampleYoozer, rec)
-                assertEquals(sampleYoozer, rec)
-            } catch (t: Throwable) {
-                e = t
-            }
-            db.connection.createStatement().run {
-                execute("DROP TABLE " + table.name)
-                close()
-            }
+            val rec = insert(table, sampleYoozer)
+            assertNotSame(sampleYoozer, rec)
+            assertEquals(sampleYoozer, rec)
         }
-        e?.let { throw it }
     }
 }

@@ -14,7 +14,7 @@ import net.aquadc.persistence.type.Ilk
         private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, R> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): R =
             from.cell(query, argumentTypes, arguments, rt, orElse)
 }
@@ -23,7 +23,7 @@ import net.aquadc.persistence.type.Ilk
         private val rt: Ilk<R, *>
 ) : Fetch<Blocking<CUR>, List<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): List<R> {
         val cur = from.select(query, argumentTypes, arguments, 1)
         try {
@@ -48,7 +48,7 @@ import net.aquadc.persistence.type.Ilk
         private val orElse: () -> StructSnapshot<SCH>
 ) : Fetch<Blocking<CUR>, StructSnapshot<SCH>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): StructSnapshot<SCH> {
         val managedColNames = table.managedColNames
         val managedColTypes = table.managedColTypes
@@ -69,7 +69,7 @@ import net.aquadc.persistence.type.Ilk
         private val bindBy: BindBy
 ) : Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): List<StructSnapshot<SCH>> {
         val colNames = table.managedColNames
         val colTypes = table.managedColTypes

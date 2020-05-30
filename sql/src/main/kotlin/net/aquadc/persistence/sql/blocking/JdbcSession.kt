@@ -424,7 +424,7 @@ class JdbcSession(
 
     override fun <R> rawQuery(
         @Language("SQL") query: String,
-        argumentTypes: Array<out DataType.NotNull.Simple<*>>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         fetch: Fetch<Blocking<ResultSet>, R>
     ): VarFunc<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)

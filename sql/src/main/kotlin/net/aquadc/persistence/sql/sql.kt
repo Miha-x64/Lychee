@@ -13,6 +13,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.intersect
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.internal.ManagedProperty
@@ -54,8 +55,12 @@ interface Session<SRC> {
      */
     fun beginTransaction(): Transaction
 
-    fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out DataType.NotNull.Simple<*>>, fetch: Fetch<SRC, R>): VarFunc<Any, R>
-    //               ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
+    fun <R> rawQuery(
+        @Language("SQL") query: String,
+    //  ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        fetch: Fetch<SRC, R>
+    ): VarFunc<Any, R>
 
 }
 

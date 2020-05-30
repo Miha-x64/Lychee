@@ -354,3 +354,6 @@ internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
 
     override val custom: CustomType<T>? get() = this
 }
+
+inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
+    NativeType(name, type)
