@@ -71,10 +71,6 @@ class MainActivity : Activity() {
                 setWhenClicked(vm.buttonClickedProp)
             })
 
-            addView(textView {
-                bindTextTo(vm.debouncedEmail)
-            })
-
             addView(View(this@MainActivity), lParams(weight = 1f))
 
             addView(textView {

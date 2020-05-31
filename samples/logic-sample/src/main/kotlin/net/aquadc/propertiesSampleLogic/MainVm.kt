@@ -48,7 +48,4 @@ class MainVm(
 
     val buttonEnabledProp = usersDifferProp and emailValidProp
 
-    // just for sample
-    val debouncedEmail = emailProp.debounced(500, TimeUnit.MILLISECONDS).map { "Debounced e-mail: $it" }
-
 }
