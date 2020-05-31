@@ -34,7 +34,6 @@ repositories {
 
 dependencies {
     // these are *.aar deps which can be opened only by Android plug-in
-    compileOnly "com.android.support:support-annotations:$support_version"
     compileOnly "com.android.support:design:$support_version"
     compileOnly "com.android.support:cardview-v7:$support_version"
     compileOnly "com.android.support:recyclerview-v7:$support_version"
