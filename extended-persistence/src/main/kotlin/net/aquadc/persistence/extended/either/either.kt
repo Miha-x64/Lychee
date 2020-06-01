@@ -227,3 +227,21 @@ inline fun <A, B, C, D, E, F, G, H, R> Either8<A, B, C, D, E, F, G, H>.fold(
             7 -> eighth(_value as H)
             else -> throw AssertionError()
         }
+
+// other
+
+fun <A, B> Either<A, B>.unwrap(message: String? = null): B =
+    when (_which) {
+        0 -> throw NoSuchElementException(message)
+        1 -> _value as B
+        else -> throw AssertionError()
+    }
+
+@JvmName("unwrapWithCause")
+fun <A : Throwable, B> Either<A, B>.unwrap(message: String? = null): B =
+    when (_which) {
+        0 -> throw IllegalStateException(message, _value as A)
+        // unfortunately, there's no NoSuchElementException(message, cause)
+        1 -> _value as B
+        else -> throw AssertionError()
+    }
