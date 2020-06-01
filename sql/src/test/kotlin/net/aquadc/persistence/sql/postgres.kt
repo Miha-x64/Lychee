@@ -36,23 +36,28 @@ private val db get() = try {
     throw AssumptionViolatedException("no compatible Postgres database found", e)
 }
 
+private inline fun disconnect(session: () -> Session<*>) = try {
+    (session() as JdbcSession).connection.close()
+} catch (ignored: UninitializedPropertyAccessException) {
+    // happens on CI without PostgreSQL
+}
+
 class SqlPropPostgres : SqlPropTest() {
     @Before fun init() { session = db }
-    @After fun close() { (session as JdbcSession).connection.close() }
-//    override val duplicatePkExceptionClass: Class<*> get() =
+    @After fun close() { disconnect { session } }
 }
 
 class EmbedRelationsPostgres : EmbedRelationsTest() {
     @Before fun init() { session = db }
-    @After fun close() { (session as JdbcSession).connection.close() }
+    @After fun close() { disconnect { session } }
 }
 class QueryBuilderPostgres : QueryBuilderTests() {
     @Before fun init() { session = db }
-    @After fun close() { (session as JdbcSession).connection.close() }
+    @After fun close() { disconnect { session } }
 }
 class TemplatesPostgres : TemplatesTest() {
     @Before fun init() { session = db }
-    @After fun close() { (session as JdbcSession).connection.close() }
+    @After fun close() { disconnect { session } }
 
     object Yoozer : Schema<Yoozer>() {
         val Id = "id" let uuid
