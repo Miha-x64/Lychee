@@ -1,16 +1,29 @@
-
-apply plugin: 'kotlin'
+plugins {
+    id 'kotlin'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'org.beryx.runtime' version '1.8.5'
+}
 
 repositories {
     mavenCentral()
 }
 
+def fxModules = ['base', 'controls', 'graphics']
+/*
+// FX plugin requires new JDK, and we're stuck with 11 because of Robolectric
+id 'org.openjfx.javafxplugin' version '0.0.8'
+javafx {
+    version = '13'
+    modules = fxModules.collect { 'javafx.' + it }
+}
+*/
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation 'org.openjfx:javafx-base:13:linux'
-    implementation 'org.openjfx:javafx-controls:13:linux'
-    implementation 'org.openjfx:javafx-graphics:13:linux'
-    implementation 'com.jfoenix:jfoenix:1.4.0'
+    fxModules.each { // ideally, should use plugin instead
+        implementation "org.openjfx:javafx-$it:13:linux"
+    }
+    implementation 'com.jfoenix:jfoenix:9.0.9'
     implementation project(':fx-bindings')
     implementation project(':samples:logic-sample')
     implementation project(':persistence')
@@ -21,14 +34,39 @@ dependencies {
     implementation "com.squareup.okio:okio:$okio_version"
 }
 
-// https://stackoverflow.com/a/21360609/3050249
+application {
+    mainClassName = 'net.aquadc.properties.fx.FxWithOurPropsSample'
+    applicationName = 'propsSample'
+    applicationDefaultJvmArgs = [
+            '-client', '-XX:+TieredCompilation', '-Xverify:none', '-XX:CompileThreshold=100',
+            '-Xss256K', '-Xms64M', '-Xmx64M', '-XX:MetaspaceSize=64M', '-XX:MaxMetaspaceSize=64M',
+            '-XX:+UnlockExperimentalVMOptions', '-XX:+TrustFinalNonStaticFields'
+    ]
+}
+shadowJar {
+    exclude '/META-INF/proguard/'
+    exclude '/META-INF/maven/'
+    exclude '/META-INF/*.kotlin_module'
 
-task executeSample(type: JavaExec) {
-    main = 'net.aquadc.properties.fx.FxWithOurPropsSample'
-    classpath = sourceSets.main.runtimeClasspath
+    archiveBaseName.set('propsSample')
 }
 
-task executeSqliteSample(type: JavaExec) {
-    main = 'net.aquadc.properties.fx.sqlSample.SqliteApp'
-    classpath = sourceSets.main.runtimeClasspath
+def Properties props = new Properties()
+try {
+    props.load(project.rootProject.file('local.properties').newInputStream())
+} catch (Exception ignored) {
+    // skip on CI
+}
+private static String forceGet(Properties props, String key) {
+    String value = props.getProperty(key)
+    if (value == null) throw new NoSuchElementException('local.properties/' + key)
+    return value
+}
+
+
+runtime { // :runtimeZip task: build custom JDK
+    options.set(['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages'])
+    javaHome.set(props.getProperty('jdk11')) // upgrade blocked by https://github.com/jfoenixadmin/JFoenix/issues/955
+    jvmVersion.set(11)
+    modules.set(['java.desktop', 'jdk.unsupported', /*"java.scripting",*/ /*"java.logging",*/ 'java.xml', 'java.sql'])
 }

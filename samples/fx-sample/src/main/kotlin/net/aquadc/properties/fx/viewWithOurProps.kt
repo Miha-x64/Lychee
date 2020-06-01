@@ -4,7 +4,11 @@ import com.jfoenix.controls.JFXButton
 import com.jfoenix.controls.JFXTextField
 import javafx.geometry.Insets
 import javafx.scene.control.Label
+import javafx.scene.layout.Pane
+import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
+import javafx.stage.Stage
+import net.aquadc.properties.fx.sqlSample.startSqlSample
 import net.aquadc.properties.map
 import net.aquadc.properties.not
 import net.aquadc.propertiesSampleLogic.MainVm
@@ -34,12 +38,20 @@ fun viewWithOurProps(vm: MainVm) = VBox(10.0).apply {
         textProperty().bindBidirectional(vm.surnameProp.fx())
     })
 
-    children.add(JFXButton("Press me, hey, you!").apply {
+    children.add(JFXButton().apply {
         disableProperty().bind((!vm.buttonEnabledProp).fx())
         textProperty().bind(vm.buttonEnabledProp.map {
             if (it) "Save changes" else "Nothing changed"
         }.fx())
         setWhenClicked(vm.buttonClickedProp)
+    })
+
+    children.add(Pane().also {
+        VBox.setVgrow(it, Priority.ALWAYS)
+    })
+
+    children.add(JFXButton("Open user list").apply {
+        setOnAction { startSqlSample(Stage()) }
     })
 
 }

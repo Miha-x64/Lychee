@@ -32,101 +32,87 @@ import java.sql.Connection
 import java.sql.DriverManager
 
 
-class SqliteApp : Application() {
+fun startSqlSample(stage: Stage) {
+    val dialect = SqliteDialect
+    val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also { createNeededTables(it, dialect) }
+    val sess = JdbcSession(connection, dialect)
+    val vm = SqlViewModel(sess)
+    stage.titleProperty().bind(vm.titleProp.fx())
+    stage.scene = Scene(
+        HBox().apply {
 
-    private val dialect = SqliteDialect
-    private val connection = DriverManager.getConnection("jdbc:sqlite:sample.db").also { createNeededTables(it, dialect) }
-    private val sess = JdbcSession(connection, dialect)
-    private val vm = SqlViewModel(sess)
+            val hBox = this
 
-    override fun start(stage: Stage) {
-        stage.titleProperty().bind(vm.titleProp.fx())
-        stage.scene = Scene(
-                HBox().apply {
+            children += JFXListView<Record<Human, Long>>().apply {
+                items = vm.humanListProp.fxList()
+                setCellFactory(vm::createListCell)
+                prefWidthProperty().bind(hBox.widthProperty().multiply(.4))
+                vm.lastInserted.addChangeListener { _, inserted -> selectionModel.select(inserted) }
+                vm.selectedProp.bindTo(selectionModel.selectedItemProperty())
+            }
 
-                    val hBox = this
+            children += VBox().apply {
+                prefWidthProperty().bind(hBox.widthProperty().multiply(.6))
 
-                    children += JFXListView<Record<Human, Long>>().apply {
-                        items = vm.humanListProp.fxList()
-                        setCellFactory(::createListCell)
-                        prefWidthProperty().bind(hBox.widthProperty().multiply(.4))
-                        vm.lastInserted.addChangeListener { _, inserted -> selectionModel.select(inserted) }
-                        vm.selectedProp.bindTo(selectionModel.selectedItemProperty())
+                padding = Insets(10.0, 10.0, 10.0, 10.0)
+
+                children += JFXTextField().apply {
+                    bindEnableTo(vm.actionsEnabledProp)
+                    vm.nameProp.addChangeListener { _, new -> if (text != new) text = new }
+                    textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
+                }
+
+                children += Label().apply {
+                    padding = Insets(10.0, 0.0, 0.0, 0.0)
+                    bindTextTo(vm.airConditionersTextProp)
+                }
+
+                children += JFXButton("Delete").apply {
+                    bindEnableTo(vm.actionsEnabledProp)
+                    setWhenClicked(vm.deleteClicked)
+                }
+
+                children += Pane().apply {
+                    isFillHeight = true
+                    VBox.setVgrow(this, Priority.ALWAYS)
+                }
+
+                children += HBox().apply {
+                    children += JFXButton("Create new").apply {
+                        setWhenClicked(vm.createClicked)
                     }
 
-                    children += VBox().apply {
-                        prefWidthProperty().bind(hBox.widthProperty().multiply(.6))
-
-                        padding = Insets(10.0, 10.0, 10.0, 10.0)
-
-                        children += JFXTextField().apply {
-                            bindEnableTo(vm.actionsEnabledProp)
-                            vm.nameProp.addChangeListener { _, new -> if (text != new) text = new }
-                            textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
-                        }
-
-                        children += Label().apply {
-                            padding = Insets(10.0, 0.0, 0.0, 0.0)
-                            bindTextTo(vm.airConditionersTextProp)
-                        }
-
-                        children += JFXButton("Delete").apply {
-                            bindEnableTo(vm.actionsEnabledProp)
-                            setWhenClicked(vm.deleteClicked)
-                        }
-
-                        children += Pane().apply {
-                            isFillHeight = true
-                            VBox.setVgrow(this, Priority.ALWAYS)
-                        }
-
-                        children += HBox().apply {
-                            children += JFXButton("Create new").apply {
-                                setWhenClicked(vm.createClicked)
-                            }
-
-                            children += JFXButton("Dump debug info").apply {
-                                setOnMouseClicked { _ ->
-                                    println(buildString(sess::dump))
-                                }
-                            }
-
-                            children += JFXButton("Truncate").apply {
-                                setWhenClicked(vm.truncateClicked)
-                            }
+                    children += JFXButton("Dump debug info").apply {
+                        setOnMouseClicked { _ ->
+                            println(buildString(sess::dump))
                         }
                     }
 
-                },
-                500.0, 400.0)
-        stage.show()
-    }
-
-    private fun createListCell(lv: ListView<Record<Human, Long>>): JFXListCell<Record<Human, Long>> {
-        val cell = object : JFXListCell<Record<Human, Long>>() {
-            override fun updateItem(item: Record<Human, Long>?, empty: Boolean) {
-                textProperty().unbind()
-                super.updateItem(item, empty)
-                if (item != null && !empty) {
-                    graphic = null
-                    textProperty().bind(vm.nameSurnameProp(item).fx())
+                    children += JFXButton("Truncate").apply {
+                        setWhenClicked(vm.truncateClicked)
+                    }
                 }
             }
+
+        },
+        500.0, 400.0)
+    stage.setOnCloseRequest { connection.close() }
+    stage.show()
+}
+
+private fun SqlViewModel.createListCell(lv: ListView<Record<Human, Long>>): JFXListCell<Record<Human, Long>> {
+    val cell = object : JFXListCell<Record<Human, Long>>() {
+        override fun updateItem(item: Record<Human, Long>?, empty: Boolean) {
+            textProperty().unbind()
+            super.updateItem(item, empty)
+            if (item != null && !empty) {
+                graphic = null
+                textProperty().bind(nameSurnameProp(item).fx())
+            }
         }
-        cell.setOnMouseClicked { ev -> if (cell.isEmpty) ev.consume() }
-        return cell
     }
-
-    override fun stop() {
-        connection.close()
-    }
-
-    companion object {
-        @JvmStatic fun main(args: Array<String>) {
-            launch(SqliteApp::class.java)
-        }
-    }
-
+    cell.setOnMouseClicked { ev -> if (cell.isEmpty) ev.consume() }
+    return cell
 }
 
 

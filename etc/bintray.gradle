@@ -52,7 +52,7 @@ artifacts {
 
 Properties properties = new Properties()
 try {
-    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    properties.load(project.rootProject.file('local.properties').newInputStream())
 } catch (Exception ignored) {
     // let's skip bintray task on CI
 }
