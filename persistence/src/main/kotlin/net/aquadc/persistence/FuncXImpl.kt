@@ -4,7 +4,7 @@ import androidx.annotation.RestrictTo
 
 // TODO: looks like I should create a separate utility library for such things
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-abstract class VarFuncImpl<T, R> :
+abstract class FuncXImpl<T, R> :
         () -> R
       , (T) -> R
       , (T, T) -> R

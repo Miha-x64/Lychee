@@ -4,6 +4,7 @@ include ':persistence'
 include ':extended-persistence'
 
 include ':sql'
+include ':http'
 
 include ':etc:fake-bindings'
 include ':etc:testing'
