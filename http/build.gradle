@@ -3,14 +3,18 @@ plugins {
 }
 
 dependencies {
+    def ktor_version = '1.3.2'
+
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
     implementation project(':persistence')
     compileOnly 'com.squareup.okhttp3:okhttp:3.0.0'
+    compileOnly "io.ktor:ktor-server-netty:$ktor_version"
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation 'com.squareup.okhttp3:okhttp:4.7.2'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.7'
     testImplementation project(':extended-persistence')
+    testImplementation "io.ktor:ktor-server-netty:$ktor_version"
 }
 
 apply from: rootProject.file('etc/release-bintray.gradle')

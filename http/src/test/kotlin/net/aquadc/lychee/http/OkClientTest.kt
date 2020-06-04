@@ -39,25 +39,3 @@ class OkClientTest {
 
 operator fun <T, U, V, R> ((T, U, V) -> R).invoke(t: T): (U, V) -> R =
     { u, v -> this(t, u, v) }
-
-/*
-Example: client.template("https://example.com/", whatever, async())
-fun <T> async(): (OkHttpClient, Request, Body<T>) -> Deferred<T> =
-    { client, request, body ->
-        val deferred = CompletableDeferred<T>()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val rb = response.body!!
-                    deferred.complete(body.fromStream(rb.contentLength(), rb.byteStream()))
-                } else {
-                    deferred.completeExceptionally(IOException(response.code.toString()))
-                }
-            }
-            override fun onFailure(call: Call, e: IOException) {
-                deferred.completeExceptionally(e)
-            }
-        })
-        deferred
-    }
-*/

@@ -1,3 +1,11 @@
+/*buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'net.sf.proguard:proguard-gradle:6.3.0beta1'
+    }
+}*/
 plugins {
     id 'kotlin'
     id 'application'
@@ -49,6 +57,8 @@ shadowJar {
     exclude '/META-INF/*.kotlin_module'
 
     archiveBaseName.set('propsSample')
+
+//    finalizedBy 'minifiedJar'
 }
 
 def Properties props = new Properties()
@@ -57,12 +67,66 @@ try {
 } catch (Exception ignored) {
     // skip on CI
 }
-private static String forceGet(Properties props, String key) {
-    String value = props.getProperty(key)
-    if (value == null) throw new NoSuchElementException('local.properties/' + key)
-    return value
-}
 
+/*task minifiedJar(type: proguard.gradle.ProGuardTask) {
+    injars "build/libs/propsSample-all.jar"
+    outjars "build/libs/propsSample-all.min.jar"
+    ['java.base'
+    , 'java.sql'
+    , 'java.logging' // Okio, SQLite-JDBC use JUL O_o
+    , 'java.desktop'
+    , 'java.xml' // SVGs and some font machinery use SAX and DOM
+    , 'jdk.unsupported' // Unsafe, required by UI toolkits
+    ].forEach { mod ->
+        libraryjars props.getProperty('jdk10') + "/jmods/${mod}.jmod"//(!**.jar;!module-info.class)'
+    }
+
+    dontwarn 'android.database.**,androidx.annotation.**' +
+            ',okio.**' +
+            ',net.aquadc.persistence.PlatformKt,net.aquadc.properties.executor.PlatformExecutors'
+    dontobfuscate()
+    optimizationpasses 1
+    allowaccessmodification()
+
+    // entry point
+    keep 'public class net.aquadc.properties.fx.FxWithOurPropsSample { \
+        public static void main(java.lang.String[]); \
+    }'
+    // reflection
+    keep 'public class com.sun.javafx.tk.quantum.QuantumToolkit { !private *; }'
+    keep 'public class com.sun.prism.**Pipeline { !private *; }'
+    keep 'class com.sun.prism.**Factory { !private *; }'
+    keep 'public class com.sun.glass.ui.**PlatformFactory { !private *; }'
+
+    // JNI callbacks, `strings libwhatever.so | grep Java_`
+    keepclasseswithmembernames([includedescriptorclasses: true], 'class * { native <methods>; }')
+    keep 'public class com.sun.glass.ui.Pixels { <init>(int, int, java.nio.ByteBuffer); private void attachData(long); }'
+    keep 'class com.sun.glass.ui.gtk.Gtk* { <methods>; }'
+    keep 'class com.sun.scenario.effect.impl.sw.sse.SSE* { *** filter*(***); *** isSupported(***); }'
+    keep 'class com.sun.javafx.iio.jpeg.JPEGImageLoader { <methods>; }'
+    keep 'class com.sun.javafx.embed.swing.newimpl.SwingNodeInteropN { *** overrideNativeWindowHandle(***); }'
+    keep 'class com.sun.prism.j2d.print.J2DPrinterJob { *** getAlwaysOnTop(***); }'
+//    keep 'class sun.font.FontConfigManager.FontConfigFont { <init>(); }'
+//    keep 'class com.sun.javafx.font.coretext.CGAffineTransform { <init>(); }'
+//    keep 'class com.sun.javafx.font.coretext.CGPoint { <init>(); }'
+//    keep 'class com.sun.javafx.font.coretext.CGSize { <init>(); }'
+//    keep 'class com.sun.javafx.font.coretext.CGRect { <init>(); }'
+//    keep 'class com.sun.javafx.geom.Path2D { <init>(int, byte[], int, float[], int); }'
+//    keep 'class com.sun.javafx.font.freetype.FT_GlyphSlotRec { <init>(); }'
+//    keep 'class com.sun.javafx.font.freetype.PangoGlyphString { <init>(); }'
+//    keep 'class com.sun.glass.ui.Screen { <init>(***); }'
+//    keep 'class com.sun.glass.ui.Size { <init>(***); }'
+//    keep 'class com.sun.webkit.graphics.WCPoint { <init>(float, float); }'
+//    keep 'class com.sun.webkit.text.TextCodec { <init>(java.lang.String); }'
+//    keep 'class com.sun.webkit.graphics.WCRectangle { <init>(float, float, float, float); }'
+//    keep 'class com.sun.glass.ui.CommonDialogs.FileChooserResult { <init>(); }'
+//    keep 'class com.sun.media.jfxmediaimpl.NativeEqualizerBand { <init>(long); }'
+//    keep 'class com.sun.glass.ui.gtk.GtkPixels { <init>(int, int, java.nio.ByteBuffer); }'
+//    keep 'class com.sun.webkit.BackForwardList.Entry { <init>(long, long); }'
+//    keep 'class com.sun.webkit.dom.JSObject { <init>(long, int); }'
+    keep 'class com.sun.javafx.font.directwrite.* { *; }'
+    keep 'class * { <init>(***); }' // DAMN IT! Still NoSuchMethodError("<init>"), gonna keep 'em all
+}*/
 
 runtime { // :runtimeZip task: build custom JDK
     options.set(['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages'])

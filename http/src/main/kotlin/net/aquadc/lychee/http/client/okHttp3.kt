@@ -28,6 +28,8 @@ import net.aquadc.lychee.http.param.Url
 import net.aquadc.persistence.FuncXImpl
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.type.DataType
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.MediaType
@@ -35,9 +37,15 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.Response
 import okio.BufferedSink
 import okio.Okio
+import java.io.IOException
 import java.net.URLEncoder
+import java.util.concurrent.Callable
+import java.util.concurrent.Executor
+import java.util.concurrent.Future
+import java.util.concurrent.FutureTask
 
 
 inline fun <B, R> OkHttpClient.template(
@@ -335,4 +343,30 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
     }
 }
 
-// todo futures, coroutines
+fun <T> blocking(): (OkHttpClient, Request, Body<T>) -> T =
+    { client, request, body ->
+        val response = client.newCall(request).execute() // just pass IOException through
+        val rb = response.body()!!
+        body.fromStream(rb.contentLength(), response.code(), rb.byteStream())
+    }
+
+fun <T> future(executor: Executor): (OkHttpClient, Request, Body<T>) -> Future<T> =
+    { client, request, body ->
+        FutureTask(Callable {
+            val response = client.newCall(request).execute()
+            val rb = response.body()!!
+            body.fromStream(rb.contentLength(), response.code(), rb.byteStream())
+        }).also(executor::execute)
+    }
+
+fun <T> callback(executor: Executor, callback: (T?, IOException?) -> Unit): (OkHttpClient, Request, Body<T>) -> Unit =
+    { client, request, body ->
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call?, response: Response) {
+                val rb = response.body()!!
+                callback(body.fromStream(rb.contentLength(), response.code(), rb.byteStream()), null)
+            }
+            override fun onFailure(call: Call?, e: IOException): Unit =
+                callback(null, e)
+        })
+    }
