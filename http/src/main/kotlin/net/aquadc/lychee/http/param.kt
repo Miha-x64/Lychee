@@ -97,21 +97,14 @@ inline fun <T : Any> Header(name: CharSequence, type: DataType.Nullable<T, DataT
 
 object Headers : ExtracorpParam<Collection<Pair<CharSequence, CharSequence>>>()
 
-// Request body (response body uses the same class)
+// Request body
 
 abstract class Body<T>(
     @JvmField val mediaType: CharSequence
- // used for request (including multipart) bodies, unused by response bodies because of content negotiation
 ) : Param<T>() {
     open fun contentLength(value: T): Long = -1
-    abstract fun stream(/*todo content negotiation*/value: T): InputStream
-
-    /**
-     * @param statusCode HTTP status code
-     *    this is a response code if we're a client, or
-     *    hard-coded 200, if we're a server receiving request body or part
-     */
-    abstract fun fromStream(estimateSize: Long, statusCode: Int, stream: InputStream): T
+    abstract fun stream(value: T): InputStream
+    abstract fun fromStream(estimateSize: Long, stream: InputStream): T
 }
 
 class Part<T, B> @PublishedApi internal constructor(
@@ -132,3 +125,9 @@ class Parts<T>(
     @JvmField val transferEncoding: CharSequence = "binary",
     @JvmField val body: Body<T>
 ) : Param<Collection<Pair<CharSequence, T>>>()
+
+// strictly speaking, not a 'classic' parameter, but used together:
+
+class Resp<T> internal constructor()
+@PublishedApi @JvmField internal val resp = Resp<Nothing>()
+inline fun <T> Response(): Resp<T> = resp as Resp<T>

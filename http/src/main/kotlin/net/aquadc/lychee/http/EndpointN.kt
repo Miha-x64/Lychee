@@ -11,6 +11,7 @@ import net.aquadc.lychee.http.param.Path
 import net.aquadc.lychee.http.param.Query
 import net.aquadc.lychee.http.param.QueryParams
 import net.aquadc.lychee.http.param.Body
+import net.aquadc.lychee.http.param.Resp
 import net.aquadc.lychee.http.param.Url
 import net.aquadc.persistence.newSet
 
@@ -21,7 +22,7 @@ import net.aquadc.persistence.newSet
     override val method: M,
     override val urlTemplate: CharSequence?,
     override val params: Array<out Param<*>>,
-    override val response: Body<R>
+    override val response: Resp<R>
 ) : Endpoint0<M, R>
   , Endpoint1<M, P, R>
   , Endpoint2<M, P, P1, P2, R>

@@ -2,15 +2,16 @@
 @file:Suppress("NOTHING_TO_INLINE") // pass-through
 package net.aquadc.lychee.http
 
-import net.aquadc.lychee.http.param.Body
 import net.aquadc.lychee.http.param.Param
 import net.aquadc.lychee.http.param.ExtracorpParam
+import net.aquadc.lychee.http.param.Resp
 
 @JvmField val GET: Get = Get()
 @JvmField val POST: Post = Post()
-@JvmField val PUT: HttpMethod<Param<*>> = HttpMethod<Param<*>>("PUT")
-@JvmField val PATCH: HttpMethod<Param<*>> = HttpMethod<Param<*>>("PATCH")
-@JvmField val DELETE: HttpMethod<ExtracorpParam<*>> = HttpMethod<ExtracorpParam<*>>("DELETE")
+@JvmField val PUT: HttpMethod<Param<*>> = HttpMethod("PUT")
+@JvmField val PATCH: HttpMethod<Param<*>> = HttpMethod("PATCH")
+@JvmField val DELETE: HttpMethod<ExtracorpParam<*>> = HttpMethod("DELETE")
+// TODO HEAD, OPTIONS? Hmm…
 
 /**
  * HTTP method (verb).
@@ -33,7 +34,7 @@ interface Endpoint<M : HttpMethod<*>, R> {
     val method: M
     val urlTemplate: CharSequence?
     val params: Array<out Param<*>>
-    val response: Body<R>
+    val response: Resp<R>
 }
 interface Endpoint0<M : HttpMethod<*>, R> : Endpoint<M, R>
 interface Endpoint1<M : HttpMethod<P>, P : Param<*>, R> : Endpoint<M, R>
@@ -50,7 +51,7 @@ interface Endpoint8<M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
     urlTemplate: CharSequence?,
-    response: Body<R>
+    response: Resp<R>
 ): Endpoint0<M, R> =
     EndpointN<M, P, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
         this, urlTemplate, noParams, response
@@ -59,7 +60,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
     urlTemplate: CharSequence?,
-    param: P, response: Body<R>
+    param: P, response: Resp<R>
 ): Endpoint1<M, P, R> =
     EndpointN<M, P, P, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param), response
@@ -68,7 +69,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, response: Body<R>
+    param1: P1, param2: P2, response: Resp<R>
 ): Endpoint2<M, P, P1, P2, R> =
     EndpointN<M, P, P1, P2, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2), response
@@ -77,7 +78,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> M.invok
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, param3: P3, response: Body<R>
+    param1: P1, param2: P2, param3: P3, response: Resp<R>
 ): Endpoint3<M, P, P1, P2, P3, R> =
     EndpointN<M, P, P1, P2, P3, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3), response
@@ -86,7 +87,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, R>
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, param3: P3, param4: P4, response: Body<R>
+    param1: P1, param2: P2, param3: P3, param4: P4, response: Resp<R>
 ): Endpoint4<M, P, P1, P2, P3, P4, R> =
     EndpointN<M, P, P1, P2, P3, P4, Nothing, Nothing, Nothing, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4), response
@@ -95,7 +96,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, response: Body<R>
+    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, response: Resp<R>
 ): Endpoint5<M, P, P1, P2, P3, P4, P5, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, Nothing, Nothing, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5), response
@@ -104,7 +105,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, response: Body<R>
+    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, response: Resp<R>
 ): Endpoint6<M, P, P1, P2, P3, P4, P5, P6, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, P6, Nothing, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5, param6), response
@@ -113,7 +114,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 @JvmName("newEndpoint")
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, response: Body<R>
+    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, response: Resp<R>
 ): Endpoint7<M, P, P1, P2, P3, P4, P5, P6, P7, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, P6, P7, Nothing, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5, param6, param7), response
@@ -123,7 +124,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 @Suppress("RemoveExplicitTypeArguments") // EndpointN could grow, let's be prepared for this
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, P8 : P, R> M.invoke(
     urlTemplate: CharSequence?,
-    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, param8: P8, response: Body<R>
+    param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, param8: P8, response: Resp<R>
 ): Endpoint8<M, P, P1, P2, P3, P4, P5, P6, P7, P8, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, P6, P7, P8, R>(
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5, param6, param7, param8), response

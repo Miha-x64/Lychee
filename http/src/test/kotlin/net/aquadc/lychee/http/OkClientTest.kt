@@ -1,10 +1,11 @@
 package net.aquadc.lychee.http
 
 import net.aquadc.lychee.http.client.okhttp3.template
-import net.aquadc.lychee.http.param.Body
 import net.aquadc.lychee.http.param.Header
 import net.aquadc.lychee.http.param.Path
 import net.aquadc.lychee.http.param.Query
+import net.aquadc.lychee.http.param.Resp
+import net.aquadc.lychee.http.param.Response
 import net.aquadc.persistence.extended.uuid
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -15,11 +16,11 @@ import java.util.UUID
 
 class OkClientTest {
 
-    val whatever = GET("/user/{role}/", Header("X-Token"), Path("role"), Query("id", uuid), Bytes("*/*"))
+    val whatever = GET("/user/{role}/", Header("X-Token"), Path("role"), Query("id", uuid), Response<ByteArray>())
     val client = OkHttpClient()
     @Test fun testTemplate() {
         lateinit var req: Request
-        val peekAdapter = { client: OkHttpClient, request: Request, body: Body<ByteArray> ->
+        val peekAdapter = { client: OkHttpClient, request: Request, body: Resp<ByteArray> ->
             req = request
             byteArrayOf()
         }
