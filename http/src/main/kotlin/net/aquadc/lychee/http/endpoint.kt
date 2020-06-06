@@ -48,7 +48,11 @@ interface Endpoint8<M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 
 
 @JvmField @PublishedApi internal val noParams: Array<out Param<*>> = emptyArray()
 
-@JvmName("newEndpoint")
+@RequiresOptIn("Very young and not tested enough", RequiresOptIn.Level.WARNING)
+@Retention(AnnotationRetention.BINARY)
+annotation class ExperimentalHttp
+
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
     urlTemplate: CharSequence?,
     response: Resp<R>
@@ -57,7 +61,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
         this, urlTemplate, noParams, response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
     urlTemplate: CharSequence?,
     param: P, response: Resp<R>
@@ -66,7 +70,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
         this, urlTemplate, arrayOf<Param<*>>(param), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> M.invoke(
     urlTemplate: CharSequence?,
     param1: P1, param2: P2, response: Resp<R>
@@ -75,7 +79,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> M.invok
         this, urlTemplate, arrayOf<Param<*>>(param1, param2), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, R> M.invoke(
     urlTemplate: CharSequence?,
     param1: P1, param2: P2, param3: P3, response: Resp<R>
@@ -84,7 +88,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, R>
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, R> M.invoke(
     urlTemplate: CharSequence?,
     param1: P1, param2: P2, param3: P3, param4: P4, response: Resp<R>
@@ -93,7 +97,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, R> M.invoke(
     urlTemplate: CharSequence?,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, response: Resp<R>
@@ -102,7 +106,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, R> M.invoke(
     urlTemplate: CharSequence?,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, response: Resp<R>
@@ -111,7 +115,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5, param6), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, R> M.invoke(
     urlTemplate: CharSequence?,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, response: Resp<R>
@@ -120,7 +124,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
         this, urlTemplate, arrayOf<Param<*>>(param1, param2, param3, param4, param5, param6, param7), response
     )
 
-@JvmName("newEndpoint")
+@JvmName("endpoint") @ExperimentalHttp
 @Suppress("RemoveExplicitTypeArguments") // EndpointN could grow, let's be prepared for this
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, P8 : P, R> M.invoke(
     urlTemplate: CharSequence?,
