@@ -29,7 +29,8 @@ sealed class ExtracorpParam<T> : Param<T>()
 
 // URL
 
-object Url : ExtracorpParam<CharSequence>()
+// unclear semantics: should it be relative to base? Or how to parse it at server-side?
+//object Url : ExtracorpParam<CharSequence>()
 
 class Path<T>(@JvmField val name: CharSequence, @JvmField val type: DataType.NotNull.Simple<T>) : ExtracorpParam<T>()
 inline fun Path(name: CharSequence): Path<String> = Path(name, string)

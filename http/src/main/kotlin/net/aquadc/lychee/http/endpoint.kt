@@ -32,7 +32,7 @@ class Post internal constructor() : HttpMethod<Param<*>>("POST")
  */
 interface Endpoint<M : HttpMethod<*>, R> {
     val method: M
-    val urlTemplate: CharSequence?
+    val urlTemplate: CharSequence/*?*/
     val params: Array<out Param<*>>
     val response: Resp<R>
 }
@@ -54,7 +54,7 @@ annotation class ExperimentalHttp
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     response: Resp<R>
 ): Endpoint0<M, R> =
     EndpointN<M, P, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
@@ -63,7 +63,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param: P, response: Resp<R>
 ): Endpoint1<M, P, R> =
     EndpointN<M, P, P, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
@@ -72,7 +72,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, R> M.invoke(
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, response: Resp<R>
 ): Endpoint2<M, P, P1, P2, R> =
     EndpointN<M, P, P1, P2, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
@@ -81,7 +81,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> M.invok
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, param3: P3, response: Resp<R>
 ): Endpoint3<M, P, P1, P2, P3, R> =
     EndpointN<M, P, P1, P2, P3, Nothing, Nothing, Nothing, Nothing, Nothing, R>(
@@ -90,7 +90,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, R>
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, param3: P3, param4: P4, response: Resp<R>
 ): Endpoint4<M, P, P1, P2, P3, P4, R> =
     EndpointN<M, P, P1, P2, P3, P4, Nothing, Nothing, Nothing, Nothing, R>(
@@ -99,7 +99,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, response: Resp<R>
 ): Endpoint5<M, P, P1, P2, P3, P4, P5, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, Nothing, Nothing, Nothing, R>(
@@ -108,7 +108,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, response: Resp<R>
 ): Endpoint6<M, P, P1, P2, P3, P4, P5, P6, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, P6, Nothing, Nothing, R>(
@@ -117,7 +117,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 
 @JvmName("endpoint") @ExperimentalHttp
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, response: Resp<R>
 ): Endpoint7<M, P, P1, P2, P3, P4, P5, P6, P7, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, P6, P7, Nothing, R>(
@@ -127,7 +127,7 @@ inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4
 @JvmName("endpoint") @ExperimentalHttp
 @Suppress("RemoveExplicitTypeArguments") // EndpointN could grow, let's be prepared for this
 inline operator fun <M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, P8 : P, R> M.invoke(
-    urlTemplate: CharSequence?,
+    urlTemplate: CharSequence/*?*/,
     param1: P1, param2: P2, param3: P3, param4: P4, param5: P5, param6: P6, param7: P7, param8: P8, response: Resp<R>
 ): Endpoint8<M, P, P1, P2, P3, P4, P5, P6, P7, P8, R> =
     EndpointN<M, P, P1, P2, P3, P4, P5, P6, P7, P8, R>(

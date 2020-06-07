@@ -25,7 +25,7 @@ import net.aquadc.lychee.http.param.Headers
 import net.aquadc.lychee.http.param.Param
 import net.aquadc.lychee.http.param.Body
 import net.aquadc.lychee.http.param.Resp
-import net.aquadc.lychee.http.param.Url
+//import net.aquadc.lychee.http.param.Url
 import net.aquadc.persistence.FuncXImpl
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.type.DataType
@@ -130,23 +130,23 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
     private val execute: (OkHttpClient, Request, Resp<B>) -> R
 ) : FuncXImpl<Any?, R>() {
     override fun invokeUnchecked(vararg arg: Any?): R {
-        var urlArg: CharSequence? = null
-        val urlTemplate = endpoint.urlTemplate?.let(::StringBuilder)
+//        var urlArg: CharSequence? = null
+        val urlTemplate = endpoint.urlTemplate/*?*/.let(::StringBuilder)
         val params = endpoint.params
         params.forEachIndexed { index, param ->
             val value = arg[index]
             when (param) {
-                Url -> urlArg = value as CharSequence
+//                Url -> urlArg = value as CharSequence
                 is Path -> {
                     val type = param.type as DataType.NotNull.Simple<Any?>
-                    urlTemplate!!.replacePathSegm(param.name, type.storeAsStr(value))
+                    urlTemplate.replacePathSegm(param.name, type.storeAsStr(value))
                 }
             }
         }
 
         var url = baseUrl?.toString()?.let { HttpUrl.parse(it)!! }
-        urlTemplate?.toString()?.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
-        urlArg?.toString()?.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
+        urlTemplate/*?*/.toString()/*?*/.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
+//        urlArg?.toString()?.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
         var urlBldr: HttpUrl.Builder? = null
 
         val request = Request.Builder()
@@ -157,7 +157,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
         params.forEachIndexed { index, param ->
             val value = arg[index]
             when (param) {
-                Url, is Path -> {} // already handled
+                /*is Url, */is Path -> {} // already handled
                 is Query ->
                     urlBldr = addQuery(urlBldr, url!!, param, value)
                 is QueryParams ->

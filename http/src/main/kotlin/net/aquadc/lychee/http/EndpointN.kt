@@ -12,7 +12,7 @@ import net.aquadc.lychee.http.param.Query
 import net.aquadc.lychee.http.param.QueryParams
 import net.aquadc.lychee.http.param.Body
 import net.aquadc.lychee.http.param.Resp
-import net.aquadc.lychee.http.param.Url
+//import net.aquadc.lychee.http.param.Url
 import net.aquadc.persistence.newSet
 
 
@@ -20,7 +20,7 @@ import net.aquadc.persistence.newSet
     M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, P3 : P, P4 : P, P5 : P, P6 : P, P7 : P, P8 : P, R
     >(
     override val method: M,
-    override val urlTemplate: CharSequence?,
+    override val urlTemplate: CharSequence/*?*/,
     override val params: Array<out Param<*>>,
     override val response: Resp<R>
 ) : Endpoint0<M, R>
@@ -34,35 +34,52 @@ import net.aquadc.persistence.newSet
   , Endpoint8<M, P, P1, P2, P3, P4, P5, P6, P7, P8, R>
 {
     init {
-        var urlIdx = -1
+//        var urlIdx = -1
 
         var hasBody = false
         var hasPart = false
         var hasField = false
 
+        var hasQueryParams = false
+        var hasFields = false
+        var hasHeaders = false
+        var hasParts = false
+
         var paths: MutableSet<String>? = null
         var headers: MutableSet<String>? = null
         params.forEachIndexed { idx, it ->
             when (val p = it as Param<*>) { // this 'useless' cast helps compiler understand that `when` is exhaustive
-                is Url -> {
+                /*is Url -> {
                     if (urlIdx != -1) throw IllegalArgumentException()
                     urlIdx = idx
-                }
+                }*/
                 is Path<*> -> {
                     if (!(paths ?: newSet<String>(4).also { paths = it }).add(p.name.toString())) throw IllegalArgumentException()
                     Unit
                 }
                 is Query<*> -> { } // duplicate queries are rather questionable but totally OK for HTTP, don't check
-                is QueryParams -> { }
+                is QueryParams -> {
+                    if (hasQueryParams) throw IllegalArgumentException()
+                    hasQueryParams = true
+                }
                 is Field<*>, is Fields -> {
                     if (hasPart || hasBody) throw IllegalArgumentException()
                     hasField = true
+
+                    if (p is Fields) {
+                        if (hasFields) throw IllegalArgumentException()
+                        hasFields = true
+                    }
+                    Unit
                 }
                 is Header<*> -> {
                     if (!(headers ?: newSet<String>(4).also { headers = it }).add(p.name.toString())) throw IllegalArgumentException()
                     Unit
                 }
-                is Headers -> {}
+                is Headers -> {
+                    if (hasHeaders) throw IllegalArgumentException()
+                    hasHeaders = true
+                }
                 is Body -> {
                     if (hasPart || hasBody || hasField) throw IllegalArgumentException()
                     hasBody = true
@@ -70,14 +87,20 @@ import net.aquadc.persistence.newSet
                 is Part<*, *>, is Parts<*> -> {
                     if (hasBody || hasField) throw IllegalArgumentException()
                     hasPart = true
+
+                    if (p is Parts<*>) {
+                        if (hasParts) throw IllegalArgumentException()
+                        hasParts = true
+                    }
+                    Unit
                 }
             }!!
         }
         paths?.let { paths ->
-            if (urlTemplate == null) throw NoSuchElementException()
+//            if (urlTemplate == null) throw NoSuchElementException()
             paths.forEach { check("{$it}" in urlTemplate) }
-        } ?: if (urlTemplate == null && urlIdx == -1) {
+        } /*?: if (urlTemplate == null && urlIdx == -1) {
             throw NoSuchElementException() // neither urlTemplate nor Url parameter
-        }
+        }*/
     }
 }
