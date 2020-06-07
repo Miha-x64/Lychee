@@ -45,7 +45,17 @@ import net.aquadc.persistence.newSet
         var hasHeaders = false
         var hasParts = false
 
-        var paths: MutableSet<String>? = null
+        var unhandledPaths: MutableSet<String>? = null
+        var `idxAfter{` = urlTemplate.indexOf('{') + 1
+        if (`idxAfter{` > 0) {
+            unhandledPaths = newSet(4)
+            do {
+                val `idxOf}` = urlTemplate.indexOf('}', `idxAfter{`)
+                if (`idxOf}` < 0) throw IllegalArgumentException() // unpaired {
+                unhandledPaths.add(urlTemplate.substring(`idxAfter{`, `idxOf}`))
+            } while (urlTemplate.indexOf('{', `idxOf}`).also { `idxAfter{` = it+1 } >= 0)
+        }
+
         var queries: MutableSet<String>? = null
         var headers: MutableSet<String>? = null
         params.forEachIndexed { idx, it ->
@@ -55,8 +65,7 @@ import net.aquadc.persistence.newSet
                     urlIdx = idx
                 }*/
                 is Path<*> -> {
-                    if (!(paths ?: newSet<String>(4).also { paths = it }).add(p.name.toString()))
-                        throw IllegalArgumentException()
+                    if (unhandledPaths?.remove(p.name.toString()) == null) throw IllegalArgumentException()
                     Unit
                 }
                 is Query<*> -> {
@@ -102,11 +111,6 @@ import net.aquadc.persistence.newSet
                 }
             }!!
         }
-        paths?.let { paths ->
-//            if (urlTemplate == null) throw NoSuchElementException()
-            paths.forEach { check("{$it}" in urlTemplate) }
-        } /*?: if (urlTemplate == null && urlIdx == -1) {
-            throw NoSuchElementException() // neither urlTemplate nor Url parameter
-        }*/
+        if (!unhandledPaths.isNullOrEmpty()) throw IllegalArgumentException(unhandledPaths.toString())
     }
 }
