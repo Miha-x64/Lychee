@@ -46,6 +46,7 @@ import net.aquadc.persistence.newSet
         var hasParts = false
 
         var paths: MutableSet<String>? = null
+        var queries: MutableSet<String>? = null
         var headers: MutableSet<String>? = null
         params.forEachIndexed { idx, it ->
             when (val p = it as Param<*>) { // this 'useless' cast helps compiler understand that `when` is exhaustive
@@ -54,10 +55,15 @@ import net.aquadc.persistence.newSet
                     urlIdx = idx
                 }*/
                 is Path<*> -> {
-                    if (!(paths ?: newSet<String>(4).also { paths = it }).add(p.name.toString())) throw IllegalArgumentException()
+                    if (!(paths ?: newSet<String>(4).also { paths = it }).add(p.name.toString()))
+                        throw IllegalArgumentException()
                     Unit
                 }
-                is Query<*> -> { } // duplicate queries are rather questionable but totally OK for HTTP, don't check
+                is Query<*> -> {
+                    if (!(queries ?: newSet<String>(4).also { queries = it }).add(p.name.toString()))
+                        throw IllegalArgumentException()
+                    Unit
+                }
                 is QueryParams -> {
                     if (hasQueryParams) throw IllegalArgumentException()
                     hasQueryParams = true

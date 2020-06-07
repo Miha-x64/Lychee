@@ -13,14 +13,14 @@ import java.util.concurrent.CompletionStage
 
 
 fun <T> completable(
-    parse: (Resp<T>, Response) -> T
+    parse: Response.(Resp<T>) -> T
 ): (OkHttpClient, Request, Resp<T>) -> CompletionStage<T> =
     { client, request, body ->
         val future = CompletableFuture<T>()
         val call = client.newCall(request)
         call.enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
-                future.complete(parse(body, response))
+                future.complete(response.parse(body))
             }
             override fun onFailure(call: Call, e: IOException) {
                 future.completeExceptionally(e)

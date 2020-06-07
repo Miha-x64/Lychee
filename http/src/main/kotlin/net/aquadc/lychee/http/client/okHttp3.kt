@@ -206,14 +206,17 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
 
     private fun addQuery(dest: HttpUrl.Builder?, url: HttpUrl, param: Query<*>, value: Any?): HttpUrl.Builder? =
         when (val type = param.type) {
+            null -> if (value == true) (dest ?: url.newBuilder()).also { builder ->
+                builder.addQueryParameter(param.name.toString(), null)
+            } else dest
             is DataType.Nullable<*, *> ->
                 if (value == null) dest // value == null, return builder unchanged
                 else (dest ?: url.newBuilder()).also { builder ->
-                    addQuery(builder, param.name, type as DataType.NotNull.Simple<Any?>, value)
+                    builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
                 }
             is DataType.NotNull.Simple<*> ->
                 (dest ?: url.newBuilder()).also { builder ->
-                    addQuery(builder, param.name, type as DataType.NotNull.Simple<Any?>, value)
+                    builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
                 }
             is DataType.NotNull.Collect<*, *, *> ->
                 (type as DataType.NotNull.Collect<Any?, *, *>)
@@ -223,18 +226,14 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
                     ?.let { values ->
                         (dest ?: url.newBuilder()).also { builder ->
                             values.forEach { value ->
-                                addQuery(builder, param.name, type as DataType.NotNull.Simple<Any?>, value)
+                                builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
                             }
                         }
                     } ?: dest // empty collection, return builder as is
             is DataType.NotNull.Partial<*, *> ->
                 throw AssertionError()
         }
-    private fun <T> addQuery(dest: HttpUrl.Builder, nameOrNull: CharSequence?, type: DataType.NotNull.Simple<T>, arg: T) {
-        val valueOrName = type.storeAsStr(arg)
-        if (nameOrNull != null) dest.addQueryParameter(nameOrNull.toString(), valueOrName)
-        else dest.addQueryParameter(valueOrName, null)
-    }
+
     private fun addQueryParams(dest: HttpUrl.Builder?, url: HttpUrl, values: Collection<Pair<CharSequence, CharSequence?>>): HttpUrl.Builder? {
         if (values.isEmpty()) return dest
         val builder = dest ?: url.newBuilder()
@@ -345,26 +344,27 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
 }
 
 fun <T> blocking(
-    parse: (Resp<T>, Response) -> T
+    parse: Response.(Resp<T>) -> T
 ): (OkHttpClient, Request, Resp<T>) -> T =
     { client, request, body ->
-        parse(body, client.newCall(request).execute()) // just pass IOException through
+        client.newCall(request).execute().parse(body) // just pass IOException through
     }
 
 fun <T> future(
-    executor: Executor, parse: (Resp<T>, Response) -> T
+    executor: Executor, parse: Response.(Resp<T>) -> T
 ): (OkHttpClient, Request, Resp<T>) -> Future<T> =
     { client, request, body ->
-        FutureTask(Callable { parse(body, client.newCall(request).execute()) }).also(executor::execute)
+        FutureTask(Callable { client.newCall(request).execute().parse(body) }).also(executor::execute)
     }
 
 fun <T> callback(
-    parse: (Resp<T>, Response) -> T, callbackExecutor: Executor, callback: (T?, IOException?) -> Unit
+    parse: Response.(Resp<T>) -> T,
+    callbackExecutor: Executor, callback: (T?, IOException?) -> Unit
 ): (OkHttpClient, Request, Resp<T>) -> Call =
     { client, request, body ->
         client.newCall(request).also { it.enqueue(object : Callback {
             override fun onResponse(call: Call?, response: Response): Unit =
-                call(parse(body, response), null)
+                call(response.parse(body), null)
             override fun onFailure(call: Call?, e: IOException): Unit =
                 call(null, e)
             private fun call(t: T?, e: IOException?): Unit =

@@ -32,6 +32,11 @@ sealed class ExtracorpParam<T> : Param<T>()
 // unclear semantics: should it be relative to base? Or how to parse it at server-side?
 //object Url : ExtracorpParam<CharSequence>()
 
+/**
+ * Path parameter. In `/user/{id}/profile`, {id} represents path parameter named "id".
+ * @param name must be unique within an endpoint
+ * @param type describes how to encode/decode the value
+ */
 class Path<T>(@JvmField val name: CharSequence, @JvmField val type: DataType.NotNull.Simple<T>) : ExtracorpParam<T>()
 inline fun Path(name: CharSequence): Path<String> = Path(name, string)
 
@@ -39,23 +44,19 @@ inline fun Path(name: CharSequence): Path<String> = Path(name, string)
 
 /**
  * A query parameter (?name=value&name=value&justName)
- * @param name if not null, sets name of query parameter, and [type] encodes its value;
- *   if null, [type] encodes name and there's no value
- * @param type type of value, if [name] is set; type of name, if [name] is `null`, implying there's no value
+ * @param name name of query parameter. Must be unique within an endpoint
+ * @param type type of value. If `null`, means “send key with no value for `true`, don't send for `false`”
  */
 class Query<T> @PublishedApi internal constructor(
-    @JvmField val name: CharSequence?,
-    @JvmField val type: DataType<T>//= simple | nullable(simple) | collection(simple)
+    @JvmField val name: CharSequence,
+    @JvmField val type: DataType<T>? //= simple | nullable(simple) | collection(simple)
 ) : ExtracorpParam<T>()
 inline fun Query(name: CharSequence): Query<String> = Query(name, string)
 inline fun <T> Query(name: CharSequence, valueType: DataType.NotNull.Simple<T>): Query<T> = Query(name, valueType as DataType<T>)
 inline fun <T : Any> Query(name: CharSequence, valueType: DataType.Nullable<T, DataType.NotNull.Simple<T>>): Query<T?> = Query(name, valueType as DataType<T?>)
 inline fun <C, E, DE : DataType.NotNull.Simple<E>> Query(name: CharSequence, valueType: DataType.NotNull.Collect<C, E, DE>): Query<C> = Query(name, valueType as DataType<C>)
-inline fun QueryName(): Query<String> = Query(null, string as DataType<String>)
-inline fun <T> QueryName(valueType: DataType.NotNull.Simple<T>): Query<T> = Query(null, valueType as DataType<T>)
-inline fun <T : Any> QueryName(valueType: DataType.Nullable<T, DataType.NotNull.Simple<T>>): Query<T?> = Query(null, valueType as DataType<T?>)
-inline fun <C, E, DE : DataType.NotNull.Simple<E>> QueryName(valueType: DataType.NotNull.Collect<C, E, DE>): Query<C> = Query(null, valueType as DataType<C>)
 // note: just pass empty collection instead of nullable one; just don't add element to a collection instead of adding null
+inline fun QueryPresence(name: CharSequence): Query<Boolean> = Query(name, null as DataType<Boolean>?)
 
 /**
  * Flexible but ugly way to pass anything which cannot be described with normal [Query] params.
