@@ -50,3 +50,4 @@ fabric.properties
 
 local.properties
 *.iml
+sample.db

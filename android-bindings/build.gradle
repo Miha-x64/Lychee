@@ -51,7 +51,7 @@ dependencies {
     testImplementation "com.squareup.okio:okio:$okio_version"
     testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence') // partial(Struct) is here
-    testImplementation 'org.robolectric:robolectric:4.3'
+    testImplementation 'org.robolectric:robolectric:4.3.1'
     testImplementation project(path: ':sql', configuration: 'testOutput')
 }
 
