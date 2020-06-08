@@ -57,7 +57,7 @@ private fun getTextView(): TextView =
 
 class Transforms {
 
-    @Test fun sample() =
+    @Test fun sample() = // note: lines 61-69 are linked from readme
             assertEquals(
                     """{"a":"whatever","b":"extra 1","c":"extra 2"}""",
                     StringWriter().also {
