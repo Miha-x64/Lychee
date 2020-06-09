@@ -17,7 +17,7 @@ import net.aquadc.lychee.http.param.Resp
  * HTTP method (verb).
  * @param P allowed parameter type. [Param] for methods with body, [ExtracorpParam] for methods without it.
  */
-open class HttpMethod<P : Param<*>>
+open class HttpMethod<in P : Param<*>>
 // you can instantiate custom methods for exotic DELETE with body, OPTIONS, whatever
 constructor(
     @JvmField val name: String

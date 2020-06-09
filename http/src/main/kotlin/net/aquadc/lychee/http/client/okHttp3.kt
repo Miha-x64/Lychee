@@ -129,6 +129,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
     private val headers: Array<out CharSequence>,
     private val execute: (OkHttpClient, Request, Resp<B>) -> R
 ) : FuncXImpl<Any?, R>() {
+    private val multipart = endpoint.params.any { it is Part<*> || it is Parts<*> }
     override fun invokeUnchecked(vararg arg: Any?): R {
 //        var urlArg: CharSequence? = null
         val urlTemplate = endpoint.urlTemplate/*?*/.let(::StringBuilder)
@@ -152,7 +153,8 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
         val request = Request.Builder()
         var body: RequestBody? = null
         var fields: FormBody.Builder? = null
-        var multipart: MultipartBody.Builder? = null
+        var multipart: MultipartBody.Builder? =
+            if (multipart) MultipartBody.Builder().setType(MultipartBody.FORM) else null
 
         params.forEachIndexed { index, param ->
             val value = arg[index]
@@ -167,26 +169,26 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
                 is Headers ->
                     addHeaders(request, value as Collection<Pair<CharSequence, CharSequence>>)
                 is Field ->
-                    addField(fields ?: FormBody.Builder().also { fields = it }, param, value)
+                    addField(multipart ?: fields ?: FormBody.Builder().also { fields = it }, param, value)
                 is Fields ->
-                    addFields(fields ?: FormBody.Builder().also { fields = it }, value as Collection<Pair<CharSequence, CharSequence>>)
+                    addFields(multipart ?: fields ?: FormBody.Builder().also { fields = it }, value as Collection<Pair<CharSequence, CharSequence>>)
                 is Body ->
                     body = bodyFor(param as Body<Any?>, value)
-                is Part<*, *> ->
-                    addPart(multipart ?: MultipartBody.Builder().also { multipart = it }, param as Part<Any?, Any?>, value)
+                is Part<*> ->
+                    addPart(multipart!!, param as Part<Any?>, value)
                 is Parts<*> ->
-                    addParts(multipart ?: MultipartBody.Builder().also { multipart = it }, param as Parts<Any?>, value as Collection<Pair<CharSequence, Any?>>)
+                    addParts(multipart!!, param as Parts<Any?>, value as Collection<Pair<CharSequence, Any?>>)
             }!!
         }
 
         if (fields != null) {
             check(body == null)
-            check(multipart == null) // todo lift restriction, MultipartBody.Builder#addFormDataPart
+            check(multipart == null) // if multipart, fields are added as Parts
             body = fields!!.build()
             fields = null
         } else if (multipart != null) {
             check(body == null)
-            body = multipart!!.build()
+            body = multipart.build()
             multipart = null
         }
 
@@ -259,7 +261,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
             }
     }
 
-    private fun addField(dest: FormBody.Builder, param: Field<*>, value: Any?) {
+    private fun addField(dest: Any, param: Field<*>, value: Any?) {
         when (val type = param.type) {
             is DataType.Nullable<*, *> ->
                 if (value != null) addField(dest, param.name, type as DataType.NotNull.Simple<Any?>, value)
@@ -279,12 +281,28 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
                 throw AssertionError()
         }
     }
-    private fun <T> addField(dest: FormBody.Builder, name: CharSequence, type: DataType.NotNull.Simple<T>, value: T) {
-        dest.add(name.toString(), type.storeAsStr(value))
+    private fun <T> addField(dest: Any, name: CharSequence, type: DataType.NotNull.Simple<T>, value: T) {
+        val name = name.toString()
+        val value = type.storeAsStr(value)
+        if (dest is MultipartBody.Builder) {
+            dest.addFormDataPart(name, value)
+        } else {
+            dest as FormBody.Builder
+            dest.add(name, value)
+        }
     }
-    private fun addFields(dest: FormBody.Builder, fields: Collection<Pair<CharSequence, CharSequence>>) {
-        if (fields.isNotEmpty()) fields.forEach { (name, value) ->
-            dest.add(name.toString(), value.toString())
+    private fun addFields(dest: Any, fields: Collection<Pair<CharSequence, CharSequence>>) {
+        if (fields.isNotEmpty()) {
+            if (dest is MultipartBody.Builder) {
+                fields.forEach { (name, value) ->
+                    dest.addFormDataPart(name.toString(), value.toString())
+                }
+            } else {
+                dest as FormBody.Builder
+                fields.forEach { (name, value) ->
+                    dest.add(name.toString(), value.toString())
+                }
+            }
         }
     }
 
@@ -300,34 +318,42 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
         }
     }
 
-    private fun <T, B> addPart(dest: MultipartBody.Builder, param: Part<T, B>, value: T) {
-        val name: CharSequence
-        val body: B
-        if (param.name == null) {
-            value as Pair<CharSequence, B>
-            name = value.first
-            body = value.second
-        } else {
-            name = param.name
-            body = value as B
-        }
-        addPart<B>(dest, name, param.transferEncoding.toString(), param.body, body)
+    private fun <T> addPart(dest: MultipartBody.Builder, param: Part<T>, value: T) {
+        addPart(dest, param.name, param.filename(value), param.transferEncoding.toString(), param.body, value)
     }
     private fun <T> addParts(dest: MultipartBody.Builder, param: Parts<T>, value: Collection<Pair<CharSequence, T>>) {
         if (value.isNotEmpty()) {
             val enc = param.transferEncoding.toString()
             value.forEach { (name, value) ->
-                addPart(dest, name, enc, param.body, value)
+                addPart(dest, name, null, enc, param.body, value)
             }
         }
     }
-    private fun <B> addPart(dest: MultipartBody.Builder, name: CharSequence, enc: String, body: Body<B>, value: B) {
+    private fun <B> addPart(dest: MultipartBody.Builder, name: CharSequence, filename: CharSequence?, enc: String, body: Body<B>, value: B) {
         dest.addPart(MultipartBody.Part.create(
-            okhttp3.Headers.of( // accurate copy-paste of https://github.com/square/retrofit/blob/108fe23964b986107aed352ba467cd2007d15208/retrofit/src/main/java/retrofit2/RequestFactory.java#L675-L679
-                "Content-Disposition", "form-data; name=\"$name$\"", // fixme encode? also could share StringBuilder
-                "Content-Transfer-Encoding", enc),
+            okhttp3.Headers.of(
+                "Content-Disposition",
+                StringBuilder("form-data; name=").appendQuotedString(name).also {
+                    if (filename != null) it.append("; filename=").appendQuotedString(filename)
+                }.toString(),
+                "Content-Transfer-Encoding",
+                enc
+            ),
             bodyFor(body, value)
         ))
+    }
+    // almost copy-paste of okhttp3.MultipartBody.appendQuotedString
+    private fun StringBuilder.appendQuotedString(key: CharSequence): StringBuilder {
+        append('"')
+        for (ch in key) {
+            when (ch) {
+                '\n' -> append("%0A")
+                '\r' -> append("%0D")
+                '"' -> append("%22")
+                else -> append(ch)
+            }
+        }
+        return append('"')
     }
 
     private fun <T> DataType.NotNull.Simple<T>.storeAsStr(value: T): String =

@@ -109,19 +109,14 @@ abstract class Body<T>(
     abstract fun fromStream(estimateSize: Long, stream: InputStream): T
 }
 
-class Part<T, B> @PublishedApi internal constructor(
-    @JvmField val name: CharSequence?,
+class Part<T>(
+    @JvmField val name: CharSequence,
     @JvmField val transferEncoding: CharSequence,
-    @JvmField val body: Body<B>
+    @JvmField val body: Body<T>,
+    @JvmField val filename: (T) -> CharSequence?
 ) : Param<T>()
-inline fun <T> Part(name: CharSequence, body: Body<T>): Part<T, T> =
-    Part<T, T>(name as CharSequence?, "binary", body)
-inline fun <T> Part(name: CharSequence, transferEncoding: CharSequence, body: Body<T>): Part<T, T> =
-    Part<T, T>(name as CharSequence?, transferEncoding, body)
-inline fun <T> NamedPart(body: Body<T>): Part<Pair<CharSequence, T>, T> =
-    Part<Pair<CharSequence, T>, T>(null, "binary", body)
-inline fun <T> NamedPart(transferEncoding: CharSequence, body: Body<T>): Part<Pair<CharSequence, T>, T> =
-    Part<Pair<CharSequence, T>, T>(null, transferEncoding, body)
+inline fun <T> Part(name: CharSequence, body: Body<T>, noinline filename: (T) -> CharSequence?): Part<T> =
+    Part<T>(name, "binary", body, filename)
 
 class Parts<T>(
     @JvmField val transferEncoding: CharSequence = "binary",

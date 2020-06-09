@@ -99,8 +99,8 @@ import net.aquadc.persistence.newSet
                     if (hasPart || hasBody || hasField) throw IllegalArgumentException()
                     hasBody = true
                 }
-                is Part<*, *>, is Parts<*> -> {
-                    if (hasBody || hasField) throw IllegalArgumentException()
+                is Part<*>, is Parts<*> -> {
+                    if (hasBody) throw IllegalArgumentException()
                     hasPart = true
 
                     if (p is Parts<*>) {

@@ -2,11 +2,13 @@ package net.aquadc.lychee.http
 
 import io.undertow.Undertow
 import io.undertow.server.HttpServerExchange
+import io.undertow.server.handlers.form.FormDataParser
 import io.undertow.server.handlers.form.FormParserFactory
 import net.aquadc.lychee.http.client.okhttp3.blocking
 import net.aquadc.lychee.http.client.okhttp3.template
 import net.aquadc.lychee.http.param.Field
 import net.aquadc.lychee.http.param.Header
+import net.aquadc.lychee.http.param.Part
 import net.aquadc.lychee.http.param.Path
 import net.aquadc.lychee.http.param.Query
 import net.aquadc.lychee.http.param.QueryParams
@@ -16,8 +18,10 @@ import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.type.i32
 import okhttp3.OkHttpClient
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.io.ByteArrayInputStream
 import java.util.UUID
 
 
@@ -102,6 +106,56 @@ class OkClientTest {
         assertEquals("jane@", rqEmail)
         assertEquals(1824, rqBirth)
         assertEquals(rsId, id)
+    }
+
+    @Test fun upload() {
+        val upload = POST("/updatePhoto", Stream("image/*"), Response<Int>())
+
+        lateinit var rqMethod: String
+        lateinit var rqBytes: ByteArray
+        server = undertow { x ->
+            rqMethod = x.requestMethod.toString()
+            x.requestReceiver.receiveFullBytes { _, message: ByteArray ->
+                rqBytes = message
+            }
+
+            x.statusCode = 204
+            x.responseSender.close()
+        }
+
+        val doUpload = client.template(baseUrl, upload, blocking { body?.close(); code })
+        assertEquals(204, doUpload { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1)) })
+        assertEquals("POST", rqMethod)
+        assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1), rqBytes)
+    }
+
+    @Test fun multipart() {
+        val upload = POST("/updatePhoto", Field("name"), Field("id", uuid), Part("photo", Stream("image/*"), { "photo.jpg" }), Response<Int>())
+
+        lateinit var rqMethod: String
+        lateinit var rqName: String
+        lateinit var rqId: UUID
+        lateinit var rqBytes: ByteArray
+        server = undertow { x ->
+            FormParserFactory.builder().build().createParser(x).parse { x ->
+                rqMethod = x.requestMethod.toString()
+                val form = x.getAttachment(FormDataParser.FORM_DATA)
+                rqName = form["name"].first.value
+                rqId = UUID.fromString(form["id"].first.value)
+                rqBytes = form["photo"].first.fileItem.inputStream.readBytes()
+
+                x.statusCode = 204
+                x.responseSender.close()
+            }
+        }
+
+        val doUpload = client.template(baseUrl, upload, blocking { body?.close(); code })
+        val id = UUID.randomUUID()
+        assertEquals(204, doUpload("Unnamed", id) { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1)) })
+        assertEquals("POST", rqMethod)
+        assertEquals("Unnamed", rqName)
+        assertEquals(id, rqId)
+        assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1), rqBytes)
     }
 
     private fun undertow(handler: (HttpServerExchange) -> Unit): Undertow =
