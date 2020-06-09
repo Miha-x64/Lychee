@@ -1,15 +1,4 @@
 
-Object-oriented observable active records and queries
-(maturity: prototype)
-
-Intended for use in client-side applications with SQLite database.
-This implies:
-* Many small queries (SQLite works well with it)
-* Observability (which may be inefficient on the server-side)
-* `ReadWriteLock` for transactions
-
-#### Example
-
 Given a struct schema, e. g.
 
 ```kt
@@ -71,15 +60,22 @@ session.withTransaction {
 }
 ```
 
-There are two APIs for querying data.
+There are two APIs for querying data:
 
-DAO-based:
+## DAO-based
+observable active records intended for use in client-side applications with SQLite database.
+This implies:
+* Many small queries (SQLite works well with it)
+* Observability (which may be inefficient on the server-side)
+* `ReadWriteLock` for transactions
+
 ```kt
 session[PlayerTable]
     .select(Player.Score greaterThan 10, Player.Name.asc)
     .addChangeListener { old, new -> ... }
 ```
-and SQL-based templates:
+
+## SQL-based templates
 ```kt
 val namesToEmails = session.query(
         "SELECT u.name, c.email FROM users u " +

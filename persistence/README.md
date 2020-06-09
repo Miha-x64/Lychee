@@ -24,15 +24,15 @@ and to bind them to `Struct`s or other `DataType`s.
 
 #### Goals
 
-* Provide common interface for persisting and transferring data.
+* Provide a common interface for persisting and transferring data.
 * Make developing CRUDs faster and easier.
 
 #### Non-goals
 
 * Support persisting/transferring of only intersection of types supported by popular APIs.
-  This would be not enough. For example, text formats have no efficient ways to represent binary data —
+  This would be not enough. For example, text formats have no efficient ways to represent binary data, so
   we use Base64 with them instead of totally prohibiting this.
-  SQLite has no support for storing arrays or maps — but we can flatten them into byte arrays and store as BLOBs.
+  SQLite has no support for storing arrays or maps, but we can flatten them into byte arrays and store as BLOBs.
 * Support transfer/persistence APIs fully.
   This would include supporting very specific, platform-dependent, vendor-locked, or rarely used types.
   The truth is somewhere in between.
@@ -52,7 +52,7 @@ the idea that a class could easily acquire serialization capability is just wron
 
 Lychee introduces `Struct`s which are objects with all fields serializable,
 and you are free to adapt `Schema`s to storages as you wish:
-* `TokenStream` provides transforms to change JSON schema
+* `TokenStream` provides transformations to change JSON schema
   while [avoiding mappers](https://blog.jooq.org/2019/11/13/stop-mapping-stuff-in-your-middleware-use-sqls-xml-or-json-operators-instead/);
 * SQL `Table` provides relations declared outside of `Schema` itself.
   This means that you can store `Structs` of the same `Schema` in different tables

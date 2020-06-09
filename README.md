@@ -53,6 +53,10 @@ But there are some mistakes in the example above:
     10+ years of ProGuard were not enough to get this deep);
 * along with interface (property names and types),
   this also declares implementation details (backing fields).
+  Thus, you're getting only in-memory representation.
+  (To workaround the issue, Realm, for example,
+  extends your classes so getters&setters are overridden while fields are unused,
+  and rewrites your bare field accesses, if any, to use getters&setters.)
   Theoretically, this can be fixed by extracting `interface`:
 ```kt
 interface Player {

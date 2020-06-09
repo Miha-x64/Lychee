@@ -9,8 +9,10 @@ import net.aquadc.persistence.type.DataType
 
 /**
  * Declares a struct (or DTO, VO, Entity) schema /ˈskiː.mə/.
- * `struct`s in C, Rust, Swift, etc, or `Object`s in JS, are similar
+ * `struct`s in C, Rust, Swift etc, or `Object`s in JS, are similar
  * to final classes with only public fields, no methods and no supertypes.
+ * A Schema enumerates fields, their names, types, mutability,
+ * and memory layout of [Struct]s, which are instantiations of Schema.
  * @see Struct
  * @see FieldDef
  */
@@ -366,7 +368,7 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
          */
         @JvmField val ordinal: Byte,
 
-        default: T
+        default: T // todo maybe deprecate it?
 ) : NamedLens<SCH, PartialStruct<SCH>, Struct<SCH>, T, DT> {
 
     init {
