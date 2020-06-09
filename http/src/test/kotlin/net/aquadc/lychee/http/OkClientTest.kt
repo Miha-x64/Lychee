@@ -161,7 +161,7 @@ class OkClientTest {
     private fun undertow(handler: (HttpServerExchange) -> Unit): Undertow =
         Undertow.builder().addHttpListener(port, host, handler).build().also { it.start() }
 
-}
+    operator fun <T, U, V, R> ((T, U, V) -> R).invoke(t: T): (U, V) -> R =
+        { u, v -> this(t, u, v) }
 
-operator fun <T, U, V, R> ((T, U, V) -> R).invoke(t: T): (U, V) -> R =
-    { u, v -> this(t, u, v) }
+}

@@ -30,8 +30,8 @@ internal class BlockingQuery<CUR, R>(
     private val fetch: Fetch<Blocking<CUR>, R>
 ) : FuncXImpl<Any, R>(), VarFunc<Any, R> {
 
-    override fun invokeUnchecked(vararg arg: Any): R =
-            fetch.fetch(session, query, argumentTypes, arg)
+    override fun invokeUnchecked(vararg args: Any): R =
+            fetch.fetch(session, query, argumentTypes, args)
 
     // for debugging
     override fun toString(): String =

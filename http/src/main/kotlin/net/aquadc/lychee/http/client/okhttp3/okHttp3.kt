@@ -130,24 +130,8 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
     private val execute: (OkHttpClient, Request, Resp<B>) -> R
 ) : FuncXImpl<Any?, R>() {
     private val multipart = endpoint.params.any { it is Part<*> || it is Parts<*> }
-    override fun invokeUnchecked(vararg arg: Any?): R {
-//        var urlArg: CharSequence? = null
-        val urlTemplate = endpoint.urlTemplate/*?*/.let(::StringBuilder)
-        val params = endpoint.params
-        params.forEachIndexed { index, param ->
-            val value = arg[index]
-            when (param) {
-//                Url -> urlArg = value as CharSequence
-                is Path -> {
-                    val type = param.type as DataType.NotNull.Simple<Any?>
-                    urlTemplate.replacePathSegm(param.name, type.storeAsStr(value))
-                }
-            }
-        }
-
-        var url = baseUrl?.toString()?.let { HttpUrl.parse(it)!! }
-        urlTemplate/*?*/.toString()/*?*/.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
-//        urlArg?.toString()?.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
+    override fun invokeUnchecked(vararg args: Any?): R {
+        val url = url(baseUrl, endpoint, args)
         var urlBldr: HttpUrl.Builder? = null
 
         val request = Request.Builder()
@@ -156,14 +140,14 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
         var multipart: MultipartBody.Builder? =
             if (multipart) MultipartBody.Builder().setType(MultipartBody.FORM) else null
 
-        params.forEachIndexed { index, param ->
-            val value = arg[index]
+        endpoint.params.forEachIndexed { index, param ->
+            val value = args[index]
             when (param) {
                 /*is Url, */is Path -> {} // already handled
                 is Query ->
-                    urlBldr = addQuery(urlBldr, url!!, param, value)
+                    urlBldr = addQuery(urlBldr, url, param, value)
                 is QueryParams ->
-                    urlBldr = addQueryParams(urlBldr, url!!, value as Collection<Pair<CharSequence, CharSequence?>>)
+                    urlBldr = addQueryParams(urlBldr, url, value as Collection<Pair<CharSequence, CharSequence?>>)
                 is Header ->
                     addHeader(request, param as Header<Any?>, value)
                 is Headers ->
@@ -204,45 +188,6 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
                 .build(),
             endpoint.response
         )
-    }
-
-    private fun addQuery(dest: HttpUrl.Builder?, url: HttpUrl, param: Query<*>, value: Any?): HttpUrl.Builder? =
-        when (val type = param.type) {
-            null -> if (value == true) (dest ?: url.newBuilder()).also { builder ->
-                builder.addQueryParameter(param.name.toString(), null)
-            } else dest
-            is DataType.Nullable<*, *> ->
-                if (value == null) dest // value == null, return builder unchanged
-                else (dest ?: url.newBuilder()).also { builder ->
-                    builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
-                }
-            is DataType.NotNull.Simple<*> ->
-                (dest ?: url.newBuilder()).also { builder ->
-                    builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
-                }
-            is DataType.NotNull.Collect<*, *, *> ->
-                (type as DataType.NotNull.Collect<Any?, *, *>)
-                    .store(value)
-                    .fatAsList()
-                    .takeIf(List<*>::isNotEmpty) // don't instantiate builder and iterator if not necessary
-                    ?.let { values ->
-                        (dest ?: url.newBuilder()).also { builder ->
-                            values.forEach { value ->
-                                builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
-                            }
-                        }
-                    } ?: dest // empty collection, return builder as is
-            is DataType.NotNull.Partial<*, *> ->
-                throw AssertionError()
-        }
-
-    private fun addQueryParams(dest: HttpUrl.Builder?, url: HttpUrl, values: Collection<Pair<CharSequence, CharSequence?>>): HttpUrl.Builder? {
-        if (values.isEmpty()) return dest
-        val builder = dest ?: url.newBuilder()
-        values.forEach { (key, value) ->
-            builder.addQueryParameter(key.toString(), value?.toString())
-        }
-        return builder
     }
 
     private fun <T> addHeader(dest: Request.Builder, param: Header<T>, value: T) {
@@ -354,18 +299,6 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
             }
         }
         return append('"')
-    }
-
-    private fun <T> DataType.NotNull.Simple<T>.storeAsStr(value: T): String =
-        (if (hasStringRepresentation) storeAsString(value!!) else store(value!!)).toString()
-
-    private fun StringBuilder.replacePathSegm(path: CharSequence, with: String) {
-        val what = "{$path}"
-        val start = indexOf(what)
-        if (start < 0) throw IllegalArgumentException("$this does not contain $what")
-        replace(start, start + what.length, URLEncoder.encode(with, "UTF-8").replace("+", "%20"))
-        // there's also a hard way to do this ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^:
-        // https://github.com/square/retrofit/commit/a9c0512fa6f88933702bf0e12243f5a584c01f66
     }
 }
 

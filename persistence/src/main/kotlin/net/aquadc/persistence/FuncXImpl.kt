@@ -16,7 +16,7 @@ abstract class FuncXImpl<T, R> :
       , (T, T, T, T, T, T, T, T) -> R
 {
 
-    abstract fun invokeUnchecked(vararg arg: T): R
+    abstract fun invokeUnchecked(vararg args: T): R
 
     override fun invoke(): R =
             invokeUnchecked()

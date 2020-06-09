@@ -1,5 +1,5 @@
 @file:JvmName("OkHttp3Jdk8")
-package net.aquadc.lychee.http.client
+package net.aquadc.lychee.http.client.okhttp3
 
 import net.aquadc.lychee.http.param.Resp
 import okhttp3.Call

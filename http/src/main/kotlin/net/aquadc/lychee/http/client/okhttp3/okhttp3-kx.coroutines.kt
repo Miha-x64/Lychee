@@ -1,4 +1,4 @@
-@file:JvmName("OkHttp3Deferred")
+@file:JvmName("OkHttp3KxCoroutines")
 package net.aquadc.lychee.http.client.okhttp3
 
 import kotlinx.coroutines.CompletableDeferred

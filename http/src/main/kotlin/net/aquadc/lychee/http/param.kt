@@ -20,6 +20,14 @@ sealed class Param<T>
 sealed class ExtracorpParam<T> : Param<T>()
 
 /**
+ * “Link” parameters can be expressed through HTML links. No headers or bodies allowed.
+ * @see Path
+ * @see Query
+ * @see QueryParams
+ */
+sealed class LinkParam<T> : ExtracorpParam<T>()
+
+/**
  * HTML forms can send fields and multipart
  * but cannot send headers and request body.
  */
@@ -37,7 +45,7 @@ sealed class ExtracorpParam<T> : Param<T>()
  * @param name must be unique within an endpoint
  * @param type describes how to encode/decode the value
  */
-class Path<T>(@JvmField val name: CharSequence, @JvmField val type: DataType.NotNull.Simple<T>) : ExtracorpParam<T>()
+class Path<T>(@JvmField val name: CharSequence, @JvmField val type: DataType.NotNull.Simple<T>) : LinkParam<T>()
 inline fun Path(name: CharSequence): Path<String> = Path(name, string)
 
 // Query string
@@ -50,7 +58,7 @@ inline fun Path(name: CharSequence): Path<String> = Path(name, string)
 class Query<T> @PublishedApi internal constructor(
     @JvmField val name: CharSequence,
     @JvmField val type: DataType<T>? //= simple | nullable(simple) | collection(simple)
-) : ExtracorpParam<T>()
+) : LinkParam<T>()
 inline fun Query(name: CharSequence): Query<String> = Query(name, string)
 inline fun <T> Query(name: CharSequence, valueType: DataType.NotNull.Simple<T>): Query<T> = Query(name, valueType as DataType<T>)
 inline fun <T : Any> Query(name: CharSequence, valueType: DataType.Nullable<T, DataType.NotNull.Simple<T>>): Query<T?> = Query(name, valueType as DataType<T?>)
@@ -61,11 +69,11 @@ inline fun QueryPresence(name: CharSequence): Query<Boolean> = Query(name, null 
 /**
  * Flexible but ugly way to pass anything which cannot be described with normal [Query] params.
  */
-object QueryParams : ExtracorpParam<Collection<Pair<CharSequence, CharSequence?>>>()
+object QueryParams : LinkParam<Collection<Pair<CharSequence, CharSequence?>>>()
 
 // TODO class QueryStruct<T, SCH : Schema<SCH>>(@JvmField val type: DataType.NotNull.Partial<T, SCH>, naming: NamingConvention) : UrlParam<T, T>()
 
-// form-data fields (copy-paste of Query except it extends Param, not GetParam)
+// form-data fields (copy-paste of Query except it extends Param, not LinkParam)
 
 /**
  * A form-data parameter (name=value&name=value&justName)

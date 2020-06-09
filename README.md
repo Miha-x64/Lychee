@@ -402,21 +402,25 @@ there are headers, query parameters, form fields, multipart, and more.
 
 With `:http`, you can declare endpoints using some of `DataType`s from `:persistence`:
 ```kt
-val getUser = GET("/user/{role}/",
+val user = GET("/user/{role}/",
     Header("X-Token"), Path("role"), Query("id", uuid),
     Response<String>())
 ```
 This gives you several features:
-* HTTP client templates: `OkHttpClient.template(baseUrl, getUser, deferred(::parseUser))` =>
-  `(token: String, role: String, id: UUID) -> Deferred<String>`
+* HTTP client templates: `val getUser = okHttpClient.template(baseUrl, user, deferred(::parseUser))` =>
+  `(token: String, role: String, id: UUID) -> Deferred<String>`.
+  Here you define `parseUser` yourself. Thus, you are free to handle responses as you want:
+  throw exception for non-2xx responses,
+  or return `Either<HttpException, ResponseEntity>`,
+  or ignore response code at all and just parse response body;  
 * server-side type-safe routing:
-  `someServer.bind(getUser, ::respondBadRequest) { token, role, id -> "response" }`
-  (currently not implemented, trying to choose among several HTTP servers)
+  `someServer.bind(user, ::respondBadRequest) { token, role, id -> "response" }`
+  (currently not implemented, trying to choose among several HTTP servers);
 * link generation: if endpoint declaration uses GET method
-  and does not contain headers, it is possible to generate a link
+  and does not contain headers, it is possible to build URL:
 ```kt
 GET("/user/{role}/", Path("role"), Query("id", uuid))
-    .link(baseUrl, "admin", UUID.randomUUID())
+    .url(baseUrl, "admin", UUID.randomUUID())
     // => //user/admin/?id=0b46b157-84b9-474c-83bb-76c2ddf58e75
 ```
 
@@ -506,6 +510,12 @@ When Activity gets stopped or View gets detached,
 binding unsubscribes and becomes eligible for garbage collection
 along with the whole View hierarchy.
 
+#### How much black magic do you use under the hood?
+
+Some operator overloading, some inline classes, several compilation error suppressions, tons of unchecked casts.
+No reflection, zero annotation processing.
+If you encounter any problems, they most likely will be related to type inference or Java interop.
+
 #### Is there anything similar to RxJava's Single?
 
 Nope. Java since v. 1.8 contains `CompletableFuture` for async computations.
@@ -520,7 +530,7 @@ triggering UI state change as needed and without any callbacks.
 
 [Here you are.](/samples/android-sample/proguard-rules.pro#L30-L55)
 
-### Adding to a project
+## Adding to a project
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Properties
 
