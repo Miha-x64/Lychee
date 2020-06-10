@@ -35,7 +35,7 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
     ): T = table.schema.let { sch -> // the following cast seems to be unnecessary with new inference
-        lowSession.fetchSingle(table, sch.nameOf(field), table.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
+        lowSession.fetchSingle(table, sch.run { field.name }, table.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
     }
 
     override fun <T, CUR> get(

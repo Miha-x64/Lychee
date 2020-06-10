@@ -197,9 +197,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
     // names
 
-    fun nameOf(field: FieldDef<SELF, *, *>): CharSequence =
-            namesTypesDefaults()[3 * field.ordinal.toInt()] as CharSequence
-
     inline fun <R> fieldByName(
             name: CharSequence,
             ifFound: (FieldDef<SELF, *, *>) -> R,
@@ -217,11 +214,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
         return -1
     }
 
-    // types
-
-    inline fun <T, DT : DataType<T>> typeOf(field: FieldDef<SELF, T, DT>): DT =
-            namesTypesDefaults()[3 * field.ordinal.toInt() + 1] as DT
-
     // defaults
 
     inline fun <T> defaultOrElse(field: FieldDef<SELF, T, *>, orElse: () -> T): T =
@@ -236,8 +228,8 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
             _fieldNamesTypesDefaults ?: fields.let { _fieldNamesTypesDefaults!! }
 
     // the following extensions will be un-shadowed after removal of members
-    inline val FieldDef<SELF, *, *>.name: CharSequence get() = nameOf(this)
-    inline val <T, DT : DataType<T>> FieldDef<SELF, T, DT>.type: DT get() = typeOf(this)
+    val FieldDef<SELF, *, *>.name: CharSequence get() = namesTypesDefaults()[3 * ordinal.toInt()] as CharSequence
+    val <T, DT : DataType<T>> FieldDef<SELF, T, DT>.type: DT get() = namesTypesDefaults()[3 * this.ordinal.toInt() + 1] as DT
 
 }
 
@@ -375,11 +367,11 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
         check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
     }
 
-    override fun name(mySchema: SCH): CharSequence = // this should take self name from Schema in future
-            mySchema.nameOf(this).also { check(it === name) }
+    override fun name(mySchema: SCH): CharSequence = // should be `mySchema.run { name }`
+        (mySchema.namesTypesDefaults()[3 * ordinal.toInt()] as CharSequence).also { check(it === name) }
 
     override fun type(mySchema: SCH): DT =
-            mySchema.typeOf(this).also { check(it === type) }
+        (mySchema.namesTypesDefaults()[3 * this.ordinal.toInt() + 1] as DT).also { check(it === type) }
 
     @JvmSynthetic @JvmField internal val _default = default
 

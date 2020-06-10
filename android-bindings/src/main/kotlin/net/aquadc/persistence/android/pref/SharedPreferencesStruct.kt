@@ -32,7 +32,10 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         this.values = Array(fields.size) { i ->
             val field = fields[i]
             val value = source[field]
-            sch.typeOf(field as FieldDef<SCH, Any?, DataType<Any?>>).put(ed, sch.nameOf(field).toString(), value)
+            field as FieldDef<SCH, Any?, DataType<Any?>>
+            sch.run {
+                field.type.put(ed, field.name.toString(), value)
+            }
 
             field.foldOrdinal(
                 ifMutable = { ManagedProperty(manager, field, null, value) },
@@ -125,8 +128,8 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
 
         private val ed = prefs.edit()
 
-        override fun <T> set(field: MutableField<SCH, T, *>, update: T) {
-            schema.typeOf(field as MutableField<SCH, T, out DataType<T>>).put(ed, schema.nameOf(field).toString(), update)
+        override fun <T> set(field: MutableField<SCH, T, *>, update: T): Unit = schema.run {
+            (field as MutableField<SCH, T, out DataType<T>>).type.put(ed, field.name.toString(), update)
         }
 
         override fun close() {

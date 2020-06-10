@@ -75,9 +75,11 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
         fields: FieldSet<SCH, FieldDef<SCH, *, *>>
 ) {
     beginObject()
-    struct.schema.forEach(fields) { field ->
-        name(nameOf(field).toString())
-        writeValueFrom(struct, field)
+    struct.schema.run {
+        forEach(fields) { field ->
+            name(field.name.toString())
+            writeValueFrom(struct, field)
+        }
     }
     endObject()
 }
@@ -98,7 +100,8 @@ fun <T> JsonWriter.write(type: DataType<T>, value: T): Nothing =
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =
-        struct.schema.typeOf(field as FieldDef<SCH, T, DataType<T>>).tokensFrom(struct.getOrThrow(field)).writeTo(this)
+        struct.schema.run { (field as FieldDef<SCH, T, DataType<T>>).type }
+            .tokensFrom(struct.getOrThrow(field)).writeTo(this)
 
 // STREAMS
 

@@ -14,7 +14,7 @@ import java.lang.Double as JavaLangDouble
 
 
 internal fun <SCH : Schema<SCH>, T> SCH.get(what: FieldDef<SCH, T, *>, prefs: SharedPreferences): T {
-    val value = typeOf(what as FieldDef<SCH, T, DataType<T>>).get(prefs, nameOf(what).toString())
+    val value = (what as FieldDef<SCH, T, DataType<T>>).type.get(prefs, what.name.toString())
     return if (value !== Unset) value else
         defaultOrElse(what) { throw NoSuchElementException(what.toString()/* no value in shared prefs and no default */) }
 }

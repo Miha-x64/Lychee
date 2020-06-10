@@ -40,7 +40,7 @@ abstract class BaseStruct<SCH : Schema<SCH>>(
     override fun toString(): String = buildString {
         append(this@BaseStruct.javaClass.simpleName).append(':').append(schema.javaClass.simpleName).append('(')
         schema.forEach(fields) { field ->
-            append(nameOf(field)).append('=').append(getOrThrow(field).realToString()).append(", ")
+            append(schema.run { field.name }).append('=').append(getOrThrow(field).realToString()).append(", ")
         }
         if (!fields.isEmpty) {
             setLength(length - 2)

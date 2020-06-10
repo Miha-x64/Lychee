@@ -66,7 +66,7 @@ val WeNeedToGoDeeper = tableOf(goDeeper, "deeper", "_id", i64) {
       , embed(SnakeCase, Second)
       , embed(SnakeCase, Second / WithNullableNested.Nested, "fieldSet")
       , embed(SnakeCase, Third, "which")
-      , embed(SnakeCase, Third % goDeeper.typeOf(goDeeper.Third).schema.Second, "fieldSet")
+      , embed(SnakeCase, Third % goDeeper.run { goDeeper.Third.type }.schema.Second, "fieldSet")
     )
 }
 

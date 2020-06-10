@@ -208,7 +208,7 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
         else buildString {
             append('[')
             forEach<SCH, FieldDef<SCH, *, *>>(fields) { field ->
-                append(nameOf(field)).append(", ")
+                append(field.name).append(", ")
             }
             setLength(length - 2)
             append(']')
