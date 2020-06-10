@@ -42,7 +42,6 @@ import okhttp3.Response
 import okio.BufferedSink
 import okio.Okio
 import java.io.IOException
-import java.net.URLEncoder
 import java.util.concurrent.Callable
 import java.util.concurrent.Executor
 import java.util.concurrent.Future
@@ -314,19 +313,4 @@ fun <T> future(
 ): (OkHttpClient, Request, Resp<T>) -> Future<T> =
     { client, request, body ->
         FutureTask(Callable { client.newCall(request).execute().parse(body) }).also(executor::execute)
-    }
-
-fun <T> callback(
-    parse: Response.(Resp<T>) -> T,
-    callbackExecutor: Executor, callback: (T?, IOException?) -> Unit
-): (OkHttpClient, Request, Resp<T>) -> Call =
-    { client, request, body ->
-        client.newCall(request).also { it.enqueue(object : Callback {
-            override fun onResponse(call: Call?, response: Response): Unit =
-                call(response.parse(body), null)
-            override fun onFailure(call: Call?, e: IOException): Unit =
-                call(null, e)
-            private fun call(t: T?, e: IOException?): Unit =
-                callbackExecutor.execute { callback(t, e) }
-        }) }
     }

@@ -13,7 +13,7 @@ import java.io.IOException
 
 // we're in a separate file/class to avoid warnings if kotlinx.coroutines are not on the classpath
 
-fun <T> async(
+fun <T> defer(
     parse: Response.(Resp<T>) -> T
 ): (OkHttpClient, Request, Resp<T>) -> Deferred<T> =
     { client, request, body ->

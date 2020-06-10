@@ -9,12 +9,11 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CompletionStage
 
 
 fun <T> completable(
     parse: Response.(Resp<T>) -> T
-): (OkHttpClient, Request, Resp<T>) -> CompletionStage<T> =
+): (OkHttpClient, Request, Resp<T>) -> CompletableFuture<T> =
     { client, request, body ->
         val future = CompletableFuture<T>()
         val call = client.newCall(request)

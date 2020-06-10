@@ -4,7 +4,11 @@ import io.undertow.Undertow
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.form.FormDataParser
 import io.undertow.server.handlers.form.FormParserFactory
+import kotlinx.coroutines.runBlocking
 import net.aquadc.lychee.http.client.okhttp3.blocking
+import net.aquadc.lychee.http.client.okhttp3.completable
+import net.aquadc.lychee.http.client.okhttp3.defer
+import net.aquadc.lychee.http.client.okhttp3.future
 import net.aquadc.lychee.http.client.okhttp3.template
 import net.aquadc.lychee.http.param.Field
 import net.aquadc.lychee.http.param.Header
@@ -23,6 +27,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.util.UUID
+import java.util.concurrent.Executors
 
 
 class OkClientTest {
@@ -156,6 +161,31 @@ class OkClientTest {
         assertEquals("Unnamed", rqName)
         assertEquals(id, rqId)
         assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1), rqBytes)
+    }
+
+    @Test fun future() {
+        val get = GET("/", Response<Unit>())
+        server = undertow { it.responseSender.send("ok") }
+        val executor = Executors.newSingleThreadExecutor()
+        val doGet = client.template(baseUrl, get, future(executor) { body?.close(); Unit })
+        doGet().get()
+        executor.shutdown()
+    }
+
+    @Test fun cf() {
+        val get = GET("/", Response<Unit>())
+        server = undertow { it.responseSender.send("ok") }
+        val doGet = client.template(baseUrl, get, completable { body?.close(); Unit })
+        doGet().get()
+    }
+
+    @Test fun coroutine() {
+        val get = GET("/", Response<Unit>())
+        server = undertow { it.responseSender.send("ok") }
+        val doGet = client.template(baseUrl, get, defer { body?.close(); Unit })
+        runBlocking {
+            doGet().await()
+        }
     }
 
     private fun undertow(handler: (HttpServerExchange) -> Unit): Undertow =
