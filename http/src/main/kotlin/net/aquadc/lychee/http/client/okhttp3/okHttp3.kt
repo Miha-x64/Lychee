@@ -29,8 +29,6 @@ import net.aquadc.lychee.http.param.Resp
 import net.aquadc.persistence.FuncXImpl
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.type.DataType
-import okhttp3.Call
-import okhttp3.Callback
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.MediaType
@@ -41,7 +39,6 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okio.BufferedSink
 import okio.Okio
-import java.io.IOException
 import java.util.concurrent.Callable
 import java.util.concurrent.Executor
 import java.util.concurrent.Future
@@ -51,74 +48,74 @@ import java.util.concurrent.FutureTask
 inline fun <B, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint0<*, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): () -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint1<*, out Param<T>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint2<*, *, out Param<T1>, out Param<T2>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, T3, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint3<*, *, out Param<T1>, out Param<T2>, out Param<T3>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, T3, T4, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint4<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, T3, T4, T5, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint5<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, T3, T4, T5, T6, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint6<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5, T6) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, T3, T4, T5, T6, T7, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint7<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5, T7) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint8<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, out Param<T8>, B>,
-    noinline execute: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5, T7, T8) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, execute)
+    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 
 @PublishedApi internal class OkHttpMethod<B, R>(
@@ -126,7 +123,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
     private val baseUrl: CharSequence?,
     private val endpoint: Endpoint<*, B>,
     private val headers: Array<out CharSequence>,
-    private val execute: (OkHttpClient, Request, Resp<B>) -> R
+    private val adapt: (OkHttpClient, Request, Resp<B>) -> R
 ) : FuncXImpl<Any?, R>() {
     private val multipart = endpoint.params.any { it is Part<*> || it is Parts<*> }
     override fun invokeUnchecked(vararg args: Any?): R {
@@ -179,7 +176,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
             request.addHeader(headers[i].toString(), headers[i + 1].toString())
         }
 
-        return execute(
+        return adapt(
             client,
             request
                 .method(endpoint.method.name, body)
