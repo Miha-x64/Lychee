@@ -58,7 +58,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
     @JvmSynthetic internal fun tmpFields() =
             tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 
-    private var mutableFieldBits = 0L
+    @JvmField @JvmSynthetic internal var mutableFieldBits = 0L
 
     /** A set of all fields of [this] [Schema]. */
     val allFieldSet: FieldSet<SELF, FieldDef<SELF, *, *>>

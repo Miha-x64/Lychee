@@ -24,7 +24,7 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 
-private val EmptyArray = emptyArray<Any?>()
+@JvmField @JvmSynthetic internal val EmptyArray = emptyArray<Any?>()
 fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.NotNull.Partial<PartialStruct<SCH>, SCH> =
         object : DataType.NotNull.Partial<PartialStruct<SCH>, SCH>(schema) {
 
