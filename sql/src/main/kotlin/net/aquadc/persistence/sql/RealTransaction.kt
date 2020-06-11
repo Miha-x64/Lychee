@@ -7,6 +7,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.size
 import net.aquadc.properties.internal.Unset
 import java.lang.ref.WeakReference
 import java.util.BitSet
@@ -68,7 +69,7 @@ internal class RealTransaction(
         checkOpenAndThread()
         val updates = (updated ?: UpdatesMap().also { updated = it })
                 .getOrPut(table, ::newMap)
-                .getOrPut(id) { Array<Any?>(table.schema.mutableFields.size) { Unset } }
+                .getOrPut(id) { Array<Any?>(table.schema.mutableFieldSet.size) { Unset } }
 
         table.delegateFor(field).update(lowSession, table, field, id, previous, value)
         updates[field.mutableOrdinal.toInt()] = value
@@ -148,7 +149,7 @@ internal class RealTransaction(
                     if (updatedCols === null) updatedCols = BitSet(table.columns.size)
 
                     upd[table]?.values?.forEach { values ->
-                        for (i in table.schema.mutableFields.indices) {
+                        for (i in 0 until table.schema.mutableFieldSet.size) {
                             if (values[i] !== Unset) updatedCols.set(i)
                         }
                     }

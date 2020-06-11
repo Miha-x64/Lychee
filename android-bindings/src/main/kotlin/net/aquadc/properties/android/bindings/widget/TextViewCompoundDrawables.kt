@@ -74,13 +74,6 @@ class DrawableBindingStub internal constructor(
     /**
      * Binds drawable at [position] to the given [property]'s [DrawableRes] value.
      */
-    @Deprecated("renamed", ReplaceWith("this.toRes(property)"), DeprecationLevel.ERROR)
-    @JvmName("toRes_overloaded")
-    inline fun to(property: Property<Int>): Nothing = throw AssertionError()
-
-    /**
-     * Binds drawable at [position] to the given [property]'s [DrawableRes] value.
-     */
     inline fun toRes(property: Property<Int>): Unit = bind(property)
 
     @PublishedApi

@@ -64,22 +64,6 @@ internal constructor(
     override fun <T> prop(field: MutableField<SCH, T, *>): SqlProperty<T> =
             values[field.ordinal.toInt()] as SqlProperty<T>
 
-    @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
-    @Suppress("UNCHECKED_CAST") // id is not nullable, so Record<ForeSCH> won't be, too
-    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound>
-            FieldDef.Mutable<SCH, ForeID, *>.toOne(foreignTable: Table<ForeSCH, ForeID>): SqlProperty<Record<ForeSCH, ForeID>> =
-            throw AssertionError()
-
-    @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
-    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound>
-            FieldDef.Mutable<SCH, ForeID?, *>.toOneNullable(foreignTable: Table<ForeSCH, ForeID>): SqlProperty<Record<ForeSCH, ForeID>?> =
-            throw AssertionError()
-
-    @Deprecated("now we have normal relations", level = DeprecationLevel.ERROR)
-    infix fun <ForeSCH : Schema<ForeSCH>, ForeID : IdBound>
-            FieldDef.Mutable<ForeSCH, ID, *>.toMany(foreignTable: Table<ForeSCH, ForeID>): Property<List<Record<ForeSCH, ForeID>>> =
-            throw AssertionError()
-
     @JvmField @JvmSynthetic @Suppress("UNCHECKED_CAST")
     internal val values: Array<Any?/* = ManagedProperty<Transaction, T> | T */> =
             session[table as Table<SCH, ID>].let { dao ->

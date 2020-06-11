@@ -22,8 +22,6 @@ enum class Token(internal val delta: Int) {
         override fun coerce(value: Any?): Any? =
                 if (value is Boolean) value else throw IllegalArgumentException("expected $Bool but was $value")
     },
-    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I8(0),
-    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR) I16(0),
     I32(0), I64(0),
     F32(0), F64(0),
     Str(0) {

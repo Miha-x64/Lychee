@@ -14,17 +14,6 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
     override fun readByte(input: Parcel): Byte =
             input.readByte()
 
-    @Deprecated("does not look very useful")
-    override fun readShort(input: Parcel): Short =
-            input.readInt().assertFitsShort()
-
-    private fun Int.assertFitsShort(): Short {
-        require(this in Short.MIN_VALUE..Short.MAX_VALUE) {
-            "value $this cannot be fit into ${Short::class.java.simpleName}"
-        }
-        return toShort()
-    }
-
     override fun readInt(input: Parcel): Int =
             input.readInt()
 
@@ -41,10 +30,6 @@ object ParcelIo : BetterDataInput<Parcel>, BetterDataOutput<Parcel> {
 
     override fun writeByte(output: Parcel, byte: Byte): Unit =
             output.writeByte(byte)
-
-    @Deprecated("does not look very useful")
-    override fun writeShort(output: Parcel, short: Short): Unit =
-            output.writeInt(short.toInt())
 
     override fun writeInt(output: Parcel, int: Int): Unit =
             output.writeInt(int)

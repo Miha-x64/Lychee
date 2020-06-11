@@ -42,44 +42,24 @@ private class SimpleNoOp<T>(kind: Kind) : DataType.NotNull.Simple<T>(kind) {
 @JvmField val bool: DataType.NotNull.Simple<Boolean> = SimpleNoOp(DataType.NotNull.Simple.Kind.Bool)
 
 /**
- * Describes [Byte] instances.
- */
-@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-val i8: Nothing get() = throw AssertionError()
-@Deprecated("renamed", ReplaceWith("i8"), level = DeprecationLevel.ERROR)
-val byte: Nothing get() = throw AssertionError()
-
-/**
- * Describes [Short] instances.
- */
-@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-val i16: Nothing get() = throw AssertionError()
-@Deprecated("renamed", ReplaceWith("i16"), level = DeprecationLevel.ERROR)
-val short: Nothing get() = throw AssertionError()
-
-/**
  * Describes [Int] instances.
  */
 @JvmField val i32: DataType.NotNull.Simple<Int> = SimpleNoOp(DataType.NotNull.Simple.Kind.I32)
-@JvmField @Deprecated("renamed", ReplaceWith("i32"), level = DeprecationLevel.ERROR) val int = i32
 
 /**
  * Describes [Long] instances.
  */
 @JvmField val i64: DataType.NotNull.Simple<Long> = SimpleNoOp(DataType.NotNull.Simple.Kind.I64)
-@JvmField @Deprecated("renamed", ReplaceWith("i64"), level = DeprecationLevel.ERROR) val long = i64
 
 /**
  * Describes [Float] instances.
  */
 @JvmField val f32: DataType.NotNull.Simple<Float> = SimpleNoOp(DataType.NotNull.Simple.Kind.F32)
-@JvmField @Deprecated("renamed", ReplaceWith("f32"), level = DeprecationLevel.ERROR) val float = f32
 
 /**
  * Describes [Double] instances.
  */
 @JvmField val f64: DataType.NotNull.Simple<Double> = SimpleNoOp(DataType.NotNull.Simple.Kind.F64)
-@JvmField @Deprecated("renamed", ReplaceWith("f64"), level = DeprecationLevel.ERROR) val double = f64
 
 /**
  * Describes [String] instances.
@@ -177,4 +157,4 @@ typealias SimpleValue = Any
 typealias AnyCollection = Any
 // @see fatMap, fatMapTo, fatAsList, don't forget to update them
 
-typealias SimpleNullable<T> = DataType.Nullable<T, DataType.NotNull.Simple<T>>
+typealias SimpleNullable<T> = DataType.Nullable<T, DataType.NotNull.Simple<T>> // todo kill me plz

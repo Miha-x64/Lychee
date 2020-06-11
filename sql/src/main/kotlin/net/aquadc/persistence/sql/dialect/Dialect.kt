@@ -32,8 +32,9 @@ interface Dialect {
     /**
      * Appends WHERE clause (without WHERE itself) to [this] builder.
      */
-    @Deprecated("unused by Session")
-    fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(context: Table<SCH, *>, condition: WhereCondition<SCH>): StringBuilder
+    @Deprecated("unused by Session", level = DeprecationLevel.ERROR)
+    fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(context: Table<SCH, *>, condition: WhereCondition<SCH>): Nothing =
+        throw AssertionError()
 
     /**
      * Appends ORDER clause (without ORDER BY itself) to [this] builder.

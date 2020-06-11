@@ -20,8 +20,9 @@ interface BetterDataOutput<D> {
     /**
      * Writes a single [short] into [output].
      */
-    @Deprecated("does not look very useful")
-    fun writeShort(output: D, short: Short)
+    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
+    fun writeShort(output: D, short: Short): Nothing =
+        throw AssertionError()
 
     /**
      * Writes a single [int] into [output].
@@ -60,8 +61,9 @@ interface BetterDataInput<D> {
     /**
      * Reads a single short from the [input].
      */
-    @Deprecated("does not look very useful")
-    fun readShort(input: D): Short
+    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
+    fun readShort(input: D): Nothing =
+        throw AssertionError()
 
     /**
      * Reads a single int from the [input].
@@ -95,10 +97,6 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
     override fun readByte(input: DataInput): Byte =
             input.readByte()
 
-    @Deprecated("does not look very useful")
-    override fun readShort(input: DataInput): Short =
-            input.readShort()
-
     override fun readInt(input: DataInput): Int =
             input.readInt()
 
@@ -120,10 +118,6 @@ object DataStreams : BetterDataInput<DataInput>, BetterDataOutput<DataOutput> {
 
     override fun writeByte(output: DataOutput, byte: Byte): Unit =
             output.writeByte(byte.toInt())
-
-    @Deprecated("does not look very useful")
-    override fun writeShort(output: DataOutput, short: Short): Unit =
-            output.writeShort(short.toInt())
 
     override fun writeInt(output: DataOutput, int: Int): Unit =
             output.writeInt(int)

@@ -113,8 +113,7 @@ fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.selectAll(vararg order: Order
 fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.count(): Property<Long> =
         count(emptyCondition())
 
-@Deprecated("unintentionally exposed private API. Looks useless")
-@JvmField val NoOrder = emptyArray<Order<Nothing>>()
+@JvmField internal val NoOrder = emptyArray<Order<Nothing>>()
 internal inline fun <SCH : Schema<SCH>> noOrder(): Array<Order<SCH>> = NoOrder as Array<Order<SCH>>
 
 
@@ -175,9 +174,6 @@ interface Transaction : Closeable {
     }
 
 }
-
-@Deprecated("moved", level = DeprecationLevel.ERROR) typealias JdbcSession = net.aquadc.persistence.sql.blocking.JdbcSession
-@Deprecated("moved", level = DeprecationLevel.ERROR) typealias SqliteSession = net.aquadc.persistence.sql.blocking.SqliteSession
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun <SCH : Schema<SCH>, ID : IdBound>

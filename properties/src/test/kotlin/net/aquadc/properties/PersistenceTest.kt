@@ -21,7 +21,6 @@ import net.aquadc.properties.propertyOf as ump
 class PersistenceTest : PersistableProperties {
 
     private val bo = ump(true)
-    private val by = ump(0xF6.toByte())
     private val it = ump(2_000_000)
     private val lo = ump(200_000_000_000)
     private val fl = ump(100500.9f)
@@ -34,7 +33,6 @@ class PersistenceTest : PersistableProperties {
 
     private fun moveToState1() {
         bo.value = true
-        by.value = 0xF6.toByte()
         it.value = 2_000_000
         lo.value = 200_000_000_000
         fl.value = 100500.9f
@@ -48,7 +46,6 @@ class PersistenceTest : PersistableProperties {
 
     private fun assertInState1() {
         assertTrue(bo.value)
-        assertEquals(0xF6.toByte(), by.value)
         assertEquals(2_000_000, it.value)
         assertEquals(200_000_000_000, lo.value)
         assertEquals(100500.9f, fl.value)
@@ -60,7 +57,6 @@ class PersistenceTest : PersistableProperties {
 
     private fun moveToState2() {
         bo.clear()
-        by.value = 4
         it.value = -2_147_000_111
         lo.value = Long.MIN_VALUE
         fl.value = -987.65432f
@@ -72,7 +68,6 @@ class PersistenceTest : PersistableProperties {
 
     private fun assertInState2() {
         assertFalse(bo.value)
-        assertEquals(4.toByte(), by.value)
         assertEquals(-2_147_000_111, it.value)
         assertEquals(Long.MIN_VALUE, lo.value)
         assertEquals(-987.65432f, fl.value)
@@ -111,7 +106,7 @@ class PersistenceTest : PersistableProperties {
     }
 
     override fun saveOrRestore(io: PropertyIo) {
-        io x bo; io x by; io x it; io x lo; io x fl; io x dl
+        io x bo; io x it; io x lo; io x fl; io x dl
         io x bya
         io x str; io x stl
     }

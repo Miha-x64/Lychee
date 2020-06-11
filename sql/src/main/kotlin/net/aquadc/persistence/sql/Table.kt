@@ -53,7 +53,7 @@ private constructor(
      * Returns all relations for this table.
      * This must describe how to store all [Struct] columns relationally.
      */
-    @Deprecated("now override meta() for relations, indices, type overrides, etc")
+    @Deprecated("now override meta() for relations, indices, type overrides, etc", level = DeprecationLevel.ERROR)
     protected open fun relations(): Array<out ColMeta<SCH>> = noMeta as Array<out ColMeta<SCH>>
 
     /**
@@ -62,7 +62,7 @@ private constructor(
      * Relations could form dependency circles, that's why we don't require them in constructor.
      * This method could mention other tables but must not touch their columns.
      */
-    protected open fun SCH.meta(): Array<out ColMeta<SCH>> = relations()
+    protected open fun SCH.meta(): Array<out ColMeta<SCH>> = noMeta as Array<out ColMeta<SCH>>
 
     @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null
     @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
@@ -303,11 +303,8 @@ private constructor(
     private var _columnsByName: Map<String, StoredNamedLens<SCH, *, *>>? = null
 
     @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals()")
-    val columnsByName: Map<String, StoredNamedLens<SCH, *, *>>
-        get() = _columnsByName
-                ?: columns.let { cols ->
-                    cols.associateByTo(newMap(cols.size), { it.name(schema).toString() })
-                }.also { _columnsByName = it }
+    val columnsByName: Nothing
+        get() = throw AssertionError()
 
 
     private var _columnIndices: Map<StoredNamedLens<SCH, *, *>, Int>? = null
@@ -375,7 +372,7 @@ private constructor(
 /**
  * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
  */
-@Deprecated("normal Table is Simple enough", ReplaceWith("Table"))
+@Deprecated("normal Table is Simple enough", ReplaceWith("Table"), DeprecationLevel.ERROR)
 typealias SimpleTable<SCH, ID> = Table<SCH, ID>
 
 @Suppress("NOTHING_TO_INLINE") // pass-through

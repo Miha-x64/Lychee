@@ -59,17 +59,6 @@ import java.io.DataOutputStream
         return sb.toString()
     }
 
-    override fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(
-            context: Table<SCH, *>,
-            condition: WhereCondition<SCH>
-    ): StringBuilder = apply {
-        val afterWhere = length
-        condition.appendSqlTo(context, this@BaseDialect, this)
-
-        // no condition: SELECT "whatever" FROM "somewhere" WHERE true
-        if (length == afterWhere) append(if (this@BaseDialect === SqliteDialect) "1" else "true")
-    }
-
     override fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(
             schema: SCH, order: Array<out Order<SCH>>
     ): StringBuilder = apply {

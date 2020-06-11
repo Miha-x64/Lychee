@@ -27,12 +27,6 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         DA.times(second: DB): Tuple<A, DA, B, DB> =
         Tuple("first", this, "second", second)
 
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>>
-        Tuple<A, DA, B, DB>.build(
-        first: A, second: B
-): Nothing = throw AssertionError()
-
 /** Creates an instance of a [Tuple] according to [this] schema. */
 @JvmName("newTuple")
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
@@ -83,12 +77,6 @@ class Tuple3<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>(
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple<A, DA, B, DB>.times(third: DC): Tuple3<A, DA, B, DB, C, DC> =
         Tuple3("first", First.type, "second", Second.type, "third", third)
-
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
-        Tuple3<A, DA, B, DB, C, DC>.build(
-        first: A, second: B, third: C
-): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple3] according to [this] schema. */
 @JvmName("newTuple")
@@ -149,12 +137,6 @@ class Tuple4<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         Tuple3<A, DA, B, DB, C, DC>.times(fourth: DD): Tuple4<A, DA, B, DB, C, DC, D, DD> =
         Tuple4("first", First.type, "second", Second.type, "third", Third.type, "fourth", fourth)
-
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
-        Tuple4<A, DA, B, DB, C, DC, D, DD>.build(
-        first: A, second: B, third: C, fourth: D
-): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple4] according to [this] schema. */
 @JvmName("newTuple")
@@ -224,12 +206,6 @@ class Tuple5<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         Tuple4<A, DA, B, DB, C, DC, D, DD>.times(fifth: DE): Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE> =
         Tuple5("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", fifth)
-
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
-        Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.build(
-        first: A, second: B, third: C, fourth: D, fifth: E
-): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple5] according to [this] schema. */
 @JvmName("newTuple")
@@ -308,12 +284,6 @@ class Tuple6<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.times(sixth: DF): Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF> =
         Tuple6("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", sixth)
-
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
-        Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.build(
-        first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
-): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple6] according to [this] schema. */
 @JvmName("newTuple")
@@ -401,12 +371,6 @@ class Tuple7<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.times(seventh: DG): Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG> =
         Tuple7("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", seventh)
-
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
-        Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.build(
-        first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
-): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple7] according to [this] schema. */
 @JvmName("newTuple")
@@ -503,12 +467,6 @@ class Tuple8<A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, D
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.times(eighth: DH): Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH> =
         Tuple8("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", Seventh.type, "eighth", eighth)
-
-@Deprecated("renamed", ReplaceWith("this.invoke(first, second, third, fourth, fifth, sixth, seventh, eighth)", "net.aquadc.persistence.extended.invoke"), DeprecationLevel.ERROR)
-inline fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
-        Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.build(
-        first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H
-): Nothing = throw AssertionError()
 
 /** Creates an instance of a [Tuple8] according to [this] schema. */
 @JvmName("newTuple")

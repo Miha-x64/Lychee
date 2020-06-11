@@ -15,7 +15,6 @@ import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
-import net.aquadc.persistence.sql.NoOrder
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
@@ -211,7 +210,7 @@ class SqliteSession(
                 select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID>, condition: WhereCondition<SCH>): Long =
-                select<SCH, ID>(table, null, condition, NoOrder as Array<out Order<SCH>>).fetchSingle(i64)
+                select<SCH, ID>(table, null, condition, noOrder()).fetchSingle(i64)
 
         override val transaction: RealTransaction?
             get() = this@SqliteSession.transaction

@@ -48,23 +48,23 @@ inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *, *>) 
 /**
  * Returns a set with all fields of [this] [Schema].
  */
-@Deprecated("use member property instead", ReplaceWith("this.allFieldSet"))
-inline fun <SCH : Schema<SCH>> SCH.allFieldSet(): FieldSet<SCH, FieldDef<SCH, *, *>> =
-        allFieldSet
+@Deprecated("use member property instead", ReplaceWith("this.allFieldSet"), DeprecationLevel.ERROR)
+inline fun <SCH : Schema<SCH>> SCH.allFieldSet(): Nothing =
+    throw AssertionError()
 
 /**
  * Returns a set of all [MutableField]s of [this] [Schema].
  */
-@Deprecated("use member property instead", ReplaceWith("this.mutableFieldSet"))
-inline fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): FieldSet<SCH, MutableField<SCH, *, *>> =
-        mutableFieldSet
+@Deprecated("use member property instead", ReplaceWith("this.mutableFieldSet"), DeprecationLevel.ERROR)
+inline fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): Nothing =
+    throw AssertionError()
 
 /**
  * Returns a set of all [ImmutableField]s of [this] [Schema].
  */
-@Deprecated("use member property instead", ReplaceWith("this.immutableFieldSet"))
-inline fun <SCH : Schema<SCH>> SCH.immutableFieldSet(): FieldSet<SCH, ImmutableField<SCH, *, *>> =
-        immutableFieldSet
+@Deprecated("use member property instead", ReplaceWith("this.immutableFieldSet"), DeprecationLevel.ERROR)
+inline fun <SCH : Schema<SCH>> SCH.immutableFieldSet(): Nothing =
+    throw AssertionError()
 
 
 /**

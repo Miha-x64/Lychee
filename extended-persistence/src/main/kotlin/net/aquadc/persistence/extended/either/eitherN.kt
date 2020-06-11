@@ -68,28 +68,3 @@ sealed class Either8<out A, out B, out C, out D, out E, out F, out G, out H>(
     override fun toString(): String =
             "Either.$_which(${_value.realToString()})"
 }
-
-// nested types are not visible through typealiases
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherLeft<A> = Either8<A, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherRight<B> = Either8<Nothing, B, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherThird<C> = Either8<Nothing, Nothing, C, Nothing, Nothing, Nothing, Nothing, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherFourth<D> = Either8<Nothing, Nothing, Nothing, D, Nothing, Nothing, Nothing, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherFifth<E> = Either8<Nothing, Nothing, Nothing, Nothing, E, Nothing, Nothing, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherSixth<F> = Either8<Nothing, Nothing, Nothing, Nothing, Nothing, F, Nothing, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherSeventh<G> = Either8<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, G, Nothing>
-
-@Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-typealias EitherEighth<H> = Either8<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, H>

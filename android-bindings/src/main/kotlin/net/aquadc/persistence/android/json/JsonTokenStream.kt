@@ -118,7 +118,7 @@ import java.io.Writer
                     if (isName) _path.onName(value) else _path.afterValue()
                     value
                 }
-                else -> throw AssertionError() // already handled by map or deprecated I8/I16
+                else -> throw AssertionError() // already handled by map
             }
             if (coerceTo in Token.Numbers) _path.afterValue()
             value

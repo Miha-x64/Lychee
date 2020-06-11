@@ -1,6 +1,7 @@
 @file:JvmName("ReadTokens")
 package net.aquadc.persistence.tokens
 
+import android.util.JsonReader
 import net.aquadc.collections.enumMapOf
 import net.aquadc.collections.get
 import net.aquadc.collections.set
@@ -21,6 +22,12 @@ import net.aquadc.persistence.type.DataType
 
 /**
  * Read these tokens as [type].
+ *
+ * For [Schema]s and [DataType.NotNull.Partial]s,
+ * this ignores key-value pairs not listed in schema,
+ * and consumes both opening and closing curly braces.
+ * Throws an exception if there was no value for any [FieldDef] without a default value,
+ * or if [JsonReader] met unexpected token for the given [Schema.type].
  */
 @Suppress("UNCHECKED_CAST")
 fun <T> TokenStream.readAs(type: DataType<T>): T {
@@ -67,8 +74,12 @@ private val fieldValues = ThreadLocal<ArrayList<Any?>>()
 /**
  * Collect these tokens as a sequence of [type] to a [List].
  * This asserts that next token is [Token.BeginSequence] and consumes the whole bracket sequence.
+ *
+ * Each value is read using [readAs].
+ *
  * @see readAs
  * @see iteratorOf
+ * @see iteratorOfTransient
  */
 fun <T> TokenStream.readListOf(type: DataType<T>): List<T> {
     // TODO: when [type] is primitive, use specialized collections

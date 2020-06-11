@@ -10,18 +10,6 @@ import net.aquadc.persistence.type.i64
 
 
 /**
- * Stores [ByteArray] instances as collections of [Byte]s.
- */
-@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-val byteCollection: Nothing get() = throw AssertionError()
-
-/**
- * Stores [ShortArray] instances as collections of [Short]s.
- */
-@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-val shortCollection: Nothing get() = throw AssertionError()
-
-/**
  * Stores [IntArray] instances as collections of [Int]s.
  */
 @JvmField

@@ -24,31 +24,6 @@ import java.io.Writer
 
 
 /**
- * Reads a JSON 'array' of values denoted by [type] as a list of [T]s,
- * consuming both opening and closing square braces.
- * Each value is read using [readAs].
- */
-@Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readListOf(type)",
-        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readListOf"), DeprecationLevel.ERROR)
-fun <T> JsonReader.readListOf(type: DataType<T>): Nothing =
-        throw AssertionError()
-
-/**
- * Reads a JSON value denoted by [type] as [T].
- *
- * For [Schema]s and [DataType.NotNull.Partial]s,
- * this ignores key-value pairs not listed in schema,
- * and consumes both opening and closing curly braces.
- * Throws an exception if there was no value for any [FieldDef] without a default value,
- * or if [JsonReader] met unexpected token for the given [Schema.type].
- */
-@Deprecated("use tokens() directly instead", ReplaceWith("this.tokens().readAs(type)",
-        "net.aquadc.persistence.android.json.tokens", "net.aquadc.persistence.tokens.readAs"), DeprecationLevel.ERROR)
-fun <T> JsonReader.read(type: DataType<T>): Nothing =
-        throw AssertionError()
-
-
-/**
  * Writes a list of [Struct]s as a JSON 'array' of 'objects',
  * including both opening and closing square braces.
  * Each object is written using [write] ([Struct], [FieldSet]) overload`.
@@ -83,20 +58,6 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
     }
     endObject()
 }
-
-@Deprecated("use tokens() directly instead", ReplaceWith("struct.tokens().writeTo(this)",
-        "net.aquadc.persistence.tokens.tokens", "net.aquadc.persistence.android.json.writeTo"), DeprecationLevel.ERROR)
-fun <SCH : Schema<SCH>> JsonWriter.write(struct: Struct<SCH>):Nothing =
-        throw AssertionError()
-
-/**
- * Writes a value denoted by [type].
- */
-@Deprecated("use tokens() directly instead", ReplaceWith("type.tokensFrom(value).writeTo(this)",
-        "net.aquadc.persistence.tokens.tokensFrom", "net.aquadc.persistence.android.json.writeTo"), DeprecationLevel.ERROR)
-fun <T> JsonWriter.write(type: DataType<T>, value: T): Nothing =
-        throw AssertionError()
-
 
 @Suppress("NOTHING_TO_INLINE") // just capture T and assert value is present
 private inline fun <SCH : Schema<SCH>, T> JsonWriter.writeValueFrom(struct: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) =

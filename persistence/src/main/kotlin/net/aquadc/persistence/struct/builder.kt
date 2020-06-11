@@ -7,10 +7,6 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-@Deprecated("renamed", ReplaceWith("this.invoke(build)", "net.aquadc.persistence.struct.invoke"), DeprecationLevel.ERROR)
-inline fun <SCH : Schema<SCH>> SCH.build(build: SCH.(StructBuilder<SCH>) -> Unit): Nothing =
-        throw AssertionError()
-
 /**
  * Builds a [StructSnapshot] or throws if field value neither specified explicitly nor has a default.
  */

@@ -101,8 +101,8 @@ import java.sql.SQLFeatureNotSupportedException
             }
 }
 
-@Deprecated("moved") typealias CloseableIterator<T> = CloseableIterator<T>
-@Deprecated("moved") typealias CloseableStruct<SCH> = CloseableStruct<SCH>
+@Deprecated("moved", level = DeprecationLevel.ERROR) typealias CloseableIterator<T> = CloseableIterator<T>
+@Deprecated("moved", level = DeprecationLevel.ERROR) typealias CloseableStruct<SCH> = CloseableStruct<SCH>
 
 private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
     protected val from: Blocking<CUR>,

@@ -37,23 +37,17 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
     private val _fields =
             lazy(LazyFields(0) as () -> Array<out FieldDef<SELF, *, *>>)
 
-    @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals(). Use fieldByName() instead")
+    @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals(). Use fieldByName() instead", level = DeprecationLevel.ERROR)
     val fieldsByName: Map<String, FieldDef<SELF, *, *>>
-        get() = _byName.value
-    private val _byName =
-            lazy(LazyFields(1) as () -> Map<String, FieldDef<SELF, *, *>>)
+        get() = throw AssertionError()
 
-    @Deprecated("use mutableFieldSet instead")
-    val mutableFields: Array<out MutableField<SELF, *, *>>
-        get() = _mutableFields.value
-    private val _mutableFields =
-            lazy(LazyFields(2) as () -> Array<out MutableField<SELF, *, *>>)
+    @Deprecated("use mutableFieldSet instead", level = DeprecationLevel.ERROR)
+    val mutableFields: Nothing
+        get() = throw AssertionError()
 
-    @Deprecated("use immutableFieldSet instead")
-    val immutableFields: Array<out ImmutableField<SELF, *, *>>
-        get() = _immutableFields.value
-    private val _immutableFields =
-            lazy(LazyFields(3) as () -> Array<out ImmutableField<SELF, *, *>>)
+    @Deprecated("use immutableFieldSet instead", level = DeprecationLevel.ERROR)
+    val immutableFields: Nothing
+        get() = throw AssertionError()
 
     @JvmSynthetic internal fun tmpFields() =
             tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
@@ -159,25 +153,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
                 mutableFieldBits = mutBits
                 fields
             }
-
-            1 ->
-                fields.associateByTo(newMap<String, FieldDef<SELF, *, *>>(fields.size), { it.name(schema).toString() })
-
-            2 ->
-                arrayOfNulls<MutableField<SELF, *, *>>(mutableCount.toInt()).also { mut ->
-                    var i = 0
-                    fields.forEach { field ->
-                        if (field is MutableField) mut[i++] = field
-                    }
-                }
-
-            3 ->
-                arrayOfNulls<ImmutableField<SELF, *, *>>(fields.size - mutableCount.toInt()).also { imm ->
-                    var i = 0
-                    fields.forEach { field ->
-                        if (field is ImmutableField) imm[i++] = field
-                    }
-                }
 
             else ->
                 throw AssertionError()
@@ -287,14 +262,6 @@ interface Lens<SCH : Schema<SCH>,
     // re-abstracted for KDoc
 
 }
-
-/**
- * Returns a function which is a special case of this [Lens] for non-partial [Struct]s
- * which implies non-nullable [T] as a return type.
- */
-@Deprecated("not needed anymore", ReplaceWith("this"), DeprecationLevel.ERROR)
-fun <SCH : Schema<SCH>, T> Lens<SCH, PartialStruct<SCH>, Struct<SCH>, T, *>.ofStruct(): Nothing =
-        throw AssertionError()
 
 
 // Damn, dear Kotlin, I just want to return an intersection-type

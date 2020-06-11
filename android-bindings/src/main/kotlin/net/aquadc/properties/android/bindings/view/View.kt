@@ -51,21 +51,6 @@ inline fun View.bindBackgroundResTo(backgroundProperty: Property<Int>): Unit =
         bindBackgroundTo(backgroundProperty, false)
 
 /**
- * Binds background using [View.setBackgroundResource].
- */
-@JvmName("bindBackgroundResourceTo")
-@Deprecated(
-        "renamed",
-        ReplaceWith(
-                "this.bindBackgroundResTo(backgroundProperty)",
-                "net.aquadc.properties.android.bindings.view.bindBackgroundResTo"
-        ),
-        DeprecationLevel.ERROR
-)
-inline fun View.bindBackgroundTo(backgroundProperty: Property<Int>): Nothing =
-        throw AssertionError()
-
-/**
  * Binds background color using [View.setBackgroundColor].
  */
 inline fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
