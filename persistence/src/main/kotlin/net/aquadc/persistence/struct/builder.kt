@@ -98,13 +98,9 @@ inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
     ): FieldSet<SCH, FieldDef<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->
-                    mutateFrom(source, field)
+                    values[field.ordinal.toInt()] = source.getOrThrow(field)
                 }
             }
-    // captures [T] and asserts [field] is present in [source]
-    private inline fun <T> mutateFrom(source: PartialStruct<SCH>, field: FieldDef<SCH, T, *>) {
-        this[field] = source.getOrThrow(field)
-    }
 
     /**
      * Create a [StructSnapshot] unsafely capturing [values] array.
