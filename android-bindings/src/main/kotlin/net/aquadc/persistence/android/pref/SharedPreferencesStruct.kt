@@ -27,10 +27,8 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
      */
     constructor(source: Struct<SCH>, prefs: SharedPreferences) : super(source.schema) {
         val sch = schema
-        val fields = sch.fields
         val ed = prefs.edit()
-        this.values = Array(fields.size) { i ->
-            val field = fields[i]
+        this.values = sch.mapIndexed(sch.allFieldSet) { _, field ->
             val value = source[field]
             field as FieldDef<SCH, Any?, DataType<Any?>>
             sch.run {
@@ -52,14 +50,11 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
      * assuming fields are either have values previously written to [prefs] or have [Schema.defaultOrElse] ones.
      */
     constructor(type: SCH, prefs: SharedPreferences) : super(type) {
-        val fields = type.fields
-        this.values = Array(fields.size) {
-            fields[it].let { field ->
-                field.foldOrdinal(
-                    ifMutable = { ManagedProperty(manager, field as FieldDef<SCH, Any?, DataType<Any?>>, null, Unset) },
-                    ifImmutable = { Unset }
-                )
-            }
+        this.values = type.mapIndexed(type.allFieldSet) { _, field ->
+            field.foldOrdinal(
+                ifMutable = { ManagedProperty(manager, field as FieldDef<SCH, Any?, DataType<Any?>>, null, Unset) },
+                ifImmutable = { Unset }
+            )
         }
         this.prefs = prefs
         prefs.registerOnSharedPreferenceChangeListener(manager)
@@ -67,7 +62,7 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
 
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T {
-        val ordinal = field.ordinal.toInt()
+        val ordinal = field.ordinal
         val value = values[ordinal]
         return field.foldOrdinal(
             ifMutable = { (value as Property<T>).value },

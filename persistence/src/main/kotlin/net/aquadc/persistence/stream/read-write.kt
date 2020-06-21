@@ -9,6 +9,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.AnyCollection
@@ -107,13 +108,13 @@ private fun <SCH : Schema<SCH>, D, T> D.partial(arg: T, nullable: Boolean, type:
             0 -> { /* nothing to do here */ }
             1 -> {
                 val field = schema.single(fields)
-                output.writeByte(this, field.ordinal)
+                output.writeByte(this, field.ordinal.toByte())
                 (schema.run { (field as FieldDef<SCH, Any?, DataType<Any?>>).type }).write(output, this, values)
             }
             else -> { // packed or all
                 values as Array<*>
                 schema.forEachIndexed(fields) { idx, field ->
-                    output.writeByte(this, field.ordinal)
+                    output.writeByte(this, field.ordinal.toByte())
                     (schema.run { (field as FieldDef<SCH, Any?, DataType<Any?>>).type }).write(output, this, values[idx])
                 }
             }
@@ -186,15 +187,14 @@ private fun <T, D, SCH : Schema<SCH>> D.partial(nullable: Boolean, type: DataTyp
                 check(nullable)
                 null as T
             } else {
-                val fields = type.schema.fields
                 var fieldsLeft = size
                 readPartial(
                         type, fieldValues,
-                        { if (fieldsLeft == 0) null else { fieldsLeft--; nextField(fields, input) } },
+                        { if (fieldsLeft == 0) -1 else { fieldsLeft--; nextField(input) } },
                         { input.read(this, it as DataType<Any?>) }
                 )
             }
         }
 
-private fun <D, SCH : Schema<SCH>> D.nextField(fields: Array<out FieldDef<SCH, *, *>>, input: BetterDataInput<D>): FieldDef<SCH, *, *> =
-        fields[input.readByte(this).toInt()]
+private fun <D> D.nextField(input: BetterDataInput<D>): Int =
+    input.readByte(this).toInt()

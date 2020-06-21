@@ -10,7 +10,8 @@ import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.forEach_
+import net.aquadc.persistence.struct.getOrThrow
 import net.aquadc.persistence.struct.intersect
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -162,7 +163,7 @@ interface Transaction : Closeable {
             source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
     ): FieldSet<SCH, MutableField<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
-                source.schema.forEach(intersect) { field ->
+                source.schema.forEach_(intersect) { field ->
                     mutateFrom(source, field) // capture type
                 }
             }

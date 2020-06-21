@@ -1,6 +1,7 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.struct.FieldDef
@@ -12,6 +13,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.contains as originalContains
 import net.aquadc.persistence.struct.indexOf
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.CustomType
 import net.aquadc.persistence.type.DataType
@@ -155,16 +157,16 @@ internal fun inflate(
     var lastMovedFieldIdx = -1
     var depth = 0
     var recipeOffset = _recipeOffset
-    val fields = schema.fields
+    val fields = schema.allFieldSet
     loop@ while (++recipeOffset < recipe.size) { // evaluate nesting commands, start-end pairs with some nesting
         when (val nesting = recipe[recipeOffset]) {
             is Table.Nesting.StructStart -> {
 
                 // gonna recurse and inflate nested stuff, but first let's move preceding field values up
                 val myField = nesting.myField!!
-                while (++lastMovedFieldIdx < myField.ordinal.toInt()) {
+                while (++lastMovedFieldIdx < myField.ordinal) {
                     val value = mutColumnValues[srcPos++]
-                    if (fields[lastMovedFieldIdx] in fieldSet)
+                    if (schema.fieldAt(lastMovedFieldIdx) in fieldSet)
                         mutColumnValues[dstPos++] = value
                 }
 
@@ -191,7 +193,7 @@ internal fun inflate(
     // move all trailing values up — some copy-paste here
     while (++lastMovedFieldIdx < fields.size) {
         val value = mutColumnValues[srcPos++]
-        if (fields[lastMovedFieldIdx] in fieldSet)
+        if (schema.fieldAt(lastMovedFieldIdx) in fieldSet)
             mutColumnValues[dstPos++] = value
     }
 
@@ -233,18 +235,18 @@ internal fun flatten(
                 out[dstPos++] = it.bitSet
             } else erased.schema.allFieldSet as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>
 
-    val fields = start.unwrappedType.schema.fields
+    val schema = start.unwrappedType.schema
     when (fieldSet.size) {
         0 -> { /* nothing to do here */ }
         1 -> {
             val fieldValue = erased.store(value)
-            flattenFieldValues(_recipeOffset, { fieldValue }, recipe, fields, fieldSet, out, dstPos)
+            flattenFieldValues(_recipeOffset, { fieldValue }, recipe, schema, fieldSet, out, dstPos)
         }
         else -> {
             val fieldValues = erased.store(value) as Array<Any?> // fixme allocation
             flattenFieldValues(_recipeOffset, { f ->
-                fieldValues[fieldSet.indexOf<Schema<*>>(f as FieldDef<Schema<*>, *, *>).toInt()]
-            }, recipe, fields, fieldSet, out, dstPos)
+                fieldValues[(fieldSet as FieldSet<NullSchema, FieldDef<NullSchema, *, *>>).indexOf(f as FieldDef<NullSchema, *, *>)]
+            }, recipe, schema, fieldSet, out, dstPos)
         }
     }
 }
@@ -252,7 +254,7 @@ internal fun flatten(
 @Suppress("UPPER_BOUND_VIOLATED")
 private inline fun flattenFieldValues(
         _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *, *>) -> Any?, recipe: Array<out Table.Nesting>,
-        fields: Array<out FieldDef<out Schema<*>, out Any?, *>>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
+        schema: Schema<*>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
         out: Array<Any?>, _dstPos: Int
 ) {
     var dstPos = _dstPos
@@ -265,7 +267,7 @@ private inline fun flattenFieldValues(
                 // gonna recurse and flatten nested stuff, but first let's set all preceding field values up
                 val myField = nesting.myField!!
                 while (++lastSetFieldIdx < myField.ordinal.toInt()) {
-                    val field = fields[lastSetFieldIdx]
+                    val field = schema.fieldAt(lastSetFieldIdx)
                     if (field in fieldSet) out[dstPos] = fieldValue(field)
                     dstPos++
                 }
@@ -294,8 +296,8 @@ private inline fun flattenFieldValues(
     }
 
     // assign trailing values
-    while (++lastSetFieldIdx < fields.size) {
-        val field = fields[lastSetFieldIdx]
+    while (++lastSetFieldIdx < schema.allFieldSet.size) {
+        val field = schema.fieldAt(lastSetFieldIdx)
         if (field in fieldSet) out[dstPos] = fieldValue(field)
         dstPos++
     }
@@ -303,7 +305,7 @@ private inline fun flattenFieldValues(
 
 @Suppress("UPPER_BOUND_VIOLATED", "NOTHING_TO_INLINE")
 private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
-        this != null && this.originalContains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
+        this != null && (this as FieldSet<NullSchema, FieldDef<NullSchema, *, *>>).originalContains(field as FieldDef<NullSchema, *, *>)
 
 internal fun <CUR> Blocking<CUR>.row(
     cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy
@@ -326,7 +328,7 @@ internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell( // todo inline me
 private fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>): Int =
     table.indexOfManaged(column).let { idx ->
         if (idx >= 0) idx
-        else throw NoSuchElementException(table.run { column.name } + " !in " + table.managedColNames.contentToString())
+        else throw NoSuchElementException("${column.name(table.schema)} !in ${table.managedColNames.contentToString()}")
     }
 
 internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(

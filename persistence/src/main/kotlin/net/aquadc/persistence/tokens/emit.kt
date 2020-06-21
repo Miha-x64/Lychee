@@ -56,13 +56,13 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
                 when (fields.size) {
                     0 -> { } // nothing to do here
                     1 -> {
-                        val field = schema.single<Schema<*>, FieldDef<Schema<*>, *, *>>(fields) as FieldDef<Schema<*>, Any?, DataType<Any?>>
+                        val field = schema.single<Schema<Schema<*>>, FieldDef<Schema<*>, *, *>>(fields) as FieldDef<Schema<*>, Any?, DataType<Any?>>
                         yieldString { schema.run { field.name } }
                         yield(schema.run { field.type }, values)
                     }
                     else -> {
                         values as Array<*>
-                        schema.forEachIndexed<Schema<*>, FieldDef<Schema<*>, *, *>>(fields) { idx, field ->
+                        schema.forEachIndexed<Schema<Schema<*>>, FieldDef<Schema<*>, *, *>>(fields) { idx, field ->
                             field as FieldDef<Schema<*>, Any?, DataType<Any?>>
                             yieldString { schema.run { field.name } }
                             yield(schema.run { field.type }, values[idx])

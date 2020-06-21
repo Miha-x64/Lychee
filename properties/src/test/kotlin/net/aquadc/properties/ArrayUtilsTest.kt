@@ -71,7 +71,8 @@ class ArrayUtilsTest {
     }
 
     private fun Array<out Any?>.assertCompact(expectArray: Array<out Any?>, expectIdx: Int) {
-        assertEquals(expectIdx, compact())
+        @Suppress("UNCHECKED_CAST") // type inference has gone wild and can't use type capture
+        assertEquals(expectIdx, (this as Array<Any?>).compact())
         assertArrayEquals(expectArray, this)
     }
 

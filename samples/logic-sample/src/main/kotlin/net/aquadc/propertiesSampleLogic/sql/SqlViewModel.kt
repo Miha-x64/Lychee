@@ -1,6 +1,7 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.sql.*
+import net.aquadc.persistence.struct.get
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.persistence.propertyGetterOf
@@ -10,7 +11,7 @@ class SqlViewModel(
         private val session: Session<*>
 ) {
 
-    private val humanDao get() = session[Human.Tbl]
+    private val humanDao: Dao<Human, Long> get() = session[Human.Tbl]
 
     init {
         fillIfEmpty()
@@ -37,7 +38,7 @@ class SqlViewModel(
     val actionsEnabledProp = selectedProp.map(Objectz.IsNotNull)
 
     val airConditionersTextProp = selectedProp
-            .flatMapNotNullOrDefault(emptyList(), { session[Car.Tbl].select(Car.OwnerId eq it.primaryKey) })
+            .flatMapNotNullOrDefault(emptyList(), { session.get<Car, Long>(Car.Tbl).select(Car.OwnerId eq it.primaryKey) })
             .flatMap { cars: List<Record<Car, Long>> ->
                 cars
                         .map(propertyGetterOf(Car.ConditionerModel))
@@ -80,15 +81,15 @@ class SqlViewModel(
     private fun fillIfEmpty() {
         if (humanDao.count().value == 0L) {
             session.withTransaction {
-                insert(Human.Tbl, Human("Stephen", "Hawking"))
-                val relativist = insert(Human.Tbl, Human("Albert", "Einstein"))
-                insert(Human.Tbl, Human("Dmitri", "Mendeleev"))
-                val electrician = insert(Human.Tbl, Human("Nikola", "Tesla"))
+                insert<Human, Long>(Human.Tbl, Human("Stephen", "Hawking"))
+                val relativist = insert<Human, Long>(Human.Tbl, Human("Albert", "Einstein"))
+                insert<Human, Long>(Human.Tbl, Human("Dmitri", "Mendeleev"))
+                val electrician = insert<Human, Long>(Human.Tbl, Human("Nikola", "Tesla"))
 
                 // don't know anything about their friendship, just a sample
-                insert(Friendship.Tbl, Friendship(relativist.primaryKey, electrician.primaryKey))
+                insert<Friendship, Long>(Friendship.Tbl, Friendship(relativist.primaryKey, electrician.primaryKey))
 
-                val car = insert(Car.Tbl, Car(electrician.primaryKey))
+                val car = insert<Car, Long>(Car.Tbl, Car(electrician.primaryKey))
                 car[Car.ConditionerModel] = "the coolest air cooler"
             }
         }

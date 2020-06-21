@@ -15,6 +15,7 @@ import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.map
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.struct.MutableField
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.type.DataType
 import java.lang.ref.WeakReference
 import java.util.BitSet
@@ -188,7 +189,7 @@ internal class RealDao<SCH : Schema<SCH>, ID : IdBound, STMT>(
 
     override fun <T> getDirty(field: MutableField<SCH, T, out DataType<T>>, id: ID): T {
         val thisRec = lowSession.transaction?.updated?.get(table)?.get(id) ?: return unset()
-        return thisRec[field.mutableOrdinal.toInt()] as T
+        return thisRec[field.mutableOrdinal] as T
     }
 
     override fun <T> getClean(field: FieldDef<SCH, T, *>, id: ID): T =

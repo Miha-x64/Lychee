@@ -1,5 +1,6 @@
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.struct.get
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.properties.ChangeListener

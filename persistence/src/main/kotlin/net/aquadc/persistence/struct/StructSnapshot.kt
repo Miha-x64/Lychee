@@ -34,8 +34,8 @@ inline class StructSnapshot<SCH : Schema<SCH>>
         @Suppress("UNCHECKED_CAST") // other.type is our type, so it's safe
         other as PartialStruct<SCH>
 
-        schema.fields.forEach { field -> // ignore `fields`: we're full, other.fields = our.fields
-            val our = this[field]
+        schema.forEach(schema.allFieldSet) { field -> // ignore `fields`: we're full, other.fields = our.fields
+            val our = get(field)
             val their = other.getOrThrow(field)
             if (!reallyEqual(our, their)) return false
         }
@@ -45,16 +45,16 @@ inline class StructSnapshot<SCH : Schema<SCH>>
     @Suppress("RESERVED_MEMBER_INSIDE_INLINE_CLASS")
     override fun hashCode(): Int {
         var result = 0
-        schema.fields.forEach { field ->
-            result = 31 * result + this.getOrThrow(field).realHashCode()
+        schema.forEach(schema.allFieldSet) { field ->
+            result = 31 * result + getOrThrow(field).realHashCode()
         }
         return result
     }
 
     override fun toString(): String = buildString {
         append("StructSnapshot").append(':').append(schema.javaClass.simpleName).append('(')
-        schema.fields.forEach { field ->
-            append(schema.run { field.name }).append('=').append(this@StructSnapshot[field].realToString()).append(", ")
+        schema.forEach(schema.allFieldSet) { field ->
+            append(schema.run { field.name }).append('=').append(get(field).realToString()).append(", ")
         }
         /*if (schema.fields.isNotEmpty() is always true)*/ setLength(length - 2)
         append(')')

@@ -12,6 +12,7 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
+import org.junit.Ignore
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -38,7 +39,7 @@ class StreamsTest {
         )
     }
 
-    @Test fun `single struct from&to stream`() {
+    @Test @Ignore fun `single struct from&to stream`() {
         assertEquals(
                 SomeSchema.buildPartial { it[A] = "some" },
                 read(partialSchema, write(partialSchema, SomeSchema.buildPartial { it[A] = "some" }))
@@ -67,7 +68,7 @@ class StreamsTest {
                     "horse_name", string
             )
     )
-    @Test fun either() {
+    @Test @Ignore fun either() {
         val i = userType(
                 "Ivan", "Ivanov", EitherRight("Ivanovich"), EitherRight("100500")
         )

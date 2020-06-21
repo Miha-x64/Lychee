@@ -10,9 +10,13 @@ import net.aquadc.persistence.struct.SimpleStructTransaction
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructTransaction
 import net.aquadc.persistence.struct.foldOrdinal
-import net.aquadc.persistence.struct.forEach
-import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.forEachIndexed_
+import net.aquadc.persistence.struct.forEach_
+import net.aquadc.persistence.struct.getOrThrow
 import net.aquadc.persistence.struct.intersect
+import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.struct.mutableOrdinal
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.TransactionalProperty
@@ -36,9 +40,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     private val values: Array<Any?>
 
     constructor(source: Struct<SCH>, concurrent: Boolean) : super(source.schema) {
-        val fields = schema.fields
-        values = Array(fields.size) { i ->
-            val field = fields[i]
+        values = schema.mapIndexed(schema.allFieldSet) { _, field: FieldDef<SCH, *, *> ->
             val value = source[field]
             field.foldOrdinal(
                 ifMutable = { propertyOf(value, concurrent) },
@@ -64,7 +66,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(field: FieldDef<SCH, T, *>): T {
-        val value = values[field.ordinal.toInt()]
+        val value = values[field.ordinal]
         return field.foldOrdinal(
             ifMutable = { (value as MutableProperty<T>).value },
             ifImmutable = { value as T }
@@ -84,7 +86,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
             source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
     ): FieldSet<SCH, MutableField<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
-                schema.forEach(fields) { field ->
+                schema.forEach_(fields) { field ->
                     mutateFrom(source, field) // capture type
                 }
             }
@@ -116,7 +118,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
             observable[field]
 
     override fun <T> prop(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
-        val index = field.mutableOrdinal.toInt()
+        val index = field.mutableOrdinal
         val prop = props[index] ?: observable.transactional(field).also { props[index] = it }
         return (prop as TransactionalProperty<StructTransaction<SCH>, T>)
     }
@@ -126,13 +128,13 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
         private val patch = Array<Any?>(schema.mutableFieldSet.size) { Unset }
 
         override fun <T> set(field: MutableField<SCH, T, *>, update: T) {
-            patch[field.mutableOrdinal.toInt()] = update
+            patch[field.mutableOrdinal] = update
         }
 
         override fun close() {
             when (successful) {
                 true -> {
-                    schema.forEachIndexed(schema.mutableFieldSet) { i, field ->
+                    schema.forEachIndexed_(schema.mutableFieldSet) { i, field ->
                         if (patch[i] !== Unset) {
                             (observable.prop(field) as MutableProperty<Any?>).value = patch[i]
                         }

@@ -4,6 +4,7 @@ import androidx.annotation.RestrictTo
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.upcast
 import net.aquadc.persistence.struct.foldField
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.TransactionalProperty
@@ -48,7 +49,7 @@ open class ManagedProperty<SCH : Schema<SCH>, TRANSACTION, T, ID>(
             val manager = requireManaged()
 
             val _ref = ref
-            val clean = if (_ref === Unset) manager.getClean(field, id) else Unset
+            val clean = if (_ref === Unset) manager.getClean(field.upcast(), id) else Unset
             // after mutating dirty state we won't be able to see the clean one,
             // so we'll preserve it later in this method
 

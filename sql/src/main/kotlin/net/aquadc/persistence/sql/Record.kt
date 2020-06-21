@@ -8,8 +8,8 @@ import net.aquadc.persistence.struct.foldField
 import net.aquadc.persistence.struct.foldOrdinal
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.type.DataType
-import net.aquadc.properties.Property
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.persistence.PropertyStruct
@@ -35,20 +35,13 @@ internal constructor(
     internal val dao: Dao<SCH, ID>
         get() = session[table as Table<SCH, ID>]
 
-    internal fun copyValues(): Array<Any?> {
-        val size = values.size
-        val out = arrayOfNulls<Any>(size)
-        val flds = schema.fields
-        repeat(size) { i ->
-            out[i] = this[flds[i]]
-        }
-        return out
-    }
+    internal fun copyValues(): Array<Any?> =
+        schema.mapIndexed(schema.allFieldSet) { _, f -> get(f) }
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T = (field as FieldDef<SCH, T, DataType<T>>).foldField(
         ifMutable = { prop(it).value },
         ifImmutable = {
-            val index = field.ordinal.toInt()
+            val index = field.ordinal
             val value = values[index]
 
             if (value === Unset) {

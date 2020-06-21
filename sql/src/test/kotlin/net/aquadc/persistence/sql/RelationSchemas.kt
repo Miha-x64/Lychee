@@ -5,11 +5,13 @@ import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.struct.Named
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 typealias ShallowSchema = Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>
@@ -21,7 +23,7 @@ val embedSchema = Tuple("a", string, "b", shallowSchema)
 
 val embedPartial = Tuple("a", string, "b", partial(shallowSchema))
 
-val embedNullable = Tuple("a", string, "b", nullable(shallowSchema))
+val embedNullable = Tuple("a", string, "b", nullable<Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>(shallowSchema))
 
 val embedNullablePartial = Tuple("a", string, "b", nullable(partial(shallowSchema)))
 

@@ -3,6 +3,7 @@
 package net.aquadc.persistence.struct
 
 import androidx.annotation.RestrictTo
+import net.aquadc.persistence.type.DataType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -34,7 +35,7 @@ inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>)
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> {
-    val fldCnt = schema.fields.size
+    val fldCnt = schema.allFieldSet.size
     val array: Array<Any?> = arrayOfNulls(fldCnt + 1)
     array.fill(Unset, 0, fldCnt)
     array[fldCnt] = schema
@@ -42,13 +43,12 @@ fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>): StructBuilder<SCH> {
-    val fs = source.schema.fields
+fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, *>): StructBuilder<SCH> {
+    val fs = source.schema.allFieldSet
     val fldCnt = fs.size
     val array: Array<Any?> = arrayOfNulls(fldCnt + 1)
     val actualFields = source.fields intersect fields
-    for (i in 0 until fldCnt) {
-        val field = fs[i]
+    source.schema.forEachIndexed(fs) { i, field ->
         array[i] = if (field in actualFields) source.getOrThrow(field) else Unset
     }
     array[fldCnt] = source.schema
@@ -75,16 +75,26 @@ inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
      * ```
      */
     operator fun <T> get(key: FieldDef<SCH, T, *>): T {
-        val v = values[key.ordinal.toInt()]
+        val v = values[key.ordinal]
         if (v === Unset) throw NoSuchElementException()
         else return v as T
     }
+    operator fun <T> get(key: MutableField<SCH, T, *>): T =
+        get((key as MutableField<SCH, T, out DataType<T>>).upcast())
+    operator fun <T> get(key: ImmutableField<SCH, T, *>): T =
+        get((key as ImmutableField<SCH, T, out DataType<T>>).upcast())
 
     /**
      * Assigns the given [value] to the specified [field].
      */
     operator fun <T> set(field: FieldDef<SCH, T, *>, value: T) {
-        values[field.ordinal.toInt()] = value
+        values[field.ordinal] = value
+    }
+    operator fun <T> set(field: MutableField<SCH, T, *>, value: T) {
+        values[field.ordinal] = value
+    }
+    operator fun <T> set(field: ImmutableField<SCH, T, *>, value: T) {
+        values[field.ordinal] = value
     }
 
     /**
@@ -94,11 +104,11 @@ inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
      */
     fun setFrom(
             source: PartialStruct<SCH>,
-            fields: FieldSet<SCH, FieldDef<SCH, *, *>> = source.schema.allFieldSet
+            fields: FieldSet<SCH, *> = source.schema.allFieldSet
     ): FieldSet<SCH, FieldDef<SCH, *, *>> =
             source.fields.intersect(fields).also { intersect ->
                 source.schema.forEach(intersect) { field ->
-                    values[field.ordinal.toInt()] = source.getOrThrow(field)
+                    values[field.ordinal] = source.getOrThrow(field)
                 }
             }
 
@@ -109,9 +119,11 @@ inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
     @PublishedApi internal fun finish(schema: SCH, searchForDefaults: Boolean): StructSnapshot<SCH> {
         if (searchForDefaults) {
             for (i in 0.until(values.size - 1)) {
-                //     don't touch schema ^^^
-                if (values[i] === Unset)
-                    values[i] = schema.defaultOrElse(schema.fields[i]) { throw NoSuchElementException(schema.fields[i].toString()) }
+                //     don't touch schema ^^^ which is stored as a last item
+                if (values[i] === Unset) {
+                    val field = schema.fieldAt(i)
+                    values[i] = schema.defaultOrElse(field) { throw NoSuchElementException(field.toString()) }
+                }
             }
         }
 

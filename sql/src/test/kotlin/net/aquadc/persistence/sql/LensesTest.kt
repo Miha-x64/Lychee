@@ -6,6 +6,7 @@ import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.extended.times
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.invoke
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertEquals

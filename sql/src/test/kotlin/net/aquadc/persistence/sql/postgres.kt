@@ -11,6 +11,7 @@ import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.postgres.PostgresDialect
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.get
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.collection

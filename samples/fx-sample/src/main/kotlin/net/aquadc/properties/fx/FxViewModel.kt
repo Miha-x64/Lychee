@@ -4,6 +4,7 @@ import javafx.beans.binding.StringBinding
 import javafx.beans.binding.When
 import javafx.beans.property.Property
 import javafx.beans.property.SimpleBooleanProperty
+import net.aquadc.persistence.struct.get
 import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.mapWith
 import net.aquadc.properties.persistence.ObservableStruct

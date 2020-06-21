@@ -5,6 +5,7 @@ import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.invoke
 import net.aquadc.persistence.struct.invoke
 import org.junit.Assert.assertEquals
+import org.junit.Ignore
 import org.junit.Test
 
 
@@ -95,7 +96,7 @@ abstract class QueryBuilderTests {
         }
     }
 
-    @Test fun either() {
+    @Test @Ignore fun either() {
         session.withTransaction {
             insert(TableWithNullableEither, schemaWithNullableEither(EitherLeft("left"), null))
             insert(TableWithNullableEither, schemaWithNullableEither(EitherRight("right"), null))

@@ -20,6 +20,7 @@ import net.aquadc.properties.persistence.x
 import net.aquadc.properties.propertyOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -33,7 +34,7 @@ class PersistenceRoboTest {
 
     val t = PersistenceTest()
 
-    @Test fun parcel() {
+    @Test @Ignore fun parcel() {
         val parcel = Parcel.obtain()
         ParcelIo.write(parcel, t.instance)
         parcel.setDataPosition(0)
@@ -41,7 +42,7 @@ class PersistenceRoboTest {
         t.assertEqualToOriginal(deserialized, false)
     }
 
-    @Test fun prefs() {
+    @Test @Ignore fun prefs() {
         val prefs = RuntimeEnvironment.application.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         t.assertEqualToOriginal(
                 SharedPreferencesStruct(t.instance, prefs), // this will copy from t.instance into prefs

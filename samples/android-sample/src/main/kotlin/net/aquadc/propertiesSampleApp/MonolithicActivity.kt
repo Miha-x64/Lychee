@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import net.aquadc.persistence.struct.get
 import net.aquadc.persistence.struct.transaction
 import net.aquadc.propertiesSampleLogic.User
 import splitties.dimensions.dip

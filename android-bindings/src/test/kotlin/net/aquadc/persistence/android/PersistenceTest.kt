@@ -16,6 +16,7 @@ import net.aquadc.persistence.extended.times
 import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.get
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.iteratorOf
@@ -45,6 +46,7 @@ import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Ignore
 import org.junit.Test
 import java.io.StringWriter
 import java.util.Base64
@@ -79,7 +81,7 @@ class PersistenceTest {
         val BLOB = "blob" let byteString
         val STRUCT = "struct" let nullable(Sch)
         val PART = "part" let partial(Sch)
-        val EITHER = "either" let either("left", tupleType, "right", i32)
+        val EITHER = "either" let either<Struct<Tuple<Long, Simple<Long>, Double, Simple<Double>>>, Tuple<Long, Simple<Long>, Double, Simple<Double>>, Int, Simple<Int>>("left", tupleType, "right", i32)
         val COLOUR = "colour" let colour
         val COLOURS = "colours" let collection(colour)
         val UUID = "uuid" let uuid
@@ -124,7 +126,7 @@ class PersistenceTest {
         it[UUIDS] = listOf(java.util.UUID.randomUUID())
     }
 
-    @Test fun `json object`() {
+    @Test @Ignore fun `json object`() {
         val json = StringWriter().also { instance.tokens().writeTo(it.json()) }.toString()
         println(json)
         val deserialized = json.reader().json().tokens().readAs(Sch)
@@ -237,7 +239,7 @@ class PersistenceTest {
         )
     }
 
-    @Test fun `json partial with a single field`() {
+    @Test @Ignore fun `json partial with a single field`() {
         assertEquals(
                 """{"a":"lorem"}""",
                 write(partialSmallSchema, smallSchema.buildPartial(first = "lorem"))

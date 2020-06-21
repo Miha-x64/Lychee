@@ -1,5 +1,4 @@
-@file:JvmName("Structs")
-
+@file:[JvmName("Structs") Suppress("NOTHING_TO_INLINE")]
 package net.aquadc.persistence.struct
 
 import net.aquadc.persistence.type.DataType
@@ -15,14 +14,13 @@ import kotlin.contracts.contract
  */
 fun <SCH : Schema<SCH>> StructTransaction<SCH>.setFrom(
         source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
-        /* default value for [fields] may be mutableFieldSet(), but StructBuilder's default is different */
+/* default value for [fields] could be mutableFieldSet() but StructBuilder's default is different, so don't disappoint */
 ): FieldSet<SCH, MutableField<SCH, *, *>> =
         source.fields.intersect(fields).also { intersect ->
-            source.schema.forEach(intersect) { field ->
+            source.schema.forEach_(intersect) { field ->
                 mutateFrom(source, field) // capture type
             }
         }
-@Suppress("NOTHING_TO_INLINE")
 private inline fun <SCH : Schema<SCH>, T> StructTransaction<SCH>.mutateFrom(
         source: PartialStruct<SCH>, field: MutableField<SCH, T, *>
 ) {
@@ -66,6 +64,19 @@ internal class Getter<SCH : Schema<SCH>, T>(
  * Creates a getter applied to [this] [SCH],
  * i. e. a function which returns a value of a pre-set [field] of a pre-set (struct)[this].
  */
-@Suppress("NOTHING_TO_INLINE")
 inline fun <SCH : Schema<SCH>, T> Struct<SCH>.getterOf(field: FieldDef<SCH, T, *>): () -> T =
     Getter(this, field)
+
+// pass-through adapters for (im)mutable fields
+
+inline operator fun <SCH : Schema<SCH>, T> Struct<SCH>.get(field: MutableField<SCH, T, *>): T =
+    get((field as MutableField<SCH, T, out DataType<T>>).upcast())
+
+inline operator fun <SCH : Schema<SCH>, T> Struct<SCH>.get(field: ImmutableField<SCH, T, *>): T =
+    get((field as ImmutableField<SCH, T, out DataType<T>>).upcast())
+
+inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrThrow(field: MutableField<SCH, T, *>): T =
+    getOrThrow((field as MutableField<SCH, T, out DataType<T>>).upcast())
+
+inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrThrow(field: ImmutableField<SCH, T, *>): T =
+    getOrThrow((field as ImmutableField<SCH, T, out DataType<T>>).upcast())

@@ -5,6 +5,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructTransaction
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker
@@ -22,11 +23,11 @@ import net.aquadc.properties.persistence.TransactionalPropertyStruct
 
     private val props = arrayOfNulls<TransactionalProperty<StructTransaction<SCH>, *>>(record.schema.mutableFieldSet.size)
 
-    override fun <T> prop(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> {
-        val index = field.mutableOrdinal.toInt()
-        return (props[index] as TransactionalProperty<StructTransaction<SCH>, T>?)
+    override fun <T> prop(field: MutableField<SCH, T, *>): TransactionalProperty<StructTransaction<SCH>, T> =
+        field.mutableOrdinal.let { index ->
+            (props[index] as TransactionalProperty<StructTransaction<SCH>, T>?)
                 ?: record.prop(field).transactional(field).also { props[index] = it }
-    }
+        }
 
     override fun beginTransaction(): StructTransaction<SCH> = object : StructTransaction<SCH> {
 

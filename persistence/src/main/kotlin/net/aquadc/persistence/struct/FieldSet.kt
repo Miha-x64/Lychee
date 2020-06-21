@@ -2,6 +2,7 @@
 package net.aquadc.persistence.struct
 
 import androidx.annotation.RestrictTo
+import net.aquadc.persistence.type.DataType
 
 
 /**
@@ -24,18 +25,22 @@ inline fun <SCH : Schema<SCH>> emptyFieldSet(): FieldSet<SCH, Nothing> =
  * Returns a set of a single field.
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> F.asFieldSet(): FieldSet<SCH, F> =
-        FieldSet(1L shl ordinal.toInt())
+    FieldSet(1L shl ordinal)
+inline fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>> F.asFieldSet(): FieldSet<SCH, F> =
+    FieldSet(1L shl ordinal)
+inline fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>> F.asFieldSet(): FieldSet<SCH, F> =
+    FieldSet(1L shl ordinal)
 
 /**
  * Filters fields of [this] [Schema] with a [predicate] returning a set of suitable ones.
  */
-inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *, *>) -> Boolean): FieldSet<SCH, FieldDef<SCH, *, *>> {
+inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *, *>) -> Boolean): FldSet<SCH> {
     var mask = 0L
 
     var bit = 1L
-    val fields = fields
-    for (index in fields.indices) {
-        if (predicate(fields[index])) {
+    val set: FieldSet<SCH, FieldDef<SCH, *, *>> = allFieldSet
+    forEach(set) { field: FieldDef<SCH, *, *> ->
+        if (predicate(field)) {
             mask = mask or bit
         }
         bit = bit shl 1
@@ -70,38 +75,60 @@ inline fun <SCH : Schema<SCH>> SCH.immutableFieldSet(): Nothing =
 /**
  * Returns the a set representing a union of [this] and [other] [FieldDef]s.
  */
-inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> F.plus(other: F): FieldSet<SCH, F> =
-        FieldSet((1L shl ordinal.toInt()) or (1L shl other.ordinal.toInt()))
+inline operator fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>> F.plus(other: F): FieldSet<SCH, F> =
+    FieldSet((1L shl ordinal) or (1L shl other.ordinal))
+inline operator fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>> F.plus(other: F): FieldSet<SCH, F> =
+    FieldSet((1L shl ordinal) or (1L shl other.ordinal))
+inline operator fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>, G : ImmutableField<SCH, *, *>> F.plus(other: G): FieldSet<SCH, F> =
+    FieldSet((1L shl ordinal) or (1L shl other.ordinal))
+inline operator fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>, G : MutableField<SCH, *, *>> F.plus(other: G): FieldSet<SCH, F> =
+    FieldSet((1L shl ordinal) or (1L shl other.ordinal))
 
 /**
  * Returns a set representing a union of [this] set and [other] field.
  */
-inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> FieldSet<SCH, G>.plus(other: H): FieldSet<SCH, F> =
-        FieldSet(bitSet or (1L shl other.ordinal.toInt()))
+@JvmName("fs+mf") inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : MutableField<SCH, *, *>>
+    FieldSet<SCH, F>.plus(other: G): FieldSet<SCH, FieldDef<SCH, *, *>> =
+    FieldSet(bitSet or (1L shl other.ordinal))
+@JvmName("fs+if") inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : ImmutableField<SCH, *, *>>
+    FieldSet<SCH, F>.plus(other: G): FieldSet<SCH, FieldDef<SCH, *, *>> =
+    FieldSet(bitSet or (1L shl other.ordinal))
+@JvmName("ms+mf") inline operator fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>, G : MutableField<SCH, *, *>>
+    FieldSet<SCH, F>.plus(other: G): FieldSet<SCH, MutableField<SCH, *, *>> =
+    FieldSet(bitSet or (1L shl other.ordinal))
+@JvmName("ms+if") inline operator fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>, G : ImmutableField<SCH, *, *>>
+    FieldSet<SCH, F>.plus(other: G): FieldSet<SCH, FieldDef<SCH, *, *>> =
+    FieldSet(bitSet or (1L shl other.ordinal))
+@JvmName("is+mf") inline operator fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>, G : MutableField<SCH, *, *>>
+    FieldSet<SCH, F>.plus(other: G): FieldSet<SCH, FieldDef<SCH, *, *>> =
+    FieldSet(bitSet or (1L shl other.ordinal))
+@JvmName("is+if") inline operator fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>, G : ImmutableField<SCH, *, *>>
+    FieldSet<SCH, F>.plus(other: G): FieldSet<SCH, ImmutableField<SCH, *, *>> =
+    FieldSet(bitSet or (1L shl other.ordinal))
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectAnyAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, FieldDef<SCH, *, *>> =
+@JvmName("intersectAnyAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, *>
+        .intersect(other: FieldSet<SCH, *>): FieldSet<SCH, FieldDef<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectAnyMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
+@JvmName("intersectAnyMut") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, *>
         .intersect(other: FieldSet<SCH, MutableField<SCH, *, *>>): FieldSet<SCH, MutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectAnyImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>.intersect(
+@JvmName("intersectAnyImm") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, *>.intersect(
         other: FieldSet<SCH, ImmutableField<SCH, *, *>>
 ): FieldSet<SCH, ImmutableField<SCH, *, *>> = FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
-@JvmName("intersectAnyNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, FieldDef<SCH, *, *>>
+@JvmName("intersectAnyNuff") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, *>
         .intersect(other: FieldSet<SCH, Nothing>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectMutAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, MutableField<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, MutableField<SCH, *, *>> =
+        .intersect(other: FieldSet<SCH, *>): FieldSet<SCH, MutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
@@ -121,7 +148,7 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> F
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectImmAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, ImmutableField<SCH, *, *>>
-        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, ImmutableField<SCH, *, *>> =
+        .intersect(other: FieldSet<SCH, *>): FieldSet<SCH, ImmutableField<SCH, *, *>> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
@@ -141,7 +168,7 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> F
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
 @JvmName("intersectNuffAny") inline infix fun <SCH : Schema<SCH>> FieldSet<SCH, Nothing>
-        .intersect(other: FieldSet<SCH, FieldDef<SCH, *, *>>): FieldSet<SCH, Nothing> =
+        .intersect(other: FieldSet<SCH, *>): FieldSet<SCH, Nothing> =
         FieldSet(this.bitSet and other.bitSet)
 
 /** Returns a set representing intersection of [this] set and the [other] set. */
@@ -162,13 +189,31 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> F
 /**
  * Returns a set equal to [this] without [other] field.
  */
-inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : F, H : F> FieldSet<SCH, G>.minus(other: H): FieldSet<SCH, F> =
-        FieldSet(bitSet and (1L shl other.ordinal.toInt()).inv())
+@JvmName("fs-mf") inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : MutableField<SCH, *, *>>
+    FieldSet<SCH, F>.minus(other: G): FieldSet<SCH, FieldDef<SCH, *, *>> =
+    FieldSet(bitSet and (1L shl other.ordinal).inv())
+@JvmName("fs-if") inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, G : ImmutableField<SCH, *, *>>
+    FieldSet<SCH, F>.minus(other: G): FieldSet<SCH, FieldDef<SCH, *, *>> =
+    FieldSet(bitSet and (1L shl other.ordinal).inv())
+@JvmName("ms-mf") inline operator fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>, G : MutableField<SCH, *, *>>
+    FieldSet<SCH, F>.minus(other: G): FieldSet<SCH, MutableField<SCH, *, *>> =
+    FieldSet(bitSet and (1L shl other.ordinal).inv())
+@Deprecated("set of mutable fields might not contain any immutable fields", ReplaceWith("this"))
+@JvmName("ms-if") inline operator fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>, G : ImmutableField<SCH, *, *>>
+    FieldSet<SCH, F>.minus(other: G): FieldSet<SCH, MutableField<SCH, *, *>> =
+    FieldSet(bitSet and (1L shl other.ordinal).inv())
+@Deprecated("set of immutable fields might not contain any mutable fields", ReplaceWith("this"))
+@JvmName("is-mf") inline operator fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>, G : MutableField<SCH, *, *>>
+    FieldSet<SCH, F>.minus(other: G): FieldSet<SCH, ImmutableField<SCH, *, *>> =
+    FieldSet(bitSet and (1L shl other.ordinal).inv())
+@JvmName("is-if") inline operator fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>, G : ImmutableField<SCH, *, *>>
+    FieldSet<SCH, F>.minus(other: G): FieldSet<SCH, ImmutableField<SCH, *, *>> =
+    FieldSet(bitSet and (1L shl other.ordinal).inv())
 
 /**
  * Returns a set equal to [this] without fields from [other] set.
  */
-inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> FieldSet<SCH, F>.minus(other: FieldSet<SCH, F>): FieldSet<SCH, F> =
+inline operator fun <SCH : Schema<SCH>, F : NamedLens<SCH, *, *, *, *>> FieldSet<SCH, F>.minus(other: FieldSet<SCH, F>): FieldSet<SCH, F> =
         FieldSet(bitSet and other.bitSet.inv())
         // this:          0000000000000000011111111111111111
         // other:         0000000000000010101010101010101010
@@ -179,7 +224,17 @@ inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> FieldSet<SCH, F
  * Checks whether [this] set contains that [field].
  */
 inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDef<SCH, *, *>): Boolean =
-        (bitSet and (1L shl field.ordinal.toInt())) != 0L
+        (bitSet and (1L shl field.ordinal)) != 0L
+/**
+ * Checks whether [this] set contains that [field].
+ */
+inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: MutableField<SCH, *, *>): Boolean =
+        (bitSet and (1L shl field.ordinal)) != 0L
+/**
+ * Checks whether [this] set contains that [field].
+ */
+inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: ImmutableField<SCH, *, *>): Boolean =
+        (bitSet and (1L shl field.ordinal)) != 0L
 
 /**
  * Number of fields in this set, ∈ [1, 64]
@@ -199,6 +254,10 @@ val FieldSet<*, *>.isEmpty: Boolean
  */
 inline fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: FieldDef<SCH, *, *>): Int =
     this.bitSet.indexOf(field.ordinal.toInt())
+inline fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: MutableField<SCH, *, *>): Int =
+    this.bitSet.indexOf(field.ordinal)
+inline fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: ImmutableField<SCH, *, *>): Int =
+    this.bitSet.indexOf(field.ordinal)
 
 @PublishedApi internal fun Long.indexOf(ordinal: Int): Int {
     val one = 1L shl ordinal
@@ -224,13 +283,20 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSe
     var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
-            func(this, fields[ord] as F)
+            @Suppress("UNCHECKED_CAST")
+            func(this, fieldAt(ord) as F)
         }
 
         mask = mask ushr 1
         ord++
     }
 }
+@JvmName("forEachM")
+inline fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>> SCH.forEach_(set: FieldSet<SCH, F>, func: SCH.(F) -> Unit): Unit =
+    forEach(set.upcast()) { f: FieldDef<SCH, *, *> -> func(MutableField<SCH, Any?, DataType<Any?>>(f.value) as F) }
+@JvmName("forEachI")
+inline fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>> SCH.forEach_(set: FieldSet<SCH, F>, func: SCH.(F) -> Unit): Unit =
+    forEach(set.upcast()) { f: FieldDef<SCH, *, *> -> func(ImmutableField<SCH, Any?, DataType<Any?>>(f.value) as F) }
 
 /**
  * Asserts [FieldSet.size] is 1 and returns this [FieldDef].
@@ -243,39 +309,47 @@ fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.single(set: FieldSet<SCH, F
         ord++
     }
     check(mask == 1L)
-    return fields[ord] as F
+    return fieldAt(ord) as F
 }
+@JvmName("singleM") inline fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>> SCH.single_(set: FieldSet<SCH, F>): F =
+    MutableField<SCH, Any?, DataType<Any?>>(single(set as FieldSet<SCH, FieldDef<SCH, *, *>>).value) as F
+@JvmName("singleI") inline fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>> SCH.single_(set: FieldSet<SCH, F>): F =
+    MutableField<SCH, Any?, DataType<Any?>>(single(set as FieldSet<SCH, FieldDef<SCH, *, *>>).value) as F
 
 /**
  * Invokes [func] on each element of the [set].
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> Unit) {
-    val fields = fields
     var idx = 0
     var ord = 0
     var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
-            func(idx++, fields[ord] as F)
+            func(idx++, fieldAt(ord) as F)
         }
 
         mask = mask ushr 1
         ord++
     }
 }
+@JvmName("forEachIdxM")
+inline fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>> SCH.forEachIndexed_(set: FieldSet<SCH, F>, func: (Int, F) -> Unit): Unit =
+    forEachIndexed(set.upcast()) { index, field -> func(index, MutableField<SCH, Any?, DataType<Any?>>(field.value) as F) }
+@JvmName("forEachIdxI")
+inline fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>> SCH.forEachIndexed_(set: FieldSet<SCH, F>, func: (Int, F) -> Unit): Unit =
+    forEachIndexed(set.upcast()) { index, field -> func(index, ImmutableField<SCH, Any?, DataType<Any?>>(field.value) as F) }
 
 /**
  * Invokes [func] on each element of the [set].
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> {
-    val fields = fields
     val out = arrayOfNulls<R>(set.size)
     var idx = 0
     var ord = 0
     var mask = set.bitSet
     while (mask != 0L) {
         if ((mask and 1L) == 1L) {
-            out[idx] = func(idx, fields[ord] as F)
+            out[idx] = func(idx, fieldAt(ord) as F)
             idx += 1
         }
 
@@ -284,13 +358,27 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexe
     }
     return out as Array<R>
 }
+@JvmName("mapIndexedM")
+inline fun <SCH : Schema<SCH>, F : MutableField<SCH, *, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> =
+    mapIndexed(set.upcast()) { index, field -> func(index, MutableField<SCH, Any?, DataType<Any?>>(field.value) as F) }
+@JvmName("mapIndexedI")
+inline fun <SCH : Schema<SCH>, F : ImmutableField<SCH, *, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> =
+    mapIndexed(set.upcast()) { index, field -> func(index, ImmutableField<SCH, Any?, DataType<Any?>>(field.value) as F) }
 
 typealias FldSet<SCH> = FieldSet<SCH, FieldDef<SCH, *, *>>
+
+@JvmSynthetic @JvmName("dwngrdSetOfMut")
+inline fun <SCH : Schema<SCH>> FieldSet<SCH, MutableField<SCH, *, *>>.upcast(): FldSet<SCH> =
+    FieldSet(this.bitSet)
+
+@JvmSynthetic @JvmName("dwngrdSetOfImm")
+inline fun <SCH : Schema<SCH>> FieldSet<SCH, ImmutableField<SCH, *, *>>.upcast(): FldSet<SCH> =
+    FieldSet(this.bitSet)
 
 /**
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
-inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
+inline class FieldSet<SCH : Schema<SCH>, out FLD : NamedLens<SCH, *, *, *, *>>
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
         /**
          * A value with bits set according to fields present.

@@ -3,10 +3,10 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.LowLevelSession
-import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.properties.internal.Unset
 import java.lang.ref.WeakReference
@@ -72,7 +72,7 @@ internal class RealTransaction(
                 .getOrPut(id) { Array<Any?>(table.schema.mutableFieldSet.size) { Unset } }
 
         table.delegateFor(field).update(lowSession, table, field, id, previous, value)
-        updates[field.mutableOrdinal.toInt()] = value
+        updates[field.mutableOrdinal] = value
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>) {

@@ -73,7 +73,7 @@ private fun <T> DataType<T>.get(prefs: SharedPreferences, key: String): T {
             else /* here we have a Collection<Whatever>, including potentially a collection of collections, structs, etc */
                 serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
         }
-        is DataType.NotNull.Partial<*, *> -> serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
+        is DataType.NotNull.Partial<T, *> -> serialized(type).load(Base64.decode(value as String, Base64.DEFAULT))
     }
 }
 
@@ -122,7 +122,7 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
             else
                 editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))
         }
-        is DataType.NotNull.Partial<*, *> ->
+        is DataType.NotNull.Partial<T, *> ->
             editor.putString(key, Base64.encodeToString(serialized(type).store(value) as ByteArray, Base64.DEFAULT))
     }
 }

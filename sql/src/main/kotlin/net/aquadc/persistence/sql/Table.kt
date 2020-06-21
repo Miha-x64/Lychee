@@ -9,11 +9,15 @@ import net.aquadc.persistence.struct.ImmutableField
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Named
 import net.aquadc.persistence.struct.NamedLens
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.forEach
+import net.aquadc.persistence.struct.forEachIndexed_
+import net.aquadc.persistence.struct.ordinal
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing
@@ -85,9 +89,10 @@ private constructor(
                         .put(it.path, it) == null)
             }!!
         }
-        val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(schema.fields.size)
-        val columnTypes = ArrayList<Ilk<*, *>>(schema.fields.size)
-        val columnTypeNames = ArrayList<SqlTypeName>(schema.fields.size)
+        val fldCnt = schema.allFieldSet.size
+        val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(fldCnt)
+        val columnTypes = ArrayList<Ilk<*, *>>(fldCnt)
+        val columnTypeNames = ArrayList<SqlTypeName>(fldCnt)
         if (pkField == null) {
             val pkLens = PkLens(this, _idColType as DataType.NotNull.Simple<ID>)
             columns.add(pkLens, idColName)
@@ -139,10 +144,10 @@ private constructor(
     }
 
     // some bad code with raw types here
-    @Suppress("UPPER_BOUND_VIOLATED") @JvmSynthetic internal fun embed(
+    @Suppress("UPPER_BOUND_VIOLATED") @JvmSynthetic internal fun <TSCH : Schema<TSCH>> embed(
         rels: MutableMap<StoredLens<SCH, *, *>, ColMeta.Rel<SCH>>?,
         types: MutableMap<StoredLens<SCH, *, *>, ColMeta.Type<SCH, *>>?,
-        schema: Schema<*>,
+        schema: TSCH,
         naming: NamingConvention?, prefix: StoredNamedLens<SCH, *, *>?,
         outColumns: CheckNamesList<StoredNamedLens<SCH, *, *>>,
         outColumnTypes: ArrayList<Ilk<*, *>>,
@@ -150,13 +155,11 @@ private constructor(
         outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?,
         outRecipe: ArrayList<Nesting>
     ) {
-        val fields = schema.fields
-        val fieldCount = fields.size
-        for (i in 0 until fieldCount) {
-            val field = fields[i]
+        schema.forEach(schema.allFieldSet) { field ->
             val path: StoredNamedLens<SCH, out Any?, *> =
                     if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *, *>
-                    else /* implies naming != null */ naming!!.concatErased(this.schema, schema, prefix, field) as StoredNamedLens<SCH, out Any?, out DataType<Any?>>
+                    else /* implies naming != null */ naming!!.concatErased<SCH, PartialStruct<SCH>, Struct<SCH>>(
+                        this@Table.schema, schema, prefix, field) as StoredNamedLens<SCH, out Any?, out DataType<Any?>>
 
             val type = (field as FieldDef<Schema<*>, Any?, DataType<Any?>>).type(schema)
             val tOverr = types?.remove(path)
@@ -213,7 +216,7 @@ private constructor(
                 val recipeStart = outRecipe.size
                 val ss = Nesting.StructStart(fieldSetCol != null, field, type, relType)
                 outRecipe.add(ss)
-                embed(
+                embed<Schema<*>>(
                     rels, types, relSchema, rel.naming, path,
                     outColumns, outColumnTypes, outColumnTypeNames, null, outRecipe
                 )
@@ -324,7 +327,7 @@ private constructor(
     internal fun <T> columnByLens(lens: StoredLens<SCH, T, *>): StoredNamedLens<SCH, T, *>? =
             colIndexByLens(lens)?.let { columns[it] as StoredNamedLens<SCH, T, *> }
 
-    fun <T, DT : DataType<T>> typeOf(col: StoredLens<SCH, T, *>): Ilk<T, *> = (
+    fun <T, DT : DataType<T>> typeOf(col: /*todo: mind boxing here*/StoredLens<SCH, T, *>): Ilk<T, *> = (
         if (col == pkColumn) idColType else managedColTypes[colIndexByLens(col)!! - columns.size + managedColNames.size]
     ) as Ilk<T, *>
 
@@ -332,10 +335,10 @@ private constructor(
         (columnIndices as Map<StoredLens<SCH, *, *>, Int>)[lens]
 
     @JvmSynthetic internal fun commitValues(record: Record<SCH, ID>, mutFieldValues: Array<Any?>) {
-        schema.forEachIndexed(schema.mutableFieldSet) { i, field ->
+        schema.forEachIndexed_(schema.mutableFieldSet) { i, field ->
             val value = mutFieldValues[i]
             if (value !== Unset) {
-                (record.values[field.ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
+                (record.values[field.ordinal] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
             }
         }
     }

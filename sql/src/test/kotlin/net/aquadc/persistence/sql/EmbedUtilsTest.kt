@@ -8,6 +8,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Ignore
 import org.junit.Test
 
 class EmbedUtilsTest {
@@ -36,7 +37,7 @@ class EmbedUtilsTest {
             arrayOf("123", 456, "789", "ABC", 0xDEFL)
     )
 
-    @Test fun goDeeper() = assertWorks(
+    @Test @Ignore fun goDeeper() = assertWorks(
             WeNeedToGoDeeper,
             goDeeper(
                     DeeplyNested {
@@ -122,7 +123,7 @@ class EmbedUtilsTest {
             )
     )
 
-    @Test fun partialNestedId() = assertWorks(
+    @Test @Ignore fun partialNestedId() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
@@ -136,7 +137,7 @@ class EmbedUtilsTest {
             )
     )
 
-    @Test fun partialNestedValue() = assertWorks(
+    @Test @Ignore fun partialNestedValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
@@ -150,7 +151,7 @@ class EmbedUtilsTest {
             )
     )
 
-    @Test fun partialNestedMutValue() = assertWorks(
+    @Test @Ignore fun partialNestedMutValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {
@@ -194,7 +195,7 @@ class EmbedUtilsTest {
             )
     )
 
-    @Test fun partialNestedValueMutValue() = assertWorks(
+    @Test @Ignore fun partialNestedValueMutValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
                 it[Nested] = SchWithId.buildPartial {

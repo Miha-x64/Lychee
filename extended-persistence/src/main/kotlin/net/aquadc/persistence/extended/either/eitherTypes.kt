@@ -12,7 +12,7 @@ import net.aquadc.persistence.extended.Tuple8
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.asFieldSet
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.type.DataType
 
@@ -21,8 +21,8 @@ private class EitherType<A, B, C, D, E, F, G, H, SCH : Schema<SCH>>(
         schema: SCH
 ) : DataType.NotNull.Partial<Either8<A, B, C, D, E, F, G, H>, SCH>(schema) {
 
-    override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): Either8<A, B, C, D, E, F, G, H> =
-            when (schema.single(fields).ordinal.toInt()) {
+    override fun load(fields: FieldSet<SCH, *>, values: Any?): Either8<A, B, C, D, E, F, G, H> =
+            when (schema.single(fields as FieldSet<SCH, FieldDef<SCH, *, *>>).ordinal) {
                 0 -> Either8.First(values as A)
                 1 -> Either8.Second(values as B)
                 2 -> Either8.Third(values as C)
@@ -35,7 +35,7 @@ private class EitherType<A, B, C, D, E, F, G, H, SCH : Schema<SCH>>(
             }
 
     override fun fields(value: Either8<A, B, C, D, E, F, G, H>): FieldSet<SCH, FieldDef<SCH, *, *>> =
-            schema.fields[value._which].asFieldSet()
+        TODO("Back-end (JVM) Internal error") // schema.fieldAt(value._which).asFieldSet()
 
     override fun store(value: Either8<A, B, C, D, E, F, G, H>): Any? =
             value._value

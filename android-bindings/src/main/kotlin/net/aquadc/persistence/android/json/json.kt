@@ -31,7 +31,7 @@ import java.io.Writer
 // TODO: filter stream instead
 fun <SCH : Schema<SCH>> JsonWriter.write(
         list: List<Struct<SCH>>,
-        fields: FieldSet<SCH, FieldDef<SCH, *, *>> =
+        fields: FieldSet<SCH, *> =
                 list.firstOrNull()?.schema?.allFieldSet ?: /* otherwise it doesn't matter */ FieldSet(0)
 ) {
     beginArray()
@@ -47,11 +47,11 @@ fun <SCH : Schema<SCH>> JsonWriter.write(
 // TODO: filter stream instead
 fun <SCH : Schema<SCH>> JsonWriter.write(
         struct: Struct<SCH>,
-        fields: FieldSet<SCH, FieldDef<SCH, *, *>>
+        fields: FieldSet<SCH, *>
 ) {
     beginObject()
     struct.schema.run {
-        forEach(fields) { field ->
+        forEach(fields as FieldSet<SCH, FieldDef<SCH, *, *>>) { field ->
             name(field.name.toString())
             writeValueFrom(struct, field)
         }

@@ -1,11 +1,14 @@
-@file:JvmName("Tuples")
-@file:Suppress("NOTHING_TO_INLINE")
+@file:[
+    JvmName("Tuples")
+    Suppress("NOTHING_TO_INLINE", "INAPPLICABLE_JVM_FIELD")
+]
 package net.aquadc.persistence.extended
 
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
+import net.aquadc.persistence.struct.get
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
 
