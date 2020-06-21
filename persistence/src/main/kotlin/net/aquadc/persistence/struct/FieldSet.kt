@@ -197,13 +197,15 @@ val FieldSet<*, *>.isEmpty: Boolean
  * Returns index of [field] in this set.
  * Memory layouts of partial structs are built on top of this.
  */
-fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: FieldDef<SCH, *, *>): Byte {
-    val ord = field.ordinal
-    val one = 1L shl ord.toInt()
-    return if ((bitSet and one) == 0L) -1 else java.lang.Long.bitCount(bitSet and lowerOnes(ord)).toByte()
-}
+inline fun <SCH : Schema<SCH>> FieldSet<SCH, *>.indexOf(field: FieldDef<SCH, *, *>): Int =
+    this.bitSet.indexOf(field.ordinal.toInt())
 
-fun <SCH : Schema<SCH>> SCH.toString(fields: FieldSet<SCH, *>): String =
+@PublishedApi internal fun Long.indexOf(ordinal: Int): Int {
+    val one = 1L shl ordinal
+    return if ((this and one) == 0L) -1 else java.lang.Long.bitCount(this and (one - 1L))
+} //                          fun lowerOnes(r: Int): Long = ((1L shl r) - 1L) ^^^^^^^^^^
+
+fun <SCH : Schema<SCH>> SCH.toString(fields: FldSet<SCH>): String =
         if (fields.isEmpty) "[]"
         else buildString {
             append('[')
@@ -298,6 +300,3 @@ inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val bitSet: Long
 )
-
-private fun lowerOnes(r: Byte): Long =
-        ((1L shl r.toInt()) - 1L)
