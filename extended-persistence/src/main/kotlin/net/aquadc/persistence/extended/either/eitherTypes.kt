@@ -17,28 +17,18 @@ import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.type.DataType
 
 
-private class EitherType<A, B, C, D, E, F, G, H, SCH : Schema<SCH>>(
-        schema: SCH
-) : DataType.NotNull.Partial<Either8<A, B, C, D, E, F, G, H>, SCH>(schema) {
+private class EitherType<SCH : Schema<SCH>>(
+    schema: SCH
+) : DataType.NotNull.Partial<Any, SCH>(schema) {
 
-    override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): Either8<A, B, C, D, E, F, G, H> =
-            when (schema.single(fields).ordinal.toInt()) {
-                0 -> Either8.First(values as A)
-                1 -> Either8.Second(values as B)
-                2 -> Either8.Third(values as C)
-                3 -> Either8.Fourth(values as D)
-                4 -> Either8.Fifth(values as E)
-                5 -> Either8.Sixth(values as F)
-                6 -> Either8.Seventh(values as G)
-                7 -> Either8.Eighth(values as H)
-                else -> throw AssertionError()
-            }
+    override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): Any =
+        RealEither(values, schema.single(fields).ordinal.toInt())
 
-    override fun fields(value: Either8<A, B, C, D, E, F, G, H>): FieldSet<SCH, FieldDef<SCH, *, *>> =
-            schema.fields[value._which].asFieldSet()
+    override fun fields(value: Any): FieldSet<SCH, FieldDef<SCH, *, *>> =
+        schema.fields[(value as RealEither)._which].asFieldSet()
 
-    override fun store(value: Either8<A, B, C, D, E, F, G, H>): Any? =
-            value._value
+    override fun store(value: Any): Any? =
+        (value as RealEither)._value
 
 }
 
@@ -47,7 +37,8 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>> either(
         firstName: String, firstType: DA,
         secondName: String, secondType: DB
 ): DataType.NotNull.Partial<Either<A, B>, Tuple<A, DA, B, DB>> =
-        EitherType(Tuple(firstName, firstType, secondName, secondType))
+    EitherType(Tuple(firstName, firstType, secondName, secondType))
+        as DataType.NotNull.Partial<Either<A, B>, Tuple<A, DA, B, DB>>
 
 @JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
@@ -60,9 +51,9 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>> either3(
         secondName: String, secondType: DB,
         thirdName: String, thirdType: DC
 ): DataType.NotNull.Partial<Either3<A, B, C>, Tuple3<A, DA, B, DB, C, DC>> =
-        EitherType(Tuple3(
-                firstName, firstType, secondName, secondType, thirdName, thirdType
-        ))
+    EitherType(Tuple3(
+            firstName, firstType, secondName, secondType, thirdName, thirdType
+    )) as DataType.NotNull.Partial<Either3<A, B, C>, Tuple3<A, DA, B, DB, C, DC>>
 
 @JvmSynthetic // useless for Java
 operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
@@ -76,9 +67,9 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
         thirdName: String, thirdType: DC,
         fourthName: String, fourthType: DD
 ): DataType.NotNull.Partial<Either4<A, B, C, D>, Tuple4<A, DA, B, DB, C, DC, D, DD>> =
-        EitherType(Tuple4(
-                firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType
-        ))
+    EitherType(Tuple4(
+        firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType
+    )) as DataType.NotNull.Partial<Either4<A, B, C, D>, Tuple4<A, DA, B, DB, C, DC, D, DD>>
 
 @JvmSynthetic // useless for Java
 @JvmName("e3plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
@@ -93,10 +84,10 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
         fourthName: String, fourthType: DD,
         fifthName: String, fifthType: DE
 ): DataType.NotNull.Partial<Either5<A, B, C, D, E>, Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
-        EitherType(Tuple5(
-                firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
-                fifthName, fifthType
-        ))
+    EitherType(Tuple5(
+        firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
+        fifthName, fifthType
+    )) as DataType.NotNull.Partial<Either5<A, B, C, D, E>, Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>>
 
 @JvmSynthetic // useless for Java
 @JvmName("e4plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
@@ -112,10 +103,10 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
         fifthName: String, fifthType: DE,
         sixthName: String, sixthType: DF
 ): DataType.NotNull.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
-        EitherType(Tuple6(
-                firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
-                fifthName, fifthType, sixthName, sixthType
-        ))
+    EitherType(Tuple6(
+        firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
+        fifthName, fifthType, sixthName, sixthType
+    )) as DataType.NotNull.Partial<Either6<A, B, C, D, E, F>, Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>>
 
 @JvmSynthetic // useless for Java
 @JvmName("e5plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
@@ -132,10 +123,10 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
         sixthName: String, sixthType: DF,
         seventhName: String, seventhType: DG
 ): DataType.NotNull.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
-        EitherType(Tuple7(
-                firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
-                fifthName, fifthType, sixthName, sixthType, seventhName, seventhType
-        ))
+    EitherType(Tuple7(
+        firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
+        fifthName, fifthType, sixthName, sixthType, seventhName, seventhType
+    )) as DataType.NotNull.Partial<Either7<A, B, C, D, E, F, G>, Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>>
 
 @JvmSynthetic // useless for Java
 @JvmName("e6plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
@@ -153,10 +144,10 @@ fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : Data
         seventhName: String, seventhType: DG,
         eighthName: String, eighthType: DH
 ): DataType.NotNull.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
-        EitherType(Tuple8(
-                firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
-                fifthName, fifthType, sixthName, sixthType, seventhName, seventhType, eighthName, eighthType
-        ))
+    EitherType(Tuple8(
+        firstName, firstType, secondName, secondType, thirdName, thirdType, fourthName, fourthType,
+        fifthName, fifthType, sixthName, sixthType, seventhName, seventhType, eighthName, eighthType
+    )) as DataType.NotNull.Partial<Either8<A, B, C, D, E, F, G, H>, Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>>
 
 @JvmSynthetic // useless for Java
 @JvmName("e7plus") operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>

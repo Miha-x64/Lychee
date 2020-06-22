@@ -5,66 +5,43 @@ import net.aquadc.persistence.realToString
 import net.aquadc.persistence.reallyEqual
 
 
-typealias Either<A, B> = Either8<A, B, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>
+// I'd like to use `typealias`es but they are invisible from Java, as well as Nothing type.
+// all following classes are candidates for class merging optimization (ProGuard, R8)
 
-typealias Either3<A, B, C> = Either8<A, B, C, Nothing, Nothing, Nothing, Nothing, Nothing>
+abstract class Either<out A, out B> internal constructor(value: Any?, which: Int)
+    : Either3<A, B, Nothing>(value, which)
 
-typealias Either4<A, B, C, D> = Either8<A, B, C, D, Nothing, Nothing, Nothing, Nothing>
+abstract class Either3<out A, out B, out C> internal constructor(value: Any?, which: Int)
+    : Either4<A, B, C, Nothing>(value, which)
 
-typealias Either5<A, B, C, D, E> = Either8<A, B, C, D, E, Nothing, Nothing, Nothing>
+abstract class Either4<out A, out B, out C, out D> internal constructor(value: Any?, which: Int)
+    : Either5<A, B, C, D, Nothing>(value, which)
 
-typealias Either6<A, B, C, D, E, F> = Either8<A, B, C, D, E, F, Nothing, Nothing>
+abstract class Either5<out A, out B, out C, out D, out E> internal constructor(value: Any?, which: Int)
+    : Either6<A, B, C, D, E, Nothing>(value, which)
 
-typealias Either7<A, B, C, D, E, F, G> = Either8<A, B, C, D, E, F, G, Nothing>
+abstract class Either6<out A, out B, out C, out D, out E, out F> internal constructor(value: Any?, which: Int)
+    : Either7<A, B, C, D, E, F, Nothing>(value, which)
 
-sealed class Either8<out A, out B, out C, out D, out E, out F, out G, out H>(
-        @JvmSynthetic @JvmField @PublishedApi internal val _value: Any?,
-        @JvmSynthetic @JvmField @PublishedApi internal val _which: Int
-        // with 4-byte classword, 4-byte OOPS and 8-byte padding `which` field won't increase instance size
-        // which will be 16 bytes
+abstract class Either7<out A, out B, out C, out D, out E, out F, out G> internal constructor(value: Any?, which: Int)
+    : Either8<A, B, C, D, E, F, G, Nothing>(value, which)
+
+abstract class Either8<out A, out B, out C, out D, out E, out F, out G, out H> internal constructor(
+    @JvmSynthetic @JvmField @PublishedApi internal val _value: Any?,
+    @JvmSynthetic @JvmField @PublishedApi internal val _which: Int // 0-based
+    // with 4-byte classword, 4-byte OOPS, and 8-byte padding `which` field won't increase instance size
+    // which will be 16 bytes
 ) {
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class First<out A>(value: A) : Either8<A, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>(value, 0) {
-        val value: A get() = _value as A
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Second<out B>(value: B) : Either8<Nothing, B, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>(value, 1) {
-        val value: B get() = _value as B
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Third<out C>(value: C) : Either8<Nothing, Nothing, C, Nothing, Nothing, Nothing, Nothing, Nothing>(value, 2) {
-        val value: C get() = _value as C
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Fourth<out D>(value: D) : Either8<Nothing, Nothing, Nothing, D, Nothing, Nothing, Nothing, Nothing>(value, 3) {
-        val value: D get() = _value as D
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Fifth<out E>(value: E) : Either8<Nothing, Nothing, Nothing, Nothing, E, Nothing, Nothing, Nothing>(value, 4) {
-        val value: E get() = _value as E
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Sixth<out F>(value: F) : Either8<Nothing, Nothing, Nothing, Nothing, Nothing, F, Nothing, Nothing>(value, 5) {
-        val value: F get() = _value as F
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Seventh<out G>(value: G) : Either8<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, G, Nothing>(value, 6) {
-        val value: G get() = _value as G
-    }
-    @Deprecated("will be reworked without sealed classes, use .map and .fold to read, and functions to instantiate")
-    class Eighth<out H>(value: H) : Either8<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, H>(value, 7) {
-        val value: H get() = _value as H
-    }
+    final override fun hashCode(): Int =
+        ((2 shl _which) - 1) * _value.realHashCode()
 
-    override fun hashCode(): Int =
-            ((2 shl _which) - 1) * _value.realHashCode()
+    final override fun equals(other: Any?): Boolean =
+        javaClass === other?.javaClass && (other as Either8<*, *, *, *, *, *, *, *>)
+            .let { _which == it._which && reallyEqual(_value, it._value) }
 
-    override fun equals(other: Any?): Boolean {
-        if (javaClass !== other?.javaClass) return false
-        other as Either8<*, *, *, *, *, *, *, *>
-        return _which == other._which && reallyEqual(_value, other._value)
-    }
-
-    override fun toString(): String =
-            "Either.$_which(${_value.realToString()})"
+    final override fun toString(): String =
+        "Either.$_which(${_value.realToString()})"
 }
+
+@PublishedApi internal class RealEither(value: Any?, which: Int)
+    : Either<Nothing, Nothing>(value, which)

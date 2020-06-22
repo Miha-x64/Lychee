@@ -174,7 +174,7 @@ abstract class EmbedRelationsTest {
             }
             it[OtherOwnField] = 0x5_2_3
         }
-        val t = EitherLeft("strstr")
+        val t = EitherLeft<String, Nothing>("strstr")
 
         val rec = session.withTransaction {
             insert(WeNeedToGoDeeper, goDeeper(f, s, t))
