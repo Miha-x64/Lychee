@@ -16,6 +16,7 @@ import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
 import okio.ByteString
 import okio.ByteString.Companion.decodeHex
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Test
@@ -80,6 +81,11 @@ class StructTests {
 
     @Test fun streams() {
         val serialized = ByteArrayOutputStream().also { DataStreams.write(DataOutputStream(it), instance) }.toByteArray()
+        assertArrayEquals(
+            "incompatible serialization format change",
+            byteArrayOf(10, 0, 0, 0, 0, 42, 1, 64, 69, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 67, 3, 0, 0, 0, 2, 1, 0, 1, 67, 1, 0, 1, 68, 4, 0, 0, 0, 0, 0, 0, 0, 9, 5, 0, 0, 0, 5, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 65, 1, 0, 1, 66, -1, -1, -1, -1, 0, 0, 0, 0, 6, 1, 0, 9, 102, 111, 114, 116, 121, 45, 116, 119, 111, 7, 0, 0, 0, 16, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 8, 0, 0, 0, 4, -83, -47, -57, -19, 9, 10, 0, 0, 0, 0, 34, 1, 64, 88, -90, 102, 102, 102, 102, 102, 2, 1, 0, 1, 65, 3, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 8, 5, 0, 0, 0, 0, 6, 1, 0, 23, 73, 39, 109, 32, 97, 32, 115, 116, 114, 105, 110, 103, 44, 32, 105, 110, 102, 111, 32, 49, 52, 54, 37, 7, 0, 0, 0, 4, 0, 0, 0, 0, 8, 0, 0, 0, 2, -79, 11, 9, -1),
+            serialized
+        )
         val deserialized = DataStreams.read(DataInputStream(ByteArrayInputStream(serialized)), Sch)
         with(Sch) { arrayOf(INT, DOUBLE, ENUM, ENUM_SET, ENUM_SET_BITMASK, ENUM_SET_COLLECTION, STRING, BYTES, BLOB) }.forEach { field ->
             val orig = instance[field]
