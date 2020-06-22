@@ -2,12 +2,73 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.persistence.extended
 
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
+import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.nothing
+
+
+// 0
+
+/** Always an empty object. */
+@JvmField val unit: DataType.NotNull.Partial<Unit, Box<Nothing, DataType.NotNull.Simple<Nothing>>> =
+    object : DataType.NotNull.Partial<Unit, Box<Nothing, DataType.NotNull.Simple<Nothing>>>(Box("unused", nothing)) {
+        override fun load(
+            fields: FieldSet<Box<Nothing, Simple<Nothing>>, FieldDef<Box<Nothing, Simple<Nothing>>, *, *>>, values: Any?
+        ): Unit = Unit
+        override fun fields(value: Unit): FieldSet<Box<Nothing, Simple<Nothing>>, FieldDef<Box<Nothing, Simple<Nothing>>, *, *>> =
+            emptyFieldSet()
+        override fun store(value: Unit): Any? =
+            null
+    }
+
+
+// 1
+
+class Box<A, DA : DataType<A>>(
+    firstName: String, firstType: DA
+) : Schema<Box<A, DA>>() {
+    @JvmField val First = firstName mut firstType
+}
+
+/** Creates an instance of a [Box] according to [this] schema. */
+@JvmSynthetic // returns Object[], useless for Java
+inline operator fun <A, DA : DataType<A>>
+    Box<A, DA>.invoke(
+    first: A
+): StructSnapshot<Box<A, DA>> =
+    this {
+        it[First] = first
+    }
+
+// Java version of Box.invoke()
+@JvmName("newBox")
+fun <A, DA : DataType<A>>
+    newBoxBoxed(
+    type: Box<A, DA>,
+    first: A
+): Struct<Box<A, DA>> =
+    type(first)
+
+/*looks useless* Creates a partial instance of a [Tuple] according to [this] schema. */
+/*inline fun <A : Any, DA : DataType<A>>
+    Box<A, DA>.buildPartial(
+    first: A? = null
+): PartialStruct<Box<A, DA>> =
+    buildPartial<Box<A, DA>> {
+        if (first != null) it[First] = first
+    }*/
+
+/** Returns first component of [this] [Tuple]. */
+@JvmName("component1of1") @JvmSynthetic // useless for Java
+inline operator fun <A, DA : DataType<A>> Struct<Box<A, DA>>.component1(): A =
+    this[schema.First]
 
 
 // 2
@@ -28,7 +89,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         Tuple("first", this, "second", second)
 
 /** Creates an instance of a [Tuple] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
         Tuple<A, DA, B, DB>.invoke(
         first: A, second: B
@@ -37,6 +98,14 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>>
             it[First] = first
             it[Second] = second
         }
+
+@JvmName("newTuple")
+fun <A, DA : DataType<A>, B, DB : DataType<B>>
+    newTupleBoxed(
+    type: Tuple<A, DA, B, DB>,
+    first: A, second: B
+): Struct<Tuple<A, DA, B, DB>> =
+    type(first, second)
 
 /** Creates a partial instance of a [Tuple] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>>
@@ -79,7 +148,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple3("first", First.type, "second", Second.type, "third", third)
 
 /** Creates an instance of a [Tuple3] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
         Tuple3<A, DA, B, DB, C, DC>.invoke(
         first: A, second: B, third: C
@@ -89,6 +158,14 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
             it[Second] = second
             it[Third] = third
         }
+
+@JvmName("newTuple")
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>>
+    newTupleBoxed(
+    type: Tuple3<A, DA, B, DB, C, DC>,
+    first: A, second: B, third: C
+): Struct<Tuple3<A, DA, B, DB, C, DC>> =
+    type(first, second, third)
 
 /** Creates a partial instance of a [Tuple3] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>>
@@ -139,7 +216,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple4("first", First.type, "second", Second.type, "third", Third.type, "fourth", fourth)
 
 /** Creates an instance of a [Tuple4] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
         Tuple4<A, DA, B, DB, C, DC, D, DD>.invoke(
         first: A, second: B, third: C, fourth: D
@@ -150,6 +227,14 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
             it[Third] = third
             it[Fourth] = fourth
         }
+
+@JvmName("newTuple")
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>>
+    newTupleBoxed(
+    type: Tuple4<A, DA, B, DB, C, DC, D, DD>,
+    first: A, second: B, third: C, fourth: D
+): Struct<Tuple4<A, DA, B, DB, C, DC, D, DD>> =
+    type(first, second, third, fourth)
 
 /** Creates a partial instance of a [Tuple4] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>>
@@ -208,7 +293,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple5("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", fifth)
 
 /** Creates an instance of a [Tuple5] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E
@@ -220,6 +305,14 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
             it[Fourth] = fourth
             it[Fifth] = fifth
         }
+
+@JvmName("newTuple")
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>>
+    newTupleBoxed(
+    type: Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>,
+    first: A, second: B, third: C, fourth: D, fifth: E
+): Struct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
+    type(first, second, third, fourth, fifth)
 
 /** Creates a partial instance of a [Tuple5] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>>
@@ -286,7 +379,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple6("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", sixth)
 
 /** Creates an instance of a [Tuple6] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
@@ -299,6 +392,14 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
             it[Fifth] = fifth
             it[Sixth] = sixth
         }
+
+@JvmName("newTuple")
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>>
+    newTupleBoxed(
+    type: Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>,
+    first: A, second: B, third: C, fourth: D, fifth: E, sixth: F
+): Struct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
+    type(first, second, third, fourth, fifth, sixth)
 
 /** Creates a partial instance of a [Tuple6] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>>
@@ -373,7 +474,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple7("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", seventh)
 
 /** Creates an instance of a [Tuple7] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
@@ -387,6 +488,14 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
             it[Sixth] = sixth
             it[Seventh] = seventh
         }
+
+@JvmName("newTuple")
+fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>>
+    newTupleBoxed(
+    type: Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>,
+    first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G
+): Struct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
+    type(first, second, third, fourth, fifth, sixth, seventh)
 
 /** Creates a partial instance of a [Tuple7] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>, G : Any, DG : DataType<G>>
@@ -469,7 +578,7 @@ operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, 
         Tuple8("first", First.type, "second", Second.type, "third", Third.type, "fourth", Fourth.type, "fifth", Fifth.type, "sixth", Sixth.type, "seventh", Seventh.type, "eighth", eighth)
 
 /** Creates an instance of a [Tuple8] according to [this] schema. */
-@JvmName("newTuple")
+@JvmSynthetic // returns Object[], useless for Java
 inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
         Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.invoke(
         first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H
@@ -484,6 +593,13 @@ inline operator fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<
             it[Seventh] = seventh
             it[Eighth] = eighth
         }
+
+@JvmName("newTuple") fun <A, DA : DataType<A>, B, DB : DataType<B>, C, DC : DataType<C>, D, DD : DataType<D>, E, DE : DataType<E>, F, DF : DataType<F>, G, DG : DataType<G>, H, DH : DataType<H>>
+    newTupleBoxed(
+    type: Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>,
+    first: A, second: B, third: C, fourth: D, fifth: E, sixth: F, seventh: G, eighth: H
+): Struct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
+    type(first, second, third, fourth, fifth, sixth, seventh, eighth)
 
 /** Creates a partial instance of a [Tuple8] according to [this] schema. */
 inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : DataType<C>, D : Any, DD : DataType<D>, E : Any, DE : DataType<E>, F : Any, DF : DataType<F>, G : Any, DG : DataType<G>, H : Any, DH : DataType<H>>
