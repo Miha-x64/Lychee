@@ -150,11 +150,9 @@ internal fun <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>> Na
     override fun concatNames(outer: CharSequence, nested: CharSequence): String = buildString(outer.length + nested.length) {
         append(outer)
         if (nested.isNotEmpty()) {
-            // Note: this capitalizer is intended for use with identifiers which are mostly ASCII.
-            // It will also work for most of non-ASCII scripts. However, it won't capitalize letters of
-            // some rare scripts, see https://stackoverflow.com/a/57908029/3050249 for fully-featured capitalizer
-            append(nested[0].toUpperCase())
-            append(nested, 1, nested.length)
+            val firstCodePoint = Character.codePointAt(nested, 0)
+            appendCodePoint(Character.toTitleCase(firstCodePoint))
+            append(nested, Character.charCount(firstCodePoint), nested.length)
         }
     }
 

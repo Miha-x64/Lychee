@@ -28,6 +28,12 @@ class LensesTest {
             CamelCase.concatErased(NestedSchema, SomeSchema, NestedSchema.Items, SomeSchema.A)
     )
 
+    @Test fun camelCase() {
+        assertEquals("camelCase", CamelCase.concatNames("camel", "case"))
+        assertEquals("верблюжийРегистр", CamelCase.concatNames("верблюжий", "регистр"))
+        assertEquals("blah\uD801\uDC00blah", CamelCase.concatNames("blah", "\uD801\uDC28blah"))
+    }
+
     @Test fun `nest eq`() {
         assertEquals(
                 DeeplyNestedSchema.Items / NestedSchema.Items / SomeSchema.A,
