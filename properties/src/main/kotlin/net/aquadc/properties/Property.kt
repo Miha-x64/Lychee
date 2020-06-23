@@ -20,7 +20,6 @@ interface Property<out T> {
      * This is `false` on immutable properties.
      */
     val mayChange: Boolean
-        @get:JvmName("mayChange") get
 
     /**
      * When `true`, this property can be touched from

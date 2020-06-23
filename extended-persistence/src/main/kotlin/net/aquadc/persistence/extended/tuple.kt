@@ -19,6 +19,7 @@ import net.aquadc.persistence.type.nothing
 /** Always an empty object. */
 @JvmField val unit: DataType.NotNull.Partial<Unit, Box<Nothing, DataType.NotNull.Simple<Nothing>>> =
     object : DataType.NotNull.Partial<Unit, Box<Nothing, DataType.NotNull.Simple<Nothing>>>(Box("unused", nothing)) {
+        @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("load") // avoid having both `load-<hash>()` and `bridge load()`
         override fun load(
             fields: FieldSet<Box<Nothing, Simple<Nothing>>, FieldDef<Box<Nothing, Simple<Nothing>>, *, *>>, values: Any?
         ): Unit = Unit

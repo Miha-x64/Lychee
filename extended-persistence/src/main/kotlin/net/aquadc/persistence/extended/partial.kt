@@ -28,6 +28,7 @@ import kotlin.contracts.contract
 fun <SCH : Schema<SCH>> partial(schema: SCH): DataType.NotNull.Partial<PartialStruct<SCH>, SCH> =
         object : DataType.NotNull.Partial<PartialStruct<SCH>, SCH>(schema) {
 
+            @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("load") // avoid having both `load-<hash>()` and `bridge load()`
             override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): PartialStruct<SCH> =
                     PartialStructSnapshot(schema, fields, when (fields.size) {
                         0 -> EmptyArray

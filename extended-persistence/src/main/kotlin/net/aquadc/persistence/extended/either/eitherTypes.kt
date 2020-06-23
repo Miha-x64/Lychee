@@ -21,6 +21,7 @@ private class EitherType<SCH : Schema<SCH>>(
     schema: SCH
 ) : DataType.NotNull.Partial<Any, SCH>(schema) {
 
+    @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("load") // avoid having both `load-<hash>()` and `bridge load()`
     override fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): Any =
         RealEither(values, schema.single(fields).ordinal.toInt())
 

@@ -199,6 +199,7 @@ sealed class DataType<T> {
              * @see net.aquadc.persistence.struct.indexOf
              * @see net.aquadc.persistence.fill
              */
+            @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("load") // make usable/overridable for/from Java
             abstract fun load(fields: FieldSet<SCH, FieldDef<SCH, *, *>>, values: Any?): T
 
             /**
