@@ -4,13 +4,18 @@ import android.util.JsonToken
 import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.json.writeTo
+import net.aquadc.persistence.extended.times
 import net.aquadc.persistence.extended.tokens.MergeStrategy
 import net.aquadc.persistence.extended.tokens.associate
 import net.aquadc.persistence.extended.tokens.entries
 import net.aquadc.persistence.extended.tokens.inline
 import net.aquadc.persistence.extended.tokens.outline
 import net.aquadc.persistence.tokens.Index
+import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenStream
+import net.aquadc.persistence.tokens.readAs
+import net.aquadc.persistence.type.collection
+import net.aquadc.persistence.type.string
 import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.function.isEqualTo
 import org.junit.Assert.assertEquals
@@ -148,6 +153,28 @@ class TransformTest {
                     .entries(emptyArray(), Index.First, Index.Second)
                     .writeTo(it.json())
             }.toString()
+        )
+    }
+
+    @Test fun `json lenient list`() {
+        val type = collection(string * string)
+        assertEquals(
+            emptyList<Any?>(),
+            "[]".reader().json()
+                .also { it.isLenient = true }
+                .tokens()
+                .entries(emptyArray(), "id", "name")
+                .readAs(type)
+        )
+        assertEquals(
+            emptyList<Any?>(),
+            "{\"array\":[]}".reader().json()
+                .also { it.isLenient = true }
+                .tokens()
+                .entries(arrayOf({ it: Any? -> it == "array" }), "id", "name")
+                // note: `it` could be `CharSequence`, don't just copy-paste this!
+                .also { it.poll(Token.BeginDictionary); it.poll(Token.Str) }
+                .readAs(type)
         )
     }
 }

@@ -41,7 +41,7 @@ import java.io.Writer
         @JvmField val tokToJson = enumMapOf(
                 Token.Null, JsonToken.NULL,
                 Token.Bool, JsonToken.BOOLEAN,
-                // Token.I8, Token.I16, Token.I32, Token.I64, Token.F32, Token.F64, Token.Str, Token.Blob,
+                // Token.I32, Token.I64, Token.F32, Token.F64, Token.Str, Token.Blob,
                 Token.BeginSequence, JsonToken.BEGIN_ARRAY,
                 Token.EndSequence, JsonToken.END_ARRAY,
                 Token.BeginDictionary, JsonToken.BEGIN_OBJECT,
@@ -86,9 +86,11 @@ import java.io.Writer
                         "or buy your server-side developer a Java/Kotlin/Clojure/Rust book"
             }
             nextEndArrayIsEndObject = true
+            _path.beginObject()
             return Token.BeginDictionary
         } else if (nextEndArrayIsEndObject && nextToken == JsonToken.END_ARRAY) {
             nextEndArrayIsEndObject = false
+            _path.endObject()
             return Token.EndDictionary
         }
 

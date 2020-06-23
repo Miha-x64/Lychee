@@ -309,14 +309,18 @@ import net.aquadc.persistence.tokens.TokenStream
 
     override fun poll(coerceTo: Token?): Any? = when (state) {
         0 -> {
-            val token = source.poll(if (coerceTo == Token.BeginSequence) Token.BeginDictionary else coerceTo)
-            if (token == Token.BeginDictionary && matches(1)) { // we've polled BeginSequence, no we're inside it, so plusNesting = 1
-                copyPath().afterToken(Token.BeginSequence)
-                state = if (source.peek() == Token.EndDictionary) 7 else 1
+            if (matches(0)) {
+                val token = source.poll(if (coerceTo == Token.BeginSequence) Token.BeginDictionary else coerceTo)
+                if (token == Token.BeginDictionary) {
+                    copyPath().afterToken(Token.BeginSequence)
+                    state = if (source.peek() == Token.EndDictionary) 7 else 1
 
-                Token.BeginSequence
+                    Token.BeginSequence
+                } else {
+                    token
+                }
             } else {
-                token
+                source.poll(coerceTo)
             }
         }
 
