@@ -14,6 +14,7 @@ import net.aquadc.lychee.http.param.Body
 import net.aquadc.lychee.http.param.Resp
 //import net.aquadc.lychee.http.param.Url
 import net.aquadc.persistence.newSet
+import kotlin.math.min
 
 
 @PublishedApi internal class EndpointN<
@@ -56,9 +57,9 @@ import net.aquadc.persistence.newSet
             } while (urlTemplate.indexOf('{', `idxOf}`).also { `idxAfter{` = it+1 } >= 0)
         }
 
-        var queries: MutableSet<String>? = null
+        var queries = gatherQueryParamNames()
         var headers: MutableSet<String>? = null
-        params.forEachIndexed { idx, it ->
+        params.forEach { it ->
             when (val p = it as Param<*>) { // this 'useless' cast helps compiler understand that `when` is exhaustive
                 /*is Url -> {
                     if (urlIdx != -1) throw IllegalArgumentException()
@@ -112,5 +113,31 @@ import net.aquadc.persistence.newSet
             }!!
         }
         if (!unhandledPaths.isNullOrEmpty()) throw IllegalArgumentException(unhandledPaths.toString())
+    }
+
+    @JvmSynthetic internal fun gatherQueryParamNames(): MutableSet<String>? {
+        var queries: MutableSet<String>? = null
+        urlTemplate.indexOf('?').let {
+            var start = it + 1 // either index after '?' or zero
+            val end = urlTemplate.length
+            while (start > 0 && start < end) {
+                val idxOfEqu = urlTemplate.indexOf('=', start)
+                val idxOfAmp = urlTemplate.indexOf('&', start)
+                val idxOfDivisor = when {
+                    idxOfEqu < 0 && idxOfAmp < 0 -> end
+                    idxOfEqu < 0 -> idxOfAmp
+                    idxOfAmp < 0 -> idxOfEqu
+                    else -> min(idxOfEqu, idxOfAmp)
+                }
+                if (start != idxOfDivisor) {
+                    queries = (queries ?: newSet(4)).also {
+                        it.add(urlTemplate.subSequence(start, idxOfDivisor).toString())
+                    } // even duplicate query param names are OK. But don't allow them to collide with our `params` later
+                }
+                if (idxOfAmp < 0) break
+                start = idxOfAmp + 1
+            }
+        }
+        return queries
     }
 }
