@@ -48,11 +48,13 @@ fun <E> newSet(copyFrom: Collection<E>): MutableSet<E> =
     else HashSet(copyFrom)*/
 
 @SuppressLint("NewApi") // false-positive: we won't use java.util.Base64 branch on Android
-internal fun fromBase64(str: String): ByteArray =
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun fromBase64(str: String): ByteArray =
     if (andro) android.util.Base64.decode(str, android.util.Base64.DEFAULT)
     else java.util.Base64.getDecoder().decode(str)
 
 @SuppressLint("NewApi")
-internal fun toBase64(bytes: ByteArray): String =
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun toBase64(bytes: ByteArray): String =
     if (andro) android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
     else java.util.Base64.getEncoder().encodeToString(bytes)

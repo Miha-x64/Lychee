@@ -17,6 +17,7 @@ import net.aquadc.lychee.http.param.Path
 import net.aquadc.lychee.http.param.Query
 import net.aquadc.lychee.http.param.QueryParams
 import net.aquadc.persistence.fatAsList
+import net.aquadc.persistence.toBase64
 import net.aquadc.persistence.type.DataType
 import okhttp3.HttpUrl
 import java.net.URLEncoder
@@ -195,4 +196,8 @@ private fun HttpUrl.Builder.parameterized(endpoint: Endpoint<*, *>, args: Array<
 }
 
 @JvmSynthetic internal fun <T> DataType.NotNull.Simple<T>.storeAsStr(value: T): String =
-    (if (hasStringRepresentation) storeAsString(value!!) else store(value!!)).toString()
+    when {
+        hasStringRepresentation -> storeAsString(value!!).toString()
+        kind == DataType.NotNull.Simple.Kind.Blob -> toBase64(store(value) as ByteArray)
+        else -> store(value!!).toString()
+    }
