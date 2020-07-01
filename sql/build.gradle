@@ -22,8 +22,8 @@ dependencies {
     compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0'
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
-    testImplementation 'org.xerial:sqlite-jdbc:3.25.2'
-    testImplementation 'org.postgresql:postgresql:42.2.12.jre7'
+    testImplementation "org.xerial:sqlite-jdbc:$sqlite_jdbc_version"
+    testImplementation 'org.postgresql:postgresql:42.2.14.jre7'
     testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence')
 }
