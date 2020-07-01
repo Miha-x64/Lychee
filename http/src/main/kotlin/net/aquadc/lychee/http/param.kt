@@ -128,8 +128,11 @@ inline fun <T> Part(name: CharSequence, body: Body<T>, noinline filename: (T) ->
 
 class Parts<T>(
     @JvmField val transferEncoding: CharSequence = "binary",
-    @JvmField val body: Body<T>
+    @JvmField val body: Body<T>,
+    @JvmField val filename: (T) -> CharSequence?
 ) : Param<Collection<Pair<CharSequence, T>>>()
+inline fun <T> Parts(body: Body<T>, noinline filename: (T) -> CharSequence?): Parts<T> =
+    Parts<T>("binary", body, filename)
 
 // strictly speaking, not a 'classic' parameter, but used together:
 

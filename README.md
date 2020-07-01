@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.org/Miha-x64/Lychee.svg?branch=master)](https://travis-ci.org/Miha-x64/Lychee)
-![Lock-free](https://img.shields.io/badge/%E2%9A%9B-Lock--free-3399aa.svg) 
 ![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely%20Lightweight-7799cc.svg)
 [![Hits-of-Code](https://hitsofcode.com/github/Miha-x64/Lychee)](https://hitsofcode.com/view/github/Miha-x64/Lychee)
 [![Kotlin 1.3](https://img.shields.io/badge/kotlin-1.3-blue.svg)](http://kotlinlang.org)
@@ -427,6 +426,18 @@ GET("/user/{role}/", Path("role"), Query("id", uuid))
     .url(baseUrl, "admin", UUID.randomUUID())
     // => //user/admin/?id=0b46b157-84b9-474c-83bb-76c2ddf58e75
 ```
+
+**Hey, have you just reinvented Retrofit?**
+
+Well, yes, but actually no. Retrofit
+* works only on client-side,
+* requires method return types (Call, Observable, Deferred) to be tied to async framework,
+* promotes Service-style interfaces.
+Lychee-HTTP, on the other side,
+* allows `Endpoint`s to be both invoked from client-side and implemented from server-side,
+* decouples async wrapper from return value,
+* httpClient.template(endpoint) returns a function, server-side endpoint handler is a funcion,
+  thus, no Services/Controllers.
 
 ## FAQ
 

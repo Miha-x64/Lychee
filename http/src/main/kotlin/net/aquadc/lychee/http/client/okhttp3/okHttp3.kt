@@ -266,7 +266,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
         if (value.isNotEmpty()) {
             val enc = param.transferEncoding.toString()
             value.forEach { (name, value) ->
-                addPart(dest, name, null, enc, param.body, value)
+                addPart(dest, name, param.filename(value), enc, param.body, value)
             }
         }
     }

@@ -79,7 +79,7 @@ import kotlin.math.min
                     hasQueryParams = true
                 }
                 is Field<*>, is Fields -> {
-                    if (hasPart || hasBody) throw IllegalArgumentException()
+                    if (hasBody) throw IllegalArgumentException()
                     hasField = true
 
                     if (p is Fields) {

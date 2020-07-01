@@ -5,5 +5,3 @@ package net.aquadc.lychee.http.server
 // * call.parameters store both query parameters and path parameters https://github.com/ktorio/ktor/issues/1015;
 // * there's no difference between query parameter with no value (`?q`) and empty value (`?q=`),
 //   there's a similar issue with Locations https://github.com/ktorio/ktor/issues/24, but Parameters work the same way.
-
-// TODO find what to wrap. Http4k? Javalin? Rapidoid? Undertow? Webery?
