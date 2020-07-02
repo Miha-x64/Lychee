@@ -18,7 +18,7 @@ import net.aquadc.lychee.http.param.Query
 import net.aquadc.lychee.http.param.QueryParams
 import net.aquadc.lychee.http.param.QueryPresence
 import net.aquadc.lychee.http.param.Response
-import net.aquadc.lychee.http.server.undertow.add
+import net.aquadc.lychee.http.server.undertow2.add
 import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.type.byteArray
 import net.aquadc.persistence.type.i32
@@ -120,7 +120,7 @@ class UndertowOkHttpE2E {
         val upload = POST("/updatePhoto", Stream("image/*"), Response<Int>())
 
         lateinit var rqBytes: ByteArray
-        server = undertow { add(upload, { statusCode = it; responseSender.close() }, { _, e -> throw e}) { image ->
+        server = undertow { add(upload, { statusCode = it }, { _, e -> throw e}) { image ->
             rqBytes = image().readBytes()
             204
         } }
@@ -138,7 +138,7 @@ class UndertowOkHttpE2E {
         lateinit var rqId: UUID
         lateinit var rqBytes: ByteArray
         lateinit var rqFiles: Collection<Pair<CharSequence, CharSequence>>
-        server = undertow { add(upload, { statusCode = it; responseSender.close() }, { _, e -> throw e}) {
+        server = undertow { add(upload, { statusCode = it }, { _, e -> throw e}) {
             name, id, photo, files ->
 
             rqName = name

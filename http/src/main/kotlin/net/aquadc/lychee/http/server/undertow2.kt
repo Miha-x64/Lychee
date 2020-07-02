@@ -1,4 +1,5 @@
-package net.aquadc.lychee.http.server.undertow
+@file:JvmName("Undertow2")
+package net.aquadc.lychee.http.server.undertow2
 
 import io.undertow.predicate.Predicate
 import io.undertow.server.HttpHandler
@@ -45,6 +46,7 @@ inline fun <R> RoutingHandler.add(
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         exchange.respond(exchange.handler())
+        exchange.endExchange()
     })
 
 inline fun <T, R>
@@ -230,7 +232,6 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
     var hasBody = false
     var hasPart = false
     var hasParts = false
-    println(exchange.pathParameters)
     params.forEachIndexed { index, param ->
         try {
             args[index] = when (param) {
@@ -249,7 +250,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                 is Parts<*> -> null.also { hasParts = true }
             }
         } catch (e: Exception) {
-            return exchange.respondBadRequest(param, e)
+            return exchange.badEnd(respondBadRequest, param, e)
         }
     }
     if (hasQParamsOrHeaders) params.forEachIndexed { index, param ->
@@ -259,7 +260,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                 is Headers -> args[index] = gather(exchange.requestHeaders)
             }
         } catch (e: Exception) {
-            return exchange.respondBadRequest(param, e)
+            return exchange.badEnd(respondBadRequest, param, e)
         }
     }
 
@@ -276,7 +277,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                                 .let { param.body.fromStream(it.fileSize, it.inputStream) }
                     }
                 } catch (e: Exception) {
-                    return exchange.respondBadRequest(param, e)
+                    return exchange.badEnd(respondBadRequest, param, e)
                 }
             }
             if (hasFields || hasParts) params.forEachIndexed { index, param ->
@@ -286,10 +287,11 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                         is Parts<*> -> args[index] = gather(formData, param.body)
                     }
                 } catch (e: Exception) {
-                    return exchange.respondBadRequest(param, e)
+                    return exchange.badEnd(respondBadRequest, param, e)
                 }
             }
             exchange.respond(exchange.handler(args))
+            exchange.endExchange()
         })
     } else if (hasBody) {
         exchange.requestReceiver.receiveFullBytes(fun(exchange: HttpServerExchange, message: ByteArray) {
@@ -299,14 +301,23 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                         is Body<*> -> args[index] = param.fromStream(message.size.toLong(), message.inputStream())
                     }
                 } catch (e: Exception) {
-                    return exchange.respondBadRequest(param, e)
+                    return exchange.badEnd(respondBadRequest, param, e)
                 }
             }
             exchange.respond(exchange.handler(args))
+            exchange.endExchange()
         })
     } else {
         exchange.respond(exchange.handler(args))
+        exchange.endExchange()
     }
+}
+
+private fun HttpServerExchange.badEnd(
+    respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit, param: Param<*>, e: Exception
+) {
+    respondBadRequest(param, e)
+    endExchange()
 }
 
 private fun gather(params: Map<String, Deque<String>>): List<Pair<String, String>> {
