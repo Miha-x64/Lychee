@@ -127,7 +127,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
 ) : FuncXImpl<Any?, R>() {
     private val multipart = endpoint.params.any { it is Part<*> || it is Parts<*> }
     override fun invokeUnchecked(vararg args: Any?): R {
-        val url = url(baseUrl, endpoint, args)
+        val url = url(baseUrl, endpoint, args, guessProto = false)
         var urlBldr: HttpUrl.Builder? = null
 
         val request = Request.Builder()

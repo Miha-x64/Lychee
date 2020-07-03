@@ -56,5 +56,21 @@ class UrlTest {
             GET("{path}", Path("path"), Query("q"), Resp<Nothing>()).url("http://example.com/", "whatever", "w", "asd")
         )
     }
+    @Test fun `no proto`() {
+        assertEquals("//example.com/", GET("//example.com/", Resp<Nothing>()).url(null))
+        assertEquals("//example.com/qwe", GET("qwe", Resp<Nothing>()).url("//example.com/"))
+        assertEquals("//example.com/whatever",
+            GET("//example.com/{path}", Path("path"), Resp<Nothing>()).url(null, "whatever")
+        )
+        assertEquals("//example.com/whatever",
+            GET("{path}", Path("path"), Resp<Nothing>()).url("//example.com/", "whatever")
+        )
+        assertEquals("//example.com/whatever?q=w#asd",
+            GET("//example.com/{path}", Path("path"), Query("q"), Resp<Nothing>()).url(null, "whatever", "w", "asd")
+        )
+        assertEquals("//example.com/whatever?q=w#asd",
+            GET("{path}", Path("path"), Query("q"), Resp<Nothing>()).url("//example.com/", "whatever", "w", "asd")
+        )
+    }
 
 }

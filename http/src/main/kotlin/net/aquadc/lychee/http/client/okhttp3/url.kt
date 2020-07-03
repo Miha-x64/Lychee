@@ -1,4 +1,5 @@
 @file:JvmName("UrlTemplates")
+@file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.lychee.http.client.okhttp3
 
 import net.aquadc.lychee.http.Endpoint
@@ -27,32 +28,33 @@ fun Endpoint0<Get, *>.url(
     baseUrl: CharSequence?,
     fragment: CharSequence? = null
 ): CharSequence =
-    url(baseUrl, this, null)
+    url(baseUrl, this, args = null, guessProto = true)
         .let { if (fragment == null) it else it.newBuilder().fragment(fragment.toString()).build() }
         .toString()
+        .maybeStripProto(baseUrl, this)
 
-fun <T> Endpoint1<Get, out LinkParam<T>, *>.url(
+inline fun <T> Endpoint1<Get, out LinkParam<T>, *>.url(
     baseUrl: CharSequence?,
     arg: T,
     fragment: CharSequence? = null
 ): CharSequence =
     buildN(arrayOf<Any?>(arg), baseUrl, fragment)
 
-fun <T1, T2> Endpoint2<Get, *, out LinkParam<T1>, out LinkParam<T2>, *>.url(
+inline fun <T1, T2> Endpoint2<Get, *, out LinkParam<T1>, out LinkParam<T2>, *>.url(
     baseUrl: CharSequence?,
     arg1: T1, arg2: T2,
     fragment: CharSequence? = null
 ): CharSequence =
     buildN(arrayOf(arg1, arg2), baseUrl, fragment)
 
-fun <T1, T2, T3> Endpoint3<Get, *, out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, *>.url(
+inline fun <T1, T2, T3> Endpoint3<Get, *, out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, *>.url(
     baseUrl: CharSequence?,
     arg1: T1, arg2: T2, arg3: T3,
     fragment: CharSequence? = null
 ): CharSequence =
     buildN(arrayOf(arg1, arg2, arg3), baseUrl, fragment)
 
-fun <T1, T2, T3, T4> Endpoint4<Get, *,
+inline fun <T1, T2, T3, T4> Endpoint4<Get, *,
     out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, out LinkParam<T4>,
     *>.url(
     baseUrl: CharSequence?,
@@ -61,7 +63,7 @@ fun <T1, T2, T3, T4> Endpoint4<Get, *,
 ): CharSequence =
     buildN(arrayOf(arg1, arg2, arg3, arg4), baseUrl, fragment)
 
-fun <T1, T2, T3, T4, T5> Endpoint5<Get, *,
+inline fun <T1, T2, T3, T4, T5> Endpoint5<Get, *,
     out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, out LinkParam<T4>, out LinkParam<T5>,
     *>.url(
     baseUrl: CharSequence?,
@@ -70,7 +72,7 @@ fun <T1, T2, T3, T4, T5> Endpoint5<Get, *,
 ): CharSequence =
     buildN(arrayOf(arg1, arg2, arg3, arg4, arg5), baseUrl, fragment)
 
-fun <T1, T2, T3, T4, T5, T6> Endpoint6<Get, *,
+inline fun <T1, T2, T3, T4, T5, T6> Endpoint6<Get, *,
     out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, out LinkParam<T4>, out LinkParam<T5>, out LinkParam<T6>,
     *>.url(
     baseUrl: CharSequence?,
@@ -79,7 +81,7 @@ fun <T1, T2, T3, T4, T5, T6> Endpoint6<Get, *,
 ): CharSequence =
     buildN(arrayOf(arg1, arg2, arg3, arg4, arg5, arg6), baseUrl, fragment)
 
-fun <T1, T2, T3, T4, T5, T6, T7> Endpoint7<Get, *,
+inline fun <T1, T2, T3, T4, T5, T6, T7> Endpoint7<Get, *,
     out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, out LinkParam<T4>,
     out LinkParam<T5>, out LinkParam<T6>, out LinkParam<T7>,
     *>.url(
@@ -89,7 +91,7 @@ fun <T1, T2, T3, T4, T5, T6, T7> Endpoint7<Get, *,
 ): CharSequence =
     buildN(arrayOf(arg1, arg2, arg3, arg4, arg5, arg6, arg7), baseUrl, fragment)
 
-fun <T1, T2, T3, T4, T5, T6, T7, T8> Endpoint8<Get, *,
+inline fun <T1, T2, T3, T4, T5, T6, T7, T8> Endpoint8<Get, *,
     out LinkParam<T1>, out LinkParam<T2>, out LinkParam<T3>, out LinkParam<T4>,
     out LinkParam<T5>, out LinkParam<T6>, out LinkParam<T7>, out LinkParam<T8>,
     *>.url(
@@ -99,18 +101,26 @@ fun <T1, T2, T3, T4, T5, T6, T7, T8> Endpoint8<Get, *,
 ): CharSequence =
     buildN(arrayOf(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8), baseUrl, fragment)
 
-private fun Endpoint<Get, *>.buildN(args: Array<*>, baseUrl: CharSequence?, fragment: CharSequence?): String =
-    url(baseUrl, this, args)
+@PublishedApi internal fun Endpoint<Get, *>.buildN(args: Array<*>, baseUrl: CharSequence?, fragment: CharSequence?): String =
+    url(baseUrl, this, args, guessProto = true)
         .newBuilder()
         .parameterized(this, args)
         .fragment(fragment?.toString())
         .toString()
+        .maybeStripProto(baseUrl, this)
 
-// TODO: endpoint.url(baseUrl) => Function (what about fragment)
-// TODO: allow relative URLs (so baseUrl could be "//example.com/" or "/")
+private fun String.maybeStripProto(baseUrl: CharSequence?, endpoint: Endpoint<*, *>): String =
+    if ((baseUrl != null && baseUrl.startsWith("//")) || baseUrl == null && endpoint.urlTemplate.startsWith("//"))
+        this.substring(5).also { check(this.startsWith("http:")) }
+    else
+        this
+
+// TODO: endpoint.url(baseUrl) => Function (what about #fragment?)
 // TODO: kotlinx.html integration
 
-@JvmSynthetic internal fun url(baseUrl: CharSequence?, endpoint: Endpoint<*, *>, args: Array<out Any?>?): HttpUrl {
+@JvmSynthetic internal fun url(
+    baseUrl: CharSequence?, endpoint: Endpoint<*, *>, args: Array<out Any?>?, guessProto: Boolean
+): HttpUrl {
 //  var urlArg: CharSequence? = null
     val urlTemplate = endpoint.urlTemplate/*?*/.let(::StringBuilder)
     endpoint.params.forEachIndexed { index, param ->
@@ -124,8 +134,13 @@ private fun Endpoint<Get, *>.buildN(args: Array<*>, baseUrl: CharSequence?, frag
         }
     }
 
-    var url = baseUrl?.toString()?.let { HttpUrl.parse(it)!! }
-    urlTemplate/*?*/.toString()/*?*/.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
+    var url = baseUrl?.toString()?.let {
+        HttpUrl.parse(if (guessProto && it.startsWith("//")) "http:$it" else it)!!
+    }
+    urlTemplate/*?*/.toString()/*?*/.let { url = (
+        if (url == null) HttpUrl.parse(if (guessProto && it.startsWith("//")) "http:$it" else it)
+        else url!!.resolve(it)
+    )!! }
 //  could save some allocations by replacing `url.resolve(it)` with `url.newBuilder(it)` but the code becomes horrible
 //  urlArg?.toString()?.let { url = (if (url == null) HttpUrl.parse(it) else url!!.resolve(it))!! }
     return url!!
