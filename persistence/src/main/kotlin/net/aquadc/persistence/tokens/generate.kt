@@ -41,8 +41,6 @@ suspend inline fun TokenStreamScope.yieldBool(compute: () -> Boolean): Boolean =
             else false
         }
 
-// skipped I8 and I16, wanna get rid of these shallow types
-
 /**
  * Yield an [Int] value.
  * @return whether value was consumed. `false` means it was skipped

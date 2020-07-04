@@ -7,7 +7,6 @@ import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
 import net.aquadc.properties.persistence.*
 import net.aquadc.properties.persistence.memento.PersistableProperties
-import java.util.concurrent.TimeUnit
 
 /**
  * This ViewModel can be used both in Android and on JVM.
