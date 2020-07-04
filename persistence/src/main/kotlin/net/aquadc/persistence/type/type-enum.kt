@@ -17,7 +17,7 @@ import kotlin.collections.HashSet
  * @param encode transform enum value [E] to underlying type [U]
  * @param fallback return a default value for unsupported [U] (or throw an exception, like default impl does)
  */
-@JvmName("enumeration") @Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
+@Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Any, U : Any> enum(
     values: Array<E>,
     encodeAs: DataType.NotNull.Simple<U>,
@@ -33,8 +33,9 @@ inline fun <reified E : Any, U : Any> enum(
  * [encode] sample: `E::name`
  * [fallback] sample: `{ E.UNSUPPORTED }`
  */
+@JvmName("enumeration") // Java-friendly
 @Suppress("UNCHECKED_CAST")
-@PublishedApi internal fun <E : Any, U : Any> enumInternal(
+fun <E : Any, U : Any> enumInternal(
     values: Array<E>,
     encodeAs: DataType.NotNull.Simple<U>,
     encode: (E) -> U,
