@@ -16,7 +16,6 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenStream
-import net.aquadc.persistence.tokens.readAs
 import net.aquadc.persistence.tokens.tokensFrom
 import net.aquadc.persistence.type.DataType
 import java.io.Reader

@@ -4,7 +4,6 @@ package net.aquadc.persistence.android.json
 import android.util.Base64
 import android.util.JsonReader
 import android.util.JsonToken
-import android.util.JsonWriter
 import net.aquadc.collections.contains
 import net.aquadc.collections.enumMapOf
 import net.aquadc.collections.get
@@ -12,8 +11,6 @@ import net.aquadc.persistence.hasFraction
 import net.aquadc.persistence.tokens.Token
 import net.aquadc.persistence.tokens.TokenPath
 import net.aquadc.persistence.tokens.TokenStream
-import java.io.Reader
-import java.io.Writer
 
 
 @PublishedApi internal class JsonTokenStream(

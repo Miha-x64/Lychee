@@ -567,7 +567,8 @@ dependencies {
     implementation 'net.aquadc.properties:properties:0.0.14' // observables for both JVM and Android
     implementation 'net.aquadc.properties:persistence:0.0.14' // persistence for JVM and Android
     implementation 'net.aquadc.properties:extended-persistence:0.0.14' // partial structs, tuples, either, unsigned, primitive[], token transforms
-    implementation 'net.aquadc.properties:android-bindings:0.0.14' // AAR for Android(x): View bindings, Parcel, JsonReader as TokenStream, SharedPreferences as Struct, Handler as Executor
+    implementation 'net.aquadc.properties:android-bindings:0.0.14' // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
+    implementation 'net.aquadc.properties:android-json:0.0.14' // AAR for Android(x): JsonReader as TokenStream
     implementation 'net.aquadc.properties:sql:0.0.14' // observable SQL and SQL templates
     implementation 'net.aquadc.properties:http:0.0.14' // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
 }

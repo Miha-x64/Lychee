@@ -18,7 +18,6 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -53,6 +52,7 @@ dependencies {
     testImplementation project(':extended-persistence') // partial(Struct) is here
     testImplementation 'org.robolectric:robolectric:4.3.1'
     testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(':android-json')
 }
 
 apply from: rootProject.file('etc/release-bintray.gradle')

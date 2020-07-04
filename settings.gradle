@@ -15,3 +15,5 @@ include ':android-bindings'
 include ':samples:logic-sample'
 include ':samples:fx-sample'
 include ':samples:android-sample'
+include 'android-json'
+
