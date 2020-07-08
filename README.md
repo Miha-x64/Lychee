@@ -133,7 +133,8 @@ A `Property` provides functionality similar to
 or `LiveData` in Android Arch.
 
 * Simple and easy-to-use
-* Lightweight: persistence + properties + android-bindings define around 1500 methods, many of them are `inline fun`s
+* Lightweight: persistence + properties + android-bindings define around 1500 methods
+  including easy-to-shrink `inline fun`s and `inline class`es
 * zero reflection <small>([the only use of kotlin.reflect](https://github.com/Miha-x64/Lychee/blob/ccea2e165f0da5dbaedac2d3562c4a843614241f/properties/src/main/kotlin/net/aquadc/properties/operatorsInline.kt#L168-L179) is required if you delegate your Kotlin property to a Lychee `Property` and [eliminated by Kotlin 1.3.70+ compiler](https://youtrack.jetbrains.com/issue/KT-14513))</small>
 * Extensible: not confined to Android, JavaFX or whatever (want MPP? File an issue with sample use-cases)
 * Single-threaded and concurrent (lock-free) implementations
@@ -417,7 +418,7 @@ This gives you several features:
   or return `Either<HttpException, ResponseEntity>`,
   or ignore response code at all and just parse response body;  
 * server-side type-safe routing:
-  `someServer.bind(user, ::respondBadRequest) { token, role, id -> "response" }`
+  `router.add(user, ::respond, ::respondBadRequest) { token, role, id -> "response" }`
   (currently not implemented, trying to choose among several HTTP servers);
 * link generation: if endpoint declaration uses GET method
   and does not contain headers, it is possible to build URL:
