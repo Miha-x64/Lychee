@@ -1,9 +1,8 @@
 package android.util;
 
+public final class Base64 {
 
-public class Base64 {
-
-    public static final int DEFAULT = 0;
+    /*public static final int DEFAULT = 0;
 
     public static final int NO_PADDING = 1;
 
@@ -13,25 +12,27 @@ public class Base64 {
 
     public static final int URL_SAFE = 8;
 
-    public static final int NO_CLOSE = 16;
+    public static final int NO_CLOSE = 16;*/
 
     public static byte[] decode(String str, int flags) {
-        return com.migcomponents.migbase64.Base64.decode(str);
+        checkFlags(flags);
+        return java.util.Base64.getDecoder().decode(str);
     }
 
-    public static byte[] decode(byte[] input, int flags) {
+    /*public static byte[] decode(byte[] input, int flags) {
         throw new UnsupportedOperationException();
     }
 
     public static byte[] decode(byte[] input, int offset, int len, int flags) {
         throw new UnsupportedOperationException();
-    }
+    }*/
 
     public static String encodeToString(byte[] input, int flags) {
-        return com.migcomponents.migbase64.Base64.encodeToString(input, false);
+        checkFlags(flags);
+        return java.util.Base64.getEncoder().encodeToString(input);
     }
 
-    public static String encodeToString(byte[] input, int offset, int len, int flags) {
+    /*public static String encodeToString(byte[] input, int offset, int len, int flags) {
         throw new UnsupportedOperationException();
     }
 
@@ -41,6 +42,13 @@ public class Base64 {
 
     public static byte[] encode(byte[] input, int offset, int len, int flags) {
         throw new UnsupportedOperationException();
+    }*/
+
+    private static void checkFlags(int flags) {
+        if (flags != 0) {
+            throw new IllegalArgumentException("Unexpected flags: 0b" + Integer.toBinaryString(flags) +
+                    ". Note this I'm not real android.util.Base64 but Lychee:android-json-on-jvm");
+        }
     }
 
     private Base64() { }   // don't instantiate

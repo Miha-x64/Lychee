@@ -13,10 +13,6 @@ plugins {
     id 'org.beryx.runtime' version '1.8.5'
 }
 
-repositories {
-    mavenCentral()
-}
-
 def fxModules = ['base', 'controls', 'graphics']
 /*
 // FX plugin requires new JDK, and we're stuck with 11 because of Robolectric

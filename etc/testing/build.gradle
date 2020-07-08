@@ -1,17 +1,10 @@
 plugins {
-    id 'java'
     id 'org.jetbrains.kotlin.jvm'
 }
 
 sourceCompatibility = 1.6
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    implementation 'com.brsanthu:migbase64:2.2'
-    implementation 'com.google.code.gson:gson:2.8.5'
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation group: 'junit', name: 'junit', version: '4.12'
 }

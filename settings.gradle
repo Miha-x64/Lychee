@@ -6,14 +6,14 @@ include ':extended-persistence'
 include ':sql'
 include ':http'
 
-include ':etc:fake-bindings'
-include ':etc:testing'
-
 include ':fx-bindings'
 include ':android-bindings'
+include ':android-json'
+include ':android-json-on-jvm'
 
 include ':samples:logic-sample'
 include ':samples:fx-sample'
 include ':samples:android-sample'
-include 'android-json'
 
+include ':etc:fake-bindings'
+include ':etc:testing'

@@ -53,6 +53,7 @@ dependencies {
     testImplementation 'org.robolectric:robolectric:4.3.1'
     testImplementation project(path: ':sql', configuration: 'testOutput')
     testImplementation project(':android-json')
+    testImplementation project(':android-json-on-jvm')
 }
 
 apply from: rootProject.file('etc/release-bintray.gradle')

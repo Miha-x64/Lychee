@@ -2,10 +2,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
 }
 
-repositories {
-    mavenCentral()
-}
-
 // expose tests for android-bindings which use the same test classes with SQLiteDatabase
 configurations { testOutput }
 task testJar(type:Jar) { from sourceSets.main.output + sourceSets.test.output }
