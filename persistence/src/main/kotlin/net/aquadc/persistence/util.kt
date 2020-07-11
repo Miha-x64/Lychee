@@ -94,11 +94,17 @@ private fun hash(a: CharSequence): Int {
 }
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun Any?.realToString(): String = when (this) {
+inline fun Any?.realToString(): String =
+    realToString("[", "]")
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun Any?.realToString(
+    arrPrefix: String, arrPostfix: String // note: these are ignored for primitive arrays
+): String = when (this) {
     null -> "null"
 
-    is Array<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", "[", "]", -1, "…", null)
-    is Collection<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", "[", "]", -1, "…", null)
+    is Array<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", arrPrefix, arrPostfix, -1, "…", null)
+    is Collection<*> -> map<Any?, String>(Any?::realToString).joinToString(", ", arrPrefix, arrPostfix, -1, "…", null)
     is ByteArray -> toHexString()
     is IntArray -> Arrays.toString(this)
     is CharArray -> Arrays.toString(this)
