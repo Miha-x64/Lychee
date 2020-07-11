@@ -50,13 +50,6 @@ private constructor(
             this(schema, name, schema.run { idCol.name }, schema.run { idCol.type }, idCol)
 
     /**
-     * Returns all relations for this table.
-     * This must describe how to store all [Struct] columns relationally.
-     */
-    @Deprecated("now override meta() for relations, indices, type overrides, etc", level = DeprecationLevel.ERROR)
-    protected open fun relations(): Array<out ColMeta<SCH>> = noMeta as Array<out ColMeta<SCH>>
-
-    /**
      * Returns all metadata for this table: relations, indices, type overrides.
      * This helps building a list of columns, binding and reading values, constructing 'CREATE TABLE etc.
      * Relations could form dependency circles, that's why we don't require them in constructor.
@@ -302,7 +295,7 @@ private constructor(
 
     private var _columnsByName: Map<String, StoredNamedLens<SCH, *, *>>? = null
 
-    @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals()")
+    @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals()", level = DeprecationLevel.ERROR)
     val columnsByName: Nothing
         get() = throw AssertionError()
 
@@ -369,11 +362,6 @@ private constructor(
 
 }
 
-/**
- * The simplest case of [Table] which stores [Record] instances, not ones of its subclasses.
- */
-@Deprecated("normal Table is Simple enough", ReplaceWith("Table"), DeprecationLevel.ERROR)
-typealias SimpleTable<SCH, ID> = Table<SCH, ID>
 
 @Suppress("NOTHING_TO_INLINE") // pass-through
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idColName: String, idColType: DataType.NotNull.Simple<ID>): Table<SCH, ID> =

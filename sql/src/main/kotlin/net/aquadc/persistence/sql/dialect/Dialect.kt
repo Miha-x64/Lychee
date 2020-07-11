@@ -30,13 +30,6 @@ interface Dialect {
     fun <SCH : Schema<SCH>> selectCountQuery(table: Table<SCH, *>, condition: WhereCondition<SCH>): String
 
     /**
-     * Appends WHERE clause (without WHERE itself) to [this] builder.
-     */
-    @Deprecated("unused by Session", level = DeprecationLevel.ERROR)
-    fun <SCH : Schema<SCH>> StringBuilder.appendWhereClause(context: Table<SCH, *>, condition: WhereCondition<SCH>): Nothing =
-        throw AssertionError()
-
-    /**
      * Appends ORDER clause (without ORDER BY itself) to [this] builder.
      * @param order must be non-empty
      */

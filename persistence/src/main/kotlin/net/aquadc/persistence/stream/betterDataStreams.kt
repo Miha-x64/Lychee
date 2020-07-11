@@ -18,13 +18,6 @@ interface BetterDataOutput<D> {
     fun writeByte(output: D, byte: Byte)
 
     /**
-     * Writes a single [short] into [output].
-     */
-    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-    fun writeShort(output: D, short: Short): Nothing =
-        throw AssertionError()
-
-    /**
      * Writes a single [int] into [output].
      */
     fun writeInt(output: D, int: Int)
@@ -57,13 +50,6 @@ interface BetterDataInput<D> {
      * Reads a single byte from the [input].
      */
     fun readByte(input: D): Byte
-
-    /**
-     * Reads a single short from the [input].
-     */
-    @Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-    fun readShort(input: D): Nothing =
-        throw AssertionError()
 
     /**
      * Reads a single int from the [input].

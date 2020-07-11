@@ -11,10 +11,6 @@ import net.aquadc.persistence.type.string
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
-@Deprecated("renamed", level = DeprecationLevel.ERROR)
-@Suppress("UNUSED_TYPEALIAS_PARAMETER")
-typealias Relation<S, ID, T> = ColMeta<S>
-
 /**
  * A piece of metadata about table columns: relations, indices, type overrides.
  */
@@ -24,37 +20,6 @@ sealed class ColMeta<S : Schema<S>>(
 
     @Suppress("NOTHING_TO_INLINE")
     companion object {
-        /**
-         * @param naming which will concat names
-         * @param path to a value stored as a [DataType.NotNull.Partial]
-         * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
-         */
-        @Deprecated("renamed", ReplaceWith("embed(naming, path, fieldSetColName)", "net.aquadc.persistence.sql.ColMeta.Companion.*"), DeprecationLevel.ERROR)
-        @JvmName("embeddedNullable")
-        inline fun <S : Schema<S>, ET : Any, EDT : DataType.Nullable<ET, out DataType.NotNull.Partial<ET, *>>>
-            Embedded(naming: NamingConvention, path: StoredLens<S, ET?, EDT>, fieldSetColName: CharSequence): Nothing =
-            throw AssertionError()
-        /**
-         * @param naming which will concat names
-         * @param path to a value stored as a [DataType.NotNull.Partial]
-         * @param fieldSetColName a name of a column which will internally be used to remember which fields are set
-         */
-        @Deprecated("renamed", ReplaceWith("embed(naming, path, fieldSetColName)", "net.aquadc.persistence.sql.ColMeta.Companion.*"), DeprecationLevel.ERROR)
-        @JvmName("embeddedPartial")
-        inline fun <S : Schema<S>, ET, EDT : DataType.NotNull.Partial<ET, *>>
-            Embedded(naming: NamingConvention, path: StoredLens<S, ET, EDT>, fieldSetColName: CharSequence): Nothing =
-            throw AssertionError()
-        /**
-         * @param naming which will concat names
-         * @param path to a value stored as a struct with [Schema]
-         */
-        @Deprecated("renamed", ReplaceWith("embed(naming, path)", "net.aquadc.persistence.sql.ColMeta.Companion.*"), DeprecationLevel.ERROR)
-        @JvmName("embeddedStruct")
-        inline fun <S : Schema<S>, ES : Schema<ES>>
-            Embedded(naming: NamingConvention, path: StoredLens<S, Struct<ES>, ES>): Nothing =
-            throw AssertionError()
-
-
         /**
          * @param naming which will concat names
          * @param path to a value stored as a [DataType.NotNull.Partial]

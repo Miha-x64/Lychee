@@ -69,23 +69,6 @@ sealed class DataType<T> {
     // Unfortunately, I can't insert a supertype seamlessly.
     // Nesting required: https://youtrack.jetbrains.com/issue/KT-13495
     // There's also no local type aliases.
-    @Deprecated("moved", ReplaceWith("DataType.NotNull.Simple<T>(kind)"), DeprecationLevel.ERROR)
-    abstract class Simple<T>(kind: NotNull.Simple.Kind) : NotNull.Simple<T>(kind) {
-        @Deprecated("moved", ReplaceWith("DataType.NotNull.Simple.Kind"), DeprecationLevel.ERROR)
-        object Kind {
-            inline val Bool get() = NotNull.Simple.Kind.Bool
-            inline val I32 get() = NotNull.Simple.Kind.I32
-            inline val I64 get() = NotNull.Simple.Kind.I64
-            inline val F32 get() = NotNull.Simple.Kind.F32
-            inline val F64 get() = NotNull.Simple.Kind.F64
-            inline val Str get() = NotNull.Simple.Kind.Str
-            inline val Blob get() = NotNull.Simple.Kind.Blob
-        }
-    }
-    @Deprecated("moved", ReplaceWith("DataType.NotNull.Collect<C, E, DE>(elementType)"), DeprecationLevel.ERROR)
-    abstract class Collect<C, E, DE : DataType<E>>(elementType: DE) : NotNull.Collect<C, E, DE>(elementType)
-    @Deprecated("moved", ReplaceWith("DataType.NotNull.Partial<T, SCH>(schema)"), DeprecationLevel.ERROR)
-    abstract class Partial<T, SCH : Schema<SCH>>(schema: SCH) : NotNull.Partial<T, SCH>(schema)
 
     /**
      * Common supertype for all types which cannot be stored as `null`.

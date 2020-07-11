@@ -37,18 +37,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
     private val _fields =
             lazy(LazyFields(0) as () -> Array<out FieldDef<SELF, *, *>>)
 
-    @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals(). Use fieldByName() instead", level = DeprecationLevel.ERROR)
-    val fieldsByName: Map<String, FieldDef<SELF, *, *>>
-        get() = throw AssertionError()
-
-    @Deprecated("use mutableFieldSet instead", level = DeprecationLevel.ERROR)
-    val mutableFields: Nothing
-        get() = throw AssertionError()
-
-    @Deprecated("use immutableFieldSet instead", level = DeprecationLevel.ERROR)
-    val immutableFields: Nothing
-        get() = throw AssertionError()
-
     @JvmSynthetic internal fun tmpFields() =
             tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 

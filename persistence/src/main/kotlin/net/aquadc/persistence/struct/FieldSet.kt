@@ -46,28 +46,6 @@ inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *, *>) 
 
 
 /**
- * Returns a set with all fields of [this] [Schema].
- */
-@Deprecated("use member property instead", ReplaceWith("this.allFieldSet"), DeprecationLevel.ERROR)
-inline fun <SCH : Schema<SCH>> SCH.allFieldSet(): Nothing =
-    throw AssertionError()
-
-/**
- * Returns a set of all [MutableField]s of [this] [Schema].
- */
-@Deprecated("use member property instead", ReplaceWith("this.mutableFieldSet"), DeprecationLevel.ERROR)
-inline fun <SCH : Schema<SCH>> SCH.mutableFieldSet(): Nothing =
-    throw AssertionError()
-
-/**
- * Returns a set of all [ImmutableField]s of [this] [Schema].
- */
-@Deprecated("use member property instead", ReplaceWith("this.immutableFieldSet"), DeprecationLevel.ERROR)
-inline fun <SCH : Schema<SCH>> SCH.immutableFieldSet(): Nothing =
-    throw AssertionError()
-
-
-/**
  * Returns the a set representing a union of [this] and [other] [FieldDef]s.
  */
 inline operator fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> F.plus(other: F): FieldSet<SCH, F> =

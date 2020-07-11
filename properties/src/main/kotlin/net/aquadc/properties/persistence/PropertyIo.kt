@@ -34,16 +34,6 @@ interface PropertyIo {
 @JvmName("bool") inline infix fun PropertyIo.x(prop: MutableProperty<Boolean>): Unit =
         bool.invoke(prop)
 
-/** Reads or writes a [Byte] value */
-@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-@JvmName("i8") inline infix fun PropertyIo.x(prop: MutableProperty<Byte>): Nothing =
-        throw AssertionError()
-
-/** Reads or writes a [Short] value */
-@Deprecated("does not look very useful", level = DeprecationLevel.ERROR)
-@JvmName("i16") inline infix fun PropertyIo.x(prop: MutableProperty<Short>): Nothing =
-        throw AssertionError()
-
 /** Reads or writes an [Int] value */
 @JvmName("i32") inline infix fun PropertyIo.x(prop: MutableProperty<Int>): Unit =
         i32.invoke(prop)
