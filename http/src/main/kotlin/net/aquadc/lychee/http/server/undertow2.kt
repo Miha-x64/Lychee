@@ -43,10 +43,10 @@ inline fun <R> RoutingHandler.add(
     endpoint: Endpoint0<*, R>,
     noinline respond: HttpServerExchange.(R) -> Unit,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.() -> R
+    crossinline handler: () -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
-        exchange.respond(exchange.handler())
+        exchange.respond(handler())
         exchange.endExchange()
     }, addHandler)
 
@@ -57,12 +57,12 @@ inline fun <T, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T) -> R
+    crossinline handler: (T) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg) ->
-            exchange.handler(arg as T)
+            handler(arg as T)
         }
     }, addHandler)
 
@@ -73,12 +73,12 @@ inline fun <T1, T2, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2) -> R
+    crossinline handler: (T1, T2) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2) ->
-            exchange.handler(arg1 as T1, arg2 as T2)
+            handler(arg1 as T1, arg2 as T2)
         }
     }, addHandler)
 
@@ -89,12 +89,12 @@ inline fun <T1, T2, T3, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2, T3) -> R
+    crossinline handler: (T1, T2, T3) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2, arg3) ->
-            exchange.handler(arg1 as T1, arg2 as T2, arg3 as T3)
+            handler(arg1 as T1, arg2 as T2, arg3 as T3)
         }
     }, addHandler)
 
@@ -105,12 +105,12 @@ inline fun <T1, T2, T3, T4, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2, T3, T4) -> R
+    crossinline handler: (T1, T2, T3, T4) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2, arg3, arg4) ->
-            exchange.handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4)
+            handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4)
         }
     }, addHandler)
 
@@ -121,12 +121,12 @@ inline fun <T1, T2, T3, T4, T5, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2, T3, T4, T5) -> R
+    crossinline handler: (T1, T2, T3, T4, T5) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2, arg3, arg4, arg5) ->
-            exchange.handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5)
+            handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5)
         }
     }, addHandler)
 
@@ -137,12 +137,12 @@ inline fun <T1, T2, T3, T4, T5, T6, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2, T3, T4, T5, T6) -> R
+    crossinline handler: (T1, T2, T3, T4, T5, T6) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2, arg3, arg4, arg5, arg6) ->
-            exchange.handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5, arg6 as T6)
+            handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5, arg6 as T6)
         }
     }, addHandler)
 
@@ -153,12 +153,12 @@ inline fun <T1, T2, T3, T4, T5, T6, T7, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2, T3, T4, T5, T6, T7) -> R
+    crossinline handler: (T1, T2, T3, T4, T5, T6, T7) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2, arg3, arg4, arg5, arg6, arg7) ->
-            exchange.handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5, arg6 as T6, arg7 as T7)
+            handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5, arg6 as T6, arg7 as T7)
         }
     }, addHandler)
 
@@ -169,12 +169,12 @@ inline fun <T1, T2, T3, T4, T5, T6, T7, T8, R>
     noinline respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory = DefaultFormParserFactory,
     noinline addHandler: RoutingHandler.(Predicate?, String, String, HttpHandler) -> Unit = addHndlr,
-    crossinline handler: HttpServerExchange.(T1, T2, T3, T4, T5, T6, T7, T8) -> R
+    crossinline handler: (T1, T2, T3, T4, T5, T6, T7, T8) -> R
 ): RoutingHandler =
     add(endpoint, HttpHandler { exchange ->
         gatherArgsAndInvoke(exchange, endpoint, respond, respondBadRequest, formParserFactory) {
             (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) ->
-            exchange.handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5, arg6 as T6, arg7 as T7, arg8 as T8)
+            handler(arg1 as T1, arg2 as T2, arg3 as T3, arg4 as T4, arg5 as T5, arg6 as T6, arg7 as T7, arg8 as T8)
         }
     }, addHandler)
 
@@ -239,7 +239,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
     respond: HttpServerExchange.(R) -> Unit,
     respondBadRequest: HttpServerExchange.(failedParam: Param<*>, Throwable) -> Unit,
     formParserFactory: FormParserFactory,
-    handler: HttpServerExchange.(Array<Any?>) -> R
+    handler: (Array<Any?>) -> R
 ) {
     val params = endpoint.params
     val args = arrayOfNulls<Any>(params.size)
@@ -307,7 +307,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                     return exchange.badEnd(respondBadRequest, param, e)
                 }
             }
-            exchange.respond(exchange.handler(args))
+            exchange.respond(handler(args))
             exchange.endExchange()
         })
     } else if (hasBody) {
@@ -321,11 +321,11 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                     return exchange.badEnd(respondBadRequest, param, e)
                 }
             }
-            exchange.respond(exchange.handler(args))
+            exchange.respond(handler(args))
             exchange.endExchange()
         })
     } else {
-        exchange.respond(exchange.handler(args))
+        exchange.respond(handler(args))
         exchange.endExchange()
     }
 }
