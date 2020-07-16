@@ -429,4 +429,17 @@ class JdbcSession(
     ): FuncN<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
 
+    override fun close() {
+        selectStatements.get()?.values
+            ?.forEach(PreparedStatement::close) // Oops! Other threads' statements gonna dangle until GC
+        lowLevel.daos.values.forEach {
+            it.insertStatement?.close()
+            it.updateStatements.values.forEach(PreparedStatement::close)
+            it.deleteStatement?.close()
+            it.truncateLocked(ArrayList()) // ill but temporary allocation: I hope DAOs will go away soon
+        }
+
+        connection.close()
+    }
+
 }

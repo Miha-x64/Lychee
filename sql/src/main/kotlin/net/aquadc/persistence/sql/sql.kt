@@ -43,7 +43,7 @@ annotation class ExperimentalSql
 /**
  * A gateway into RDBMS.
  */
-interface Session<SRC> {
+interface Session<SRC> : Closeable {
 
     /**
      * Lazily creates and returns DAO for the given table.

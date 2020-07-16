@@ -379,6 +379,17 @@ class SqliteSession(
     ): FuncN<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
 
+    override fun close() {
+        lowLevel.daos.values.forEach {
+            it.insertStatement?.close()
+            it.updateStatements.values.forEach(SQLiteStatement::close)
+            it.deleteStatement?.close()
+            it.truncateLocked(ArrayList()) // ill but temporary allocation: I hope DAOs will go away soon
+        }
+
+        connection.close()
+    }
+
 }
 
 /**

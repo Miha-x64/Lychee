@@ -37,7 +37,7 @@ private val db get() = try {
 }
 
 private inline fun disconnect(session: () -> Session<*>) = try {
-    (session() as JdbcSession).connection.close()
+    session().close()
 } catch (ignored: UninitializedPropertyAccessException) {
     // happens on CI without PostgreSQL
 }

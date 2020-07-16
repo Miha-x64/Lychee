@@ -45,7 +45,7 @@ class SqlPropRoboTest : SqlPropTest() {
         session = SqliteSession(db)
     }
     @After fun close() {
-        db.close()
+        session.close()
     }
 
     override val duplicatePkExceptionClass: Class<*>
@@ -71,38 +71,32 @@ class SqlPropRoboTest : SqlPropTest() {
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class EmbedRelationsRoboTest : EmbedRelationsTest() {
-    private lateinit var db: SQLiteDatabase
     @Before fun init() {
-        db = sqliteDb()
-        session = SqliteSession(db)
+        session = SqliteSession(sqliteDb())
     }
     @After fun close() {
-        db.close()
+        session.close()
     }
 }
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class QueryBuilderRoboTests : QueryBuilderTests() {
-    private lateinit var db: SQLiteDatabase
     @Before fun init() {
-        db = sqliteDb()
-        session = SqliteSession(db)
+        session = SqliteSession(sqliteDb())
     }
     @After fun close() {
-        db.close()
+        session.close()
     }
 }
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class TemplatesRoboTests : TemplatesTest() {
-    private lateinit var db: SQLiteDatabase
     @Before fun init() {
-        db = sqliteDb()
-        session = SqliteSession(db)
+        session = SqliteSession(sqliteDb())
     }
     @After fun close() {
-        db.close()
+        session.close()
     }
 }
