@@ -21,7 +21,7 @@ import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
-import net.aquadc.persistence.sql.VarFunc
+import net.aquadc.persistence.sql.FuncN
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
@@ -372,7 +372,11 @@ class SqliteSession(
         }
     }
 
-    override fun <R> rawQuery(@Language("SQL") query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, fetch: Fetch<Blocking<Cursor>, R>): VarFunc<Any, R> =
+    override fun <R> rawQuery(
+        @Language("SQL") query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        fetch: Fetch<Blocking<Cursor>, R>
+    ): FuncN<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
 
 }

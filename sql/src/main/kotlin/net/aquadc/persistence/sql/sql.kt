@@ -60,7 +60,7 @@ interface Session<SRC> {
     //  ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         fetch: Fetch<SRC, R>
-    ): VarFunc<Any, R>
+    ): FuncN<Any, R>
 
 }
 

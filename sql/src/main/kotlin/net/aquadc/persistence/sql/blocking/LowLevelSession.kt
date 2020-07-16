@@ -6,7 +6,7 @@ import net.aquadc.persistence.sql.ColCond
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.Order
-import net.aquadc.persistence.sql.VarFunc
+import net.aquadc.persistence.sql.FuncN
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Record
@@ -28,7 +28,7 @@ internal class BlockingQuery<CUR, R>(
     private val query: String,
     private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
     private val fetch: Fetch<Blocking<CUR>, R>
-) : FuncXImpl<Any, R>(), VarFunc<Any, R> {
+) : FuncXImpl<Any, R>(), FuncN<Any, R> {
 
     override fun invokeUnchecked(vararg args: Any): R =
             fetch.fetch(session, query, argumentTypes, args)

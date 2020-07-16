@@ -10,12 +10,15 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import org.intellij.lang.annotations.Language
 
+@Deprecated("It's not a “vararg function”, it's a “N-ary function”")
+typealias VarFunc<T, R> = FuncN<T, R>
+
 /**
  * A function of unknown arity.
  * Implementors must also ~~implement [Function0]..[Function8]~~
  * **inherit from [FuncXImpl]** __until KT-24067 fixed__.
  */
-interface VarFunc<T, R> {
+interface FuncN<T, R> {
     fun invokeUnchecked(vararg arg: T): R
 }
 
