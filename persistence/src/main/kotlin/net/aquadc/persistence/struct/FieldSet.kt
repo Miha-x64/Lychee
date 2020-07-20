@@ -198,15 +198,8 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FldSet<SCH>): String =
  * Invokes [func] on each element of the [set].
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSet<SCH, F>, func: SCH.(F) -> Unit) {
-    var ord = 0
-    var mask = set.bitSet
-    while (mask != 0L) {
-        if ((mask and 1L) == 1L) {
-            func(this, fields[ord] as F)
-        }
-
-        mask = mask ushr 1
-        ord++
+    set.bitSet.forEachBit { _, bitIdx ->
+        func(this, fields[bitIdx] as F)
     }
 }
 
@@ -214,14 +207,10 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSe
  * Asserts [FieldSet.size] is 1 and returns this [FieldDef].
  */
 fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.single(set: FieldSet<SCH, F>): F {
-    var ord = 0
-    var mask = set.bitSet
-    while ((mask and 1L) == 0L) {
-        mask = mask ushr 1
-        ord++
-    }
-    check(mask == 1L)
-    return fields[ord] as F
+    val bits = set.bitSet
+    check(java.lang.Long.bitCount(bits) == 1)
+    return fields[java.lang.Long.numberOfTrailingZeros(bits)] as F
+
 }
 
 /**
@@ -229,16 +218,8 @@ fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.single(set: FieldSet<SCH, F
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> Unit) {
     val fields = fields
-    var idx = 0
-    var ord = 0
-    var mask = set.bitSet
-    while (mask != 0L) {
-        if ((mask and 1L) == 1L) {
-            func(idx++, fields[ord] as F)
-        }
-
-        mask = mask ushr 1
-        ord++
+    set.bitSet.forEachBit { setBitIdx, bitIdx ->
+        func(setBitIdx, fields[bitIdx] as F)
     }
 }
 
@@ -248,19 +229,24 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: 
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> {
     val fields = fields
     val out = arrayOfNulls<R>(set.size)
-    var idx = 0
-    var ord = 0
-    var mask = set.bitSet
-    while (mask != 0L) {
-        if ((mask and 1L) == 1L) {
-            out[idx] = func(idx, fields[ord] as F)
-            idx += 1
-        }
-
-        mask = mask ushr 1
-        ord++
+    set.bitSet.forEachBit { setBitIdx, bitIdx ->
+        out[setBitIdx] = func(setBitIdx, fields[bitIdx] as F)
     }
     return out as Array<R>
+}
+
+@PublishedApi internal inline fun Long.forEachBit(func: (setBitIdx: Int, bitIdx: Int) -> Unit) {
+    var idx = 0
+    var ord = 0
+    var bits = this
+    while (bits != 0L) {
+        if ((bits and 1L) == 1L) {
+            func(idx++, ord)
+        }
+
+        bits = bits ushr 1
+        ord++
+    }
 }
 
 typealias FldSet<SCH> = FieldSet<SCH, FieldDef<SCH, *, *>>
