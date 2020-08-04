@@ -236,7 +236,7 @@ setContentView(verticalLayout {
 }.wrapInScrollView())
 ```
 
-JavaFx layout (using JFoenix):
+JavaFX layout (using JFoenix):
 
 ```kt
 children.add(JFXTextField().apply {
@@ -400,7 +400,7 @@ session.query(
 
 ## HTTP
 
-HTTP is the most popular application layer protocol.
+HTTP is ~~unfortunately~~ the most popular application layer protocol.
 Its abilities are not restricted to passing binary or JSON bodies:
 there are headers, query parameters, form fields, multipart, and more.
 
@@ -418,8 +418,7 @@ This gives you several features:
   or return `Either<HttpException, ResponseEntity>`,
   or ignore response code at all and just parse response body;  
 * server-side type-safe routing:
-  `router.add(user, ::respond, ::respondBadRequest) { token, role, id -> "response" }`
-  (currently not implemented, trying to choose among several HTTP servers);
+  `undertowRoutingHandler.add(user, ::respond, ::respondBadRequest) { token, role, id -> "response" }`;
 * link generation: if endpoint declaration uses GET method
   and does not contain headers, it is possible to build URL:
 ```kt
@@ -434,8 +433,9 @@ Well, yes, but actually no. Retrofit
 * works only on client-side,
 * requires method return types (Call, Observable, Deferred) to be tied to async framework,
 * promotes Service-style interfaces.
+
 Lychee-HTTP, on the other side,
-* allows `Endpoint`s to be both invoked from client-side and implemented from server-side,
+* allows `Endpoint`s to be both invoked from client-side and implemented at server-side,
 * decouples async wrapper from return value,
 * httpClient.template(endpoint) returns a function, server-side endpoint handler is a funcion,
   thus, no Services/Controllers.
@@ -565,12 +565,13 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    implementation 'net.aquadc.properties:properties:0.0.14' // observables for both JVM and Android
-    implementation 'net.aquadc.properties:persistence:0.0.14' // persistence for JVM and Android
-    implementation 'net.aquadc.properties:extended-persistence:0.0.14' // partial structs, tuples, either, unsigned, primitive[], token transforms
-    implementation 'net.aquadc.properties:android-bindings:0.0.14' // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
-    implementation 'net.aquadc.properties:android-json:0.0.14' // AAR for Android(x): JsonReader as TokenStream
-    implementation 'net.aquadc.properties:sql:0.0.14' // observable SQL and SQL templates
-    implementation 'net.aquadc.properties:http:0.0.14' // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
+    implementation 'net.aquadc.properties:properties:0.0.15' // observables for both JVM and Android
+    implementation 'net.aquadc.properties:persistence:0.0.15' // persistence for JVM and Android
+    implementation 'net.aquadc.properties:extended-persistence:0.0.15' // partial structs, tuples, either, unsigned, primitive[], token transforms
+    implementation 'net.aquadc.properties:android-bindings:0.0.15' // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
+    implementation 'net.aquadc.properties:android-json:0.0.15' // android.util.JsonReader as TokenStream
+    implementation 'net.aquadc.properties:android-json-on-jvm:0.0.15' // implements android.util.JsonReader for server and desktop, use with android-json outside of Android 
+    implementation 'net.aquadc.properties:sql:0.0.15' // observable SQL and SQL templates
+    implementation 'net.aquadc.properties:http:0.0.15' // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
 }
 ```
