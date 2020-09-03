@@ -36,12 +36,12 @@ class ArrayUtilsTest {
         assertEquals(-1, emptyArray<Any?>().compact())
 
         arrayOf<Any?>(null).assertCompact(arrayOf<Any?>(null), 0)
-        arrayOf("__").assertCompact(arrayOf("__"), -1)
+        arrayOf<String?>("__").assertCompact(arrayOf("__"), -1)
 
         arrayOf<Any?>(null, null).assertCompact(arrayOf<Any?>(null, null), 0)
         arrayOf("__", null).assertCompact(arrayOf("__", null), 1)
         arrayOf(null, "__").assertCompact(arrayOf("__", null), 1)
-        arrayOf("__", "__").assertCompact(arrayOf("__", "__"), -1)
+        arrayOf<String?>("__", "__").assertCompact(arrayOf("__", "__"), -1)
 
         arrayOf<Any?>(null, null, null).assertCompact(arrayOf<Any?>(null, null, null), 0)
         arrayOf(null, null, "__").assertCompact(arrayOf("__", null, null), 1)
@@ -50,7 +50,7 @@ class ArrayUtilsTest {
         arrayOf("__", null, null).assertCompact(arrayOf("__", null, null), 1)
         arrayOf("__", null, "__").assertCompact(arrayOf("__", "__", null), 2)
         arrayOf("__", "__", null).assertCompact(arrayOf("__", "__", null), 2)
-        arrayOf("__", "__", "__").assertCompact(arrayOf("__", "__", "__"), -1)
+        arrayOf<String?>("__", "__", "__").assertCompact(arrayOf("__", "__", "__"), -1)
 
         arrayOf<Any?>(null, null, null, null).assertCompact(arrayOf<Any?>(null, null, null, null), 0)
         arrayOf(null, null, null, "__").assertCompact(arrayOf("__", null, null, null), 1)
@@ -67,11 +67,11 @@ class ArrayUtilsTest {
         arrayOf("__", "__", null, null).assertCompact(arrayOf("__", "__", null, null), 2)
         arrayOf("__", "__", null, "__").assertCompact(arrayOf("__", "__", "__", null), 3)
         arrayOf("__", "__", "__", null).assertCompact(arrayOf("__", "__", "__", null), 3)
-        arrayOf("__", "__", "__", "__").assertCompact(arrayOf("__", "__", "__", "__"), -1)
+        arrayOf<String?>("__", "__", "__", "__").assertCompact(arrayOf("__", "__", "__", "__"), -1)
     }
 
-    private fun Array<out Any?>.assertCompact(expectArray: Array<out Any?>, expectIdx: Int) {
-        assertEquals(expectIdx, compact())
+    private fun <T : Any> Array<T?>.assertCompact(expectArray: Array<out Any?>, expectIdx: Int) {
+        assertEquals(expectIdx, this@assertCompact.compact())
         assertArrayEquals(expectArray, this)
     }
 
