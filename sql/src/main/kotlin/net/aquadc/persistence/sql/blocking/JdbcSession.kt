@@ -2,7 +2,6 @@ package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
-import net.aquadc.collections.toArr
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.fatAsList
@@ -84,8 +83,6 @@ class JdbcSession(
 
     // transactional things, guarded by write-lock
     @JvmField @JvmSynthetic internal var transaction: RealTransaction? = null
-
-    @JvmField @JvmSynthetic internal val selectStatements = ThreadLocal<MutableMap<String, PreparedStatement>>()
 
     private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
@@ -238,9 +235,7 @@ class JdbcSession(
                     if (columns == null) dialect.selectCountQuery(table, condition)
                     else dialect.selectQuery(table, columns, condition, order)
 
-            return selectStatements
-                    .getOrSet(::HashMap)
-                    .getOrPut(query) { connection.prepareStatement(query) }
+            return statement(query)
                     .also { stmt ->
                         bindQueryParams(condition, table) { type, idx, value ->
                             type.bind(stmt, idx, value)
@@ -440,9 +435,7 @@ class JdbcSession(
 
         override fun select(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
-        ): ResultSet = selectStatements
-                .getOrSet(::HashMap)
-                .getOrPut(query) { connection.prepareStatement(query) }
+        ): ResultSet = statement(query)
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
                         (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, arguments[idx])
@@ -460,6 +453,24 @@ class JdbcSession(
                 }
         override fun sizeHint(cursor: ResultSet): Int = -1
         override fun next(cursor: ResultSet): Boolean = cursor.next()
+
+        override fun execute(
+            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
+        ) {
+            statement(query)
+                .also { stmt ->
+                    for (idx in argumentTypes.indices) {
+                        (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, transactionAndArguments[idx + 1])
+                    }
+                }
+                .executeUpdate()
+        }
+
+        private fun statement(query: String): PreparedStatement {
+            return statements
+                .getOrSet(::HashMap)
+                .getOrPut(query) { connection.prepareStatement(query) }
+        }
 
         override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: Ilk<T, *>): T =
                 type.get1indexed(cursor, cursor.findColumn(name.toString()))
@@ -573,8 +584,8 @@ class JdbcSession(
             sb.append(" ").append(table.name).append("\n")
             dao.dump("  ", sb)
 
-            sb.append("  select statements (for current thread)\n")
-            selectStatements.get()?.keys?.forEach { sql ->
+            sb.append("  prepared statements (for current thread)\n")
+            lowLevel.statements.get()?.keys?.forEach { sql ->
                 sb.append(' ').append(sql).append("\n")
             }
 
@@ -600,7 +611,7 @@ class JdbcSession(
         triggers.addListener(subject, listener)
 
     override fun close() {
-        selectStatements.get()?.values
+        lowLevel.statements.get()?.values
             ?.forEach(PreparedStatement::close) // Oops! Other threads' statements gonna dangle until GC
         lowLevel.daos.values.forEach {
             it.insertStatement?.close()

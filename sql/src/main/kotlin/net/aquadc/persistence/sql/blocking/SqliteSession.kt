@@ -11,23 +11,23 @@ import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
-import net.aquadc.collections.toArr
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.eq
+import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
+import net.aquadc.persistence.sql.FuncN
 import net.aquadc.persistence.sql.IdBound
+import net.aquadc.persistence.sql.ListChanges
 import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
-import net.aquadc.persistence.sql.FuncN
-import net.aquadc.persistence.sql.ListChanges
-import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.TriggerReport
 import net.aquadc.persistence.sql.TriggerSubject
@@ -54,6 +54,7 @@ import net.aquadc.persistence.type.i64
 import org.intellij.lang.annotations.Language
 import java.io.Closeable
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.getOrSet
 
 /**
  * Represents a connection with an [SQLiteDatabase].
@@ -392,6 +393,20 @@ class SqliteSession(
         override fun sizeHint(cursor: Cursor): Int = cursor.count
         override fun next(cursor: Cursor): Boolean = cursor.moveToNext()
 
+        override fun execute(
+            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
+        ) {
+            statements
+                .getOrSet(::newMap)
+                .getOrPut(query) { connection.compileStatement(query) }
+                .also { stmt ->
+                    argumentTypes.forEachIndexed { idx, type ->
+                        (type as DataType<Any?>).bind(stmt, idx, transactionAndArguments[idx + 1])
+                    }
+                }
+                .executeUpdateDelete()
+        }
+
         private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: Ilk<T, *>): T =
             (type.type as DataType<T>).get(cursor, cursor.getColIdx(guess, name))
         override fun <T> cellByName(cursor: Cursor, name: CharSequence, type: Ilk<T, *>): T =
@@ -526,6 +541,8 @@ class SqliteSession(
         triggers.addListener(subject, listener)
 
     override fun close() {
+        lowLevel.statements.get()?.values
+            ?.forEach(SQLiteStatement::close) // Oops! Other threads' statements gonna dangle until GC
         lowLevel.daos.values.forEach {
             it.insertStatement?.close()
             it.updateStatements.values.forEach(SQLiteStatement::close)

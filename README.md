@@ -390,12 +390,18 @@ With `Session` (`JdbcSession`, Android-specific `SqliteSession`), you're getting
   useful for client-side applications
 * SQL templates:
 ```kt
-session.query(
+val selectNameEmailBySmth = session.query(
     "SELECT a.name, b.email FROM anywhere a JOIN anything b WHERE smth = ?",
     /* argument */ string,
     // return a list of positionally bound string-to-string tuples:
     structs(projection(string, string), BindBy.Position)
-)
+) // (String) -> List<Struct<Tuple<String, …, String, …>>>
+
+val updateNameByEmail = session.mutate(
+    "UPDATE users SET name = ? WHERE email = ?",
+    string, string,
+    execute()
+) // Transaction.(String, String) -> Unit
 ```
 * Triggers:
 ```kt

@@ -42,6 +42,8 @@ internal class BlockingQuery<CUR, R>(
 }
 
 internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
+    val statements = ThreadLocal<MutableMap<String, STMT>>()
+
     abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID
 
     /** [columnNames] : [values] is a map */

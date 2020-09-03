@@ -29,9 +29,10 @@ interface Blocking<CUR> {
     fun select(
         query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
     ): CUR
-
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
+
+    fun execute(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>)
 
     fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
     fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
@@ -48,6 +49,9 @@ interface Blocking<CUR> {
      */
     fun close(cursor: CUR)
 }
+
+internal typealias Exec<SRC, R> =
+    (SRC, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>) -> R
 
 object Eagerly {
     inline fun <CUR, R> cell(
@@ -75,6 +79,9 @@ object Eagerly {
             table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
             FetchStructListEagerly(table, bindBy)
+
+    inline fun execute(): Exec<Blocking<*>, Unit> =
+        ExecuteEagerly
 }
 
 object Lazily {

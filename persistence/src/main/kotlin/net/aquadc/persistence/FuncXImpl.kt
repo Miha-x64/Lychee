@@ -14,6 +14,7 @@ abstract class FuncXImpl<T, R> :
       , (T, T, T, T, T, T) -> R
       , (T, T, T, T, T, T, T) -> R
       , (T, T, T, T, T, T, T, T) -> R
+      , (T, T, T, T, T, T, T, T, T) -> R
 {
 
     abstract fun invokeUnchecked(vararg args: T): R
@@ -44,5 +45,8 @@ abstract class FuncXImpl<T, R> :
 
     override fun invoke(p1: T, p2: T, p3: T, p4: T, p5: T, p6: T, p7: T, p8: T): R =
             invokeUnchecked(p1, p2, p3, p4, p5, p6, p7, p8)
+
+    override fun invoke(p1: T, p2: T, p3: T, p4: T, p5: T, p6: T, p7: T, p8: T, p9: T): R =
+            invokeUnchecked(p1, p2, p3, p4, p5, p6, p7, p8, p9)
 
 }

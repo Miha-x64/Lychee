@@ -91,3 +91,13 @@ import net.aquadc.persistence.type.Ilk
         }
     }
 }
+
+@PublishedApi internal object ExecuteEagerly : (
+    Blocking<*>,
+    @ParameterName("query") String,
+    @ParameterName("argumentTypes") Array<out Ilk<*, DataType.NotNull<*>>>,
+    @ParameterName("arguments") Array<out Any>
+) -> Unit {
+    override fun invoke(db: Blocking<*>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>) =
+        db.execute(query, argumentTypes, arguments)
+}

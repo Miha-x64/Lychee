@@ -218,7 +218,8 @@ abstract class TemplatesTest {
         assertEquals(-1, sqlOr(65535L shl 48, 65535L shl 32, 65535L shl 16, 65535L))
     }
 
-    @Test fun triggers() {
+    @Test fun <CUR> triggers() {
+        val session = session as Session<Blocking<CUR>>
         var called = 0
         val insUpdListener = session.observe(UserTable to TriggerEvent.INSERT, UserTable to TriggerEvent.UPDATE) { report ->
             when (called++) {
@@ -247,15 +248,17 @@ abstract class TemplatesTest {
         session.withTransaction {
             insert(UserTable, User("A", "b"))
         }
+
+        val renameUser = session.mutate("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, Eagerly.execute())
         session.withTransaction {
-            session[UserTable].selectAll().value.single()[User.First] = "X"
+            renameUser("X")
         }
 
         assertEquals(2, called)
         insUpdListener.close()
 
         session.withTransaction { // assert no calls after disposal
-            session[UserTable].selectAll().value.single()[User.First] = "Y"
+            renameUser("Y")
             insert(UserTable, User("A", "b"))
         }
 
