@@ -5,6 +5,7 @@ package net.aquadc.persistence.tokens
 import net.aquadc.collections.get
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEachIndexed
@@ -50,25 +51,28 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
         is DataType.NotNull.Partial<*, *> -> {
             yieldDictionary {
                 type as DataType.NotNull.Partial<Any?, Schema<*>>
-                val fields = type.fields(value)
-                val values = type.store(value)
-                val schema: Schema<Schema<*>> = type.schema as Schema<Schema<*>>
-                when (fields.size) {
-                    0 -> { } // nothing to do here
-                    1 -> {
-                        val field = schema.single<Schema<*>, FieldDef<Schema<*>, *, *>>(fields) as FieldDef<Schema<*>, Any?, DataType<Any?>>
-                        yieldString { schema.run { field.name } }
-                        yield(schema.run { field.type }, values)
-                    }
-                    else -> {
-                        values as Array<*>
-                        schema.forEachIndexed<Schema<*>, FieldDef<Schema<*>, *, *>>(fields) { idx, field ->
-                            field as FieldDef<Schema<*>, Any?, DataType<Any?>>
-                            yieldString { schema.run { field.name } }
-                            yield(schema.run { field.type }, values[idx])
-                        }
-                    }
-                }
+                yieldFieldNamesAndValues(type.fields(value), type.schema, type.store(value))
+            }
+        }
+    }
+}
+
+private suspend fun <SCH : Schema<SCH>> TokenStreamScope.yieldFieldNamesAndValues(
+    fields: FieldSet<SCH, FieldDef<SCH, *, *>>, schema: SCH, values: Any?
+) {
+    when (fields.size) {
+        0 -> { } // nothing to do here
+        1 -> {
+            val field = schema.single(fields)
+            yieldString { schema.run { field.name } }
+            yield(schema.run { field.type } as DataType<Any?>, values)
+        }
+        else -> {
+            values as Array<*>
+            schema.forEachIndexed(fields) { idx, field ->
+                field
+                yieldString { schema.run { field.name } }
+                yield(schema.run { field.type } as DataType<Any?>, values[idx])
             }
         }
     }

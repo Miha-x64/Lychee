@@ -155,7 +155,7 @@ import java.io.DataOutputStream
                 }//.also { }
                 Unit
             }
-            is DataType.NotNull.Collect<*, *, *> -> append("x'").append(
+            is DataType.NotNull.Collect<T, *, *> -> append("x'").append(
                 TODO("append HEX" + ByteArrayOutputStream().also { type.write(DataStreams, DataOutputStream(it), default) }.toByteArray()) as String
             ).append('\'')
             is DataType.NotNull.Partial<*, *> -> throw UnsupportedOperationException()

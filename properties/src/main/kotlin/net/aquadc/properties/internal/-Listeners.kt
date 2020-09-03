@@ -314,6 +314,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                     nonSyncListeners = listeners.with(onChange)
                     // don't check observed state, just assume it's 'true' during notification
                 } else {
+                    listeners as Array<Any?>
                     // not notifying, we can do anything we want
                     when (val insIdx = listeners.compact(/* remove nulls */)) {
                         -1 -> {// no nulls, grow
@@ -326,8 +327,7 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                         }
 
                         else -> {// we have some room in the existing array
-                            @Suppress("UNCHECKED_CAST")
-                            (listeners as Array<Any?>)[insIdx] = onChange
+                            listeners[insIdx] = onChange
                         }
                     }
                 }
