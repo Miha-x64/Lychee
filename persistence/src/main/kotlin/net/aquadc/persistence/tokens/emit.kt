@@ -51,7 +51,7 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
         is DataType.NotNull.Partial<*, *> -> {
             yieldDictionary {
                 type as DataType.NotNull.Partial<Any?, Schema<*>>
-                yieldFieldNamesAndValues(type.fields(value), type.schema, type.store(value))
+                yieldFieldNamesAndValues<Schema<*>>(type.fields(value), type.schema, type.store(value))
             }
         }
     }
