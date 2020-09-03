@@ -397,6 +397,19 @@ session.query(
     structs(projection(string, string), BindBy.Position)
 )
 ```
+* Triggers:
+```kt
+val listener = session.observe(
+    UserTable to TriggerEvent.INSERT,
+    UserTable to TriggerEvent.DELETE,
+) { report ->
+    val userChanges = report.of(UserTable)
+    println("+" + userChanges.inserted.size)
+    println("-" + userChanges.removed.size)
+}
+…
+listener.close() // unsubscribe
+```
 
 ## HTTP
 

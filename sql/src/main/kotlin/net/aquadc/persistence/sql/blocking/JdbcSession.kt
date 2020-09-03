@@ -1,5 +1,9 @@
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.collections.InlineEnumSet
+import net.aquadc.collections.forEach
+import net.aquadc.collections.toArr
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.fatMapTo
@@ -14,7 +18,14 @@ import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
 import net.aquadc.persistence.sql.FuncN
+import net.aquadc.persistence.sql.ListChanges
+import net.aquadc.persistence.sql.SqlTypeName
+import net.aquadc.persistence.sql.TriggerEvent
+import net.aquadc.persistence.sql.TriggerReport
+import net.aquadc.persistence.sql.TriggerSubject
+import net.aquadc.persistence.sql.Triggerz
 import net.aquadc.persistence.sql.WhereCondition
+import net.aquadc.persistence.sql.appendJoining
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.bindValues
@@ -22,14 +33,17 @@ import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.noOrder
+import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
+import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
 import org.intellij.lang.annotations.Language
+import java.io.Closeable
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -45,12 +59,15 @@ import kotlin.concurrent.getOrSet
 @ExperimentalSql
 class JdbcSession(
         @JvmField @JvmSynthetic internal val connection: Connection,
-        @JvmField @JvmSynthetic internal val dialect: Dialect
+        @JvmField @JvmSynthetic internal val dialect: Dialect,
+        /**
+         * If your application is distributed, pass something identifying current node
+         * to avoid temp table or trigger name clashes.
+         */
+        nodeName: String = // “-” does not seem to be a good identifier, let's be alphanumeric
+            java.lang.Double.doubleToLongBits(Math.random()).toString(36).replace('-', 'm')
 ) : Session<Blocking<ResultSet>> {
-
-    init {
-        connection.autoCommit = false
-    }
+    val changesPostfix = '_' + nodeName + "_changes"
 
     @JvmField @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
@@ -138,11 +155,77 @@ class JdbcSession(
                 this@JdbcSession.transaction = null
 
                 if (successful) {
+                    // old ORM-ish API
                     transaction.deliverChanges()
                 }
             } finally {
                 lock.writeLock().unlock()
             }
+
+            // new SQL-friendly API
+            if (successful) {
+                deliverTriggeredChanges()
+            }
+        }
+
+        // copy-paste, keep in sync with SQLite session
+        private fun deliverTriggeredChanges() {
+            val activeSubjects = triggers.activeSubjects()
+            if (activeSubjects.isEmpty()) return
+            val tableToChanges = HashMap<Table<*, *>, ListChanges<*, *>>()
+            connection.autoCommit = false
+            val stmt = connection.createStatement()
+            try {
+                val sb = StringBuilder()
+                activeSubjects.forEach { table ->
+                    sb.setLength(0)
+                    val rs = stmt.executeQuery(
+                        with(dialect) {
+                            sb.append("SELECT * FROM").append(' ').appendName(table.name + changesPostfix).toString()
+                        }
+                    )
+
+                    val wordCount = wordCountForCols(table.managedColumns.size)
+                    val inserted = HashSet<IdBound>()
+                    val updated = HashMap<IdBound, Int>()
+                    val removed = HashSet<IdBound>()
+                    val changes = ArrayList<Long>() // OMG
+
+                    val pkType = table.idColType
+                    while (rs.next()) {
+                        val pk = pkType.get(rs, 0)
+                        when (val what = rs.getInt(1 + 1)) {
+                            -1 -> removed.add(pk)
+                            0 -> {
+                                repeat(wordCount) { word -> changes.add(rs.getLong(2 + 1 + word)) }
+                                check(updated.put(pk, changes.size / wordCount - 1) == null)
+                            }
+                            1 -> inserted.add(pk)
+                            else -> error(what.toString())
+                        }
+                    }
+                    check(tableToChanges.put(
+                        table,
+                        ListChanges(inserted, updated, removed, table as Table<NullSchema, IdBound>, changes.toLongArray())
+                    ) == null)
+
+                    sb.setLength(0)
+                    stmt.execute(
+                        with(dialect) {
+                            sb.append("DELETE FROM").append(' ').appendName(table.name + changesPostfix).toString()
+                        }
+                    )
+                }
+                stmt.close()
+
+                triggers.enqueue(TriggerReport(tableToChanges))
+                connection.commit()
+            } catch (t: Throwable) {
+                connection.rollback()
+                throw t
+            }
+
+            triggers.notifyPending()
         }
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
@@ -389,11 +472,94 @@ class JdbcSession(
 
         override fun close(cursor: ResultSet) =
             cursor.close()
+
+        // copy-paste, keep in sync with SQLite session
+        override fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
+            val sb = StringBuilder()
+            connection.autoCommit = false
+            val stmt = connection.createStatement()
+            try {
+                newbies.forEach { (table, events) ->
+                    val wordCount = wordCountForCols(table.managedColumns.size)
+                    val typeNames = arrayOfNulls<SqlTypeName>(wordCount + 1)
+                    typeNames[0] = i32
+                    typeNames.fill(i64, 1)
+                    with(dialect) {
+                        stmt.execute(sb.createTable(
+                            temporary = true, ifNotExists = true,
+                            name = table.name, namePostfix = changesPostfix,
+                            idColName = "id", idColTypeName = table.idColTypeName,
+                            managedPk = false /* avoid AUTO_INCREMENT or serial*/,
+                            colNames = arrayOf("what") + (0 until wordCount).map { "ch$it" },
+                            colTypes = typeNames as Array<out SqlTypeName>
+                        ).toString())
+                    }
+                    events.forEach { event ->
+                        prepareAndCreateTrigger(sb, event, table, stmt, create = true)
+                    }
+                }
+                stmt.close()
+                connection.commit()
+            } catch (t: Throwable) {
+                connection.rollback()
+                throw t
+            }
+        }
+
+        override fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
+            val sb = StringBuilder()
+            val stmt = connection.createStatement()
+            try {
+                victims.forEach { (table, events) ->
+                    stmt.execute(
+                        with(dialect) {
+                            sb.append("DELETE FROM").append(' ').appendName(table.name + changesPostfix)
+                                .append(' ').append("WHERE").append(' ')
+                                .appendJoining(events, " OR ") { ev -> append("what").append('=').append(ev.balance) }
+                                .toString()
+                        }
+                    )
+                    events.forEach { event ->
+                        prepareAndCreateTrigger(sb, event, table, stmt, create = false)
+                    }
+                }
+                stmt.close()
+                connection.commit()
+            } catch (t: Throwable) {
+                connection.rollback()
+                throw t
+            }
+        }
+
+        @Suppress("UPPER_BOUND_VIOLATED")
+        private fun prepareAndCreateTrigger(
+            sb: StringBuilder, event: TriggerEvent, table: Table<*, *>, stmt: Statement, create: Boolean
+        ): Unit = with(dialect) {
+            table as Table<Schema<*>, IdBound>
+
+            if (!create) { // drop trigger before dropping function as trigger depends on it
+                sb.setLength(0)
+                stmt.execute(sb.changesTrigger<Schema<*>, IdBound>(changesPostfix, event, table, create = false).toString())
+            }
+
+            sb.setLength(0)
+            if (sb.prepareChangesTrigger<Schema<*>, IdBound>(changesPostfix, event, table, create).isNotEmpty()) {
+                stmt.execute(sb.toString())
+            }
+
+            if (create) {
+                sb.setLength(0)
+                stmt.execute(sb.changesTrigger<Schema<*>, IdBound>(changesPostfix, event, table, create = true).toString())
+            }
+        }
     }
 
 
     override fun beginTransaction(): Transaction =
-        createTransaction(lock, lowLevel).also { transaction = it }
+        createTransaction(lock, lowLevel).also {
+            connection.autoCommit = false
+            transaction = it
+        }
 
     // endregion transactions and modifying statements
 
@@ -428,6 +594,10 @@ class JdbcSession(
         fetch: Fetch<Blocking<ResultSet>, R>
     ): FuncN<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
+
+    private val triggers = Triggerz(lowLevel)
+    override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =
+        triggers.addListener(subject, listener)
 
     override fun close() {
         selectStatements.get()?.values

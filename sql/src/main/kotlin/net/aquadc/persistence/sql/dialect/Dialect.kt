@@ -1,8 +1,11 @@
 package net.aquadc.persistence.sql.dialect
 
+import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.sql.Order
+import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.type.DataType
 
@@ -53,12 +56,36 @@ interface Dialect {
     /**
      * Returns an SQL query to create the given [table].
      */
-    fun createTable(table: Table<*, *>, temporary: Boolean = false): String
+    fun createTable(table: Table<*, *>, temporary: Boolean = false, ifNotExists: Boolean = false): String
+
+    fun StringBuilder.createTable(
+        temporary: Boolean, ifNotExists: Boolean, name: String, namePostfix: String?, idColName: CharSequence,
+        idColTypeName: SqlTypeName, managedPk: Boolean,
+        colNames: Array<out CharSequence>, colTypes: Array<out SqlTypeName>
+    ): StringBuilder
 
     /**
      * Returns `TRUNCATE` query to clear the whole table.
      */
     fun truncate(table: Table<*, *>): String
+
+    /**
+     * Optionally builds CREATE|DROP FUNCTION which will be subscribed to the trigger.
+     * Unused by SQLite where trigger function is anonymous;
+     * used with PostgreSQL where trigger listener is a named function.
+     * @param create CREATE FUNCTION if true, DROP FUNCTION otherwise
+     */
+    fun <SCH : Schema<SCH>, ID : IdBound> StringBuilder.prepareChangesTrigger(
+        namePostfix: CharSequence, afterEvent: TriggerEvent, onTable: Table<SCH, ID>, create: Boolean
+    ): StringBuilder
+
+    /**
+     * Builds `CREATE|DROP TRIGGER` query to observe changes.
+     * @param create CREATE TRIGGER if true, DROP TRIGGER otherwise
+     */
+    fun <SCH : Schema<SCH>, ID : IdBound> StringBuilder.changesTrigger(
+        namePostfix: CharSequence, afterEvent: TriggerEvent, onTable: Table<SCH, ID>, create: Boolean
+    ): StringBuilder
 
     /**
      * Whether database has support for arrays.

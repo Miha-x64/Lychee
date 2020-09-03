@@ -12,7 +12,6 @@ import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -40,7 +39,7 @@ private constructor(
     val idColName: CharSequence,
     idColType: DataType.NotNull.Simple<ID>,
     val pkField: ImmutableField<SCH, ID, out DataType.NotNull.Simple<ID>>? // todo: consistent names, ID || PK
-// TODO: [unique] indices https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/greendao-api/src/main/java/org/greenrobot/greendao/annotation/Index.java
+// TODO: foreign keys, [unique] indices https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/greendao-api/src/main/java/org/greenrobot/greendao/annotation/Index.java
 ) {
 
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.NotNull.Simple<ID>) :
@@ -59,7 +58,7 @@ private constructor(
 
     @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null
     @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
-//    @JvmSynthetic @JvmField internal var _managedColumns: Array<out StoredNamedLens<SCH, *, *>>? = null
+    @JvmSynthetic @JvmField internal var _managedColumns: Array<out StoredNamedLens<SCH, *, *>>? = null
     @JvmSynthetic @JvmField internal var _managedColNames: Array<out CharSequence>? = null
     @JvmSynthetic @JvmField internal var _managedColTypes: Array<out Ilk<*, *>>? = null
     @JvmSynthetic @JvmField internal var _managedColTypeNames: Array<out SqlTypeName>? = null
@@ -109,6 +108,7 @@ private constructor(
         val manColTNs = if (skipPkCol) columnTypeNames.subList(1, columns.size) else columnTypeNames
         _managedColTypeNames = if (manColTs == manColTNs) _managedColTypes else manColTNs.array()
         _managedColNames = managedColumns.mapIndexedToArray { _, it -> it.name(schema) }
+        _managedColumns = managedColumns
 
         types?.remove(columns[0]) // we've unconditionally peeked it earlier and conditionally polled within embed()
         types?.takeIf { it.isNotEmpty() }?.let { throw RuntimeException("Cannot consume type overrides: " +
@@ -281,8 +281,8 @@ private constructor(
         return idxOfCol - (if (pkField == null && idxOfCol >= 0) 1 else 0)
     }
 
-    /*val managedColumns: Array<out StoredNamedLens<SCH, *, *>>
-        get() = _managedColumns ?: _columns.value.let { _ /* unwrap lazy */ -> _managedColumns!! }*/
+    val managedColumns: Array<out StoredNamedLens<SCH, *, *>>
+        get() = _managedColumns ?: _columns.value.let { _managedColumns!! }
 
     val managedColNames: Array<out CharSequence>
         get() = _managedColNames ?: _columns.value.let { _managedColNames!! }
@@ -371,8 +371,7 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idCol: ImmutableField<SCH, ID, out DataType.NotNull.Simple<ID>>): Table<SCH, ID> =
         Table(schema, name, idCol)
 
-// just extend Table,
-// but infer type arguments instead of forcing client to specify them explicitly in object expression
+// infer type arguments instead of forcing client to specify them explicitly in object expression
 // (he-he, modern Java allows writing `new Table<>() {}`):
 
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(

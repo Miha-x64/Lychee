@@ -3,10 +3,12 @@ package net.aquadc.persistence.sql.dialect
 import androidx.annotation.RestrictTo
 import net.aquadc.collections.InlineEnumMap
 import net.aquadc.collections.get
+import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.Order
+import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.WhereCondition
-import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
@@ -16,7 +18,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-/*wannabe internal*/ open class BaseDialect(
+/*wannabe internal*/ abstract class BaseDialect(
     private val types: InlineEnumMap<DataType.NotNull.Simple.Kind, String>,
     private val truncate: String,
     private val arrayPostfix: String?
@@ -95,27 +97,36 @@ import java.io.DataOutputStream
         }
     }
 
-    override fun createTable(table: Table<*, *>, temporary: Boolean): String {
-        val managedPk = table.pkField != null
-        val sb = StringBuilder("CREATE").append(' ')
-            .appendIf(temporary, "TEMP ").append("TABLE").append(' ').appendName(table.name).append(" (")
-            .appendName(table.idColName).append(' ').let {
-                val t = table.idColTypeName
-                if (t is DataType<*>) it.appendPkType(t as DataType.NotNull.Simple<*>, managedPk)
-                else it.append(t as CharSequence)
-            }.append(" PRIMARY KEY")
+    override fun createTable(table: Table<*, *>, temporary: Boolean, ifNotExists: Boolean): String =
+        StringBuilder().createTable(
+            temporary = temporary, ifNotExists = ifNotExists,
+            name = table.name, namePostfix = null,
+            idColName = table.idColName, idColTypeName = table.idColTypeName,
+            managedPk = table.pkField != null,
+            colNames = table.managedColNames, colTypes = table.managedColTypeNames
+        ).toString()
 
-        val colNames = table.managedColNames
-        val colTypes = table.managedColTypeNames
+    override fun StringBuilder.createTable(
+        temporary: Boolean, ifNotExists: Boolean, name: String, namePostfix: String?,
+        idColName: CharSequence, idColTypeName: SqlTypeName, managedPk: Boolean,
+        colNames: Array<out CharSequence>, colTypes: Array<out SqlTypeName>
+    ): StringBuilder {
+        append("CREATE").appendIf(temporary, ' ', "TEMP").append(' ').append("TABLE")
+            .appendIf(ifNotExists, ' ', "IF NOT EXISTS").append(' ')
+            .appendName(name, namePostfix).append(' ').append('(')
+            .appendName(idColName).append(' ').let {
+                if (idColTypeName is DataType<*>) it.appendPkType(idColTypeName as DataType.NotNull.Simple<*>, managedPk)
+                else it.append(idColTypeName as CharSequence)
+            }.append(' ').append("PRIMARY KEY")
 
         val startIndex = if (managedPk) 1 else 0
         val endExclusive = colNames.size
         if (endExclusive != startIndex) {
-            sb.append(", ")
+            append(", ")
 
             // skip
             for (i in startIndex until endExclusive) {
-                sb.appendName(colNames[i]).append(' ')
+                appendName(colNames[i]).append(' ')
                     .let {
                         val t = colTypes[i]
                         if (t is DataType<*>) it.appendTwN(t)
@@ -125,11 +136,11 @@ import java.io.DataOutputStream
                 /* this is useless since we can store only a full struct with all fields filled:
                 if (hasDefault) sb.appendDefault(...) */
 
-                    .append(", ")
+                append(", ")
             }
         }
-        sb.setLength(sb.length - 2) // trim last comma; schema.fields must not be empty
-        return sb.append(");").toString()
+        setLength(length - 2) // trim last comma; schema.fields must not be empty
+        return append(");")
     }
     protected open fun StringBuilder.appendPkType(type: DataType.NotNull.Simple<*>, managed: Boolean): StringBuilder =
         appendTwN(type) // used by SQLite, overridden for Postgres
@@ -188,6 +199,39 @@ import java.io.DataOutputStream
             buildString(13 + table.name.length) {
                 append(truncate).append(' ').appendName(table.name)
             }
+
+    override fun <SCH : Schema<SCH>, ID : IdBound> StringBuilder.prepareChangesTrigger(
+        namePostfix: CharSequence, afterEvent: TriggerEvent, onTable: Table<SCH, ID>, create: Boolean
+    ): StringBuilder = this // do nothing for SQLite, overridden in PostgreSQL dialect
+
+    // region utilities, mostly for triggers
+
+    protected inline fun StringBuilder.appendCase(
+        predicateExpr: StringBuilder.() -> StringBuilder,
+        thenExpr: StringBuilder.() -> StringBuilder,
+        elseExpr: StringBuilder.() -> StringBuilder
+    ): StringBuilder =
+        append("CASE WHEN").append(' ').predicateExpr().append(' ').append("THEN").append(' ').thenExpr().append(' ')
+            .append("ELSE").append(' ').elseExpr().append(' ').append("END")
+
+    protected inline fun StringBuilder.appendCoalesce(contents: StringBuilder.() -> StringBuilder): StringBuilder =
+        append("COALESCE").append('(').contents().append(')')
+
+    internal fun StringBuilder.appendName(name: CharSequence, postfix: CharSequence?): StringBuilder =
+        append('"').appendReplacing(name, '"', "\"\"")
+            .also { if (postfix != null) appendReplacing(postfix, '"', "\"\"") }.append('"')
+    protected fun StringBuilder.appendName(name: CharSequence, postfix: Int): StringBuilder =
+        append('"').appendReplacing(name, '"', "\"\"").append(postfix).append('"')
+    protected fun StringBuilder.appendTriggerName(
+        onTable: Table<*, *>, afterEvent: TriggerEvent, namePostfix: CharSequence
+    ): StringBuilder = // "someTable_INS|UPD|DEL_someSeed"
+        append('"').appendReplacing(onTable.name, '"', "\"\"").appendReplacing(namePostfix, '"', "\"\"")
+            .append('_').append(afterEvent.name, 0, 3).append('"')
+    @Suppress("NOTHING_TO_INLINE")
+    protected inline fun StringBuilder.appendQualified(qualifier: CharSequence, name: CharSequence): StringBuilder =
+        append(qualifier).append('.').appendName(name)
+
+    // endregion
 
     override val hasArraySupport: Boolean
         get() = arrayPostfix != null

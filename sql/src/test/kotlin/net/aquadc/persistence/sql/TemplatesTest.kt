@@ -10,9 +10,12 @@ import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
 import net.aquadc.persistence.sql.blocking.Lazily
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.string
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -207,6 +210,75 @@ abstract class TemplatesTest {
 
     // todo left/right/outer join
     // TODO insert, update, delete
+
+    @Test fun <CUR> `same endianness`() {
+        val sqlOr = (session as Session<Blocking<CUR>>)
+            .query("SELECT ? | ? | ? | ?", i64, i64, i64, i64, Eagerly.cell<CUR, Long>(i64))
+        assertEquals((1L shl 48) or (2L shl 32) or (3L shl 16) or 4L, sqlOr(1L shl 48, 2L shl 32, 3L shl 16, 4L))
+        assertEquals(-1, sqlOr(65535L shl 48, 65535L shl 32, 65535L shl 16, 65535L))
+    }
+
+    @Test fun triggers() {
+        var called = 0
+        val insUpdListener = session.observe(UserTable to TriggerEvent.INSERT, UserTable to TriggerEvent.UPDATE) { report ->
+            when (called++) {
+                0 -> {
+                    val userChanges = report.of(UserTable)
+                    assertEquals(
+                        Triple(1, 0, 0),
+                        Triple(userChanges.inserted.size, userChanges.updated.size, userChanges.removed.size)
+                    )
+                }
+                1 -> {
+                    val userChanges = report.of(UserTable)
+                    assertEquals(
+                        Triple(0, 1, 0),
+                        Triple(userChanges.inserted.size, userChanges.updated.size, userChanges.removed.size)
+                    )
+
+                    val pk = userChanges.updated.single()
+                    assertEquals(User.First.asFieldSet().bitSet, userChanges.updatedFields(pk).bitSet)
+                    assertArrayEquals(arrayOf(User.First), userChanges.updatedColumns(pk))
+                }
+                else ->
+                    throw AssertionError()
+            }
+        }
+        session.withTransaction {
+            insert(UserTable, User("A", "b"))
+        }
+        session.withTransaction {
+            session[UserTable].selectAll().value.single()[User.First] = "X"
+        }
+
+        assertEquals(2, called)
+        insUpdListener.close()
+
+        session.withTransaction { // assert no calls after disposal
+            session[UserTable].selectAll().value.single()[User.First] = "Y"
+            insert(UserTable, User("A", "b"))
+        }
+
+        called = 0
+        val delListener = session.observe(UserTable to TriggerEvent.DELETE) { report ->
+            when (called++) {
+                0 -> {
+                    val userChanges = report.of(UserTable)
+                    assertEquals(
+                        Triple(0, 0, 2),
+                        Triple(userChanges.inserted.size, userChanges.updated.size, userChanges.removed.size)
+                    )
+                }
+                else ->
+                    throw AssertionError()
+            }
+        }
+        session.withTransaction {
+            session[UserTable].selectAll().value.forEach(::delete)
+        }
+        assertEquals(1, called)
+        delListener.close()
+    }
 
 }
 

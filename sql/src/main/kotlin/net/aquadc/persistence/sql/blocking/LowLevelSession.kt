@@ -1,5 +1,6 @@
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.collections.InlineEnumSet
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.FuncXImpl
 import net.aquadc.persistence.sql.ColCond
@@ -12,6 +13,7 @@ import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
@@ -77,7 +79,7 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
     private val localReusableCond = ThreadLocal<ColCond<NullSchema, Any?>>()
 
     @Suppress("UNCHECKED_CAST")
-    internal fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
+    fun <SCH : Schema<SCH>, ID : IdBound> pkCond(
             table: Table<SCH, ID>, value: ID
     ): ColCond<SCH, ID> {
         val condition = (localReusableCond as ThreadLocal<ColCond<SCH, ID>>).getOrSet {
@@ -87,6 +89,9 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
         condition.valueOrValues = value
         return condition
     }
+
+    abstract fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
+    abstract fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
 
 }
 

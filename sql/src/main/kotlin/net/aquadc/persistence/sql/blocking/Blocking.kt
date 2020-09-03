@@ -146,12 +146,6 @@ fun <SCH : Schema<SCH>, D> gridCallback(cb: (List<Struct<S>>) -> Unit): FetchStr
 fun <T> CoroutineScope.lazyAsyncValue(): FetchValue<BlockingSession, T, Deferred<T>, AsyncList<T>> = TODO()
 fun <SCH : Schema<SCH>, D> CoroutineScope.lazyAsyncStruct(): FetchStruct<BlockingSession, SCH, Nothing, D, AsyncStruct<S>, AsyncList<AsyncStruct<S>>> = TODO()
 
-class ListChanges<SCH : Schema<SCH>, ID : IdBound>(
-        val oldIds: List<ID>, // List could wrap IntArray, for example. Array can't
-        val newIds: List<ID>,
-        val changes: Map<ID, FldSet<SCH>>
-)
-
 interface AsyncStruct<SCH : Schema<SCH>>
 
 interface AsyncIterator<out T> {

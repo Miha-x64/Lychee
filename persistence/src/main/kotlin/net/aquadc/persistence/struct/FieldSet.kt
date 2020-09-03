@@ -235,7 +235,8 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexe
     return out as Array<R>
 }
 
-@PublishedApi internal inline fun Long.forEachBit(func: (setBitIdx: Int, bitIdx: Int) -> Unit) {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+inline fun Long.forEachBit(func: (setBitIdx: Int, bitIdx: Int) -> Unit) {
     var idx = 0
     var ord = 0
     var bits = this

@@ -9,6 +9,10 @@ import android.database.sqlite.SQLiteProgram
 import android.database.sqlite.SQLiteQuery
 import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
+import net.aquadc.collections.InlineEnumSet
+import net.aquadc.collections.forEach
+import net.aquadc.collections.toArr
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.sql.Dao
@@ -22,20 +26,33 @@ import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
 import net.aquadc.persistence.sql.FuncN
+import net.aquadc.persistence.sql.ListChanges
+import net.aquadc.persistence.sql.SqlTypeName
+import net.aquadc.persistence.sql.TriggerEvent
+import net.aquadc.persistence.sql.TriggerReport
+import net.aquadc.persistence.sql.TriggerSubject
+import net.aquadc.persistence.sql.Triggerz
 import net.aquadc.persistence.sql.WhereCondition
+import net.aquadc.persistence.sql.appendJoining
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.appendName
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.changesTrigger
+import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.createTable
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.noOrder
+import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
+import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import org.intellij.lang.annotations.Language
+import java.io.Closeable
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
@@ -130,11 +147,74 @@ class SqliteSession(
                 this@SqliteSession.transaction = null
 
                 if (successful) {
+                    // old ORM-ish API
                     transaction.deliverChanges()
                 }
             } finally {
                 lock.writeLock().unlock()
             }
+
+            // new SQL-friendly API
+            if (successful) {
+                deliverTriggeredChanges()
+            }
+        }
+
+        // copy-paste, keep in sync with JDBC session
+        private fun deliverTriggeredChanges() {
+            val activeSubjects = triggers.activeSubjects()
+            if (activeSubjects.isEmpty()) return
+            val tableToChanges = HashMap<Table<*, *>, ListChanges<*, *>>()
+            connection.beginTransaction()
+            try {
+                val sb = StringBuilder()
+                activeSubjects.forEach { table ->
+                    sb.setLength(0)
+                    val cursor = connection.rawQuery(
+                        sb.append("SELECT * FROM").append(' ').appendName(table.name, "_lychee_changes").toString(),
+                        null
+                    )
+
+                    val wordCount = wordCountForCols(table.managedColumns.size)
+                    val inserted = HashSet<IdBound>()
+                    val updated = HashMap<IdBound, Int>()
+                    val removed = HashSet<IdBound>()
+                    // fixme: there will be some zeroes for inserted and removed columns, should be more compact
+                    val changes = LongArray(cursor.count * wordCount)
+
+                    val pkType = table.idColType.type
+                    while (cursor.moveToNext()) {
+                        val pk = pkType.get(cursor, 0)
+                        when (val what = cursor.getInt(1)) {
+                            -1 -> removed.add(pk)
+                            0 -> {
+                                val position = cursor.position
+                                val offset = position * wordCount
+                                repeat(wordCount) { word -> changes[offset + word] = cursor.getLong(2 + word) }
+                                check(updated.put(pk, position) == null)
+                            }
+                            1 -> inserted.add(pk)
+                            else -> error(what.toString())
+                        }
+                    }
+                    check(tableToChanges.put(
+                        table,
+                        ListChanges(inserted, updated, removed, table as Table<NullSchema, IdBound>, changes)
+                    ) == null)
+
+                    sb.setLength(0)
+                    connection.execSQL(
+                        sb.append("DELETE FROM").append(' ').appendName(table.name, "_lychee_changes").toString()
+                    )
+                }
+
+                triggers.enqueue(TriggerReport(tableToChanges))
+                connection.setTransactionSuccessful()
+            } finally {
+                connection.endTransaction()
+            }
+
+            triggers.notifyPending()
         }
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
@@ -221,7 +301,7 @@ class SqliteSession(
                 return emptyList()
             }
 
-            val values = ArrayList<Any?>()
+            val values = ArrayList<Any?>() // fixme pre-allocate a fixed array
             do {
                 values.add(type.get(this, 0))
             } while (moveToNext())
@@ -339,6 +419,68 @@ class SqliteSession(
 
         override fun close(cursor: Cursor) =
             cursor.close()
+
+        // copy-paste, keep in sync with JDBC session
+        override fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
+            val sb = StringBuilder()
+            connection.beginTransaction()
+            try {
+                newbies.forEach { (table, events) ->
+                    val wordCount = wordCountForCols(table.managedColumns.size)
+                    val typeNames = arrayOfNulls<SqlTypeName>(wordCount + 1)
+                    typeNames[0] = i32
+                    typeNames.fill(i64, 1)
+                    connection.execSQL(sb.createTable(
+                        temporary = true, ifNotExists = true,
+                        name = table.name, namePostfix = "_lychee_changes",
+                        idColName = "id", idColTypeName = table.idColTypeName,
+                        managedPk = false /* avoid AUTO_INCREMENT or serial*/,
+                        colNames = arrayOf("what") + (0 until wordCount).map { "ch$it" },
+                        colTypes = typeNames as Array<out SqlTypeName>
+                    ).toString())
+                    events.forEach { event ->
+                        sb.setLength(0)
+                        connection.execSQL(
+                            @Suppress("UPPER_BOUND_VIOLATED")
+                            sb.changesTrigger<Schema<*>, IdBound>(
+                                "_lychee_changes", event, table as Table<Schema<*>, IdBound>,
+                                create = true
+                            ).toString()
+                        )
+                    }
+                }
+                connection.setTransactionSuccessful()
+            } finally {
+                connection.endTransaction()
+            }
+        }
+        override fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
+            val sb = StringBuilder()
+            connection.beginTransaction()
+            try {
+                victims.forEach { (table, events) ->
+                    connection.execSQL(
+                        sb.append("DELETE FROM").append(' ').appendName(table.name, "_lychee_changes")
+                            .append(' ').append("WHERE").append(' ')
+                            .appendJoining(events, " OR ") { ev -> append("what").append('=').append(ev.balance) }
+                            .toString()
+                    )
+                    events.forEach { event ->
+                        sb.setLength(0)
+                        connection.execSQL(
+                            @Suppress("UPPER_BOUND_VIOLATED")
+                            sb.changesTrigger<Schema<*>, IdBound>(
+                                "_lychee_changes", event, table as Table<Schema<*>, IdBound>,
+                                create = false
+                            ).toString()
+                        )
+                    }
+                }
+                connection.setTransactionSuccessful()
+            } finally {
+                connection.endTransaction()
+            }
+        }
     }
 
 
@@ -378,6 +520,10 @@ class SqliteSession(
         fetch: Fetch<Blocking<Cursor>, R>
     ): FuncN<Any, R> =
             BlockingQuery(lowLevel, query, argumentTypes, fetch)
+
+    private val triggers: Triggerz = Triggerz(lowLevel)
+    override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =
+        triggers.addListener(subject, listener)
 
     override fun close() {
         lowLevel.daos.values.forEach {

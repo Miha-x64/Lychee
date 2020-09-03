@@ -5,6 +5,7 @@
 ]
 package net.aquadc.persistence.sql
 
+import androidx.annotation.CheckResult
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.PartialStruct
@@ -61,6 +62,21 @@ interface Session<SRC> : Closeable {
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         fetch: Fetch<SRC, R>
     ): FuncN<Any, R>
+
+    /**
+     * Registers trigger listener for all [subject]s.
+     * A Session aims to deliver as few false-positives as possible but still:
+     * * if the record was removed and another record with same primary key was inserted,
+     *   [TriggerReport] will show that all columns were modified,
+     * * if an UPDATE statement changes a column value and another UPDATE changes it back,
+     *   [TriggerReport] will show this column as modified.
+     * Assuming that several applications can share a single database
+     * (even SQLite can have multiple processes or connections), this method adds listeners eagerly,
+     * blocking until all current transactions finish, if any.
+     * The thread which calls [listener] is not defined.
+     * @return subscription handle which removes [listener] when [Closeable.close]d
+     */
+    @CheckResult fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable
 
 }
 
