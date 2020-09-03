@@ -71,6 +71,10 @@ inline fun <P : MutableProperty<T?>, T : Any> P.clearEachAnd(crossinline action:
  * exposed via public interface of a module.
  */
 @Suppress("UNCHECKED_CAST")
+@Deprecated(
+    "While returned property cannot be cast to MutableProperty, " +
+        "it still can be cast to other types and mutated/broken/etc. " +
+        "Defending from type casting, reflection, raw memory access etc is a non-goal.")
 inline fun <T> Property<T>.readOnlyView(): Property<T> = map(identity())
 
 /**
