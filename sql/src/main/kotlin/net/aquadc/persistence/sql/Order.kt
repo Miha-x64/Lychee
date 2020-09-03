@@ -4,7 +4,7 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 
-
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 class Order<SCH : Schema<SCH>>(
         @JvmField internal val col: FieldDef<SCH, *, *>, // todo: should be StoredLens
         @JvmField internal val desc: Boolean
@@ -19,8 +19,10 @@ class Order<SCH : Schema<SCH>>(
 
 }
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 inline val <SCH : Schema<SCH>> FieldDef<SCH, *, *>.asc: Order<SCH>
     get() = Order(this, false)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 inline val <SCH : Schema<SCH>> FieldDef<SCH, *, *>.desc: Order<SCH>
     get() = Order(this, true)

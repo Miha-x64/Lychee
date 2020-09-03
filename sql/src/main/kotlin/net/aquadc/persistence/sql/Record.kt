@@ -9,7 +9,6 @@ import net.aquadc.persistence.struct.foldOrdinal
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.mapIndexed
 import net.aquadc.persistence.type.DataType
-import net.aquadc.properties.Property
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset
 import net.aquadc.properties.persistence.PropertyStruct
@@ -18,6 +17,7 @@ import net.aquadc.properties.persistence.PropertyStruct
 /**
  * Represents an active record — a container with some values and properties backed by an RDBMS row.
  */
+@Deprecated("Record observability is poor, use SQL templates (session.query()=>function) instead.")
 open class Record<SCH : Schema<SCH>, ID : IdBound>
 /**
  * Creates new record.
@@ -34,16 +34,6 @@ internal constructor(
     @Suppress("UNCHECKED_CAST")
     internal val dao: Dao<SCH, ID>
         get() = session[table as Table<SCH, ID>]
-
-    internal fun copyValues(): Array<Any?> {
-        val size = values.size
-        val out = arrayOfNulls<Any>(size)
-        val flds = schema.fields
-        repeat(size) { i ->
-            out[i] = this[flds[i]]
-        }
-        return out
-    }
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T = (field as FieldDef<SCH, T, DataType<T>>).foldField(
         ifMutable = { prop(it).value },

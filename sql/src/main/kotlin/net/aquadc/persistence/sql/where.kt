@@ -18,6 +18,7 @@ import java.lang.Math.min
  * API is mostly borrowed from
  * https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/DaoCore/src/main/java/org/greenrobot/greendao/Property.java
  */
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 interface WhereCondition<SCH : Schema<SCH>> {
 
     /**
@@ -42,6 +43,7 @@ interface WhereCondition<SCH : Schema<SCH>> {
  * Represents an absence of any conditions.
  */
 @Suppress("UNCHECKED_CAST", "NOTHING_TO_INLINE") // special, empty implementation
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 inline fun <SCH : Schema<SCH>> emptyCondition(): WhereCondition<SCH> =
         EmptyCondition as WhereCondition<SCH>
 
@@ -114,30 +116,37 @@ internal class ColCond<SCH : Schema<SCH>, T> : WhereCondition<SCH> {
 
 }
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T> StoredLens<SCH, T, *>.eq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NULL", emptyArrayOf())
         else ColCond(this, " = ?", value as Any)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T> StoredLens<SCH, T, *>.notEq(value: T): WhereCondition<SCH> =
         if (value == null) ColCond(this, " IS NOT NULL", emptyArrayOf())
         else ColCond(this, " <> ?", value as Any)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.like(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ?", value)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.notLike(value: String): WhereCondition<SCH> =
         ColCond(this, " NOT LIKE ?", value)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.startsWith(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE (? || '%')", value)
 
 // fun doesNotStartWith? startsWithout?
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.endsWith(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ('%' || ?)", value)
 
 // fun doesNotEndWith? endsWithout?
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.contains(value: String): WhereCondition<SCH> =
         ColCond(this, " LIKE ('%' || ? || '%')", value)
 
@@ -145,33 +154,43 @@ infix fun <SCH : Schema<SCH>, T : String?> StoredLens<SCH, T, *>.contains(value:
 
 // `out T?`: allow lenses to look at nullable types
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.between(@Size(2) range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.notBetween(@Size(2) range: Array<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", range.also { check(it.size == 2) })
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Comparable<T>> StoredLens<SCH, out T?, *>.between(range: ClosedRange<T>): WhereCondition<SCH> =
         ColCond(this, " BETWEEN ? AND ?", arrayOf<Any>(range.start, range.endInclusive))
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Comparable<T>> StoredLens<SCH, out T?, *>.notBetween(range: ClosedRange<T>): WhereCondition<SCH> =
         ColCond(this, " NOT BETWEEN ? AND ?", arrayOf<Any>(range.start, range.endInclusive))
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.isIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" IN (").appendPlaceholders(values.size).append(')'), values)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.notIn(values: Array<T>): WhereCondition<SCH> =
         ColCond(this, StringBuilder(" NOT IN (").appendPlaceholders(values.size).append(')'), values)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.greaterThan(value: T): WhereCondition<SCH> =
         ColCond(this, " > ?", value)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.greaterOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " >= ?", value)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T?, *>.lessThan(value: T): WhereCondition<SCH> =
         ColCond(this, " < ?", value)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>, T : Any> StoredLens<SCH, out T, *>.lessOrEq(value: T): WhereCondition<SCH> =
         ColCond(this, " <= ?", value)
 
@@ -219,9 +238,11 @@ internal class BiCond<SCH : Schema<SCH>>(
 
 }
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.and(that: WhereCondition<SCH>): WhereCondition<SCH> =
         BiCond(this, true, that)
 
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.or(that: WhereCondition<SCH>): WhereCondition<SCH> =
         BiCond(this, false, that)
 
@@ -230,4 +251,5 @@ infix fun <SCH : Schema<SCH>> WhereCondition<SCH>.or(that: WhereCondition<SCH>):
  * Builder for [between] and [notBetween]. E. g. `(SomeSchema.Field between lower..upper)`
  */
 @JvmSynthetic // rangeTo(from, to) is useless for Java
+@Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
 inline operator fun <reified T> T.rangeTo(that: T): Array<T> = arrayOf(this, that)

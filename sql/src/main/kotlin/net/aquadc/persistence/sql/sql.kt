@@ -35,6 +35,7 @@ typealias IdBound = Any // Serializable in some frameworks
 /**
  * A shorthand for properties backed by RDBMS column & row.
  */
+@Deprecated("Record observability is poor, use SQL templates (session.query()=>function) instead.")
 typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
 
 @Retention(AnnotationRetention.BINARY)
@@ -49,6 +50,7 @@ interface Session<SRC> : Closeable {
     /**
      * Lazily creates and returns DAO for the given table.
      */
+    @Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.")
     operator fun <SCH : Schema<SCH>, ID : IdBound> get(table: Table<SCH, ID>): Dao<SCH, ID>
 
     /**
@@ -85,6 +87,7 @@ interface Session<SRC> : Closeable {
  * Represents a database session specialized for a certain [Table].
  * {@implNote [Manager] supertype is used by [ManagedProperty] instances}
  */
+@Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.")
 interface Dao<SCH : Schema<SCH>, ID : IdBound> : Manager<SCH, Transaction, ID> {
     fun find(id: ID): Record<SCH, ID>?
     fun select(
@@ -114,18 +117,22 @@ inline fun <R> Session<*>.withTransaction(block: Transaction.() -> R): R {
     }
 }
 
+@Deprecated("Record observability is poor, use SQL templates (session.query()=>function) instead.")
 fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.require(id: ID): Record<SCH, ID> =
         find(id) ?: throw NoSuchElementException("No record found in `$this` for ID $id")
 
 @Suppress("NOTHING_TO_INLINE")
+@Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.")
 inline fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.select(
         condition: WhereCondition<SCH>, vararg order: Order<SCH>
 ): Property<List<Record<SCH, ID>>> =
         select(condition, order)
 
+@Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.")
 fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.selectAll(vararg order: Order<SCH>): Property<List<Record<SCH, ID>>> =
         select(emptyCondition(), order)
 
+@Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.")
 fun <SCH : Schema<SCH>, ID : IdBound> Dao<SCH, ID>.count(): Property<Long> =
         count(emptyCondition())
 
@@ -138,6 +145,7 @@ interface Transaction : Closeable {
     /**
      * Insert [data] into a [table].
      */
+    @Deprecated("Note: return type will change soon.")
     fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>/*todo patch: Partial*/): Record<SCH, ID>
 
     /**
@@ -150,12 +158,11 @@ interface Transaction : Closeable {
     }
     // TODO emulate slow storage!
 
-    // OMG, private API?
+    @Deprecated("Private API.")
     fun <SCH : Schema<SCH>, ID : IdBound, T> update(table: Table<SCH, ID>, id: ID, field: MutableField<SCH, T, *>, previous: T, value: T)
-    // TODO: update where
 
+    @Deprecated("Record observability is poor, use SQL templates (session.mutate()=>function) instead.")
     fun <SCH : Schema<SCH>, ID : IdBound> delete(record: Record<SCH, ID>)
-    // TODO: delete where
 
     /**
      * Clear the whole table.
@@ -165,6 +172,7 @@ interface Transaction : Closeable {
 
     fun setSuccessful()
 
+    @Deprecated("Private API.")
     operator fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.set(field: MutableField<SCH, T, *>, new: T) {
         (this prop field).setValue(this@Transaction, new)
     }
@@ -174,6 +182,7 @@ interface Transaction : Closeable {
      * @return a set of updated fields
      *   = intersection of requested [fields] and [PartialStruct.fields] present in [source]
      */
+    @Deprecated("Record observability is poor, use SQL templates (session.mutate()=>function) instead.")
     fun <SCH : Schema<SCH>, ID : IdBound, T> Record<SCH, ID>.setFrom(
             source: PartialStruct<SCH>, fields: FieldSet<SCH, MutableField<SCH, *, *>>
     ): FieldSet<SCH, MutableField<SCH, *, *>> =
@@ -192,6 +201,7 @@ interface Transaction : Closeable {
 }
 
 @Suppress("NOTHING_TO_INLINE")
+@Deprecated("Record observability is poor, use SQL templates (session.query()=>function) instead.")
 inline fun <SCH : Schema<SCH>, ID : IdBound>
     Record<SCH, ID>.transactional(): TransactionalPropertyStruct<SCH> =
     RecordTransactionalAdapter(this)

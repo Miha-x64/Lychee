@@ -384,10 +384,8 @@ see [sample transform usage](/android-bindings/src/test/kotlin/promo.kt#L61-L69)
 // trivial table. Primary key column is not mentioned within Schema
 val Players = tableOf(Player, "players", "_id", i64)
 ```
-With `Session` (`JdbcSession`, Android-specific `SqliteSession`), you're getting
-* observable records:
-  `session[Players].select(…)` => `Property<List<Record<Player, Long>>>`,
-  useful for client-side applications
+With `Session` (implementations: `JdbcSession`,
+Android-specific `SqliteSession`), you're getting
 * SQL templates:
 ```kt
 val selectNameEmailBySmth = session.query(

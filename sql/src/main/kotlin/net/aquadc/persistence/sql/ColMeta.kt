@@ -1,7 +1,6 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.sql.blocking.SqliteSession
-import net.aquadc.persistence.struct.Lens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.Struct
@@ -60,9 +59,8 @@ sealed class ColMeta<S : Schema<S>>(
         /**
          * Override [DataType] behaviour. This will
          * * alter "CREATE TABLE" statement same way as [type] does,
-         * * bypass [DataType], and bind [store]d parameters directly, e.g. with [PreparedStatement.setObject],
-         * * and read [load]ed parameters directly, e.g. using [ResultSet.getObject].
-         * [SqliteSession] ignores type overrides and takes into account only [typeName].
+         * * bypass [DataType], and bind parameters directly, e.g. with [PreparedStatement.setObject],
+         * * and read parameters directly, e.g. using [ResultSet.getObject].
          */
         inline fun <S : Schema<S>, T> S.nativeType(
             path: StoredLens<S, T, out DataType<T>>, custom: Ilk<T, *>
@@ -101,50 +99,6 @@ sealed class ColMeta<S : Schema<S>>(
             val fieldSetColName: CharSequence?
         ) : Rel<S>(path)
 
-        /**
-         * Reference a single entity by its primary key.
-         * @param S outer schema
-         * @param FS foreign schema
-         */
-        @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR) // todo
-        class ToOne<S : Schema<S>, FS : Schema<FS>, FID : IdBound>(
-            path: StoredLens<S, Record<FS, FID>?, *>, foreignTable: Table<FS, *>
-        ) : Rel<S>(path) {
-            init {
-                checkToOne(TODO(), path, foreignTable)
-            }
-        }
-
-        /**
-         * There are some entities which reference this one by our primary key.
-         * @param S outer schema
-         * @param FS foreign schema
-         */
-        @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
-        class ToMany<S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, C : Collection<Record<FS, FID>>> private constructor(
-            ourTable: Table<S, ID>, path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinColumn: StoredLens<FS, *, *>
-        ) : Rel<S>(path) {
-            init {
-                checkToMany(ourTable.schema, path, foreignTable)
-                checkToOne(foreignTable.schema, joinColumn, ourTable) // ToMany is actually many ToOnes
-            }
-
-            companion object {
-                operator fun <S : Schema<S>, ID : IdBound, FS : Schema<FS>, FID : IdBound, C : Collection<Record<FS, FID>>> Table<S, ID>.invoke(
-                    path: Lens<S, Record<S, ID>, Record<S, ID>, C, *>, foreignTable: Table<FS, *>, joinColumn: Lens<FS, Record<FS, *>, Record<FS, *>, *, *>
-                ): Nothing = TODO() // ToMany<S, ID, FS, R, FID, FR, C> = ToMany(this, path, foreignTable, joinColumn)
-            }
-        }
-
-        @Deprecated("Not implemented yet.", level = DeprecationLevel.ERROR)
-        class ManyToMany<S : Schema<S>, FS : Schema<FS>, C : Collection<Record<FS, *>>>(
-            path: StoredLens<S, C, *>, foreignTable: Table<FS, *>, joinTable: JoinTable
-        ) : Rel<S>(path) {
-            init {
-                checkToMany(TODO(), path, foreignTable)
-            }
-        }
-
     }
 
     // for tests
@@ -154,52 +108,4 @@ sealed class ColMeta<S : Schema<S>>(
     override fun equals(other: Any?): Boolean =
             other is ColMeta<*> && javaClass === other.javaClass && path == other.path
 
-}
-
-/**
- * A special case of a table which has no PK and consists of two columns with a composite unique index.
- */
-typealias JoinTable = Nothing
-/*class JoinTable(
-        val aName: String,
-        val aType: DataType.Simple<*>,
-        val bName: String,
-        val bType: DataType.Simple<*>
-) {
-
-    /**
-     * When table A references a list of Bs using a `joinTable`,
-     * table B should reference a list of As using `joinTable.flip()`
-     */
-    fun filp(): JoinTable =
-            JoinTable(bName, bType, aName, aType)
-
-}*/
-
-internal fun <S : Schema<S>, FS : Schema<FS>> checkToMany(
-        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<FS, *>) {
-    val type = path.type(schema)
-    check(type is DataType.NotNull.Collect<*, *, *>) {
-        "only fields of Collection<Struct> types can be used with to-many relations"
-    }
-    val elType = type.elementType
-    check(elType is Schema<*>) {
-        "only fields of Collection<Struct> types can be used with to-many relations"
-    }
-    check(elType.schema.javaClass == foreignTable.schema.javaClass) {
-        "type of this field and Schema of referenced table must be compatible"
-    }
-}
-
-internal fun <S : Schema<S>, F : Schema<F>> checkToOne(
-        schema: S, path: StoredLens<S, *, *>, foreignTable: Table<F, *>
-) {
-    val type = path.type(schema)
-    val realType = if (type is DataType.Nullable<*, *>) type.actualType else type
-    check(realType is Schema<*>) {
-        "only fields of Struct types can be used with such relations, got $realType at $path"
-    }
-    check(realType.schema.javaClass == foreignTable.schema.javaClass) {
-        "type of this field and Schema of referenced table must be compatible"
-    }
 }
