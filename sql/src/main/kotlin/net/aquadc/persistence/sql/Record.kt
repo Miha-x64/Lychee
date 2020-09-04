@@ -8,6 +8,7 @@ import net.aquadc.persistence.struct.foldField
 import net.aquadc.persistence.struct.foldOrdinal
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.internal.ManagedProperty
 import net.aquadc.properties.internal.Unset

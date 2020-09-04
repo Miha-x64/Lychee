@@ -12,6 +12,7 @@ import net.aquadc.persistence.struct.TransactionalStruct
 import net.aquadc.persistence.struct.foldField
 import net.aquadc.persistence.struct.isEmpty
 import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty

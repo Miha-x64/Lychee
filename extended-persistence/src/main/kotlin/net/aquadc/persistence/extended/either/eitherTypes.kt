@@ -13,6 +13,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.asFieldSet
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.type.DataType
 

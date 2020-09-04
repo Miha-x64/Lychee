@@ -5,6 +5,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructTransaction
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.properties.TransactionalProperty
 import net.aquadc.properties.executor.InPlaceWorker

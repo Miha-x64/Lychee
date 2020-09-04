@@ -17,6 +17,7 @@ import net.aquadc.persistence.struct.contains
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.newBuilder
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import kotlin.contracts.ExperimentalContracts

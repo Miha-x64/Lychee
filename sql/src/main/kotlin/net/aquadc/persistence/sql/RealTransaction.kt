@@ -7,6 +7,7 @@ import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.MutableField
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.properties.internal.Unset
 import java.lang.ref.WeakReference

@@ -15,6 +15,7 @@ import net.aquadc.properties.internal.`Mapped-`
 import net.aquadc.properties.map
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.struct.MutableField
+import net.aquadc.persistence.struct.mutableOrdinal
 import net.aquadc.persistence.type.DataType
 import java.lang.ref.WeakReference
 import java.util.BitSet

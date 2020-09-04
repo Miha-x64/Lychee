@@ -1,10 +1,13 @@
-@file:JvmName("Schemas")
+@file:[
+    JvmName("Schemas")
+    Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+]
 package net.aquadc.persistence.struct
 
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.fieldValues
 import net.aquadc.persistence.fill
-import net.aquadc.persistence.newMap
+import net.aquadc.persistence.newSet
 import net.aquadc.persistence.type.DataType
 
 /**
@@ -18,53 +21,27 @@ import net.aquadc.persistence.type.DataType
  */
 abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SELF>, SELF>() {
 
-    /**
-     * A temporary list of [FieldDef]s used while [Schema] is getting constructed.
-     */
-    @JvmField @JvmSynthetic internal var tmpFields: ArrayList<FieldDef<SELF, *, *>>? = ArrayList()
-    @JvmField @JvmSynthetic internal var mutableCount: Byte = 0
+    // region values changed during subclass initialization
 
-    /**
-     * A list of fields of this struct.
-     *
-     * {@implNote
-     *   on concurrent access, we might null out [tmpFields] while it's getting accessed,
-     *   so let it be synchronized (it's default [lazy] mode).
-     * }
-     */
-    val fields: Array<out FieldDef<SELF, *, *>>
-        get() = _fields.value
-    private val _fields =
-            lazy(LazyFields(0) as () -> Array<out FieldDef<SELF, *, *>>)
+    // if ArrayList, a temporary list of Field internals; if Array, a final list of 'em
+    private var fieldInternals: Any = ArrayList<Any?>(16/*=round(name*type*def*avg.6fields)*/)
 
-    @JvmSynthetic internal fun tmpFields() =
-            tmpFields ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
+    // if ArrayList, a temporary list of Field instances; if Array, a final list of 'em
+    private var fieldInstances: Any = ArrayList<FieldDef<SELF, *, *>>(8/*=round(avg.6fields)*/)
 
-    @JvmField @JvmSynthetic internal var mutableFieldBits = 0L
+    // Written during subclass initialization, conforms FieldSet format
+    private var mutableFieldBits = 0L
 
-    /** A set of all fields of [this] [Schema]. */
-    val allFieldSet: FieldSet<SELF, FieldDef<SELF, *, *>>
-        get() = FieldSet(fields.size.let { size ->
-            // (1L shl size) - 1   :  1L shl 64  will overflow to 1
-            // -1L ushr (64 - size): -1L ushr 64 will remain -1L
-            // the last one is okay, assuming that zero-field structs are prohibited
-            -1L ushr (64 - size)
-        })
+    // endregion values changed during subclass initialization
 
-    /** A set of all [MutableField]s of [this] [Schema]. */
-    val mutableFieldSet: FieldSet<SELF, MutableField<SELF, *, *>>
-        get() = FieldSet(fields.let { mutableFieldBits })
 
-    /** A set of all [ImmutableField]s of [this] [Schema]. */
-    val immutableFieldSet: FieldSet<SELF, ImmutableField<SELF, *, *>>
-        get() = FieldSet(fields.let { (-1L ushr (64 - it.size)) and mutableFieldBits.inv() })
+    // region initialization interface for subclasses
 
     /**
      * Creates, remembers, and returns a new mutable field definition without default value.
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
-    @Suppress("UNCHECKED_CAST")
     // wannabe inline but https://youtrack.jetbrains.com/issue/KT-38827
     protected infix fun <T, DT : DataType<T>> CharSequence.mut(type: DT): MutableField<SELF, T, DT> =
             this.mut(type, Unset as T)
@@ -75,10 +52,19 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     protected fun <T, DT : DataType<T>> CharSequence.mut(dataType: DT, default: T): MutableField<SELF, T, DT> {
-        val fields = tmpFields()
-        val col = MutableField(schema, this, dataType, fields.size.toByte(), default, mutableCount++)
-        fields.add(col)
-        return col
+        val internals = fieldInternals()
+        val fields = fieldInstances as ArrayList<FieldDef<SELF, *, *>>
+
+        val mfb = mutableFieldBits
+        val ord = fields.size
+        val field = MutableField<SELF, T, DT>(ord, java.lang.Long.bitCount(mfb))
+        mutableFieldBits = mfb or (1L shl ord)
+
+        internals.add(this)
+        internals.add(dataType)
+        internals.add(default)
+        fields.add(field)
+        return field
     }
 
     /**
@@ -86,7 +72,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
      * Don't call this conditionally,
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
-    @Suppress("UNCHECKED_CAST")
     // wannabe inline but https://youtrack.jetbrains.com/issue/KT-38827
     protected infix fun <T, DT : DataType<T>> CharSequence.let(dataType: DT): ImmutableField<SELF, T, DT> =
             this.let(dataType, Unset as T)
@@ -99,67 +84,77 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     protected fun <T, DT : DataType<T>> CharSequence.let(dataType: DT, default: T): ImmutableField<SELF, T, DT> {
-        val fields = tmpFields()
-        val col = ImmutableField(schema, this, dataType, fields.size.toByte(), default, (fields.size - mutableCount).toByte())
-        fields.add(col)
-        return col
+        val internals = fieldInternals()
+        val fields = fieldInstances as ArrayList<FieldDef<SELF, *, *>>
+
+        val total = fields.size
+        val field = ImmutableField<SELF, T, DT>(total, total - java.lang.Long.bitCount(mutableFieldBits))
+
+        internals.add(this)
+        internals.add(dataType)
+        internals.add(default)
+        fields.add(field)
+        return field
     }
 
-    private inner class LazyFields(
-            private val mode: Int
-    ) : () -> Any? {
+    private fun fieldInternals() =
+        fieldInternals as? ArrayList<Any?>
+            ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 
-        override fun invoke(): Any? = when (mode) {
-            0 -> {
-                val fieldList = tmpFields()
-                check(fieldList.isNotEmpty()) { "Struct must have at least one field." }
-                // Schema.allFieldSet() relies on field count ∈ [1; 64]
-                // and FieldDef constructor checks for ordinal ∈ [0; 63]
-                val fields = arrayOfNulls<FieldDef<SELF, *, *>>(fieldList.size)
-                val namesTypesDefaults = arrayOfNulls<Any>(3 * fieldList.size)
+    // endregion initialization interface for subclasses
 
-                val nameSet = HashSet<String>()
-                var mutBits = 0L
-                for (i in fieldList.indices) {
-                    val field = fieldList[i]
-                    val name = field.name// name(schema) is not computed yet!
-                    if (!nameSet.add(name)) {
-                        throw IllegalStateException("duplicate column: `${this@Schema.javaClass.simpleName}`.`${name}`")
-                    }
-                    fields[i] = field
-                    namesTypesDefaults[3*i] = name
-                    namesTypesDefaults[3*i+1] = field.type
-                    namesTypesDefaults[3*i+2] = field._default
-                    field.foldOrdinal(
-                        ifMutable = { mutBits = mutBits or (1L shl field.ordinal.toInt()) },
-                        ifImmutable = { }
-                    )
-                }
 
-                tmpFields = null
-                _fieldNamesTypesDefaults = namesTypesDefaults
-                mutableFieldBits = mutBits
-                fields
-            }
+    // region interface accessible during initialization
 
-            else ->
-                throw AssertionError()
-        }
+    fun fieldAt(ordinal: Int): FieldDef<SELF, *, *> = fieldInstances.arrOrAlAt(ordinal) as FieldDef<SELF, *, *>
 
+    inline val FieldDef<SELF, *, *>.name: CharSequence get() = nameAt(ordinal)
+    inline val Named<SELF>.name: CharSequence get() = name(this as SELF)  // @implNote:
+    // (Mutable|Immutable)Field(Def) gonna call our `nameAt()`, custom lenses just return a stored value
+    @PublishedApi internal fun nameAt(ordinal: Byte) = fieldInternals.arrOrAlAt(3 * ordinal) as CharSequence
+
+    inline val <T, DT : DataType<T>> FieldDef<SELF, T, DT>.type: DT get() = typeAt(ordinal)
+    @PublishedApi internal fun <T, DT : DataType<T>> typeAt(ordinal: Byte) =
+        fieldInternals.arrOrAlAt(3 * ordinal + 1) as DT
+
+    inline fun <T> defaultOrElse(field: FieldDef<SELF, T, *>, orElse: () -> T): T =
+        defaultAt(field.ordinal.toInt()).let { def -> if (def !== Unset) def as T else orElse() }
+    @PublishedApi internal fun defaultAt(ordinal: Int): Any? = fieldInternals.arrOrAlAt(3 * ordinal + 2)
+
+    private fun Any.arrOrAlAt(index: Int): Any? {
+        (this as? ArrayList<*>)?.let { return it[index] }
+        return (this as Array<*>)[index]
     }
 
-    // todo: may be zero-copy
-    @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("load") // avoid having both `load-<hash>()` and `bridge load()`
-    override fun load(fields: FieldSet<SELF, FieldDef<SELF, *, *>>, values: Any?): Struct<SELF> =
-            schema { builder -> fill(builder, this, fields, values) }
+    // endregion interface accessible during initialization
 
-    override fun fields(value: Struct<SELF>): FieldSet<SELF, FieldDef<SELF, *, *>> =
-        schema.allFieldSet
 
-    override fun store(value: Struct<SELF>): Any? =
-            value.fieldValues()
+    // region interface which ends initialization
 
-    // names
+    /**
+     * A list of fields of this struct.
+     */
+    @Deprecated("use allFieldSet and fieldAt instead")
+    val fields: Array<out FieldDef<SELF, *, *>>
+        get() = (fieldInstances as? Array<FieldDef<SELF, *, *>>)
+            ?: freeze().let { fieldInstances as Array<FieldDef<SELF, *, *>> }
+
+    /** A set of all fields of this [Schema]. */
+    val allFieldSet: FieldSet<SELF, FieldDef<SELF, *, *>>
+        get() = FieldSet(fields.size.let { size ->
+            // (1L shl size) - 1   :  1L shl 64  will overflow to 1
+            // -1L ushr (64 - size): -1L ushr 64 will remain -1L
+            // the last one is okay, assuming that zero-field structs are prohibited
+            -1L ushr (64 - size)
+        })
+
+    /** A set of all [MutableField]s of this [Schema]. */
+    val mutableFieldSet: FieldSet<SELF, MutableField<SELF, *, *>>
+        get() = FieldSet(fields.let { mutableFieldBits })
+
+    /** A set of all [ImmutableField]s of this [Schema]. */
+    val immutableFieldSet: FieldSet<SELF, ImmutableField<SELF, *, *>>
+        get() = FieldSet(fields.let { (-1L ushr (64 - it.size)) and mutableFieldBits.inv() })
 
     inline fun <R> fieldByName(
             name: CharSequence,
@@ -167,40 +162,58 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
             ifNot: () -> R
     ): R {
         val idx = indexByName(name)
-        return if (idx >= 0) ifFound(fields[idx]) else ifNot()
+        return if (idx >= 0) ifFound(fieldAt(idx)) else ifNot()
     }
-
     @PublishedApi internal fun indexByName(name: CharSequence): Int {
-        val array = namesTypesDefaults()
+        val array = (fieldInternals as? Array<out Any?>) ?: freeze().let { fieldInternals as Array<out Any?> }
+
         for (i in 0 .. array.size step 3)
             if ((array[i] as CharSequence).eq(name, false))
                 return i/3
         return -1
     }
 
-    // defaults
+    @Synchronized private fun freeze() {
+        if (fieldInternals is Array<*>) return // initialized concurrently
 
-    inline fun <T> defaultOrElse(field: FieldDef<SELF, T, *>, orElse: () -> T): T =
-            namesTypesDefaults()[3 * field.ordinal.toInt() + 2].let { def ->
-                if (def !== Unset) def as T else orElse()
+        val fieldList = fieldInternals as ArrayList<Any?>
+        check(fieldList.isNotEmpty()) { "Struct must have at least one field." }
+
+        val fieldCount = fieldList.size / 3
+        val nameSet = newSet<String>(fieldCount)
+        for (i in fieldList.indices step 3) {
+            val name = (fieldList[i] as CharSequence).toString()
+            if (!nameSet.add(name)) {
+                throw IllegalStateException("duplicate field: `${this@Schema.javaClass.simpleName}`.`${name}`")
             }
+        }
 
-    // etc
+        fieldInternals = fieldList.toArray()
+        fieldInstances = (fieldInstances as ArrayList<FieldDef<SELF, *, *>>).toTypedArray()
+    }
 
-    @JvmSynthetic internal var _fieldNamesTypesDefaults: Array<out Any?>? = null
-    @PublishedApi internal fun namesTypesDefaults() =
-            _fieldNamesTypesDefaults ?: fields.let { _fieldNamesTypesDefaults!! }
+    // endregion interface which ends initialization
 
-    // the following extensions will be un-shadowed after removal of members
-    val FieldDef<SELF, *, *>.name: CharSequence get() = namesTypesDefaults()[3 * ordinal.toInt()] as CharSequence
-    val <T, DT : DataType<T>> FieldDef<SELF, T, DT>.type: DT get() = namesTypesDefaults()[3 * this.ordinal.toInt() + 1] as DT
+
+    // region Partial implementation
+
+    // todo: could be zero-copy
+    @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("load") // avoid having both `load-<hash>()` and `bridge load()`
+    override fun load(fields: FieldSet<SELF, FieldDef<SELF, *, *>>, values: Any?): Struct<SELF> =
+        schema { builder -> fill(builder, this, fields, values) }
+
+    override fun fields(value: Struct<SELF>): FieldSet<SELF, FieldDef<SELF, *, *>> =
+        schema.allFieldSet
+
+    override fun store(value: Struct<SELF>): Any? =
+        value.fieldValues()
+
+    // endregion Partial implementation
 
 }
 
 
 interface Named<SCH : Schema<SCH>> {
-    @Deprecated("Lenses are becoming dumb. Keep your Schema with you", ReplaceWith("this.name(schema)"))
-    val name: String
     fun name(mySchema: SCH): CharSequence
 }
 
@@ -215,8 +228,6 @@ interface StoredLens<SCH : Schema<SCH>, T, DT : DataType<T>> {
     /**
      * Type of values stored within a field/column represented by this lens.
      */
-    @Deprecated("Lenses are becoming dumb. Keep your Schema with you", ReplaceWith("this.type(schema)"))
-    val type: DT
     fun type(mySchema: SCH): DT
 
     val size: Int
@@ -273,154 +284,117 @@ interface NamedLens<SCH : Schema<SCH>, in PRT : PartialStruct<SCH>, in STR : Str
  * @see ImmutableField
  */
 sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
-
-        /**
-         * A schema this field belongs to.
-         */
-        @Deprecated("Lenses are becoming dumb. Keep your Schema with you")
-        @JvmField val schema: SCH,
-
-        /**
-         * A name unique among the [schema].
-         * Required for string-ish serialization like JSON and XML and useful for debugging.
-         */
-        @Deprecated("Lenses are becoming dumb. Keep your Schema with you", ReplaceWith("this.name(schema)"))
-        override val name: String,
-
-        /**
-         * Describes type of values it can store and underlying serialization techniques.
-         * This property is a part of serialization ABI.
-         */
-        @Deprecated("Lenses are becoming dumb. Keep your Schema with you", ReplaceWith("this.type(schema)"))
-        override val type: DT,
-
-        /**
-         * Zero-based ordinal number of this field.
-         * Fields are getting their ordinals according to the program evaluation order.
-         * This property is a part of serialization ABI, so changing field order is a breaking change.
-         *
-         * Given a Schema
-         *     object SampleSchema : Schema<SampleSchema>() {
-         *         val First = "first" let string
-         *         val Second = "second" let string
-         *         val Third = "third" let string
-         *     }
-         * Field 'removal' in compatible fashion will look like
-         *     object SampleSchema : Schema<SampleSchema>() {
-         *         val First = "first" let string
-         *         init { "second" let string }
-         *         val Third = "third" let string
-         *     }
-         * This will guarantee that property initializers will be executed in the same order
-         * and ordinals will remain unchanged.
-         */
-        @JvmField val ordinal: Byte,
-
-        default: T // todo maybe deprecate it?
+    ordinal: Int,
+    specialOrdinal: Int,
+    mutable: Boolean
 ) : NamedLens<SCH, PartialStruct<SCH>, Struct<SCH>, T, DT> {
 
+    /**
+     * Zero-based ordinal number of this field.
+     * Fields are getting their ordinals according to the program evaluation order.
+     * This property is a part of serialization ABI, so changing field order is a breaking change.
+     *
+     * Given a Schema
+     *     object SampleSchema : Schema<SampleSchema>() {
+     *         val First = "first" let string
+     *         val Second = "second" let string
+     *         val Third = "third" let string
+     *     }
+     * Field 'removal' in compatible fashion will look like
+     *     object SampleSchema : Schema<SampleSchema>() {
+     *         val First = "first" let string
+     *         init { "second" let string }
+     *         val Third = "third" let string
+     *     }
+     * This will guarantee that property initializers will be executed in the same order
+     * and ordinals will remain unchanged.
+     *
+     * {@implNote Layout: 0000 0000 0000 000m 00yy yyyy 00xx xxxx, where
+     *   xxxxxx is ordinal,
+     *   yyyyyy is special (mutable of immutable) ordinal, and
+     *   m is mutability flag; m = 0x1_0000 = 65_536.
+     * }
+     */
+    @JvmField @JvmSynthetic @PublishedApi internal val value: Int
     init {
-        check(ordinal < 64) { "Ordinal must be in [0..63], $ordinal given" }
+        check(ordinal < 64) { "Ordinal must be in [0; 63], $ordinal given" }
+        check(specialOrdinal < 64)
+        value = ordinal or (specialOrdinal shl 8) or (if (mutable) 65536 else 0)
     }
 
-    override fun name(mySchema: SCH): CharSequence = // should be `mySchema.run { name }`
-        (mySchema.namesTypesDefaults()[3 * ordinal.toInt()] as CharSequence).also { check(it === name) }
+    override fun name(mySchema: SCH): CharSequence =
+        mySchema.nameAt(ordinal)
 
     override fun type(mySchema: SCH): DT =
-        (mySchema.namesTypesDefaults()[3 * this.ordinal.toInt() + 1] as DT).also { check(it === type) }
-
-    @JvmSynthetic @JvmField internal val _default = default
-
-    @Deprecated("Lenses are becoming dumb. Keep your Schema with you")
-    val default: T
-        get() = if (_default === Unset) throw NoSuchElementException("no default value for $this") else _default
-
-    @Deprecated("Lenses are becoming dumb. Keep your Schema with you", ReplaceWith("this.type(schema)"))
-    val hasDefault: Boolean
-        @JvmName("hasDefault") get() = _default !== Unset
+        mySchema.typeAt(ordinal)
 
     override fun hasValue(struct: PartialStruct<SCH>): Boolean =
-            this in struct.fields
+        this in struct.fields
 
     override fun ofPartial(partial: PartialStruct<SCH>): T? =
-            if (this in partial.fields) partial.getOrThrow(this)
-            else null
+        if (this in partial.fields) partial.getOrThrow(this) else null
 
     override fun invoke(struct: Struct<SCH>): T =
-            struct[this]
+        struct[this]
 
-    override val size: Int get() = 1
+    override val size: Int
+        get() = 1
 
     override fun get(index: Int): NamedLens<*, *, *, *, *> =
-            if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
+        if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
 
     override fun hashCode(): Int =
-            ordinal.toInt()
+        value
 
-    override fun equals(other: Any?): Boolean {
-        if (other !is FieldDef<*, *, *> || other.ordinal != ordinal) return false
-        check(other.schema == schema)
-        check(other.name == name)
-        check(other.type == type)
-        check(other._default == _default)
-        return true
-    }
+    override fun equals(other: Any?): Boolean =
+        javaClass === other?.javaClass && value == (other as FieldDef<*, *, *>).value
 
-    override fun toString(): String = StringBuilder()
-        .append("field(#").append(ordinal).append(' ')
-        .run { foldOrdinal(
-                ifMutable = { append("mut").append('#').append(it) },
-                ifImmutable = { append("let").append('#').append(it) }
-        ) }
+    override fun toString(): String = StringBuilder("field(#").append(value and 63).append(' ')
+        .append(if ((value and 65536) == 0) "let" else "mut").append('#').append((value shr 8) and 63)
         .append(')')
         .toString()
-
-    /**
-     * Represents a mutable field of a [Struct]: its value can be changed.
-     */
-    @Deprecated("moved", ReplaceWith("MutableField"))
-    open class Mutable<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-            schema: SCH, name: CharSequence, type: DT, ordinal: Byte, default: T, @JvmField val mutableOrdinal: Byte
-    ) : FieldDef<SCH, T, DT>(schema, name.toString(), type, ordinal, default)
-
-    /**
-     * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
-     */
-    @Deprecated("moved", ReplaceWith("ImmutableField"))
-    open class Immutable<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-            schema: SCH, name: CharSequence, type: DT, ordinal: Byte, default: T, @JvmField val immutableOrdinal: Byte
-    ) : FieldDef<SCH, T, DT>(schema, name.toString(), type, ordinal, default)
-
 }
+
+inline val FieldDef<*, *, *>.ordinal: Byte
+    get() = (value and 63).toByte()
+
+@PublishedApi internal inline val FieldDef<*, *, *>.specialOrdinal: Byte
+    get() = ((value shr 8) and 63).toByte()
 
 
 /**
  * Represents a mutable field of a [Struct]: its value can be changed.
  */
 /*wannabe inline*/ class MutableField<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-    schema: SCH, name: CharSequence, type: DT, ordinal: Byte, default: T, mutableOrdinal: Byte
-) : FieldDef.Mutable<SCH, T, DT>(schema, name, type, ordinal, default, mutableOrdinal)
+    ordinal: Int, specialOrdinal: Int
+) : FieldDef<SCH, T, DT>(ordinal, specialOrdinal, true)
+
+inline val MutableField<*, *, *>.mutableOrdinal: Byte
+    get() = ((value shr 8) and 63).toByte()
 
 /**
  * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
  */
 /*wannabe inline*/ class ImmutableField<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-    schema: SCH, name: CharSequence, type: DT, ordinal: Byte, default: T, immutableOrdinal: Byte
-) : FieldDef.Immutable<SCH, T, DT>(schema, name, type, ordinal, default, immutableOrdinal)
+    ordinal: Int, specialOrdinal: Int
+) : FieldDef<SCH, T, DT>(ordinal, specialOrdinal, false)
+
+inline val ImmutableField<*, *, *>.immutableOrdinal: Byte
+    get() = ((value shr 8) and 63).toByte()
 
 inline fun <R> FieldDef<*, *, *>.foldOrdinal(
     ifMutable: (mutableOrdinal: Int) -> R,
     ifImmutable: (immutableOrdinal: Int) -> R
-): R = when (this) {
-    is FieldDef.Mutable -> ifMutable(mutableOrdinal.toInt())
-    is FieldDef.Immutable -> ifImmutable(immutableOrdinal.toInt())
-}
+): R =
+    if ((value and 65536) != 0) ifMutable(specialOrdinal.toInt())
+    else ifImmutable(specialOrdinal.toInt())
+
 inline fun <SCH : Schema<SCH>, T, DT : DataType<T>, R> FieldDef<SCH, T, DT>.foldField(
     ifMutable: (MutableField<SCH, T, DT>) -> R,
     ifImmutable: (ImmutableField<SCH, T, DT>) -> R
 ): R = when (this) {
-    is FieldDef.Mutable -> ifMutable(this as MutableField<SCH, T, DT>)
-    is FieldDef.Immutable -> ifImmutable(this as ImmutableField<SCH, T, DT>)
+    is MutableField -> ifMutable(this)
+    is ImmutableField -> ifImmutable(this)
 }
 
 @JvmField @JvmSynthetic @PublishedApi internal val Unset = Any()

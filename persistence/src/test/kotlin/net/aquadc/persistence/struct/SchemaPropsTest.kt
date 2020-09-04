@@ -1,7 +1,9 @@
 package net.aquadc.persistence.struct
 
+import net.aquadc.persistence.type.string
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class SchemaPropsTest {
@@ -18,7 +20,7 @@ class SchemaPropsTest {
 
 
     @Test fun ordinals() {
-        SomeSchema.fields.forEachIndexed { index, fieldDef ->
+        SomeSchema.forEachIndexed(SomeSchema.allFieldSet) { index, fieldDef ->
             assertEquals(index, fieldDef.ordinal.toInt())
         }
     }
@@ -35,4 +37,16 @@ class SchemaPropsTest {
         }
     }
 
+    @Test fun `initialization order trolling`() {
+        assertEquals("a1", InitTroll.run { Second.name })
+        assertSame(string, InitTroll.run { Second.type })
+        assertEquals("qwer", InitTroll.defaultOrElse(InitTroll.Second) { "error" })
+        assertArrayEquals(arrayOf(InitTroll.First, InitTroll.Second), InitTroll.fields)
+    }
+
+}
+
+object InitTroll : Schema<InitTroll>() {
+    val First = "a".let(string, default = "qwe")
+    val Second = "${First.name}1".let(First.type, default = defaultOrElse(First) { "unexpected" } + "r")
 }

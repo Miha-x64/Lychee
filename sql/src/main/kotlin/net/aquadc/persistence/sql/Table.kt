@@ -13,6 +13,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.forEachIndexed
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing

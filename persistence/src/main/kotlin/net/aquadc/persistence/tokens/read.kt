@@ -16,6 +16,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.isEmpty
 import net.aquadc.persistence.struct.minus
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.DataType
 
@@ -187,7 +188,9 @@ internal class TokensIterator<SCH : Schema<SCH>, T>(
         var nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
         while (nextField != null) { // this is ultra unhandy without assignment as expression
             fields = fields.forceAddField(nextField, schema)
-            values[nextField.ordinal.toInt()] = tokens.readAs(schema.run { nextField!!.type })
+            values[nextField.ordinal.toInt()] = tokens.readAs(
+                schema.run { (nextField as FieldDef<SCH, Any?, DataType<Any?>>).type }
+            )
 
             nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
         }

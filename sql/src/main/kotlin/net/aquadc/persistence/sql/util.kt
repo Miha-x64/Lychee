@@ -12,6 +12,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.contains as originalContains
 import net.aquadc.persistence.struct.indexOf
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.CustomType
 import net.aquadc.persistence.type.DataType
@@ -326,7 +327,9 @@ internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell( // todo inline me
 private fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>): Int =
     table.indexOfManaged(column).let { idx ->
         if (idx >= 0) idx
-        else throw NoSuchElementException(table.run { column.name } + " !in " + table.managedColNames.contentToString())
+        else throw NoSuchElementException(
+            "${table.schema.run { column.name }} !in ${table.managedColNames.contentToString()}"
+        )
     }
 
 internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(

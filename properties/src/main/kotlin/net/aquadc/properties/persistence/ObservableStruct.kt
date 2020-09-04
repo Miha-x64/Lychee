@@ -13,6 +13,9 @@ import net.aquadc.persistence.struct.foldOrdinal
 import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.intersect
+import net.aquadc.persistence.struct.mapIndexed
+import net.aquadc.persistence.struct.mutableOrdinal
+import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.properties.MutableProperty
 import net.aquadc.properties.TransactionalProperty
@@ -36,9 +39,7 @@ class ObservableStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, PropertyStruct<SCH>
     private val values: Array<Any?>
 
     constructor(source: Struct<SCH>, concurrent: Boolean) : super(source.schema) {
-        val fields = schema.fields
-        values = Array(fields.size) { i ->
-            val field = fields[i]
+        values = schema.mapIndexed(schema.allFieldSet) { _, field: FieldDef<SCH, *, *> ->
             val value = source[field]
             field.foldOrdinal(
                 ifMutable = { propertyOf(value, concurrent) },

@@ -5,11 +5,9 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import net.aquadc.persistence.sql.EmbedRelationsTest
 import net.aquadc.persistence.sql.QueryBuilderTests
-import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.SqlPropTest
 import net.aquadc.persistence.sql.TemplatesTest
 import net.aquadc.persistence.sql.TestTables
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.SqliteSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import org.junit.After

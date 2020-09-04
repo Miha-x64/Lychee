@@ -63,17 +63,18 @@ private suspend fun <SCH : Schema<SCH>> TokenStreamScope.yieldFieldNamesAndValue
     when (fields.size) {
         0 -> { } // nothing to do here
         1 -> {
-            val field = schema.single(fields)
-            yieldString { schema.run { field.name } }
-            yield(schema.run { field.type } as DataType<Any?>, values)
+            yieldBoth(schema, schema.single(fields), values)
         }
         else -> {
             values as Array<*>
             schema.forEachIndexed(fields) { idx, field ->
-                field
-                yieldString { schema.run { field.name } }
-                yield(schema.run { field.type } as DataType<Any?>, values[idx])
+                yieldBoth(schema, field, values[idx])
             }
         }
     }
+}
+
+private suspend fun <SCH : Schema<SCH>> TokenStreamScope.yieldBoth(schema: SCH, field: FieldDef<SCH, *, *>, values: Any?) {
+    yieldString { schema.run { field.name } }
+    yield(schema.run { (field as FieldDef<SCH, Any?, DataType<Any?>>).type }, values)
 }
