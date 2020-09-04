@@ -34,7 +34,7 @@ inline fun <SCH : Schema<SCH>> Struct<SCH>.copy(mutate: SCH.(StructBuilder<SCH>)
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> {
-    val fldCnt = schema.fields.size
+    val fldCnt = schema.allFieldSet.size
     val array: Array<Any?> = arrayOfNulls(fldCnt + 1)
     array.fill(Unset, 0, fldCnt)
     array[fldCnt] = schema
@@ -43,12 +43,11 @@ fun <SCH : Schema<SCH>> newBuilder(schema: SCH): StructBuilder<SCH> {
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun <SCH : Schema<SCH>> buildUpon(source: PartialStruct<SCH>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>): StructBuilder<SCH> {
-    val fs = source.schema.fields
+    val fs = source.schema.allFieldSet
     val fldCnt = fs.size
     val array: Array<Any?> = arrayOfNulls(fldCnt + 1)
     val actualFields = source.fields intersect fields
-    for (i in 0 until fldCnt) {
-        val field = fs[i]
+    source.schema.forEachIndexed(fs) { i, field ->
         array[i] = if (field in actualFields) source.getOrThrow(field) else Unset
     }
     array[fldCnt] = source.schema
@@ -111,7 +110,9 @@ inline class StructBuilder<SCH : Schema<SCH>> internal constructor(
             for (i in 0.until(values.size - 1)) {
                 //     don't touch schema ^^^
                 if (values[i] === Unset)
-                    values[i] = schema.defaultOrElse(schema.fields[i]) { throw NoSuchElementException(schema.fields[i].toString()) }
+                    values[i] = schema.defaultOrElse(schema.fieldAt(i)) {
+                        throw NoSuchElementException(schema.fieldAt(i).toString())
+                    }
             }
         }
 

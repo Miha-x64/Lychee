@@ -33,9 +33,8 @@ inline fun <SCH : Schema<SCH>> SCH.fieldsWhere(predicate: (FieldDef<SCH, *, *>) 
     var mask = 0L
 
     var bit = 1L
-    val fields = fields
-    for (index in fields.indices) {
-        if (predicate(fields[index])) {
+    forEach(allFieldSet) { field ->
+        if (predicate(field)) {
             mask = mask or bit
         }
         bit = bit shl 1
@@ -199,7 +198,7 @@ fun <SCH : Schema<SCH>> SCH.toString(fields: FldSet<SCH>): String =
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSet<SCH, F>, func: SCH.(F) -> Unit) {
     set.bitSet.forEachBit { _, bitIdx ->
-        func(this, fields[bitIdx] as F)
+        func(this, fieldAt(bitIdx) as F)
     }
 }
 
@@ -209,17 +208,15 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEach(set: FieldSe
 fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.single(set: FieldSet<SCH, F>): F {
     val bits = set.bitSet
     check(java.lang.Long.bitCount(bits) == 1)
-    return fields[java.lang.Long.numberOfTrailingZeros(bits)] as F
-
+    return fieldAt(java.lang.Long.numberOfTrailingZeros(bits)) as F
 }
 
 /**
  * Invokes [func] on each element of the [set].
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> Unit) {
-    val fields = fields
     set.bitSet.forEachBit { setBitIdx, bitIdx ->
-        func(setBitIdx, fields[bitIdx] as F)
+        func(setBitIdx, fieldAt(bitIdx) as F)
     }
 }
 
@@ -227,10 +224,9 @@ inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>> SCH.forEachIndexed(set: 
  * Invokes [func] on each element of the [set].
  */
 inline fun <SCH : Schema<SCH>, F : FieldDef<SCH, *, *>, reified R> SCH.mapIndexed(set: FieldSet<SCH, F>, func: (Int, F) -> R): Array<R> {
-    val fields = fields
     val out = arrayOfNulls<R>(set.size)
     set.bitSet.forEachBit { setBitIdx, bitIdx ->
-        out[setBitIdx] = func(setBitIdx, fields[bitIdx] as F)
+        out[setBitIdx] = func(setBitIdx, fieldAt(bitIdx) as F)
     }
     return out as Array<R>
 }

@@ -143,14 +143,14 @@ class FieldSetTest {
 
     @Test fun `all63 contain`() {
         val set = Schema63.allFieldSet
-        Schema63.fields.forEach { field ->
+        Schema63.forEach(Schema63.allFieldSet) { field ->
             assertTrue(field in set)
         }
     }
 
     @Test fun `all64 contain`() {
         val set = Schema64.allFieldSet
-        Schema64.fields.forEach { field ->
+        Schema64.forEach(Schema64.allFieldSet) { field ->
             assertTrue(field in set)
         }
     }

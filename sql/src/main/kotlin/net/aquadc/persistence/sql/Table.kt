@@ -14,6 +14,7 @@ import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.ordinal
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing
@@ -78,9 +79,10 @@ private constructor(
                         .put(it.path, it) == null)
             }!!
         }
-        val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(schema.fields.size)
-        val columnTypes = ArrayList<Ilk<*, *>>(schema.fields.size)
-        val columnTypeNames = ArrayList<SqlTypeName>(schema.fields.size)
+        val fieldCount = schema.allFieldSet.size
+        val columns = CheckNamesList<StoredNamedLens<SCH, *, *>>(fieldCount)
+        val columnTypes = ArrayList<Ilk<*, *>>(fieldCount)
+        val columnTypeNames = ArrayList<SqlTypeName>(fieldCount)
         if (pkField == null) {
             val pkLens = PkLens(this, _idColType as DataType.NotNull.Simple<ID>)
             columns.add(pkLens, idColName)
@@ -144,10 +146,9 @@ private constructor(
         outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?,
         outRecipe: ArrayList<Nesting>
     ) {
-        val fields = schema.fields
-        val fieldCount = fields.size
+        val fieldCount = schema.allFieldSet.size
         for (i in 0 until fieldCount) {
-            val field = fields[i]
+            val field = schema.fieldAt(i)
             val path: StoredNamedLens<SCH, out Any?, *> =
                     if (prefix == null/* implies naming == null*/) field as FieldDef<SCH, *, *>
                     else /* implies naming != null */ naming!!.concatErased(this.schema, schema, prefix, field) as StoredNamedLens<SCH, out Any?, out DataType<Any?>>

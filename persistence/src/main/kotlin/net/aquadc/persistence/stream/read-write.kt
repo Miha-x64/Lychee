@@ -189,15 +189,14 @@ private fun <T, D, SCH : Schema<SCH>> D.partial(nullable: Boolean, type: DataTyp
                 check(nullable)
                 null as T
             } else {
-                val fields = type.schema.fields
                 var fieldsLeft = size
                 readPartial(
                         type, fieldValues,
-                        { if (fieldsLeft == 0) null else { fieldsLeft--; nextField(fields, input) } },
+                        { if (fieldsLeft == 0) (-1).toByte() else { fieldsLeft--; nextField(input) } },
                         { input.read(this, it as DataType<Any?>) }
                 )
             }
         }
 
-private fun <D, SCH : Schema<SCH>> D.nextField(fields: Array<out FieldDef<SCH, *, *>>, input: BetterDataInput<D>): FieldDef<SCH, *, *> =
-        fields[input.readByte(this).toInt()]
+private fun <D> D.nextField(input: BetterDataInput<D>): Byte =
+    input.readByte(this)

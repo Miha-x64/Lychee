@@ -10,9 +10,11 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.StructTransaction
 import net.aquadc.persistence.struct.TransactionalStruct
 import net.aquadc.persistence.struct.foldField
+import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.isEmpty
 import net.aquadc.persistence.struct.mapIndexed
 import net.aquadc.persistence.struct.mutableOrdinal
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.properties.Property
 import net.aquadc.properties.TransactionalProperty
@@ -50,13 +52,14 @@ fun <SCH : Schema<SCH>> PropertyStruct<SCH>.snapshots(): Property<Struct<SCH>> {
     return schema.mapIndexed(schema.mutableFieldSet) { _, it -> prop(it) }.asList().mapValueList { newMutableValues ->
         val array = if (schema.immutableFieldSet.isEmpty) newMutableValues.array(1)
         else {
-            val fields = schema.fields
+            val fields = schema.allFieldSet
             arrayOfNulls<Any>(fields.size + 1).also { array ->
-                for (i in fields.indices)
-                    array[i] = (fields[i] as FieldDef<SCH, Any?, DataType<Any?>>).foldField(
+                schema.forEachIndexed(fields) { i, field ->
+                    array[i] = (field as FieldDef<SCH, Any?, DataType<Any?>>).foldField(
                         ifMutable = { newMutableValues[it.mutableOrdinal.toInt()] },
                         ifImmutable = { this@snapshots[it] }
                     )
+                }
             }
         }
         array[array.lastIndex] = schema

@@ -11,12 +11,11 @@ import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.forceAddField
 import net.aquadc.persistence.readPartial
 import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.emptyFieldSet
-import net.aquadc.persistence.struct.isEmpty
-import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.struct.ordinal
+import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.struct.toString
 import net.aquadc.persistence.type.DataType
 
@@ -53,7 +52,7 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
             val sch = type.schema
             val struct = readPartial(
                 type as DataType.NotNull.Partial<Any?, NullSchema>, fieldValues,
-                { nextField(sch) as FieldDef<NullSchema, *, *>? }, { readAs(it) }
+                { nextField(sch) }, { readAs(it) }
             )
             poll(Token.EndDictionary)
             struct as T
@@ -61,14 +60,14 @@ fun <T> TokenStream.readAs(type: DataType<T>): T {
     }
 }
 
-internal/*accessed from a class*/ fun TokenStream.nextField(sch: Schema<*>): FieldDef<*, *, *>? {
+internal/*accessed from a class*/ fun TokenStream.nextField(sch: Schema<*>): Byte {
     while (peek() != Token.EndDictionary) {
         sch.fieldByName(poll(Token.Str) as CharSequence,
-                { return it },
+                { return it.ordinal },
                 { skipValue() /* unsupported value */ }
         )
     }
-    return null
+    return -1
 }
 
 private val fieldValues = ThreadLocal<ArrayList<Any?>>()
@@ -176,27 +175,26 @@ internal class TokensIterator<SCH : Schema<SCH>, T>(
             if (tokens.peek() === Token.EndSequence) 2 // Short-circuit: empty sequence.
             else 1.also {
                 if (type == null)
-                    array = arrayOfNulls(schema.fields.size) // Allocate data structure for transient Struct.
+                    array = arrayOfNulls(schema.allFieldSet.size) // Allocate data structure for transient Struct.
             }
     }
     private fun readTransient(): Struct<SCH> {
         tokens.poll(Token.BeginDictionary)
 
-        var fields = emptyFieldSet<SCH, FieldDef<SCH, *, *>>()
+        var fields = 0L
         val values: Array<Any?> = array!!
 
-        var nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
-        while (nextField != null) { // this is ultra unhandy without assignment as expression
+        var nextField = tokens.nextField(schema)
+        while (nextField.toInt() != -1) { // this is ultra unhandy without assignment as expression
             fields = fields.forceAddField(nextField, schema)
-            values[nextField.ordinal.toInt()] = tokens.readAs(
-                schema.run { (nextField as FieldDef<SCH, Any?, DataType<Any?>>).type }
-            )
+            values[nextField.toInt()] = tokens.readAs(schema.typeAt(nextField))
 
-            nextField = tokens.nextField(schema) as FieldDef<SCH, *, *>?
+            nextField = tokens.nextField(schema)
         }
 
-        val missing = schema.allFieldSet - fields
-        if (!missing.isEmpty) throw NoSuchElementException("Missing values for fields: ${schema.toString(missing)}")
+        val missing = schema.allFieldSet.bitSet and fields.inv()
+        if (missing != 0L)
+            throw NoSuchElementException("Missing values for fields: ${schema.toString(FieldSet(missing))}")
 
         tokens.poll(Token.EndDictionary)
         return this

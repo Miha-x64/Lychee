@@ -156,7 +156,6 @@ internal fun inflate(
     var lastMovedFieldIdx = -1
     var depth = 0
     var recipeOffset = _recipeOffset
-    val fields = schema.fields
     loop@ while (++recipeOffset < recipe.size) { // evaluate nesting commands, start-end pairs with some nesting
         when (val nesting = recipe[recipeOffset]) {
             is Table.Nesting.StructStart -> {
@@ -165,7 +164,7 @@ internal fun inflate(
                 val myField = nesting.myField!!
                 while (++lastMovedFieldIdx < myField.ordinal.toInt()) {
                     val value = mutColumnValues[srcPos++]
-                    if (fields[lastMovedFieldIdx] in fieldSet)
+                    if (schema.fieldAt(lastMovedFieldIdx) in fieldSet)
                         mutColumnValues[dstPos++] = value
                 }
 
@@ -190,9 +189,10 @@ internal fun inflate(
     }
 
     // move all trailing values up — some copy-paste here
+    val fields = schema.allFieldSet
     while (++lastMovedFieldIdx < fields.size) {
         val value = mutColumnValues[srcPos++]
-        if (fields[lastMovedFieldIdx] in fieldSet)
+        if (schema.fieldAt(lastMovedFieldIdx) in fieldSet)
             mutColumnValues[dstPos++] = value
     }
 
@@ -234,18 +234,18 @@ internal fun flatten(
                 out[dstPos++] = it.bitSet
             } else erased.schema.allFieldSet as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>
 
-    val fields = start.unwrappedType.schema.fields
+    val schema = start.unwrappedType.schema
     when (fieldSet.size) {
         0 -> { /* nothing to do here */ }
         1 -> {
             val fieldValue = erased.store(value)
-            flattenFieldValues(_recipeOffset, { fieldValue }, recipe, fields, fieldSet, out, dstPos)
+            flattenFieldValues(_recipeOffset, { fieldValue }, recipe, schema, fieldSet, out, dstPos)
         }
         else -> {
             val fieldValues = erased.store(value) as Array<Any?> // fixme allocation
             flattenFieldValues(_recipeOffset, { f ->
-                fieldValues[fieldSet.indexOf<Schema<*>>(f as FieldDef<Schema<*>, *, *>).toInt()]
-            }, recipe, fields, fieldSet, out, dstPos)
+                fieldValues[fieldSet.indexOf<Schema<*>>(f as FieldDef<Schema<*>, *, *>)]
+            }, recipe, schema, fieldSet, out, dstPos)
         }
     }
 }
@@ -253,7 +253,7 @@ internal fun flatten(
 @Suppress("UPPER_BOUND_VIOLATED")
 private inline fun flattenFieldValues(
         _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *, *>) -> Any?, recipe: Array<out Table.Nesting>,
-        fields: Array<out FieldDef<out Schema<*>, out Any?, *>>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
+        schema: Schema<*>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
         out: Array<Any?>, _dstPos: Int
 ) {
     var dstPos = _dstPos
@@ -266,7 +266,7 @@ private inline fun flattenFieldValues(
                 // gonna recurse and flatten nested stuff, but first let's set all preceding field values up
                 val myField = nesting.myField!!
                 while (++lastSetFieldIdx < myField.ordinal.toInt()) {
-                    val field = fields[lastSetFieldIdx]
+                    val field = schema.fieldAt(lastSetFieldIdx)
                     if (field in fieldSet) out[dstPos] = fieldValue(field)
                     dstPos++
                 }
@@ -295,8 +295,8 @@ private inline fun flattenFieldValues(
     }
 
     // assign trailing values
-    while (++lastSetFieldIdx < fields.size) {
-        val field = fields[lastSetFieldIdx]
+    while (++lastSetFieldIdx < schema.allFieldSet.size) {
+        val field = schema.fieldAt(lastSetFieldIdx)
         if (field in fieldSet) out[dstPos] = fieldValue(field)
         dstPos++
     }

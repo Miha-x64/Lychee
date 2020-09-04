@@ -27,7 +27,7 @@ private class EitherType<SCH : Schema<SCH>>(
         RealEither(values, schema.single(fields).ordinal.toInt())
 
     override fun fields(value: Any): FieldSet<SCH, FieldDef<SCH, *, *>> =
-        schema.fields[(value as RealEither)._which].asFieldSet()
+        schema.fieldAt((value as RealEither)._which).asFieldSet()
 
     override fun store(value: Any): Any? =
         (value as RealEither)._value
