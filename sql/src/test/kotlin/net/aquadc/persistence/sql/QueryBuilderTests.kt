@@ -2,7 +2,7 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
-import net.aquadc.persistence.extended.invoke
+import net.aquadc.persistence.extended.tuple.invoke
 import net.aquadc.persistence.struct.invoke
 import org.junit.Assert.assertEquals
 import org.junit.Test

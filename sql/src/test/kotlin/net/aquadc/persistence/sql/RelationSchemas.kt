@@ -1,6 +1,6 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.Tuple
+import net.aquadc.persistence.extended.tuple.Tuple
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.struct.Named

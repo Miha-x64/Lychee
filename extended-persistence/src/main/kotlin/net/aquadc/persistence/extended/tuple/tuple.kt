@@ -1,7 +1,8 @@
 @file:JvmName("Tuples")
 @file:Suppress("NOTHING_TO_INLINE")
-package net.aquadc.persistence.extended
+package net.aquadc.persistence.extended.tuple
 
+import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct

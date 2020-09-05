@@ -5,6 +5,8 @@ import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.either.either
 import net.aquadc.persistence.extended.either.either4
+import net.aquadc.persistence.extended.tuple.Tuple4
+import net.aquadc.persistence.extended.tuple.invoke
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write

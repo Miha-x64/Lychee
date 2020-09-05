@@ -4,7 +4,7 @@ import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.copy
 import net.aquadc.persistence.extended.either.EitherLeft
 import net.aquadc.persistence.extended.getOrDefault
-import net.aquadc.persistence.extended.invoke
+import net.aquadc.persistence.extended.tuple.invoke
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.asFieldSet

@@ -4,7 +4,7 @@ import android.util.JsonToken
 import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.json.writeTo
-import net.aquadc.persistence.extended.times
+import net.aquadc.persistence.extended.tuple.times
 import net.aquadc.persistence.extended.tokens.MergeStrategy
 import net.aquadc.persistence.extended.tokens.associate
 import net.aquadc.persistence.extended.tokens.entries

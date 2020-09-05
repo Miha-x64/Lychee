@@ -5,8 +5,8 @@ import android.os.Parcel
 import net.aquadc.persistence.android.parcel.ParcelIo
 import net.aquadc.persistence.android.parcel.ParcelPropertiesMemento
 import net.aquadc.persistence.android.pref.SharedPreferencesStruct
-import net.aquadc.persistence.extended.Tuple
-import net.aquadc.persistence.extended.invoke
+import net.aquadc.persistence.extended.tuple.Tuple
+import net.aquadc.persistence.extended.tuple.invoke
 import net.aquadc.persistence.stream.read
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.transaction

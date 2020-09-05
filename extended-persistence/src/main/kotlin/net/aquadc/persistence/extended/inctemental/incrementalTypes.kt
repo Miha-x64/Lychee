@@ -4,14 +4,14 @@
 ]
 package net.aquadc.persistence.extended.inctemental
 
-import net.aquadc.persistence.extended.Box
-import net.aquadc.persistence.extended.Tuple
-import net.aquadc.persistence.extended.Tuple3
-import net.aquadc.persistence.extended.Tuple4
-import net.aquadc.persistence.extended.Tuple5
-import net.aquadc.persistence.extended.Tuple6
-import net.aquadc.persistence.extended.Tuple7
-import net.aquadc.persistence.extended.Tuple8
+import net.aquadc.persistence.extended.tuple.Box
+import net.aquadc.persistence.extended.tuple.Tuple
+import net.aquadc.persistence.extended.tuple.Tuple3
+import net.aquadc.persistence.extended.tuple.Tuple4
+import net.aquadc.persistence.extended.tuple.Tuple5
+import net.aquadc.persistence.extended.tuple.Tuple6
+import net.aquadc.persistence.extended.tuple.Tuple7
+import net.aquadc.persistence.extended.tuple.Tuple8
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema

@@ -2,7 +2,7 @@ package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.either.EitherRight
-import net.aquadc.persistence.extended.invoke
+import net.aquadc.persistence.extended.tuple.invoke
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.invoke
