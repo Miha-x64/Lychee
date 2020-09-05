@@ -157,4 +157,4 @@ typealias SimpleValue = Any
 typealias AnyCollection = Any
 // @see fatMap, fatMapTo, fatAsList, don't forget to update them
 
-typealias SimpleNullable<T> = DataType.Nullable<T, DataType.NotNull.Simple<T>> // todo kill me plz
+typealias SimpleNullable<T> = DataType.Nullable<T, DataType.NotNull.Simple<T>>

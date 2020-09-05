@@ -6,7 +6,6 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.FuncXImpl
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Exec
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk

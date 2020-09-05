@@ -115,7 +115,6 @@ private fun String.maybeStripProto(baseUrl: CharSequence?, endpoint: Endpoint<*,
     else
         this
 
-// TODO: endpoint.url(baseUrl) => Function (what about #fragment?)
 // TODO: kotlinx.html integration
 
 @JvmSynthetic internal fun url(

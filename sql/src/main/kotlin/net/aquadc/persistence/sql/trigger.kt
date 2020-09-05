@@ -11,7 +11,6 @@ import net.aquadc.collections.forEach
 import net.aquadc.collections.isEmpty
 import net.aquadc.collections.noneOf
 import net.aquadc.collections.plus
-import net.aquadc.collections.toArr
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.realToString
 import net.aquadc.persistence.sql.blocking.LowLevelSession

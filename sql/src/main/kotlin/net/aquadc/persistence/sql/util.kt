@@ -313,14 +313,14 @@ internal fun <CUR> Blocking<CUR>.row(
     BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
 }
 
-internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell( // todo inline me
+internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell(
     cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R {
-    val type = column.type(table.schema)
+    val type = column.type(table.schema) as Ilk<R, *>
+    //   every DataType case implements Ilk ^^^^^^^^^
     return when (bindBy) {
-        BindBy.Name -> cellByName(cursor, column.name(table.schema), type as Ilk<R, *>)
-        //  oh... every DataType case implements Ilk, so we can cast ^^^^^^^^^^^^^^^^^
-        BindBy.Position -> cellAt(cursor, forceIndexOfManaged(table, column), type as Ilk<R, *>)
+        BindBy.Name -> cellByName(cursor, column.name(table.schema), type)
+        BindBy.Position -> cellAt(cursor, forceIndexOfManaged(table, column), type)
     }
 }
 

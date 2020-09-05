@@ -209,7 +209,6 @@ abstract class TemplatesTest {
     }
 
     // todo left/right/outer join
-    // TODO insert, update, delete
 
     @Test fun <CUR> `same endianness`() {
         val sqlOr = (session as Session<Blocking<CUR>>)

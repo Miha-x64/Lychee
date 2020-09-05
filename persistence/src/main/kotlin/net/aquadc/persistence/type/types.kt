@@ -234,9 +234,6 @@ sealed class DataType<T> {
         is NotNull.Partial<*, *> -> "partial($schema)"
     }
 
-
-//    abstract class Dictionary<M, K, V> internal constructor(keyType: DataType<K>, valueType: DataType<K>) : DataType<M>(isNullable) TODO
-
 }
 
 /**
