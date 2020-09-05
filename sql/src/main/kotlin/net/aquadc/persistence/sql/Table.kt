@@ -59,7 +59,7 @@ private constructor(
     protected open fun SCH.meta(): Array<out ColMeta<SCH>> = noMeta as Array<out ColMeta<SCH>>
 
     @JvmSynthetic @JvmField internal var _delegates: Map<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>? = null
-    @JvmSynthetic @JvmField internal var _recipe: Array<out Nesting>? = null
+    @JvmSynthetic @JvmField internal var _recipe: Array<out StructStart?>? = null
     @JvmSynthetic @JvmField internal var _managedColumns: Array<out StoredNamedLens<SCH, *, *>>? = null
     @JvmSynthetic @JvmField internal var _managedColNames: Array<out CharSequence>? = null
     @JvmSynthetic @JvmField internal var _managedColTypes: Array<out Ilk<*, *>>? = null
@@ -91,12 +91,12 @@ private constructor(
             columnTypes.add(_idColType)
         }
         val delegates = newMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>()
-        val recipe = ArrayList<Nesting>()
-        val ss = Nesting.StructStart(false, null, null, schema)
+        val recipe = ArrayList<StructStart?>()
+        val ss = StructStart(false, null, null, schema)
         recipe.add(ss)
         embed(relations, types, schema, null, null, columns, columnTypes, columnTypeNames, delegates, recipe)
         ss.colCount = columns.size
-        recipe.add(Nesting.StructEnd)
+        recipe.add(null)
         this._recipe = recipe.array()
 
         relations?.takeIf { it.isNotEmpty() }?.let { throw RuntimeException("Cannot consume relations: ${it.values}") }
@@ -144,7 +144,7 @@ private constructor(
         outColumnTypes: ArrayList<Ilk<*, *>>,
         outColumnTypeNames: ArrayList<SqlTypeName>,
         outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?,
-        outRecipe: ArrayList<Nesting>
+        outRecipe: ArrayList<StructStart?>
     ) {
         val fieldCount = schema.allFieldSet.size
         for (i in 0 until fieldCount) {
@@ -185,7 +185,7 @@ private constructor(
         types: MutableMap<StoredLens<SCH, *, *>, ColMeta.Type<SCH, *>>?,
         outColumnTypes: ArrayList<Ilk<*, *>>,
         outColumnTypeNames: ArrayList<SqlTypeName>,
-        outRecipe: ArrayList<Nesting>,
+        outRecipe: ArrayList<StructStart?>,
         field: FieldDef<out Schema<*>, out Any?, out DataType<*>>,
         type: DataType<Any?>,
         outDelegates: MutableMap<StoredLens<SCH, *, *>, SqlPropertyDelegate<SCH, ID>>?
@@ -206,14 +206,14 @@ private constructor(
 
                 val relSchema = relType.schema
                 val recipeStart = outRecipe.size
-                val ss = Nesting.StructStart(fieldSetCol != null, field, type, relType)
+                val ss = StructStart(fieldSetCol != null, field, type, relType)
                 outRecipe.add(ss)
                 embed(
                     rels, types, relSchema, rel.naming, path,
                     outColumns, outColumnTypes, outColumnTypeNames, null, outRecipe
                 )
                 ss.colCount = outColumns.size - start
-                outRecipe.add(Nesting.StructEnd)
+                outRecipe.add(null)
 
                 val subColumns = outColumns.subList(start, outColumns.size)
                 check(outDelegates?.put(path, Embedded(
@@ -244,17 +244,13 @@ private constructor(
         outColumnTypeNames.add(tOverr?.typeName ?: tOverr?.override?.custom?.name ?: tOverr?.override?.type ?: t)
     }
 
-    internal sealed class Nesting {
-        class StructStart constructor(
-                @JvmField val hasFieldSet: Boolean,
-                @JvmField val myField: FieldDef<*, *, *>?,
-                @JvmField val type: DataType<*>?,
-                @JvmField val unwrappedType: DataType.NotNull.Partial<*, *>
-        ) : Nesting() {
-            @JvmField var colCount: Int = 0
-        }
-
-        object StructEnd : Nesting() // todo kill me
+    class StructStart(
+        @JvmField val hasFieldSet: Boolean,
+        @JvmField val myField: FieldDef<*, *, *>?,
+        @JvmField val type: DataType<*>?,
+        @JvmField val unwrappedType: DataType.NotNull.Partial<*, *>
+    ) {
+        @JvmField var colCount: Int = 0
     }
 
     val columns: Array<out StoredNamedLens<SCH, *, *>>
@@ -273,7 +269,7 @@ private constructor(
             else PkLens(this, _idColType.type as DataType.NotNull.Simple<ID>) as NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.NotNull.Simple<ID>>
         }
 
-    internal val recipe: Array<out Nesting>
+    internal val recipe: Array<out StructStart?>
         get() = _recipe ?: _columns.value.let { _ /* unwrap lazy */ -> _recipe!! }
 
     fun indexOfManaged(column: StoredLens<SCH, *, *>): Int {

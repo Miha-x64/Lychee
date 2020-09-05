@@ -53,10 +53,10 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
 }
 
 internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
-        private val recipe: Array<Table.Nesting>, // contains a single start-end pair with (flattened) nesting inside
-        private val myOffset: Int,
-        private val columnNames: Array<out CharSequence>,
-        private val columnTypes: Array<Ilk<*, *>>
+    private val recipe: Array<Table.StructStart?>, // contains a single start-end pair with (flattened) nesting inside
+    private val myOffset: Int,
+    private val columnNames: Array<out CharSequence>,
+    private val columnTypes: Array<Ilk<*, *>>
 ) : SqlPropertyDelegate<SCH, ID> {
 
     override fun <T> fetch(

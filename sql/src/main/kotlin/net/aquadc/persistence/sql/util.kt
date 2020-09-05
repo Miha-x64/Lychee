@@ -136,13 +136,13 @@ internal inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T
  */
 @Suppress("UPPER_BOUND_VIOLATED")
 internal fun inflate(
-        recipe: Array<out Table.Nesting>,
+        recipe: Array<out Table.StructStart?>,
         mutColumnValues: Array<Any?>,
         _srcPos: Int,
         _dstPos: Int,
         _recipeOffset: Int
 ) {
-    val start = recipe[_recipeOffset] as Table.Nesting.StructStart
+    val start = recipe[_recipeOffset]!!
 
     var srcPos = _srcPos
     val schema = start.unwrappedType.schema
@@ -157,34 +157,31 @@ internal fun inflate(
     var depth = 0
     var recipeOffset = _recipeOffset
     loop@ while (++recipeOffset < recipe.size) { // evaluate nesting commands, start-end pairs with some nesting
-        when (val nesting = recipe[recipeOffset]) {
-            is Table.Nesting.StructStart -> {
-
-                // gonna recurse and inflate nested stuff, but first let's move preceding field values up
-                val myField = nesting.myField!!
-                while (++lastMovedFieldIdx < myField.ordinal.toInt()) {
-                    val value = mutColumnValues[srcPos++]
-                    if (schema.fieldAt(lastMovedFieldIdx) in fieldSet)
-                        mutColumnValues[dstPos++] = value
-                }
-
-                // now lastMovedFieldIdx == nesting.myField.ordinal, let's recurse
-                if (myField in fieldSet)
-                    inflate(recipe, mutColumnValues, srcPos, dstPos++, recipeOffset)
-                srcPos += nesting.colCount
-
-                // and skip all nesting commands consumed by the recursive call or ignored due to empty values
-                // argh, I really miss references to local variables now
-                depth++
-                while (depth > 0) {
-                    if (recipe[++recipeOffset] is Table.Nesting.StructStart) depth++
-                    else depth--
-                }
-                // depth = 0 at this point, meaning that we're skipped nested structs
+        val nesting = recipe[recipeOffset]
+        if (nesting != null) {
+            // gonna recurse and inflate nested stuff, but first let's move preceding field values up
+            val myField = nesting.myField!!
+            while (++lastMovedFieldIdx < myField.ordinal.toInt()) {
+                val value = mutColumnValues[srcPos++]
+                if (schema.fieldAt(lastMovedFieldIdx) in fieldSet)
+                    mutColumnValues[dstPos++] = value
             }
-            is Table.Nesting.StructEnd -> {
-                if (depth-- == 0) break@loop // if depth was 0, we've met enclosing (not ours) struct end
+
+            // now lastMovedFieldIdx == nesting.myField.ordinal, let's recurse
+            if (myField in fieldSet)
+                inflate(recipe, mutColumnValues, srcPos, dstPos++, recipeOffset)
+            srcPos += nesting.colCount
+
+            // and skip all nesting commands consumed by the recursive call or ignored due to empty values
+            // argh, I really miss references to local variables now
+            depth++
+            while (depth > 0) {
+                if (recipe[++recipeOffset] != null) depth++
+                else depth--
             }
+            // depth = 0 at this point, meaning that we're skipped nested structs
+        } else {
+            if (depth-- == 0) break@loop // if depth was 0, we've met enclosing (not ours) struct end
         }
     }
 
@@ -213,13 +210,13 @@ internal fun inflate(
  */
 @Suppress("UPPER_BOUND_VIOLATED")
 internal fun flatten(
-        recipe: Array<out Table.Nesting>,
+        recipe: Array<out Table.StructStart?>,
         out: Array<Any?>,
         value: Any?,
         _dstPos: Int,
         _recipeOffset: Int
 ) {
-    val start = recipe[_recipeOffset] as Table.Nesting.StructStart
+    val start = recipe[_recipeOffset]!!
     var dstPos = _dstPos
     val type = start.type ?: start.unwrappedType // OMG, such a hack:
     // unwrappedType is a correct type for non-embedded, top-level struct
@@ -252,7 +249,7 @@ internal fun flatten(
 
 @Suppress("UPPER_BOUND_VIOLATED")
 private inline fun flattenFieldValues(
-        _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *, *>) -> Any?, recipe: Array<out Table.Nesting>,
+        _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *, *>) -> Any?, recipe: Array<out Table.StructStart?>,
         schema: Schema<*>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
         out: Array<Any?>, _dstPos: Int
 ) {
@@ -261,36 +258,34 @@ private inline fun flattenFieldValues(
     var depth = 0
     var recipeOffset = _recipeOffset
     loop@ while (++recipeOffset < recipe.size) { // evaluate nesting commands, start-end pairs with some nesting
-        when (val nesting = recipe[recipeOffset]) {
-            is Table.Nesting.StructStart -> {
-                // gonna recurse and flatten nested stuff, but first let's set all preceding field values up
-                val myField = nesting.myField!!
-                while (++lastSetFieldIdx < myField.ordinal.toInt()) {
-                    val field = schema.fieldAt(lastSetFieldIdx)
-                    if (field in fieldSet) out[dstPos] = fieldValue(field)
-                    dstPos++
-                }
-
-                // now lastSetFieldIdx == nesting.myField.ordinal, let's recurse
-                if (myField in fieldSet)
-                    flatten(recipe, out, fieldValue(myField), dstPos, recipeOffset)
-                dstPos += nesting.colCount
-
-                // and skip all nesting commands consumed by the recursive call or ignored due to empty values
-                // argh, I really miss references to local variables now
-                depth++
-                while (depth > 0) {
-                    if (recipe[++recipeOffset] is Table.Nesting.StructStart) {
-                        depth++
-                    } else {
-                        depth--
-                    }
-                }
-                // depth = 0 at this point, meaning that we're skipped nested structs
+        val nesting = recipe[recipeOffset]
+        if (nesting != null) {
+            // gonna recurse and flatten nested stuff, but first let's set all preceding field values up
+            val myField = nesting.myField!!
+            while (++lastSetFieldIdx < myField.ordinal.toInt()) {
+                val field = schema.fieldAt(lastSetFieldIdx)
+                if (field in fieldSet) out[dstPos] = fieldValue(field)
+                dstPos++
             }
-            is Table.Nesting.StructEnd -> {
-                if (depth-- == 0) break@loop // if depth was 0, we've met enclosing (not ours) struct end
+
+            // now lastSetFieldIdx == nesting.myField.ordinal, let's recurse
+            if (myField in fieldSet)
+                flatten(recipe, out, fieldValue(myField), dstPos, recipeOffset)
+            dstPos += nesting.colCount
+
+            // and skip all nesting commands consumed by the recursive call or ignored due to empty values
+            // argh, I really miss references to local variables now
+            depth++
+            while (depth > 0) {
+                if (recipe[++recipeOffset] != null) {
+                    depth++
+                } else {
+                    depth--
+                }
             }
+            // depth = 0 at this point, meaning that we're skipped nested structs
+        } else {
+            if (depth-- == 0) break@loop // if depth was 0, we've met enclosing (not ours) struct end
         }
     }
 
@@ -337,7 +332,7 @@ internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
         cur: CUR,
         colNames: Array<out CharSequence>,
         colTypes: Array<out Ilk<*, *>>,
-        recipe: Array<out Table.Nesting>
+        recipe: Array<out Table.StructStart?>
 ): StructSnapshot<SCH> {
     val firstValues = row(cur, 0, colNames, colTypes, bindBy)
     inflate(recipe, firstValues, 0, 0, 0)
