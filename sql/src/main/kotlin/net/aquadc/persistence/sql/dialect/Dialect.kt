@@ -97,4 +97,9 @@ interface Dialect {
      */
     fun nameOf(kind: DataType.NotNull.Simple.Kind): String
 
+    /**
+     * Returns a query to reduce memory usage, if supported.
+     */
+    fun trimMemory(): String?
+
 }

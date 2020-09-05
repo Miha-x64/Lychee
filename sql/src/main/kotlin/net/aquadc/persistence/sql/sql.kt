@@ -80,6 +80,8 @@ interface Session<SRC> : Closeable {
      */
     @CheckResult fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable
 
+    fun trimMemory()
+
 }
 
 

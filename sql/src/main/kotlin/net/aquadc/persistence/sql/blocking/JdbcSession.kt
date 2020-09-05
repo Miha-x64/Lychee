@@ -610,6 +610,14 @@ class JdbcSession(
     override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =
         triggers.addListener(subject, listener)
 
+    override fun trimMemory() {
+        dialect.trimMemory()?.let { sql ->
+            val stmt = connection.createStatement()
+            stmt.execute(sql)
+            stmt.close()
+        }
+    }
+
     override fun close() {
         lowLevel.statements.get()?.values
             ?.forEach(PreparedStatement::close) // Oops! Other threads' statements gonna dangle until GC

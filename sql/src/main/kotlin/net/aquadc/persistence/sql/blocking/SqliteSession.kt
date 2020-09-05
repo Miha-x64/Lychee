@@ -540,6 +540,10 @@ class SqliteSession(
     override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =
         triggers.addListener(subject, listener)
 
+    override fun trimMemory() {
+        connection.execSQL(SqliteDialect.trimMemory())
+    }
+
     override fun close() {
         lowLevel.statements.get()?.values
             ?.forEach(SQLiteStatement::close) // Oops! Other threads' statements gonna dangle until GC

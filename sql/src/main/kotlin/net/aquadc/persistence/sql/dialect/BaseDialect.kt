@@ -239,4 +239,7 @@ import java.io.DataOutputStream
     override fun nameOf(kind: DataType.NotNull.Simple.Kind): String =
         types[kind]!!
 
+    override fun trimMemory(): String? =
+        null
+
 }

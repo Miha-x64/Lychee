@@ -125,4 +125,7 @@ object SqliteDialect : BaseDialect(
             }
             .append(')')
 
+    override fun trimMemory(): String =
+        "PRAGMA shrink_memory"
+
 }
