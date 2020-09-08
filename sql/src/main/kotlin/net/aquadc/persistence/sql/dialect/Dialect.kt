@@ -22,6 +22,7 @@ interface Dialect {
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
+    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
     fun <SCH : Schema<SCH>> selectQuery(
             table: Table<SCH, *>, columns: Array<out CharSequence>,
             condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
@@ -30,17 +31,20 @@ interface Dialect {
     /**
      * Constructs an SQL query like `SELECT COUNT(*) from <table> WHERE <condition>`
      */
+    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
     fun <SCH : Schema<SCH>> selectCountQuery(table: Table<SCH, *>, condition: WhereCondition<SCH>): String
 
     /**
      * Appends ORDER clause (without ORDER BY itself) to [this] builder.
      * @param order must be non-empty
      */
+    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
     fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(schema: SCH, order: Array<out Order<SCH>>): StringBuilder
 
     /**
      *  Constructs an SQL query like `UPDATE <table> SET <col> = ?`
      */
+    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.")
     fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *>, cols: Array<out CharSequence>): String
 
     /**
