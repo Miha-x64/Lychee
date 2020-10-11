@@ -404,7 +404,7 @@ class JdbcSession(
 
         override fun execute(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
-        ) {
+        ): Int =
             statement(query)
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
@@ -412,7 +412,6 @@ class JdbcSession(
                     }
                 }
                 .executeUpdate()
-        }
 
         private fun statement(query: String): PreparedStatement {
             return statements

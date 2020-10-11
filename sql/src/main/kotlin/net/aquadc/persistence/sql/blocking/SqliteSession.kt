@@ -343,7 +343,7 @@ class SqliteSession(
 
         override fun execute(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
-        ) {
+        ): Int =
             statements
                 .getOrSet(::newMap)
                 .getOrPut(query) { connection.compileStatement(query) }
@@ -353,7 +353,6 @@ class SqliteSession(
                     }
                 }
                 .executeUpdateDelete()
-        }
 
         private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: Ilk<T, *>): T =
             (type.type as DataType<T>).get(cursor, cursor.getColIdx(guess, name))

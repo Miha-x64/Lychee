@@ -32,7 +32,7 @@ interface Blocking<CUR> {
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
 
-    fun execute(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>)
+    fun execute(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>): Int
 
     fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
     fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
@@ -81,7 +81,10 @@ object Eagerly { // TODO support Ilk everywhere
             FetchStructListEagerly(table, bindBy)
 
     inline fun execute(): Exec<Blocking<*>, Unit> =
-        ExecuteEagerly
+        ExecuteForUnit
+
+    inline fun executeForRowCount(): Exec<Blocking<*>, Int> =
+        ExecuteForRowCount
 }
 
 object Lazily {

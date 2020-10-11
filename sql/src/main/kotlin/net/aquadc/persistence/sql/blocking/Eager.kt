@@ -92,12 +92,21 @@ import net.aquadc.persistence.type.Ilk
     }
 }
 
-@PublishedApi internal object ExecuteEagerly : (
+@PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerly(false)
+    as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> Unit
+@PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerly(true)
+    as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> Int
+
+private class ExecuteEagerly(
+    private val ret: Boolean
+) : (
     Blocking<*>,
     @ParameterName("query") String,
     @ParameterName("argumentTypes") Array<out Ilk<*, DataType.NotNull<*>>>,
     @ParameterName("arguments") Array<out Any>
-) -> Unit {
-    override fun invoke(db: Blocking<*>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>) =
-        db.execute(query, argumentTypes, arguments)
+) -> Any {
+    override fun invoke(db: Blocking<*>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>): Any {
+        val affected = db.execute(query, argumentTypes, arguments)
+        return if (ret) affected else Unit
+    }
 }

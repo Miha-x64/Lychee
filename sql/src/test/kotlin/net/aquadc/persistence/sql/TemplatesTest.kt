@@ -8,6 +8,7 @@ import net.aquadc.persistence.extended.tuple.times
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
+import net.aquadc.persistence.sql.blocking.Eagerly.executeForRowCount
 import net.aquadc.persistence.sql.blocking.Lazily
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.asFieldSet
@@ -248,10 +249,8 @@ abstract class TemplatesTest {
             insert(UserTable, User("A", "b"))
         }
 
-        val renameUser = session.mutate("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, Eagerly.execute())
-        session.withTransaction {
-            renameUser("X")
-        }
+        val renameUser = session.mutate("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, executeForRowCount())
+        assertEquals(1, session.withTransaction { renameUser("X") })
 
         assertEquals(2, called)
         insUpdListener.close()
