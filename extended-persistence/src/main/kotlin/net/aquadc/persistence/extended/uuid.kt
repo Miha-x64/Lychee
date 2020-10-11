@@ -6,7 +6,7 @@ import net.aquadc.persistence.type.SimpleValue
 import java.util.UUID
 
 
-val uuid: DataType.NotNull.Simple<UUID> = object : StringableSimpleType<UUID>(Kind.Blob) {
+@JvmField val uuid: DataType.NotNull.Simple<UUID> = object : StringableSimpleType<UUID>(Kind.Blob) {
     override fun load(value: SimpleValue): UUID =
         if (value is CharSequence) UUID.fromString(value.toString())
         else fromBytes(value as ByteArray)
