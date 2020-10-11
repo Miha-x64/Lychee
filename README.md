@@ -573,7 +573,7 @@ triggering UI state change as needed and without any callbacks.
 
 [![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) Android Bindings
 
-```
+```groovy
 // `allprojects` section of top-level build.gradle || root of module-level build.gradle
 repositories {
     ...
@@ -582,13 +582,15 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    implementation 'net.aquadc.properties:properties:0.0.15' // observables for both JVM and Android
-    implementation 'net.aquadc.properties:persistence:0.0.15' // persistence for JVM and Android
-    implementation 'net.aquadc.properties:extended-persistence:0.0.15' // partial structs, tuples, either, unsigned, primitive[], token transforms
-    implementation 'net.aquadc.properties:android-bindings:0.0.15' // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
-    implementation 'net.aquadc.properties:android-json:0.0.15' // android.util.JsonReader as TokenStream
-    implementation 'net.aquadc.properties:android-json-on-jvm:0.0.15' // implements android.util.JsonReader for server and desktop, use with android-json outside of Android 
-    implementation 'net.aquadc.properties:sql:0.0.15' // observable SQL and SQL templates
-    implementation 'net.aquadc.properties:http:0.0.15' // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
+    def lychee = '0.0.16'
+//  val lychee = "0.0.16"
+    implementation("net.aquadc.properties:properties:$lychee") // observables for both JVM and Android
+    implementation("net.aquadc.properties:persistence:$lychee") // persistence for JVM and Android
+    implementation("net.aquadc.properties:extended-persistence:$lychee") // partial structs, tuples, either, unsigned, primitive[], token transforms
+    implementation("net.aquadc.properties:android-bindings:$lychee") // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
+    implementation("net.aquadc.properties:android-json:$lychee") // android.util.JsonReader as TokenStream
+    implementation("net.aquadc.properties:android-json-on-jvm:$lychee") // implements android.util.JsonReader for server and desktop, use with android-json outside of Android 
+    implementation("net.aquadc.properties:sql:$lychee") // observable SQL and SQL templates
+    implementation("net.aquadc.properties:http:$lychee") // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
 }
 ```
