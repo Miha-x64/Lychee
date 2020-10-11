@@ -6,6 +6,7 @@
 package net.aquadc.persistence.sql
 
 import androidx.annotation.CheckResult
+import androidx.annotation.RequiresApi
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
@@ -100,6 +101,16 @@ inline fun <R> Session<*>.withTransaction(block: Transaction.() -> R): R {
         val r = block(transaction)
         transaction.setSuccessful()
         return r
+    } finally {
+        transaction.close()
+    }
+}
+@RequiresApi(24) @JvmName("withTransaction")
+fun Session<*>.withTransaction4j(block: java.util.function.Consumer<Transaction>) {
+    val transaction = beginTransaction()
+    try {
+        block.accept(transaction)
+        transaction.setSuccessful()
     } finally {
         transaction.close()
     }

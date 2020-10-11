@@ -58,12 +58,13 @@ internal typealias Exec<SRC, R> =
     (SRC, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>) -> R
 
 object Eagerly { // TODO support Ilk everywhere
-    inline fun <CUR, R> cell(
+
+    @JvmOverloads inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R> =
             FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR, R : Any> cell(
+    @JvmOverloads inline fun <CUR, R : Any> cell(
             returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R?> =
             FetchCellEagerly(returnType, orElse)
@@ -74,7 +75,7 @@ object Eagerly { // TODO support Ilk everywhere
     inline fun <CUR, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, List<R?>> =
             FetchColEagerly(elementType)
 
-    inline fun <CUR, SCH : Schema<SCH>> struct(
+    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
     ): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
             FetchStructEagerly(table, bindBy, orElse)
@@ -96,12 +97,12 @@ object Eagerly { // TODO support Ilk everywhere
 }
 
 object Lazily {
-    inline fun <CUR, R> cell(
+    @JvmOverloads inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R>> =
             FetchCellLazily(returnType, orElse)
 
-    inline fun <CUR, R : Any> cell(
+    @JvmOverloads inline fun <CUR, R : Any> cell(
             returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R?>> =
             FetchCellLazily(returnType, orElse)
@@ -116,7 +117,7 @@ object Lazily {
     ): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
             FetchColLazily(elementType)
 
-    inline fun <CUR, SCH : Schema<SCH>> struct(
+    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
     ): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
             FetchStructLazily(table, bindBy, orElse)
