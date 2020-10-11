@@ -8,6 +8,8 @@ import net.aquadc.persistence.extended.tuple.times
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
+import net.aquadc.persistence.sql.blocking.Eagerly.execute
+import net.aquadc.persistence.sql.blocking.Eagerly.executeForInsertedKey
 import net.aquadc.persistence.sql.blocking.Eagerly.executeForRowCount
 import net.aquadc.persistence.sql.blocking.Lazily
 import net.aquadc.persistence.struct.Struct
@@ -233,7 +235,7 @@ abstract class TemplatesTest {
                 1 -> {
                     val userChanges = report.of(UserTable)
                     assertEquals(
-                        Triple(0, 1, 0),
+                        Triple(1, 1, 0),
                         Triple(userChanges.inserted.size, userChanges.updated.size, userChanges.removed.size)
                     )
 
@@ -246,17 +248,31 @@ abstract class TemplatesTest {
             }
         }
         session.withTransaction {
-            insert(UserTable, User("A", "b"))
+            /*assertEquals(1L, */insert(UserTable, User("A", "b"))/*)*/
         }
 
-        val renameUser = session.mutate("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, executeForRowCount())
-        assertEquals(1, session.withTransaction { renameUser("X") })
+        val insertUser = session.mutate(
+            "INSERT INTO ${UserTable.name} (${User.run { First.name }}, ${User.run { Second.name }}) VALUES (?, ?)",
+            string, string,
+            executeForInsertedKey(UserTable.idColType)
+        )
+        val renameUser4Count = session.mutate(
+            "UPDATE ${UserTable.name} SET ${User.run { First.name }} = ? WHERE ${User.run { Second.name }} = ?",
+            string, string,
+            executeForRowCount()
+        )
+        val renameUser4Unit = session.mutate("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, execute())
+
+        session.withTransaction {
+            assertEquals(2L, insertUser("qwe", "asd"))
+            assertEquals(1, renameUser4Count("X", "b"))
+        }
 
         assertEquals(2, called)
         insUpdListener.close()
 
         session.withTransaction { // assert no calls after disposal
-            renameUser("Y")
+            renameUser4Unit("Y")
             insert(UserTable, User("A", "b"))
         }
 
@@ -266,7 +282,7 @@ abstract class TemplatesTest {
                 0 -> {
                     val userChanges = report.of(UserTable)
                     assertEquals(
-                        Triple(0, 0, 2),
+                        Triple(0, 0, 3),
                         Triple(userChanges.inserted.size, userChanges.updated.size, userChanges.removed.size)
                     )
                 }

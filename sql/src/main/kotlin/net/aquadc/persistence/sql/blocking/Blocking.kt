@@ -13,6 +13,7 @@ import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.SimpleNullable
+import net.aquadc.persistence.type.nothing
 import java.io.InputStream
 
 /**
@@ -32,7 +33,10 @@ interface Blocking<CUR> {
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
 
-    fun execute(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>): Int
+    fun <ID> execute(
+        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
+    ): Any?
 
     fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
     fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
@@ -85,6 +89,10 @@ object Eagerly { // TODO support Ilk everywhere
 
     inline fun executeForRowCount(): Exec<Blocking<*>, Int> =
         ExecuteForRowCount
+
+    inline fun <T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<Blocking<*>, T> =
+        ExecuteEagerlyFor(pkType).also { check(pkType !== nothing) }
+            as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> T
 }
 
 object Lazily {

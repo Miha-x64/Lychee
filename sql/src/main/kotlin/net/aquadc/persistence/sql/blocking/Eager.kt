@@ -8,6 +8,7 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
+import net.aquadc.persistence.type.nothing
 
 @PublishedApi internal class FetchCellEagerly<CUR, R>(
         private val rt: Ilk<R, *>,
@@ -92,21 +93,21 @@ import net.aquadc.persistence.type.Ilk
     }
 }
 
-@PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerly(false)
+@PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerlyFor(nothing)
     as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> Unit
-@PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerly(true)
+@PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerlyFor<Nothing>(null)
     as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> Int
 
-private class ExecuteEagerly(
-    private val ret: Boolean
+@PublishedApi internal class ExecuteEagerlyFor<ID>(
+    private val retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
 ) : (
     Blocking<*>,
     @ParameterName("query") String,
     @ParameterName("argumentTypes") Array<out Ilk<*, DataType.NotNull<*>>>,
     @ParameterName("arguments") Array<out Any>
-) -> Any {
-    override fun invoke(db: Blocking<*>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>): Any {
-        val affected = db.execute(query, argumentTypes, arguments)
-        return if (ret) affected else Unit
+) -> Any? {
+    override fun invoke(db: Blocking<*>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>): Any? {
+        val ret = db.execute(query, argumentTypes, arguments, if (retKeyType === nothing) null else retKeyType)
+        return if (retKeyType === nothing) Unit else ret // if (retKeyType == null) affected else insertedPrimaryKey
     }
 }

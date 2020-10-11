@@ -196,7 +196,7 @@ class JdbcSession(
         ): ResultSet {
             val query = dialect.run { StringBuilder().selectQuery(table, columns).toString() }
 
-            return statement(query)
+            return statement(query, false)
                     .also { stmt ->
                         bindQueryParams(table, id) { type, idx, value ->
                             type.bind(stmt, idx, value)
@@ -383,7 +383,7 @@ class JdbcSession(
 
         override fun select(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
-        ): ResultSet = statement(query)
+        ): ResultSet = statement(query, false)
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
                         (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, arguments[idx])
@@ -402,24 +402,34 @@ class JdbcSession(
         override fun sizeHint(cursor: ResultSet): Int = -1
         override fun next(cursor: ResultSet): Boolean = cursor.next()
 
-        override fun execute(
-            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
-        ): Int {
+        override fun <ID> execute(
+            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+            transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
+        ): Any? {
             check((transactionAndArguments[0] as RealTransaction).lowSession == this)
-            return statement(query)
+            val statement = statement(query, retKeyType != null)
+            val altered = statement
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
                         (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, transactionAndArguments[idx + 1])
                     }
                 }
                 .executeUpdate()
+            return if (retKeyType == null) altered else {
+                check(altered == 1) {
+                    "Returning generated key is possible for single inserted row but $altered rows were inserted"
+                    // xerial SQLite driver does not support selecting several inserted PKs, for example
+                }
+                statement.generatedKeys.fetchSingle(retKeyType)
+            }
         }
 
-        private fun statement(query: String): PreparedStatement {
-            return statements
+        private fun statement(query: String, retKeys: Boolean): PreparedStatement =
+            statements
                 .getOrSet(::HashMap)
-                .getOrPut(query) { connection.prepareStatement(query) }
-        }
+                .getOrPut(if (retKeys) Pair(query, null) else query) {
+                    connection.prepareStatement(query, if (retKeys) Statement.RETURN_GENERATED_KEYS else 0)
+                }
 
         override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: Ilk<T, *>): T =
                 type.get1indexed(cursor, cursor.findColumn(name.toString()))

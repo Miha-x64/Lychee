@@ -75,16 +75,18 @@ class SqliteSession(
             bindInsertionParams(table, data) { type, idx, value ->
                 (type.type as DataType<Any?>).bind(statement, idx, value)
             }
-            val id = statement.executeInsert()
-            check(id != -1L)
-            return table.idColType.type.let {
+            return statement.executeInsert().coercePk(table.idColType)
+        }
+        private fun <T> Long.coercePk(type: Ilk<T, DataType.NotNull.Simple<T>>): T {
+            check(this != -1L)
+            return type.type.let {
                 it.load(when (it.kind) {
                     DataType.NotNull.Simple.Kind.Bool -> throw IllegalArgumentException() // O RLY?! Boolean primary key?..
-                    DataType.NotNull.Simple.Kind.I32 -> id.chkIn(Int.MIN_VALUE, Int.MAX_VALUE, Int::class.java).toInt()
-                    DataType.NotNull.Simple.Kind.I64 -> id
+                    DataType.NotNull.Simple.Kind.I32 -> chkIn(Int.MIN_VALUE, Int.MAX_VALUE, Int::class.java).toInt()
+                    DataType.NotNull.Simple.Kind.I64 -> this
                     DataType.NotNull.Simple.Kind.F32 -> throw IllegalArgumentException() // O RLY?! Floating primary key?..
                     DataType.NotNull.Simple.Kind.F64 -> throw IllegalArgumentException()
-                    DataType.NotNull.Simple.Kind.Str -> id.toString()
+                    DataType.NotNull.Simple.Kind.Str -> toString()
                     DataType.NotNull.Simple.Kind.Blob -> throw IllegalArgumentException() // Possible but unclear what do you want
                     else -> throw AssertionError()
                 })
@@ -341,11 +343,12 @@ class SqliteSession(
         override fun sizeHint(cursor: Cursor): Int = cursor.count
         override fun next(cursor: Cursor): Boolean = cursor.moveToNext()
 
-        override fun execute(
-            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
-        ): Int {
+        override fun <ID> execute(
+            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+            transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
+        ): Any? {
             check((transactionAndArguments[0] as RealTransaction).lowSession == this)
-            return statements
+            val statement = statements
                 .getOrSet(::newMap)
                 .getOrPut(query) { connection.compileStatement(query) }
                 .also { stmt ->
@@ -353,7 +356,10 @@ class SqliteSession(
                         (type as DataType<Any?>).bind(stmt, idx, transactionAndArguments[idx + 1])
                     }
                 }
-                .executeUpdateDelete()
+            return (
+                if (retKeyType == null) statement.executeUpdateDelete()
+                else statement.executeInsert().coercePk(retKeyType)
+            )
         }
 
         private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: Ilk<T, *>): T =
