@@ -133,3 +133,17 @@ interface Transaction : Closeable {
     fun setSuccessful()
 
 }
+
+inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
+    NativeType(name, type)
+
+inline fun <T, DT : DataType<T>> nativeType(
+    name: CharSequence,
+    type: DT,
+    crossinline store: (T) -> Any?,
+    crossinline load: (Any?) -> T
+): Ilk<T, DT> =
+    object : NativeType<T, DT>(name, type) {
+        override fun invoke(p1: T): Any? = store(p1)
+        override fun back(p: Any?): T = load(p)
+    }

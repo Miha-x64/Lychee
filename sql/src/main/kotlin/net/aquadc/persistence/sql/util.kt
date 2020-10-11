@@ -331,14 +331,11 @@ internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
 
 @PublishedApi internal open class NativeType<T, DT : DataType<T>>(
     name: CharSequence,
-    override val type: DT
+    final override val type: DT
 ) : CustomType<T>(name), Ilk<T, DT> {
     override fun invoke(p1: T): Any? = p1
     @Suppress("UNCHECKED_CAST")
     override fun back(p: Any?): T = p as T
 
-    override val custom: CustomType<T>? get() = this
+    final override val custom: CustomType<T>? get() = this
 }
-
-inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
-    NativeType(name, type)

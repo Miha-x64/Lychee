@@ -14,6 +14,7 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
+import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.collection
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
@@ -132,10 +133,10 @@ class TemplatesPostgres : TemplatesTest() {
         stmt.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
         stmt.close()
 
-        val someJsonb = object : NativeType<Struct<SomeSchema>, SomeSchema>("jsonb NOT NULL", SomeSchema) {
-            override fun invoke(p1: Struct<SomeSchema>): Any? =
-                PGobject("jsonb", """["${p1[SomeSchema.A]}", ${p1[SomeSchema.B]}, ${p1[SomeSchema.C]}]""")
-            override fun back(p: Any?): Struct<SomeSchema> =
+        val someJsonb: Ilk<Struct<SomeSchema>, SomeSchema> = nativeType(
+            "jsonb NOT NULL", SomeSchema,
+            { p1 -> PGobject("jsonb", """["${p1[SomeSchema.A]}", ${p1[SomeSchema.B]}, ${p1[SomeSchema.C]}]""") },
+            { p ->
                 (p as PGobject).value.trim('[', ']').split(", ").let { tokens ->
                     SomeSchema {
                         it[A] = tokens[0].trim('"')
@@ -143,22 +144,22 @@ class TemplatesPostgres : TemplatesTest() {
                         it[C] = tokens[2].toLong()
                     }
                 }
-        }
-        val intMatrix = object : NativeType<
+            }
+        )
+        val intMatrix: Ilk<
             List<IntArray>,
             DataType.NotNull.Collect<
                 List<IntArray>,
                 IntArray,
-                DataType.NotNull.Collect<IntArray, Int, DataType.NotNull.Simple<Int>>>
-            >(
-            "int[][] NOT NULL", collection(intCollection)
-        ) {
-            override fun invoke(p1: List<IntArray>): Any? =
-                (session as JdbcSession).connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toTypedArray())
-            override fun back(p: Any?): List<IntArray> =
-                ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() }
-        //  never cast to Array<Array<Int>>: ^^^^^^^^^^^ empty array will be returned as Array<Int>
-        }
+                DataType.NotNull.Collect<IntArray, Int, DataType.NotNull.Simple<Int>>
+                >
+            >
+            = nativeType(
+            "int[][] NOT NULL", collection(intCollection),
+            { p1 -> (session as JdbcSession).connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toTypedArray()) },
+            { p -> ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() } }
+            // never cast to Array<Array<Int>>: ^^^^^^^^^^^ empty array will be returned as Array<Int>
+        )
         val Yoozerz = tableOf(Yoozer, "yoozerz3", Yoozer.Id) { arrayOf(
             nativeType(Id, "uuid NOT NULL DEFAULT uuid_generate_v4()"),
             type(Name, "varchar(128) NOT NULL"),
