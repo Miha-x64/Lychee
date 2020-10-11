@@ -49,44 +49,35 @@ val session = SqliteSession(object : SQLiteOpenHelper(context, "app.db", null, 1
 }.writableDatabase)
 ```
 
-Inserting, updating, querying data:
+Inserting:
 ```kt
 val playerRecord = session.withTransaction {
     insert(PlayerTable, Player { ... })
 }
-
-session.withTransaction {
-    playerRecord[Player.Score] += 100
-}
 ```
 
-There are two APIs for querying data:
-
-## DAO-based
-observable active records intended for use in client-side applications with SQLite database.
-This implies:
-* Many small queries (SQLite works well with it)
-* Observability (which may be inefficient on the server-side)
-* `ReadWriteLock` for transactions
-
-```kt
-session[PlayerTable]
-    .select(Player.Score greaterThan 10, Player.Name.asc)
-    .addChangeListener { old, new -> ... }
-```
-
-## SQL-based templates
+## SQL templates
 ```kt
 val namesToEmails = session.query(
-        "SELECT u.name, c.email FROM users u " +
-        "INNER JOIN contacts c ON u._id = c.user_id " +
-        "LIMIT ?, ?", /*offset*/ i32, /*rowCount*/ u32,
-        /* fetch as */ structs(string * string, BindBy.Position)
+    "SELECT u.name, c.email FROM users u " +
+    "INNER JOIN contacts c ON u._id = c.user_id " +
+    "LIMIT ?, ?", /*offset*/ i32, /*rowCount*/ u32,
+    /* fetch as */ structs(string * string, BindBy.Position)
 )
 namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
     it.forEach { (name, email) ->
         
     }
+}
+
+val update = session.mutate(
+    "UPDATE users SET name = ? WHERE email = ?",
+    string, string,
+    executeForRowCount()
+)
+
+session.withTransaction {
+    assertEquals(1, update("java@sun.com", "Java™"))
 }
 ```
 
@@ -99,3 +90,4 @@ namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
 * [Anko](https://github.com/Kotlin/anko/wiki/Anko-SQLite) for the other way of thinking
 * [@y2k](https://github.com/y2k) for help in API design
 * [Andrey Antipov](https://github.com/gorttar) for type inference hints
+* [Denis Podlesnykh](https://github.com/denniselite) for help with triggers
