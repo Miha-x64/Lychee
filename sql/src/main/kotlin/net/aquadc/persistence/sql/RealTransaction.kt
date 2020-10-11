@@ -6,7 +6,7 @@ import net.aquadc.persistence.struct.Struct
 
 
 internal class RealTransaction(
-    private val lowSession: LowLevelSession<*, *>
+    @JvmField internal val lowSession: LowLevelSession<*, *>
 ) : Transaction {
 
     private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended

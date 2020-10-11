@@ -404,14 +404,16 @@ class JdbcSession(
 
         override fun execute(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, transactionAndArguments: Array<out Any>
-        ): Int =
-            statement(query)
+        ): Int {
+            check((transactionAndArguments[0] as RealTransaction).lowSession == this)
+            return statement(query)
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
                         (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, transactionAndArguments[idx + 1])
                     }
                 }
                 .executeUpdate()
+        }
 
         private fun statement(query: String): PreparedStatement {
             return statements
