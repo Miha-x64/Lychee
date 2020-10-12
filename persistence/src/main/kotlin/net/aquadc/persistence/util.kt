@@ -7,10 +7,8 @@ import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructBuilder
-import net.aquadc.persistence.struct.emptyFieldSet
 import net.aquadc.persistence.struct.forEachIndexed
 import net.aquadc.persistence.struct.indexOf
-import net.aquadc.persistence.struct.plus
 import net.aquadc.persistence.struct.single
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.struct.toString
@@ -355,4 +353,10 @@ fun hasFraction(nextNumber: String): Boolean {
     val len = length
     if (that.length != len) return false
     return regionMatches(0, that, 0, len, ignoreCase)
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) inline fun <T> castNull(succeed: Boolean, whichAndWhere: () -> String): T {
+    if (!succeed) throw ClassCastException("null cannot be cast to type " + whichAndWhere())
+    @Suppress("UNCHECKED_CAST")
+    return null as T
 }

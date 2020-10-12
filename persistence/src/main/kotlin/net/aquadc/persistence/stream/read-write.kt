@@ -2,6 +2,7 @@
 package net.aquadc.persistence.stream
 
 import net.aquadc.persistence.NullSchema
+import net.aquadc.persistence.castNull
 import net.aquadc.persistence.each
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.readPartial
@@ -153,7 +154,7 @@ private fun <T, D> D.simple(nullable: Boolean, type: DataType.NotNull.Simple<T>,
         else -> Unit // continue
     }
     if (value != Unit) {
-        return if (value === null) check(nullable).let { null as T } else type.load(value)
+        return if (value === null) castNull(nullable, type::toString) else type.load(value)
     }
 
     // read separate nullability info
@@ -174,7 +175,7 @@ private fun <T, D> D.simple(nullable: Boolean, type: DataType.NotNull.Simple<T>,
 
 private fun <T, D, E> D.collection(nullable: Boolean, type: DataType.NotNull.Collect<T, E, out DataType<E>>, input: BetterDataInput<D>): T {
     return when (val count = input.readInt(this)) {
-        -1 -> check(nullable).let { null as T }
+        -1 -> castNull(nullable, type::toString)
         0 -> type.load(emptyList<Nothing>())
         else -> type.load(type.elementType.let { elementType ->
             List(count) { /*recur*/ input.read(this, elementType) } // TODO: when [type] is primitive, use specialized collections
@@ -186,8 +187,7 @@ private val fieldValues = ThreadLocal<ArrayList<Any?>>()
 private fun <T, D, SCH : Schema<SCH>> D.partial(nullable: Boolean, type: DataType.NotNull.Partial<T, SCH>, input: BetterDataInput<D>): T =
         input.readByte(this).toInt().let { size ->
             if (size == -1) {
-                check(nullable)
-                null as T
+                castNull(nullable, type::toString)
             } else {
                 var fieldsLeft = size
                 readPartial(

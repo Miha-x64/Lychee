@@ -13,6 +13,7 @@ import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
+import net.aquadc.persistence.castNull
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.ExperimentalSql
@@ -282,7 +283,7 @@ class SqliteSession(
             val i = 1 + index
             flattened { isNullable, simple ->
                 if (value == null) {
-                    check(isNullable)
+                    castNull<T>(isNullable, simple::toString)
                     statement.bindNull(i)
                 } else {
                     val v = simple.store(value)
@@ -302,7 +303,7 @@ class SqliteSession(
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         private fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = flattened { isNullable, simple ->
             if (cursor.isNull(index))
-                check(isNullable).let { null as T }
+                castNull(isNullable) { "$this at [$index]" }
             else simple.load(when (simple.kind) {
                 DataType.NotNull.Simple.Kind.Bool -> cursor.getInt(index) == 1
                 DataType.NotNull.Simple.Kind.I32 -> cursor.getInt(index)

@@ -4,6 +4,7 @@ import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
+import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.newMap
@@ -306,7 +307,7 @@ class JdbcSession(
             (value.fatAsList() as List<T?>).let { value ->
                 Array<Any?>(value.size) {
                     val el = value[it]
-                    if (el == null) check(nullable).let { null }
+                    if (el == null) castNull(nullable, elT::toString)
                     else elT.store(el)
                 }
             }
@@ -338,19 +339,19 @@ class JdbcSession(
                             else -> throw AssertionError()
                         }
                         // must check, will get zeroes otherwise
-                        if (resultSet.wasNull()) check(nullable).let { null as T }
+                        if (resultSet.wasNull()) castNull(nullable) { "$type at [$i+1]" }
                         else type.load(v)
                     }
                     is DataType.NotNull.Collect<T, *, *> -> {
                         foldArrayType(dialect.hasArraySupport, type.elementType,
                             { nullable, elT ->
                                 val arr = resultSet.getArray(i)
-                                if (resultSet.wasNull()) { check(nullable); null as T }
+                                if (resultSet.wasNull()) castNull(nullable) { "$type at [$i+1]" }
                                 else fromArray(type, arr.array as Array<out Any?>, nullable, elT)
                             },
                             {
                                 val obj = resultSet.getObject(i)
-                                if (resultSet.wasNull()) { check(nullable); null as T }
+                                if (resultSet.wasNull()) castNull(nullable) { "$type at [$i+1]" }
                                 else serialized(type).load(obj)
                             }
                         )
@@ -363,7 +364,7 @@ class JdbcSession(
         }
         private fun <T> fromArray(type: DataType.NotNull.Collect<T, *, *>, value: AnyCollection, nullable: Boolean, elT: DataType.NotNull.Simple<*>): T =
             type.load(value.fatMapTo(ArrayList<Any?>()) { it: Any? ->
-                if (it == null) { check(nullable); null } else elT.load(it)
+                if (it == null) castNull(nullable, elT::toString) else elT.load(it)
             })
 
 
