@@ -124,9 +124,9 @@ abstract class TemplatesTest {
     @Test fun <CUR> join() {
         val session = session as Session<Blocking<CUR>>
         val johnPk = session.withTransaction {
-            val john = insert(UserTable, User("John", "john@doe.com"))
-            insert(ContactTable, Contact("@johnDoe", john.primaryKey))
-            john.primaryKey
+            val johnPk = insert(UserTable, User("John", "john@doe.com"))
+            insert(ContactTable, Contact("@johnDoe", johnPk))
+            johnPk
         }
 
         val userAndContact = Tuple("u", User, "c", Contact)
@@ -276,7 +276,8 @@ abstract class TemplatesTest {
             }
         }
         session.withTransaction {
-            session[UserTable].selectAll().value.forEach(::delete)
+            session.query("SELECT ${UserTable.idColName} FROM ${UserTable.name}", Eagerly.col<CUR, Long>(i64))()
+                .forEach { id -> delete(UserTable, id) }
         }
         assertEquals(1, called)
         delListener.close()

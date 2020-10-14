@@ -74,8 +74,10 @@ inline fun <P : MutableProperty<T?>, T : Any> P.clearEachAnd(crossinline action:
 @Deprecated(
     "While returned property cannot be cast to MutableProperty, " +
         "it still can be cast to other types and mutated/broken/etc. " +
-        "Defending from type casting, reflection, raw memory access etc is a non-goal.")
-inline fun <T> Property<T>.readOnlyView(): Property<T> = map(identity())
+        "Defending from type casting, reflection, raw memory access etc is a non-goal.",
+    level = DeprecationLevel.ERROR
+)
+inline fun <T> Property<T>.readOnlyView(): Property<T> = throw AssertionError()
 
 /**
  * Returns a new [MutableProperty] with value equal to `forward(original.value)`.

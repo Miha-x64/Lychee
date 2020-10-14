@@ -3,6 +3,7 @@ package net.aquadc.properties
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.Objectz
+import net.aquadc.properties.function.identity
 import net.aquadc.properties.testing.assertGarbage
 import org.junit.Test
 import java.lang.ref.WeakReference
@@ -24,10 +25,10 @@ class LeakTest {
             leak(concurrentPropertyOf("")) { concurrentPropertyOf("").apply { bindTo(it) } }
 
     @Test fun leakUnsMap() =
-            leak(propertyOf(""), Property<Any>::readOnlyView)
+            leak(propertyOf("")) { it.map(identity()) }
 
     @Test fun leakConcMap() =
-            leak(concurrentPropertyOf(""), Property<Any>::readOnlyView)
+            leak(concurrentPropertyOf("")) { it.map(identity()) }
 
     @Test fun leakUnsBiMap() =
             leak(propertyOf("")) { it.mapWith(propertyOf("")) { a, b -> a + b } }

@@ -3,6 +3,7 @@ package net.aquadc.properties
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.UnconfinedExecutor
+import net.aquadc.properties.function.identity
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.concurrent.Executors
@@ -192,7 +193,7 @@ class SubscriptionTest {
         val called = concurrentPropertyOf(false)
         val pool = Executors.newSingleThreadExecutor()
         val prop = propertyOf("", concurrent)
-        val mapped = prop.readOnlyView()
+        val mapped = prop.map(identity())
         val listener = { _: String, _: String ->
             called.value = true
         }

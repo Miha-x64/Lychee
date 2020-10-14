@@ -4,12 +4,9 @@ import androidx.annotation.RestrictTo
 import net.aquadc.collections.InlineEnumMap
 import net.aquadc.collections.get
 import net.aquadc.persistence.sql.IdBound
-import net.aquadc.persistence.sql.Order
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
-import net.aquadc.persistence.sql.WhereCondition
-import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
 import net.aquadc.persistence.struct.Schema
@@ -31,54 +28,11 @@ import java.io.DataOutputStream
                 .append(");")
     }
 
-    override fun <SCH : Schema<SCH>> selectQuery(
-            table: Table<SCH, *>, columns: Array<out CharSequence>,
-            condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
-    ): String =
-            selectQueryInternal(table, columns, condition, order)
-
-    override fun <SCH : Schema<SCH>> selectCountQuery(
-            table: Table<SCH, *>, condition: WhereCondition<SCH>
-    ): String =
-            selectQueryInternal(table, null, condition, noOrder())
-
-    private fun <SCH : Schema<SCH>> selectQueryInternal(
-            table: Table<SCH, *>, columns: Array<out CharSequence>?,
-            condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
-    ): String {
-        val sb = StringBuilder("SELECT ")
-                .let { if (columns == null) it.append("COUNT(*)") else it.appendNames(columns) }
-                .append(" FROM ").appendName(table.name)
-                .append(" WHERE ")
-
-        val afterWhere = sb.length
-        condition.appendSqlTo(table, this@BaseDialect, sb)
-        sb.length.let { if (it == afterWhere) sb.setLength(it - 7) } // erase " WHERE "
-
-        if (order.isNotEmpty())
-            sb.append(" ORDER BY ").appendOrderClause(table.schema, order)
-
-        return sb.toString()
-    }
-
-    override fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(
-            schema: SCH, order: Array<out Order<SCH>>
-    ): StringBuilder = apply {
-        if (order.isEmpty()) throw IllegalArgumentException()
-        order.forEach { appendName(it.col.name(schema)).append(if (it.desc) " DESC, " else " ASC, ") }
-        setLength(length - 2)
-    }
-
-    override fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *>, cols: Array<out CharSequence>): String =
-            buildString {
-                check(cols.isNotEmpty())
-
-                append("UPDATE ").appendName(table.name).append(" SET ")
-                cols.forEach { col -> appendName(col).append(" = ?, ") }
-                setLength(length - 2)
-
-                append(" WHERE ").appendName(table.idColName).append(" = ?;")
-            }
+    override fun <SCH : Schema<SCH>> StringBuilder.selectQuery(
+        table: Table<SCH, *>, columns: Array<out CharSequence>
+    ): StringBuilder =
+        append("SELECT ").appendNames(columns)
+            .append(" FROM ").appendName(table.name)
 
     override fun deleteRecordQuery(table: Table<*, *>): String =
             StringBuilder("DELETE FROM ").appendName(table.name)

@@ -3,6 +3,7 @@ package net.aquadc.properties
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.function.Objectz
+import net.aquadc.properties.function.identity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.AssumptionViolatedException
@@ -21,7 +22,7 @@ class ContenededSubscription {
             contend(concurrentPropertyOf("")) { it }
 
     @Test fun contendConcMap() =
-            contend(concurrentPropertyOf(""), Property<String>::readOnlyView)
+            contend(concurrentPropertyOf("")) { it.map(identity()) }
 
     @Test fun contendConcBiMap() =
             contend(concurrentPropertyOf("")) { it.mapWith(concurrentPropertyOf("")) { a, b -> a + b } }

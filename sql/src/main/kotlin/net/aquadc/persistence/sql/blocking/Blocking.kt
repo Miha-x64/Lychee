@@ -53,7 +53,7 @@ interface Blocking<CUR> {
 internal typealias Exec<SRC, R> =
     (SRC, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>) -> R
 
-object Eagerly {
+object Eagerly { // TODO support Ilk everywhere
     inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R> =

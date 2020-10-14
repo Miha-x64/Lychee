@@ -9,7 +9,7 @@ import org.junit.Test
 class SchemaPropsTest {
 
     @Test fun fields() =
-            assertArrayEquals(arrayOf(SomeSchema.A, SomeSchema.B, SomeSchema.C, SomeSchema.D), SomeSchema.fields)
+        assertEquals(SomeSchema.A + SomeSchema.B + SomeSchema.C + SomeSchema.D, SomeSchema.allFieldSet)
 
     @Test fun mutableFields() =
             assertArrayEquals(
@@ -41,7 +41,7 @@ class SchemaPropsTest {
         assertEquals("a1", InitTroll.run { Second.name })
         assertSame(string, InitTroll.run { Second.type })
         assertEquals("qwer", InitTroll.defaultOrElse(InitTroll.Second) { "error" })
-        assertArrayEquals(arrayOf(InitTroll.First, InitTroll.Second), InitTroll.fields)
+        assertEquals(InitTroll.First + InitTroll.Second, InitTroll.allFieldSet)
     }
 
 }

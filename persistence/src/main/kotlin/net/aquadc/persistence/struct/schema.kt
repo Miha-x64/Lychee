@@ -134,14 +134,13 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
     /**
      * A list of fields of this struct.
      */
-    @Deprecated("use allFieldSet and fieldAt instead")
+    @Deprecated("use allFieldSet and fieldAt instead", level = DeprecationLevel.ERROR)
     val fields: Array<out FieldDef<SELF, *, *>>
-        get() = (fieldInstances as? Array<FieldDef<SELF, *, *>>)
-            ?: freeze().let { fieldInstances as Array<FieldDef<SELF, *, *>> }
+        get() = throw AssertionError()
 
     /** A set of all fields of this [Schema]. */
     val allFieldSet: FieldSet<SELF, FieldDef<SELF, *, *>>
-        get() = FieldSet(fields.size.let { size ->
+        get() = FieldSet(fields().size.let { size ->
             // (1L shl size) - 1   :  1L shl 64  will overflow to 1
             // -1L ushr (64 - size): -1L ushr 64 will remain -1L
             // the last one is okay, assuming that zero-field structs are prohibited
@@ -150,11 +149,11 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
     /** A set of all [MutableField]s of this [Schema]. */
     val mutableFieldSet: FieldSet<SELF, MutableField<SELF, *, *>>
-        get() = FieldSet(fields.let { mutableFieldBits })
+        get() = FieldSet(fields().let { mutableFieldBits })
 
     /** A set of all [ImmutableField]s of this [Schema]. */
     val immutableFieldSet: FieldSet<SELF, ImmutableField<SELF, *, *>>
-        get() = FieldSet(fields.let { (-1L ushr (64 - it.size)) and mutableFieldBits.inv() })
+        get() = FieldSet(fields().let { (-1L ushr (64 - it.size)) and mutableFieldBits.inv() })
 
     inline fun <R> fieldByName(
             name: CharSequence,
@@ -173,6 +172,8 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
         return -1
     }
 
+    private fun fields() = ((fieldInstances as? Array<FieldDef<SELF, *, *>>)
+        ?: freeze().let { fieldInstances as Array<FieldDef<SELF, *, *>> })
     @Synchronized private fun freeze() {
         if (fieldInternals is Array<*>) return // initialized concurrently
 

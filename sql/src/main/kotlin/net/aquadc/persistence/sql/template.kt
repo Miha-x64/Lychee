@@ -11,7 +11,7 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import org.intellij.lang.annotations.Language
 
-@Deprecated("It's not a “vararg function”, it's a “N-ary function”")
+@Deprecated("It's not a “vararg function”, it's a “N-ary function”", level = DeprecationLevel.ERROR)
 typealias VarFunc<T, R> = FuncN<T, R>
 
 /**

@@ -6,6 +6,7 @@ import android.app.Dialog
 import android.app.DialogFragment
 import android.app.Fragment
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.os.Bundle
@@ -18,9 +19,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import net.aquadc.persistence.sql.Record
 import net.aquadc.persistence.sql.blocking.SqliteSession
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.SetWhenClicked
 import net.aquadc.properties.android.bindings.widget.bindTextTo
@@ -44,12 +45,12 @@ import splitties.views.textAppearance
 
 class SqliteActivity : Activity() {
 
-    internal lateinit var vm: SqlViewModel
+    internal lateinit var vm: SqlViewModel<Cursor>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        vm = (lastNonConfigurationInstance as SqlViewModel?) ?:
+        vm = (lastNonConfigurationInstance as SqlViewModel<Cursor>?) ?:
                 SqlViewModel(SqliteSession(Helper(applicationContext).writableDatabase))
 
         if (savedInstanceState == null) {
@@ -65,11 +66,11 @@ class SqliteActivity : Activity() {
         vm.selectedProp.addChangeListener(selectedChanged)
     }
 
-    private val lastInsertedChanged: ChangeListener<Record<Human, Long>?> = { _, inserted ->
+    private val lastInsertedChanged: ChangeListener<Struct<Human>?> = { _, inserted ->
         if (inserted != null) vm.selectedProp.value = inserted
     }
 
-    private val selectedChanged: ChangeListener<Record<Human, Long>?> = { _, _ ->
+    private val selectedChanged: ChangeListener<Struct<Human>?> = { _, _ ->
         EditDialogFragment().show(fragmentManager, null)
     }
 
@@ -118,7 +119,7 @@ class SqliteActivity : Activity() {
 
     class ListFragment : Fragment() {
 
-        val vm: SqlViewModel
+        val vm: SqlViewModel<Cursor>
             get() = (activity as SqliteActivity).vm
 
         override fun onCreate(savedInstanceState: Bundle?) {
@@ -137,7 +138,7 @@ class SqliteActivity : Activity() {
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle?): View {
             return RecyclerView(container.context).apply {
                 layoutManager = LinearLayoutManager(container.context)
-                adapter = object : RecyclerView.Adapter<SimpleHolder>(), ChangeListener<List<Record<Human, Long>>> {
+                adapter = object : RecyclerView.Adapter<SimpleHolder>(), ChangeListener<List<Struct<Human>>> {
 
                     val list = vm.humanListProp
 
@@ -155,7 +156,7 @@ class SqliteActivity : Activity() {
 
                     override fun onBindViewHolder(holder: SimpleHolder, position: Int) {
                         val human = list.value[position]
-                        holder.textProp.bindTo(vm.nameSurnameProp(human))
+//                        holder.textProp.bindTo(vm.nameSurnameProp(human))
                     }
 
                     override fun getItemCount(): Int =
@@ -169,7 +170,7 @@ class SqliteActivity : Activity() {
                         if (--recyclers == 0) list.removeChangeListener(this)
                     }
 
-                    override fun invoke(old: List<Record<Human, Long>>, new: List<Record<Human, Long>>) {
+                    override fun invoke(old: List<Struct<Human>>, new: List<Struct<Human>>) {
                         notifyDataSetChanged()
                     }
 
@@ -181,7 +182,7 @@ class SqliteActivity : Activity() {
 
     class EditDialogFragment : DialogFragment() {
 
-        val vm: SqlViewModel
+        val vm: SqlViewModel<Cursor>
             get() = (activity as SqliteActivity).vm
 
         override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = with(activity) {
@@ -189,16 +190,16 @@ class SqliteActivity : Activity() {
                     .setTitle("Edit")
                     .setView(
                             frameLayout {
-                                addView(editText {
+                                /*addView(editText {
                                     bindTextTo(vm.nameProp)
                                     bindToText(vm.editableNameProp)
                                 }, lParams(matchParent, wrapContent) {
                                     leftMargin = dip(8)
                                     rightMargin = dip(8)
-                                })
+                                })*/
                             })
                     .setPositiveButton("Ok", null)
-                    .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
+//                    .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
                     .create()
         }
 

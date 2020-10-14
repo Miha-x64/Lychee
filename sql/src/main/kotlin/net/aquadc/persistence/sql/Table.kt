@@ -262,11 +262,11 @@ private constructor(
     val idColTypeName: SqlTypeName //= DataType.Simple<ID> | CharSequence
         get() = columns.let { _idColTypeName } // not ?: 'cause it can be assigned but require override
 
-    val pkColumn: NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.NotNull.Simple<ID>>
+    val pkColumn: NamedLens<SCH, Nothing, Nothing, ID, out DataType.NotNull.Simple<ID>>
         get() = pkField ?: _columns.let {
             if (it.isInitialized())
-                it.value[0] as NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.NotNull.Simple<ID>>
-            else PkLens(this, _idColType.type as DataType.NotNull.Simple<ID>) as NamedLens<SCH, Record<SCH, ID>, Record<SCH, ID>, ID, out DataType.NotNull.Simple<ID>>
+                it.value[0] as NamedLens<SCH, Nothing, Nothing, ID, out DataType.NotNull.Simple<ID>>
+            else PkLens(this, _idColType.type as DataType.NotNull.Simple<ID>) as NamedLens<SCH, Nothing, Nothing, ID, out DataType.NotNull.Simple<ID>>
         }
 
     internal val recipe: Array<out StructStart?>
@@ -293,10 +293,6 @@ private constructor(
 
     private var _columnsByName: Map<String, StoredNamedLens<SCH, *, *>>? = null
 
-    @Deprecated("names are now `CharSequence`s with undefined hashCode()/equals()", level = DeprecationLevel.ERROR)
-    val columnsByName: Nothing
-        get() = throw AssertionError()
-
 
     private var _columnIndices: Map<StoredNamedLens<SCH, *, *>, Int>? = null
 
@@ -308,7 +304,7 @@ private constructor(
                     }
                 }.also { _columnIndices = it }
 
-    internal fun delegateFor(lens: Lens<SCH, Record<SCH, ID>, Record<SCH, ID>, *, *>): SqlPropertyDelegate<SCH, ID> {
+    internal fun delegateFor(lens: Lens<SCH, Nothing, Nothing, *, *>): SqlPropertyDelegate<SCH, ID> {
         val delegates = _delegates ?: _columns.value.let { _ /* unwrap lazy */ -> _delegates!! }
         return delegates[lens] ?: simpleDelegate as SqlPropertyDelegate<SCH, ID>
     }
@@ -321,15 +317,6 @@ private constructor(
 
     private fun <T> colIndexByLens(lens: StoredLens<SCH, T, *>) =
         (columnIndices as Map<StoredLens<SCH, *, *>, Int>)[lens]
-
-    @JvmSynthetic internal fun commitValues(record: Record<SCH, ID>, mutFieldValues: Array<Any?>) {
-        schema.forEachIndexed(schema.mutableFieldSet) { i, field ->
-            val value = mutFieldValues[i]
-            if (value !== Unset) {
-                (record.values[field.ordinal.toInt()] as ManagedProperty<SCH, *, Any?, ID>).commit(value)
-            }
-        }
-    }
 
     override fun equals(other: Any?): Boolean {
         if (other !is Table<*, *> || other.name != name) return false

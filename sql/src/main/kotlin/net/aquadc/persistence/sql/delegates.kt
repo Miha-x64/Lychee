@@ -4,7 +4,6 @@ import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredNamedLens
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 
@@ -23,11 +22,6 @@ internal interface SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound> {
             lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T
-
-    fun <T> update(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
-            previous: T, update: T
-    )
 }
 
 internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH, ID> {
@@ -43,13 +37,6 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
             bindBy: BindBy
     ): T =
             lowSession.cell<SCH, CUR, T>(cursor, table, field, bindBy)
-
-    override fun <T> update(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
-            previous: T, update: T
-    ): Unit = table.schema.let { sch ->
-        lowSession.update(table, id, field.name(sch), table.typeOf(field), update)
-    }
 }
 
 internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
@@ -74,13 +61,4 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
         inflate(recipe, values, 0, 0, 0)
         return values[0] as T
     }
-
-    override fun <T> update(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID,
-            previous: T, update: T
-    ): Unit = lowSession.update(
-            table, id, columnNames, columnTypes,
-            // TODO don't allocate this array, bind args directly instead
-            arrayOfNulls<Any>(columnNames.size).also { flatten(recipe, it, update, 0, 0) }
-    )
 }

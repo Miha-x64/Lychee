@@ -269,11 +269,11 @@ Telescope<TS : Schema<TS>, TR : PartialStruct<TS>, S : Struct<TS>, US : Schema<U
 internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
     private val table: Table<S, ID>,
     private val type: DataType.NotNull.Simple<ID>
-) : BaseLens<S, Record<S, ID>, Record<S, ID>, ID, DataType.NotNull.Simple<ID>>(
+) : BaseLens<S, Nothing, Nothing, ID, DataType.NotNull.Simple<ID>>(
     table.idColName
 ) {
 
-    override fun hasValue(struct: Record<S, ID>): Boolean =
+    override fun hasValue(struct: Nothing): Boolean =
             true
 
     override fun get(index: Int): NamedLens<*, *, *, *, *> =
@@ -291,8 +291,8 @@ internal class PkLens<S : Schema<S>, ID : IdBound> constructor(
     override fun toString(): String =
         "${table.name}.${table.schema.run { name }} (PRIMARY KEY)"
 
-    override fun ofPartial(@Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") record: Record<S, ID>): ID =
-            record.primaryKey
+    override fun ofPartial(@Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") record: Nothing): ID =
+        record
 
 }
 

@@ -1,34 +1,70 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.sql.*
+import net.aquadc.persistence.sql.blocking.Blocking
+import net.aquadc.persistence.sql.blocking.Eagerly
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.i64
+import net.aquadc.persistence.type.string
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
-import net.aquadc.properties.persistence.propertyGetterOf
+import java.io.Closeable
 
 
-class SqlViewModel(
-        private val session: Session<*>
-) {
+class SqlViewModel<CUR>(
+    private val session: Session<Blocking<CUR>>
+): Closeable {
 
-    private val humanDao get() = session[Human.Tbl]
+    private val count: () -> Int =
+        session.query("SELECT COUNT(*) FROM ${Human.Tbl.name}", Eagerly.cell<CUR, Int>(i32))
+    private val fetch: () -> List<Struct<Human>> =
+        session.query("SELECT name, surname FROM ${Human.Tbl.name}", Eagerly.structs<CUR, Human>(Human.Tbl, BindBy.Name))
+    private val _find: (Long) -> Struct<Human> =
+        session.query("SELECT name, surname FROM ${Human.Tbl.name} WHERE _id = ?", i64, Eagerly.struct<CUR, Human>(Human.Tbl, BindBy.Name))
+    private val find: (Long) -> Struct<Human>? =
+        { id -> try { _find(id) } catch (e: NoSuchElementException) { null } } // FIXME
+
+    private val updateName: Transaction.(String, Long) -> Unit =
+        session.mutate("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, Eagerly.execute())
+
+    private val carsWithConditionersByOwner: (Long) -> List<Struct<Car>> =
+        session.query(
+            "SELECT * FROM ${Car.Tbl.name} WHERE ${Car.run { OwnerId.name }} = ? AND ${Car.run { ConditionerModel.name }} IS NOT NULL",
+            i64,
+            Eagerly.structs<CUR, Car>(Car.Tbl, BindBy.Name))
+
+    val titleProp: Property<String>
+    val humanListProp: Property<List<Struct<Human>>>
+    val selectedProp = propertyOf<Struct<Human>?>(null)
+    val disposeMePlz: Closeable
 
     init {
         fillIfEmpty()
+        val countProp = propertyOf(count())
+        titleProp = countProp.map { "Sample SQLite application ($it records)" }
+        humanListProp = propertyOf(fetch())
+        disposeMePlz = session.observe(
+            Human.Tbl to TriggerEvent.INSERT, Human.Tbl to TriggerEvent.UPDATE, Human.Tbl to TriggerEvent.DELETE) { report ->
+            val chg = report.of(Human.Tbl)
+            // todo val (ins, upd, del) = report.of(…)
+            countProp.value += chg.inserted.size - chg.removed.size
+            humanListProp.value =
+                /*if (chg.inserted.isEmpty() && chg.updated.isEmpty())
+                    humanListProp.value.filter { it.primaryKey !in chg.removed }
+                else*/
+                    fetch()
+        }
     }
 
-    val titleProp = humanDao.count().map { "Sample SQLite application ($it records)" }
-    val humanListProp = humanDao.selectAll(Human.Name.asc, Human.Surname.asc)
-    val selectedProp = propertyOf<Record<Human, Long>?>(null)
     private val namePatch = propertyOf(mapOf<@ParameterName("humanId") Long, String>()).also {
         it.debounced(1000L).onEach { new ->
             if (new.isNotEmpty() && it.casValue(new, emptyMap())) {
                 session.withTransaction {
                     new.forEach { (humanId, newName) ->
-                        humanDao.find(humanId) // if it was just deleted, ignore
+                        find(humanId) // if it was just deleted, ignore
                             ?.takeIf { it[Human.Name] != newName }
-                            ?.let { human ->
-                                human[Human.Name] = newName
-                            }
+                            ?.let { updateName(newName, humanId) }
                     }
                 }
             }
@@ -36,38 +72,33 @@ class SqlViewModel(
     }
     val actionsEnabledProp = selectedProp.map(Objectz.IsNotNull)
 
-    val airConditionersTextProp = selectedProp
-            .flatMapNotNullOrDefault(emptyList(), { session[Car.Tbl].select(Car.OwnerId eq it.primaryKey) })
-            .flatMap { cars: List<Record<Car, Long>> ->
-                cars
-                        .map(propertyGetterOf(Car.ConditionerModel))
-                        .mapValueList(List<String?>::filterNotNull)
-            }.map { conditioners ->
-                if (conditioners.isEmpty()) "none"
-                else conditioners.joinToString(prefix = "Air conditioner(s) in car(s): [", postfix = "]")
-            }
+    /*val airConditionersTextProp = selectedProp
+            .map {
+                val cars = if (it == null) emptyList() else carsWithConditionersByOwner(it.primaryKey)
+                if (cars.isEmpty()) "none"
+                else
+                    cars.map { it[Car.ConditionerModel]!! }
+                        .joinToString(prefix = "Air conditioner(s) in car(s): [", postfix = "]")
+            }*/
 
-    val nameProp = selectedProp.flatMapNotNullOrDefault("", propertyGetterOf(Human.Name))
-    val editableNameProp = propertyOf("")
+    val nameProp = selectedProp.map { it?.get(Human.Name) } // TODO mapNotNull?
+    /*val editableNameProp = propertyOf("")
         .onEach { newText ->
             selectedProp.value
-                ?.takeIf { it.isManaged }
-                ?.let {
-                    namePatch += it.primaryKey to newText
-                }
-        }
+                ?.let { namePatch += it.primaryKey to newText }
+        }*/
 
-    val lastInserted = propertyOf<Record<Human, Long>?>(null)
+    val lastInserted = propertyOf<Struct<Human>?>(null)
 
     val createClicked = propertyOf(false)
         .clearEachAndTransact {
-            lastInserted.value = insert(Human.Tbl, Human("<new>", ""))
+            lastInserted.value = find(insert(Human.Tbl, Human("<new>", "")))!!
         }
 
-    val deleteClicked = propertyOf(false)
+    /*val deleteClicked = propertyOf(false)
         .clearEachAndTransact {
-            delete(selectedProp.value!!)
-        }
+            delete(Human.Tbl, selectedProp.value!!.primaryKey)
+        }*/
 
     val truncateClicked = propertyOf(false)
         .clearEachAndTransact {
@@ -78,7 +109,7 @@ class SqlViewModel(
         clearEachAnd { session.withTransaction { func() } }
 
     private fun fillIfEmpty() {
-        if (humanDao.count().value == 0L) {
+        if (count() == 0) {
             session.withTransaction {
                 insert(Human.Tbl, Human("Stephen", "Hawking"))
                 val relativist = insert(Human.Tbl, Human("Albert", "Einstein"))
@@ -86,15 +117,19 @@ class SqlViewModel(
                 val electrician = insert(Human.Tbl, Human("Nikola", "Tesla"))
 
                 // don't know anything about their friendship, just a sample
-                insert(Friendship.Tbl, Friendship(relativist.primaryKey, electrician.primaryKey))
+                insert(Friendship.Tbl, Friendship(relativist, electrician))
 
-                val car = insert(Car.Tbl, Car(electrician.primaryKey))
-                car[Car.ConditionerModel] = "the coolest air cooler"
+                val car = insert(Car.Tbl, Car(electrician, "the coolest air cooler"))
             }
         }
     }
 
-    fun nameSurnameProp(human: Record<Human, Long>) =
-            (human prop Human.Name).map { n -> "$n ${human[Human.Surname]}" }
+    /*fun nameSurnameProp(human: Struct<Human>): Property<String> =
+        humanListProp.map {
+            it.first { it.primaryKey == human.primaryKey }.let { it[Human.Name] + " " + it[Human.Surname] }
+        }*/
+
+    override fun close() =
+        disposeMePlz.close()
 
 }

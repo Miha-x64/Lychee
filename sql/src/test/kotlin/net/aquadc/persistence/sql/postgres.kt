@@ -11,6 +11,7 @@ import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.postgres.PostgresDialect
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.collection
@@ -26,6 +27,7 @@ import org.junit.Test
 import org.postgresql.jdbc.PgConnection
 import org.postgresql.util.PGobject
 import org.postgresql.util.PSQLException
+import java.sql.ResultSet
 import java.util.UUID
 
 
@@ -47,14 +49,6 @@ class SqlPropPostgres : SqlPropTest() {
     @After fun close() { disconnect { session } }
 }
 
-class EmbedRelationsPostgres : EmbedRelationsTest() {
-    @Before fun init() { session = db }
-    @After fun close() { disconnect { session } }
-}
-class QueryBuilderPostgres : QueryBuilderTests() {
-    @Before fun init() { session = db }
-    @After fun close() { disconnect { session } }
-}
 class TemplatesPostgres : TemplatesTest() {
     @Before fun init() { session = db }
     @After fun close() { disconnect { session } }
@@ -193,13 +187,18 @@ class TemplatesPostgres : TemplatesTest() {
                 .invoke(sampleYoozer[Yoozer.Id], sampleYoozer[Yoozer.Extras])
         )
     }
-    private fun assertInserts(create: String, table: Table<Yoozer, *>) {
+    private fun <ID : IdBound> assertInserts(create: String, table: Table<Yoozer, ID>) {
         session.withTransaction {
             (session as JdbcSession).connection.createStatement().run {
                 execute(create)
                 close()
             }
-            val rec = insert(table, sampleYoozer)
+            val pk = insert(table, sampleYoozer)
+            val rec = (session as Session<Blocking<ResultSet>>).query<Blocking<ResultSet>, ID, StructSnapshot<Yoozer>>(
+                "SELECT ${table.managedColNames.joinToString()} FROM ${table.name} WHERE ${table.idColName} = ?",
+                table.idColType,
+                Eagerly.struct<ResultSet, Yoozer>(table, BindBy.Name)
+            )(pk)
             assertNotSame(sampleYoozer, rec)
             assertEquals(sampleYoozer, rec)
         }

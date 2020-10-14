@@ -32,8 +32,9 @@ object Car : Schema<Car>() {
 
     val Tbl = tableOf(this, "cars", "_id", i64)
 }
-fun Car(ownerId: Long) = Car {
+fun Car(ownerId: Long, conditionerModel: String? = null) = Car {
     it[OwnerId] = ownerId
+    it[ConditionerModel] = conditionerModel
 }
 
 

@@ -15,14 +15,11 @@ import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.newMap
-import net.aquadc.persistence.sql.Dao
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.FuncN
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.ListChanges
-import net.aquadc.persistence.sql.Order
-import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.SqlTypeName
@@ -32,7 +29,6 @@ import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.TriggerReport
 import net.aquadc.persistence.sql.TriggerSubject
 import net.aquadc.persistence.sql.Triggerz
-import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.appendJoining
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
@@ -43,7 +39,6 @@ import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.changesTrigger
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.createTable
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
-import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -67,13 +62,6 @@ class SqliteSession(
 
     @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
-    @Suppress("UNCHECKED_CAST")
-    override fun <SCH : Schema<SCH>, ID : IdBound> get(table: Table<SCH, ID>): Dao<SCH, ID> =
-            getDao(table) as Dao<SCH, ID>
-
-    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID>): RealDao<SCH, ID, SQLiteStatement> =
-            lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, SqliteDialect) } as RealDao<SCH, ID, SQLiteStatement>
-
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
@@ -82,9 +70,8 @@ class SqliteSession(
     @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement, Cursor>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID {
-            val dao = getDao(table)
-            val statement = dao.insertStatement ?: connection.compileStatement(SqliteDialect.insert(table)).also { dao.insertStatement = it }
-
+            val sql = SqliteDialect.insert(table)
+            val statement = statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
             bindInsertionParams(table, data) { type, idx, value ->
                 (type.type as DataType<Any?>).bind(statement, idx, value)
             }
@@ -108,28 +95,9 @@ class SqliteSession(
             return this
         }
 
-        private fun <SCH : Schema<SCH>, ID : IdBound> updateStatementWLocked(table: Table<SCH, ID>, cols: Any): SQLiteStatement =
-                getDao(table)
-                        .updateStatements
-                        .getOrPut(cols) {
-                            val colArray =
-                                    if (cols is Array<*>) cols as Array<out CharSequence>
-                                    else arrayOf(cols as CharSequence)
-                            connection.compileStatement(SqliteDialect.updateQuery(table, colArray))
-                        }
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, columnNames: Any, columnTypes: Any, values: Any?) {
-            val statement = updateStatementWLocked(table, columnNames)
-            val colCount = bindValues(columnTypes, values) { type, idx, value ->
-                (type.type as DataType<Any?>).bind(statement, idx, value)
-            }
-            table.idColType.type.bind(statement, colCount, id)
-            check(statement.executeUpdateDelete() == 1)
-        }
-
         override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID) {
-            val dao = getDao(table)
-            val statement = dao.deleteStatement ?: connection.compileStatement(SqliteDialect.deleteRecordQuery(table)).also { dao.deleteStatement = it }
+            val sql = SqliteDialect.deleteRecordQuery(table)
+            val statement = statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
             table.idColType.type.bind(statement, 0, primaryKey)
             check(statement.executeUpdateDelete() == 1)
         }
@@ -146,11 +114,6 @@ class SqliteSession(
                 }
                 connection.endTransaction()
                 this@SqliteSession.transaction = null
-
-                if (successful) {
-                    // old ORM-ish API
-                    transaction.deliverChanges()
-                }
             } finally {
                 lock.writeLock().unlock()
             }
@@ -220,26 +183,21 @@ class SqliteSession(
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
                 table: Table<SCH, ID>,
-                columnNames: Array<out CharSequence>?,
-                condition: WhereCondition<SCH>,
-                order: Array<out Order<SCH>>
+                columnNames: Array<out CharSequence>,
+                id: ID
         ): Cursor = connection.rawQueryWithFactory(
-                CurFac(condition, table, null, null),
-                with(SqliteDialect) { SQLiteQueryBuilder.buildQueryString(
+                CurFac(table, id, null, null),
+                SQLiteQueryBuilder.buildQueryString(
                         // fixme: building SQL myself could save some allocations
                         /*distinct=*/false,
                         table.name,
-                        if (columnNames == null) arrayOf("COUNT(*)")
-                        else columnNames.mapIndexedToArray { _, name -> name.toString() },
-                        StringBuilder().let {
-                            condition.appendSqlTo(table, SqliteDialect, it)
-                            if (it.isEmpty()) null/*todo deallocate SB*/ else it.toString()
-                        },
+                        columnNames.mapIndexedToArray { _, name -> name.toString() },
+                        "${table.idColName} = ?",
                         /*groupBy=*/null,
                         /*having=*/null,
-                        if (order.isEmpty()) null else StringBuilder().appendOrderClause(table.schema, order).toString(),
+                        /*orderBy=*/null,
                         /*limit=*/null
-                ) },
+                ),
                 /*selectionArgs=*/null,
                 SQLiteDatabase.findEditTable(table.name), // TODO: whether it is necessary?
                 /*cancellationSignal=*/null
@@ -247,16 +205,16 @@ class SqliteSession(
 
         // a workaround for binding BLOBs, as suggested in https://stackoverflow.com/a/23159664/3050249
         private inner class CurFac<ID : IdBound, SCH : Schema<SCH>>(
-            private val condition: WhereCondition<SCH>?,
             private val table: Table<SCH, ID>?,
+            private val pk: ID?,
             private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>?,
             private val arguments: Array<out Any>?
         ) : SQLiteDatabase.CursorFactory {
 
             override fun newCursor(db: SQLiteDatabase?, masterQuery: SQLiteCursorDriver?, editTable: String?, query: SQLiteQuery): Cursor {
                 when {
-                    condition != null ->
-                        bindQueryParams(condition, table!!) { type, idx, value ->
+                    pk != null ->
+                        bindQueryParams(table!!, pk) { type, idx, value ->
                             (type.type as DataType<Any?>).bind(query, idx, value)
                         }
                     argumentTypes != null -> arguments!!.let { args ->
@@ -275,23 +233,13 @@ class SqliteSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
             table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
         ): T =
-            select<SCH, ID>(table, arrayOf(colName) /* fixme allocation */, pkCond<SCH, ID>(table, id), noOrder())
+            select<SCH, ID>(table, arrayOf(colName) /* fixme allocation */, id)
                 .fetchSingle(colType.type as DataType<T>)
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-                table: Table<SCH, ID>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
-        ): Array<ID> =
-            select<SCH, ID>(table, arrayOf(table.pkColumn.name(table.schema)) /* fixme allocation */, condition, order)
-                .fetchAllRows(table.idColType.type)
-                .array<Any>() as Array<ID>
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
             table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(table: Table<SCH, ID>, condition: WhereCondition<SCH>): Long =
-                select<SCH, ID>(table, null, condition, noOrder()).fetchSingle(i64)
+                select<SCH, ID>(table, columnNames, id).fetchColumns(columnTypes)
 
         override val transaction: RealTransaction?
             get() = this@SqliteSession.transaction
@@ -510,23 +458,8 @@ class SqliteSession(
     override fun toString(): String =
             "SqliteSession(connection=$connection)"
 
-
+    @Deprecated("This was intended to list ActiveRecord's queries")
     fun dump(sb: StringBuilder) {
-        sb.append("DAOs\n")
-        lowLevel.daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
-            sb.append(" ").append(table.name).append("\n")
-            dao.dump("  ", sb)
-
-            sb.append("  select statements (for current thread)\n")
-
-            arrayOf(
-                    "insert statements" to dao.insertStatement,
-                    "update statements" to dao.updateStatements,
-                    "delete statements" to dao.deleteStatement
-            ).forEach { (text, stmts) ->
-                sb.append("  ").append(text).append(": ").append(stmts)
-            }
-        }
     }
 
     override fun <R> rawQuery(
@@ -546,14 +479,7 @@ class SqliteSession(
 
     override fun close() {
         lowLevel.statements.get()?.values
-            ?.forEach(SQLiteStatement::close) // Oops! Other threads' statements gonna dangle until GC
-        lowLevel.daos.values.forEach {
-            it.insertStatement?.close()
-            it.updateStatements.values.forEach(SQLiteStatement::close)
-            it.deleteStatement?.close()
-            it.truncateLocked(ArrayList()) // ill but temporary allocation: I hope DAOs will go away soon
-        }
-
+            ?.forEach(SQLiteStatement::close) // FIXME: Other threads' statements gonna dangle until GC
         connection.close()
     }
 

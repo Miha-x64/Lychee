@@ -57,23 +57,10 @@ internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, sim
             is DataType.NotNull.Partial<*, *> -> func(false, serialized(this))
         }
 
-internal inline fun <SCH : Schema<SCH>> bindQueryParams(
-        condition: WhereCondition<SCH>, table: Table<SCH, *>, bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
+internal inline fun <SCH : Schema<SCH>, ID : IdBound> bindQueryParams( // todo inline me
+    table: Table<SCH, ID>, pk: ID, bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
 ) {
-    val size = condition.size
-    if (size > 0) {
-        val argCols = arrayOfNulls<StoredLens<SCH, *, *>>(size)
-        val argValues = arrayOfNulls<Any>(size)
-        condition.setValuesTo(0, argCols, argValues)
-        val cols = table.columns
-        val indices = table.columnIndices
-        for (i in 0 until size) {
-            val colIndex = indices[argCols[i]]!!
-            val column = cols[colIndex]
-            bind(table.typeOf(column) as Ilk<Any?, *>, i, argValues[i])
-            // erase its type and assume that caller is clever enough
-        }
-    }
+    bind(table.idColType as Ilk<Any?, *>, 0, pk)
 }
 
 internal inline fun <SCH : Schema<SCH>> bindInsertionParams(

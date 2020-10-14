@@ -6,12 +6,10 @@ import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.fatMapTo
-import net.aquadc.persistence.sql.Dao
+import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
-import net.aquadc.persistence.sql.Order
-import net.aquadc.persistence.sql.RealDao
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
@@ -23,15 +21,12 @@ import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.TriggerReport
 import net.aquadc.persistence.sql.TriggerSubject
 import net.aquadc.persistence.sql.Triggerz
-import net.aquadc.persistence.sql.WhereCondition
 import net.aquadc.persistence.sql.appendJoining
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
-import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
-import net.aquadc.persistence.sql.noOrder
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -70,15 +65,6 @@ class JdbcSession(
 
     @JvmField @JvmSynthetic internal val lock = ReentrantReadWriteLock()
 
-    @Suppress("UNCHECKED_CAST")
-    override fun <SCH : Schema<SCH>, ID : IdBound> get(
-            table: Table<SCH, ID>
-    ): Dao<SCH, ID> =
-            getDao(table) as Dao<SCH, ID>
-
-    @JvmSynthetic internal fun <SCH : Schema<SCH>, ID : IdBound> getDao(table: Table<SCH, ID>): RealDao<SCH, ID, PreparedStatement> =
-        lowLevel.daos.getOrPut(table) { RealDao(this, lowLevel, table, dialect) } as RealDao<SCH, ID, PreparedStatement>
-
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
@@ -87,50 +73,33 @@ class JdbcSession(
     private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID {
-            val dao = getDao(table)
-            val statement = dao.insertStatement ?: connection.prepareStatement(dialect.insert(table), Statement.RETURN_GENERATED_KEYS).also { dao.insertStatement = it }
-
+            val sql = dialect.insert(table)
+            val key = Pair(sql, null)
+            val statements = statements.getOrSet(::newMap)
+            val statement = statements.getOrPut(key) {
+                connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+            }
             bindInsertionParams(table, data) { type, idx, value ->
                 type.bind(statement, idx, value)
             }
-            try {
-                check(statement.executeUpdate() == 1)
-            } catch (e: SQLException) {
-                statement.close() // poisoned statement
-                dao.insertStatement = null
-
-                throw e
-            }
+            statement.executeOrEvict(statements, key)
             return statement.generatedKeys.fetchSingle(table.idColType)
         }
-
-        private fun <SCH : Schema<SCH>> updateStatementWLocked(table: Table<SCH, *>, cols: Any): PreparedStatement =
-                getDao(table)
-                        .updateStatements
-                        .getOrPut(cols) {
-                            val colArray =
-                                    if (cols is Array<*>) cols as Array<out CharSequence>
-                                    else arrayOf(cols as CharSequence)
-                            connection.prepareStatement(dialect.updateQuery(table, colArray))
-                        }
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> update(
-                table: Table<SCH, ID>, id: ID, columnNames: Any, columnTypes: Any, values: Any?
-        ) {
-            val statement = updateStatementWLocked(table, columnNames)
-            val colCount = bindValues(columnTypes, values) { type, idx, value ->
-                type.bind(statement, idx, value)
-            }
-            table.idColType.bind(statement, colCount, id)
-            check(statement.executeUpdate() == 1)
-        }
-
         override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID) {
-            val dao = getDao(table)
-            val statement = dao.deleteStatement ?: connection.prepareStatement(dialect.deleteRecordQuery(table)).also { dao.deleteStatement = it }
-            table.idColType.bind(statement, 0, primaryKey)
-            check(statement.executeUpdate() == 1)
+            val sql = dialect.deleteRecordQuery(table)
+            val statements = statements.getOrSet(::newMap)
+            val statement = statements.getOrPut(sql) { connection.prepareStatement(sql) }
+            table.idColType.type.bind(statement, 0, primaryKey)
+            statement.executeOrEvict(statements, sql)
         }
+        private fun PreparedStatement.executeOrEvict(statements: MutableMap<Any, PreparedStatement>, key: Any): Unit =
+            try {
+                check(executeUpdate() == 1)
+            } catch (e: SQLException) {
+                close() // poisoned statement
+                statements.remove(key)
+                throw e
+            }
 
         override fun truncate(table: Table<*, *>) {
             val stmt = connection.createStatement()
@@ -150,11 +119,6 @@ class JdbcSession(
                     connection.rollback()
                 }
                 this@JdbcSession.transaction = null
-
-                if (successful) {
-                    // old ORM-ish API
-                    transaction.deliverChanges()
-                }
             } finally {
                 lock.writeLock().unlock()
             }
@@ -226,18 +190,15 @@ class JdbcSession(
         }
 
         private fun <SCH : Schema<SCH>, ID : IdBound> select(
-                table: Table<SCH, ID>,
-                columns: Array<out CharSequence>?,
-                condition: WhereCondition<SCH>,
-                order: Array<out Order<SCH>>
+            table: Table<SCH, ID>,
+            id: ID,
+            columns: Array<out CharSequence>
         ): ResultSet {
-            val query =
-                    if (columns == null) dialect.selectCountQuery(table, condition)
-                    else dialect.selectQuery(table, columns, condition, order)
+            val query = dialect.run { StringBuilder().selectQuery(table, columns).toString() }
 
             return statement(query)
                     .also { stmt ->
-                        bindQueryParams(condition, table) { type, idx, value ->
+                        bindQueryParams(table, id) { type, idx, value ->
                             type.bind(stmt, idx, value)
                         }
                     }
@@ -247,25 +208,12 @@ class JdbcSession(
         override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
             table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
         ): T =
-                select<SCH, ID>(table /* fixme allocation */, arrayOf(colName), pkCond<SCH, ID>(table, id), noOrder())
-                        .fetchSingle(colType)
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetchPrimaryKeys(
-                table: Table<SCH, ID>, condition: WhereCondition<SCH>, order: Array<out Order<SCH>>
-        ): Array<ID> =
-                select<SCH, ID>(table /* fixme allocation */, arrayOf(table.pkColumn.name(table.schema)), condition, order)
-                        .fetchAllRows(table.idColType)
-                        .array<Any>() as Array<ID>
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetchCount(
-                table: Table<SCH, ID>, condition: WhereCondition<SCH>
-        ): Long =
-                select<SCH, ID>(table, null, condition, noOrder()).fetchSingle(i64)
+            select<SCH, ID>(table, id, /* fixme allocation */ arrayOf(colName)).fetchSingle(colType)
 
         override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
             table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
         ): Array<Any?> =
-                select<SCH, ID>(table, columnNames, pkCond<SCH, ID>(table, id), noOrder()).fetchColumns(columnTypes)
+            select<SCH, ID>(table, id, columnNames).fetchColumns(columnTypes)
 
         override val transaction: RealTransaction?
             get() = this@JdbcSession.transaction
@@ -448,7 +396,7 @@ class JdbcSession(
                     if (actualCols != expectedCols) {
                         val cols = Array(actualCols) { meta.getColumnLabel(it + 1) }.contentToString()
                         it.close()
-                        throw IllegalArgumentException("Expected $expectedCols cols, got $cols")
+                        throw IllegalArgumentException("Expected $expectedCols cols, got $cols") // todo relax, bro
                     }
                 }
         override fun sizeHint(cursor: ResultSet): Int = -1
@@ -577,26 +525,8 @@ class JdbcSession(
     override fun toString(): String =
             "JdbcSession(connection=$connection, dialect=${dialect.javaClass.simpleName})"
 
-
+    @Deprecated("This was intended to list ActiveRecord's queries")
     fun dump(sb: StringBuilder) {
-        sb.append("DAOs\n")
-        lowLevel.daos.forEach { (table: Table<*, *>, dao: Dao<*, *>) ->
-            sb.append(" ").append(table.name).append("\n")
-            dao.dump("  ", sb)
-
-            sb.append("  prepared statements (for current thread)\n")
-            lowLevel.statements.get()?.keys?.forEach { sql ->
-                sb.append(' ').append(sql).append("\n")
-            }
-
-            arrayOf(
-                    "insert statements" to dao.insertStatement,
-                    "update statements" to dao.updateStatements,
-                    "delete statements" to dao.deleteStatement
-            ).forEach { (text, stmts) ->
-                sb.append("  ").append(text).append(": ").append(stmts)
-            }
-        }
     }
 
     override fun <R> rawQuery(
@@ -620,14 +550,7 @@ class JdbcSession(
 
     override fun close() {
         lowLevel.statements.get()?.values
-            ?.forEach(PreparedStatement::close) // Oops! Other threads' statements gonna dangle until GC
-        lowLevel.daos.values.forEach {
-            it.insertStatement?.close()
-            it.updateStatements.values.forEach(PreparedStatement::close)
-            it.deleteStatement?.close()
-            it.truncateLocked(ArrayList()) // ill but temporary allocation: I hope DAOs will go away soon
-        }
-
+            ?.forEach(PreparedStatement::close) // FIXME: Other threads' statements gonna dangle until GC
         connection.close()
     }
 

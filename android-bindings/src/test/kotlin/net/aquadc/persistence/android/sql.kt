@@ -3,8 +3,6 @@ package net.aquadc.persistence.android
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import net.aquadc.persistence.sql.EmbedRelationsTest
-import net.aquadc.persistence.sql.QueryBuilderTests
 import net.aquadc.persistence.sql.SqlPropTest
 import net.aquadc.persistence.sql.TemplatesTest
 import net.aquadc.persistence.sql.TestTables
@@ -64,28 +62,6 @@ class SqlPropRoboTest : SqlPropTest() {
         }
     }
 
-}
-
-@RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
-class EmbedRelationsRoboTest : EmbedRelationsTest() {
-    @Before fun init() {
-        session = SqliteSession(sqliteDb())
-    }
-    @After fun close() {
-        session.close()
-    }
-}
-
-@RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
-class QueryBuilderRoboTests : QueryBuilderTests() {
-    @Before fun init() {
-        session = SqliteSession(sqliteDb())
-    }
-    @After fun close() {
-        session.close()
-    }
 }
 
 @RunWith(RobolectricTestRunner::class)
