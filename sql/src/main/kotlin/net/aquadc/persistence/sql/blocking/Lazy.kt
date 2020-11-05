@@ -23,10 +23,11 @@ import java.sql.SQLFeatureNotSupportedException
     private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, Lazy<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Lazy<R> {
         val rt = rt; val orElse = orElse // don't capture `this`
-        return lazy { from.cell(query, argumentTypes, arguments, rt, orElse) }
+        return lazy { from.cell(query, argumentTypes, receiverAndArguments, rt, orElse) }
     }
 }
 
@@ -34,10 +35,11 @@ import java.sql.SQLFeatureNotSupportedException
     private val rt: Ilk<R, *>
 ) : Fetch<Blocking<CUR>, CloseableIterator<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<R> {
         val rt = rt // don't capture `this`
-        return object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, arguments, null, BindBy.Name/*whatever*/, NullSchema) {
+        return object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, receiverAndArguments, null, BindBy.Name/*whatever*/, NullSchema) {
             override fun row(cur: CUR): R = from.cellAt(cur, 0, rt)
         }
     }
@@ -51,9 +53,10 @@ import java.sql.SQLFeatureNotSupportedException
 
     private var fallback: Struct<SCH>? = null
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableStruct<SCH> {
-        val lazy = CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, arguments, table, bindBy, table.schema)
+        val lazy = CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, receiverAndArguments, table, bindBy, table.schema)
 
         return if (lazy.hasNext() /* move to first */) lazy else this.also { fallback = orElse() }
     }
@@ -69,11 +72,12 @@ import java.sql.SQLFeatureNotSupportedException
         private val transient: Boolean
 ) : Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<Struct<SCH>> {
         val transient = transient // don't capture this
         return object : CurIterator<CUR, SCH, Struct<SCH>>(
-            from, query, argumentTypes, arguments, table, bindBy, table.schema
+            from, query, argumentTypes, receiverAndArguments, table, bindBy, table.schema
         ) {
             override fun row(cur: CUR): Struct<SCH> =
                 if (transient) this else StructSnapshot(this)
@@ -84,9 +88,10 @@ import java.sql.SQLFeatureNotSupportedException
 @PublishedApi internal object InputStreamFromResultSet : Fetch<Blocking<ResultSet>, InputStream> {
 
     override fun fetch(
-        from: Blocking<ResultSet>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<ResultSet>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): InputStream =
-            from.select(query, argumentTypes, arguments, 1).let { rs ->
+            from.select(query, argumentTypes, receiverAndArguments, 1).let { rs ->
                 check(rs.next()) { rs.close(); "ResultSet is empty." }
 
                 val stream = try { rs.getBlob(0).binaryStream } // Postgres-JDBC supports this, SQLite-JDBC doesn't
@@ -105,7 +110,7 @@ private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
     protected val from: Blocking<CUR>,
     private val query: String,
     private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-    private val arguments: Array<out Any>,
+    private val sessionAndArguments: Array<out Any>,
 
     private val table: Table<SCH, *>?,
     private val bindBy: BindBy,
@@ -115,7 +120,7 @@ private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
     private var _cur: CUR? = null
     private val cur get() = _cur ?: run {
         check(state == 0) { "Iterator is closed." }
-        from.select(query, argumentTypes, arguments, table?.managedColNames?.size ?: 1).also { _cur = it }
+        from.select(query, argumentTypes, sessionAndArguments, table?.managedColNames?.size ?: 1).also { _cur = it }
     }
 
     var state = 0

@@ -9,6 +9,7 @@ import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
 import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.postgres.PostgresDialect
+import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
@@ -96,8 +97,8 @@ class TemplatesPostgres : TemplatesTest() {
         assertEquals(
             "Some name",
             (session as Session<Blocking<CUR>>)
-                .query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"numbers\" = ?", intCollection, Eagerly.cell<CUR, String>(string))
-                .invoke(intArrayOf(0, 1, 2))
+                .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"numbers\" = ?", intCollection, Eagerly.cell<CUR, String>(string)))
+                (intArrayOf(0, 1, 2))
         )
     }
 
@@ -123,8 +124,8 @@ class TemplatesPostgres : TemplatesTest() {
         assertEquals(
             "Some name",
             (session as Session<Blocking<CUR>>)
-                .query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"extras\" = ?", serialized(SomeSchema), Eagerly.cell<CUR, String>(string))
-                .invoke(sampleYoozer[Yoozer.Extras])
+                .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"extras\" = ?", serialized(SomeSchema), Eagerly.cell<CUR, String>(string)))
+                (sampleYoozer[Yoozer.Extras])
         )
     }
 
@@ -181,11 +182,11 @@ class TemplatesPostgres : TemplatesTest() {
         assertEquals(
             "Some name",
             (session as Session<Blocking<CUR>>)
-                .query("SELECT \"name\" FROM \"${Yoozerz.name}\" WHERE \"id\" = ? AND \"extras\" = ?",
-                    nativeType("uuid", uuid),
-                    someJsonb,
-                    Eagerly.cell<CUR, String>(string))
-                .invoke(sampleYoozer[Yoozer.Id], sampleYoozer[Yoozer.Extras])
+                .(Query("SELECT \"name\" FROM \"${Yoozerz.name}\" WHERE \"id\" = ? AND \"extras\" = ?",
+                nativeType("uuid", uuid),
+                someJsonb,
+                Eagerly.cell<CUR, String>(string)))
+                (sampleYoozer[Yoozer.Id], sampleYoozer[Yoozer.Extras])
         )
     }
     private fun <ID : IdBound> assertInserts(create: String, table: Table<Yoozer, ID>) {
@@ -195,11 +196,11 @@ class TemplatesPostgres : TemplatesTest() {
                 close()
             }
             val pk = insert(table, sampleYoozer)
-            val rec = (session as Session<Blocking<ResultSet>>).query<Blocking<ResultSet>, ID, StructSnapshot<Yoozer>>(
-                "SELECT ${table.managedColNames.joinToString()} FROM ${table.name} WHERE ${table.idColName} = ?",
-                table.idColType,
-                Eagerly.struct<ResultSet, Yoozer>(table, BindBy.Name)
-            )(pk)
+            val rec = (session as Session<Blocking<ResultSet>>)
+                .(Query("SELECT ${table.managedColNames.joinToString()} FROM ${table.name} WHERE ${table.idColName} = ?",
+                    table.idColType,
+                    Eagerly.struct<ResultSet, Yoozer>(table, BindBy.Name)
+                ))(pk)
             assertNotSame(sampleYoozer, rec)
             assertEquals(sampleYoozer, rec)
         }

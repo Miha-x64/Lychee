@@ -1,6 +1,7 @@
 package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.persistence.sql.BindBy
+import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.mapRow
@@ -15,18 +16,20 @@ import net.aquadc.persistence.type.nothing
         private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, R> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): R =
-            from.cell(query, argumentTypes, arguments, rt, orElse)
+        from.cell(query, argumentTypes, receiverAndArguments, rt, orElse)
 }
 
 @PublishedApi internal class FetchColEagerly<CUR, R>(
         private val rt: Ilk<R, *>
 ) : Fetch<Blocking<CUR>, List<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<R> {
-        val cur = from.select(query, argumentTypes, arguments, 1)
+        val cur = from.select(query, argumentTypes, receiverAndArguments, 1)
         try {
             return if (from.next(cur)) {
                 val first = from.cellAt(cur, 0, rt)
@@ -49,11 +52,12 @@ import net.aquadc.persistence.type.nothing
         private val orElse: () -> StructSnapshot<SCH>
 ) : Fetch<Blocking<CUR>, StructSnapshot<SCH>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): StructSnapshot<SCH> {
         val managedColNames = table.managedColNames
         val managedColTypes = table.managedColTypes
-        val cur = from.select(query, argumentTypes, arguments, managedColNames.size)
+        val cur = from.select(query, argumentTypes, receiverAndArguments, managedColNames.size)
         try {
             if (!from.next(cur)) return orElse()
             val value = from.mapRow<CUR, SCH>(bindBy, cur, managedColNames, managedColTypes, table.recipe)
@@ -70,13 +74,14 @@ import net.aquadc.persistence.type.nothing
         private val bindBy: BindBy
 ) : Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
+        from: Blocking<CUR>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<StructSnapshot<SCH>> {
         val colNames = table.managedColNames
         val colTypes = table.managedColTypes
         val recipe = table.recipe
 
-        val cur = from.select(query, argumentTypes, arguments, colNames.size)
+        val cur = from.select(query, argumentTypes, receiverAndArguments, colNames.size)
         try {
             return if (from.next(cur)) {
                 val first = from.mapRow<CUR, SCH>(bindBy, cur, colNames, colTypes, recipe)
@@ -94,20 +99,18 @@ import net.aquadc.persistence.type.nothing
 }
 
 @PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerlyFor(nothing)
-    as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> Unit
+    as Fetch<Blocking<*>, Unit>
 @PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerlyFor<Nothing>(null)
-    as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> Int
+    as Fetch<Blocking<*>, Int>
 
 @PublishedApi internal class ExecuteEagerlyFor<ID>(
     private val retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
-) : (
-    Blocking<*>,
-    @ParameterName("query") String,
-    @ParameterName("argumentTypes") Array<out Ilk<*, DataType.NotNull<*>>>,
-    @ParameterName("arguments") Array<out Any>
-) -> Any? {
-    override fun invoke(db: Blocking<*>, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>): Any? {
-        val ret = db.execute(query, argumentTypes, arguments, if (retKeyType === nothing) null else retKeyType)
+) : Exec<Blocking<*>, Any?> {
+    override fun fetch(
+        from: Blocking<*>, query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
+    ): Any? {
+        val ret = from.execute(query, argumentTypes, receiverAndArguments, if (retKeyType === nothing) null else retKeyType)
         return if (retKeyType === nothing) Unit else ret // if (retKeyType == null) affected else insertedPrimaryKey
     }
 }

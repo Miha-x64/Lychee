@@ -12,6 +12,8 @@ import net.aquadc.persistence.sql.blocking.Eagerly.execute
 import net.aquadc.persistence.sql.blocking.Eagerly.executeForInsertedKey
 import net.aquadc.persistence.sql.blocking.Eagerly.executeForRowCount
 import net.aquadc.persistence.sql.blocking.Lazily
+import net.aquadc.persistence.sql.template.Mutation
+import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.asFieldSet
 import net.aquadc.persistence.type.DataType
@@ -33,58 +35,58 @@ abstract class TemplatesTest {
     @Test fun <CUR> cell() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
-            val kek = session.query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
-            assertEquals("lolkek", kek("lol"))
+            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
+            assertEquals("lolkek", session.kek("lol"))
         }
         Lazily.run {
-            val kek = session.query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
-            assertEquals("lolkek", kek("lol").value)
+            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
+            assertEquals("lolkek", session.kek("lol").value)
         }
     }
     @Test fun <CUR> noCell() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
-            try { session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string))(); fail() }
+            try { session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string)))(); fail() }
             catch (expected: NoSuchElementException) {}
 
-            assertEquals("fallback", session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" })())
+            assertEquals("fallback", session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" }))())
         }
         Lazily.run {
-            try { session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string))().value; fail() }
+            try { session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string)))().value; fail() }
             catch (expected: NoSuchElementException) {}
 
-            assertEquals("fallback", session.query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" })().value)
+            assertEquals("fallback", session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" }))().value)
         }
     }
 
     @Test fun <CUR> col() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
-            val one = session.query("SELECT 1", col<CUR, Int>(i32))
-            assertEquals(listOf(1), one())
+            val one = Query("SELECT 1", col<CUR, Int>(i32))
+            assertEquals(listOf(1), session.one())
         }
         Lazily.run {
-            val one = session.query("SELECT 1", col<CUR, Int>(i32))
-            assertEquals(listOf(1), Sequence { one() }.toList())
+            val one = Query("SELECT 1", col<CUR, Int>(i32))
+            assertEquals(listOf(1), Sequence { session.one() }.toList())
         }
     }
 
     @Test fun <CUR> row() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
-            val sumAndMul = session.query(
-                    "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
+            val sumAndMul = Query(
+                "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
+                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
-            val (f, s) = sumAndMul(80, 4, 6, 8)
+            val (f, s) = session.sumAndMul(80, 4, 6, 8)
             assertEquals(Pair(84, 48), Pair(f, s))
         }
         Lazily.run {
-            val sumAndMul = session.query(
-                    "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
+            val sumAndMul = Query(
+                "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
+                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
-            sumAndMul(80, 4, 6, 8).use {
+            session.sumAndMul(80, 4, 6, 8).use {
                 val (f, s) = it
                 assertEquals(Pair(84, 48), Pair(f, s))
             }
@@ -95,28 +97,26 @@ abstract class TemplatesTest {
         val session = session as Session<Blocking<CUR>>
         val intPair = i32 * i32
         Eagerly.run {
-            try { session.query(
-                    "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position)
-            )(); fail() } catch (expected: NoSuchElementException) {}
+            try { session.(Query(
+                "SELECT 0, 0 LIMIT 0",
+                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position)
+            ))(); fail() } catch (expected: NoSuchElementException) {}
 
-            val (f, s) = session.query(
-                    "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
-            )()
+            val (f, s) = session.(Query("SELECT 0, 0 LIMIT 0",
+                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+            ))()
             assertEquals(1, f)
             assertEquals(2, s)
         }
         Lazily.run {
-            try { session.query(
-                    "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position)
-            )(); fail() } catch (expected: NoSuchElementException) {}
+            try { session.(Query("SELECT 0, 0 LIMIT 0",
+                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position)
+            ))(); fail() } catch (expected: NoSuchElementException) {}
 
-            session.query(
-                    "SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
-            )().use {
+            session.(Query(
+                "SELECT 0, 0 LIMIT 0",
+                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+            ))().use {
                 val (f, s) = it
                 assertEquals(1, f)
                 assertEquals(2, s)
@@ -150,39 +150,38 @@ abstract class TemplatesTest {
                 Contact("@johnDoe", johnPk)
         )
         Eagerly.run {
-            val userContact = session.query(
-                    USER_BY_NAME, string,
-                    struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+            val userContact = Query(
+                USER_BY_NAME, string,
+                struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
-            val contact = userContact("John")
+            val contact = session.userContact("John")
             assertEquals(expectedJohn, contact)
 
-            val userContacts = session.query(
-                    USERS_BY_NAME_AND_EMAIL_START, string, string,
-                    structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+            val userContacts = Query(USERS_BY_NAME_AND_EMAIL_START, string, string,
+                structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
-            val contacts = userContacts("John", "john")
+            val contacts = session.userContacts("John", "john")
             assertEquals(listOf(expectedJohn), contacts)
         }
         Lazily.run {
-            val userContact = session.query(
-                    USER_BY_NAME, string,
-                    struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+            val userContact = Query(
+                USER_BY_NAME, string,
+                struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
-            userContact("John").use { he ->
+            session.userContact("John").use { he ->
                 assertEquals(expectedJohn, he)
             }
 
-            val userContacts = session.query(
-                    USERS_BY_NAME_AND_EMAIL_START, string, string,
-                    structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+            val userContacts = Query(
+                USERS_BY_NAME_AND_EMAIL_START, string, string,
+                structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
-            userContacts("John", "john").use { iter ->
+            session.userContacts("John", "john").use { iter ->
                 assertEquals(expectedJohn, iter.next())
                 assertFalse(iter.hasNext())
             }
 
-            userContacts("John", "john").use { iter ->
+            session.userContacts("John", "john").use { iter ->
                 assertTrue(iter.hasNext()) // any number of `hasNext`s must be OK
                 assertTrue(iter.hasNext())
                 assertTrue(iter.hasNext())
@@ -191,16 +190,16 @@ abstract class TemplatesTest {
                 assertFalse(iter.hasNext())
             }
 
-            val transientUserContacts = session.query(
-                    USERS_BY_NAME_AND_EMAIL_START, string, string,
-                    structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+            val transientUserContacts = Query(
+                USERS_BY_NAME_AND_EMAIL_START, string, string,
+                structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
             )
-            transientUserContacts("John", "john").use { iter -> // don't collect TemporaryStructs!
+            session.transientUserContacts("John", "john").use { iter -> // don't collect TemporaryStructs!
                 assertEquals(expectedJohn, iter.next())
                 assertFalse(iter.hasNext())
             }
 
-            transientUserContacts("John", "john").use { iter ->
+            session.transientUserContacts("John", "john").use { iter ->
                 assertTrue(iter.hasNext()) // any number of `hasNext`s must be OK
                 assertTrue(iter.hasNext())
                 assertTrue(iter.hasNext())
@@ -214,10 +213,9 @@ abstract class TemplatesTest {
     // todo left/right/outer join
 
     @Test fun <CUR> `same endianness`() {
-        val sqlOr = (session as Session<Blocking<CUR>>)
-            .query("SELECT ? | ? | ? | ?", i64, i64, i64, i64, Eagerly.cell<CUR, Long>(i64))
-        assertEquals((1L shl 48) or (2L shl 32) or (3L shl 16) or 4L, sqlOr(1L shl 48, 2L shl 32, 3L shl 16, 4L))
-        assertEquals(-1, sqlOr(65535L shl 48, 65535L shl 32, 65535L shl 16, 65535L))
+        val sqlOr = Query("SELECT ? | ? | ? | ?", i64, i64, i64, i64, Eagerly.cell<CUR, Long>(i64))
+        assertEquals((1L shl 48) or (2L shl 32) or (3L shl 16) or 4L, (session as Session<Blocking<CUR>>).sqlOr(1L shl 48, 2L shl 32, 3L shl 16, 4L))
+        assertEquals(-1, (session as Session<Blocking<CUR>>).sqlOr(65535L shl 48, 65535L shl 32, 65535L shl 16, 65535L))
     }
 
     @Test fun <CUR> triggers() {
@@ -251,17 +249,17 @@ abstract class TemplatesTest {
             /*assertEquals(1L, */insert(UserTable, User("A", "b"))/*)*/
         }
 
-        val insertUser = session.mutate(
+        val insertUser = Mutation<Blocking<CUR>, String, String, Long>(
             "INSERT INTO ${UserTable.name} (${User.run { First.name }}, ${User.run { Second.name }}) VALUES (?, ?)",
             string, string,
             executeForInsertedKey(UserTable.idColType)
         )
-        val renameUser4Count = session.mutate(
+        val renameUser4Count = Mutation<Blocking<CUR>, String, String, Int>(
             "UPDATE ${UserTable.name} SET ${User.run { First.name }} = ? WHERE ${User.run { Second.name }} = ?",
             string, string,
             executeForRowCount()
         )
-        val renameUser4Unit = session.mutate("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, execute())
+        val renameUser4Unit = Mutation<Blocking<CUR>, String, Unit>("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, execute())
 
         session.withTransaction {
             assertEquals(2L, insertUser("qwe", "asd"))
@@ -291,7 +289,7 @@ abstract class TemplatesTest {
             }
         }
         session.withTransaction {
-            session.query("SELECT ${UserTable.idColName} FROM ${UserTable.name}", Eagerly.col<CUR, Long>(i64))()
+            session.(Query("SELECT ${UserTable.idColName} FROM ${UserTable.name}", Eagerly.col<CUR, Long>(i64)))()
                 .forEach { id -> delete(UserTable, id) }
         }
         assertEquals(1, called)

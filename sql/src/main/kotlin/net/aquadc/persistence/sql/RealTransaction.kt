@@ -5,9 +5,10 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 
 
-internal class RealTransaction(
+internal class RealTransaction<SRC>(
+    override val mySession: Session<SRC>,
     @JvmField internal val lowSession: LowLevelSession<*, *>
-) : Transaction {
+) : Transaction<SRC> {
 
     private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
     private var isSuccessful = false

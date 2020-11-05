@@ -7,6 +7,7 @@ package net.aquadc.persistence.sql
 
 import androidx.annotation.CheckResult
 import androidx.annotation.RequiresApi
+import androidx.annotation.RestrictTo
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
@@ -30,7 +31,7 @@ typealias IdBound = Any // Serializable in some frameworks
  * A shorthand for properties backed by RDBMS column & row.
  */
 @Deprecated("Record observability is poor, use SQL templates (session.query()=>function) instead.", level = DeprecationLevel.ERROR)
-typealias SqlProperty<T> = TransactionalProperty<Transaction, T>
+typealias SqlProperty<T> = TransactionalProperty<Transaction<*>, T>
 
 @Retention(AnnotationRetention.BINARY)
 @RequiresOptIn("Under construction.", RequiresOptIn.Level.WARNING)
@@ -51,14 +52,16 @@ interface Session<SRC> : Closeable {
     /**
      * Opens a transaction, allowing mutation of data.
      */
-    fun beginTransaction(): Transaction
+    fun beginTransaction(): Transaction<SRC>
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // effectively private and type-unsafe API
     fun <R> rawQuery(
         @Language("SQL") query: String,
     //  ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        argumentValues: Array<out Any>,
         fetch: Fetch<SRC, R>
-    ): FuncN<Any, R>
+    ): R
 
     /**
      * Registers trigger listener for all [subject]s.
@@ -91,7 +94,7 @@ typealias Dao<SCH, ID> = Nothing
  * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove [Record]s.
  * In future will retry conflicting transaction by calling [block] more than once.
  */
-inline fun <R> Session<*>.withTransaction(block: Transaction.() -> R): R {
+inline fun <SRC, R> Session<SRC>.withTransaction(block: Transaction<SRC>.() -> R): R {
     contract {
         callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
     }
@@ -106,7 +109,7 @@ inline fun <R> Session<*>.withTransaction(block: Transaction.() -> R): R {
     }
 }
 @RequiresApi(24) @JvmName("withTransaction")
-fun Session<*>.withTransaction4j(block: java.util.function.Consumer<Transaction>) {
+fun <SRC> Session<SRC>.withTransaction4j(block: java.util.function.Consumer<Transaction<SRC>>) {
     val transaction = beginTransaction()
     try {
         block.accept(transaction)
@@ -116,7 +119,9 @@ fun Session<*>.withTransaction4j(block: java.util.function.Consumer<Transaction>
     }
 }
 
-interface Transaction : Closeable {
+interface Transaction<SRC> : Closeable {
+
+    val mySession: Session<SRC>
 
     /**
      * Insert [data] into a [table].

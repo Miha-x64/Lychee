@@ -12,13 +12,11 @@ import android.database.sqlite.SQLiteStatement
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
 import net.aquadc.persistence.NullSchema
-import net.aquadc.persistence.array
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
-import net.aquadc.persistence.sql.FuncN
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.ListChanges
 import net.aquadc.persistence.sql.RealTransaction
@@ -33,7 +31,6 @@ import net.aquadc.persistence.sql.Triggerz
 import net.aquadc.persistence.sql.appendJoining
 import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
-import net.aquadc.persistence.sql.bindValues
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.appendName
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.changesTrigger
@@ -47,7 +44,6 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
-import org.intellij.lang.annotations.Language
 import java.io.Closeable
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
@@ -66,7 +62,7 @@ class SqliteSession(
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
-    @JvmSynthetic @JvmField internal var transaction: RealTransaction? = null
+    @JvmSynthetic @JvmField internal var transaction: RealTransaction<Blocking<Cursor>>? = null
 
     @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement, Cursor>() {
 
@@ -211,7 +207,7 @@ class SqliteSession(
             private val table: Table<SCH, ID>?,
             private val pk: ID?,
             private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>?,
-            private val arguments: Array<out Any>?
+            private val sessionAndArguments: Array<out Any>?
         ) : SQLiteDatabase.CursorFactory {
 
             override fun newCursor(db: SQLiteDatabase?, masterQuery: SQLiteCursorDriver?, editTable: String?, query: SQLiteQuery): Cursor {
@@ -220,9 +216,9 @@ class SqliteSession(
                         bindQueryParams(table!!, pk) { type, idx, value ->
                             (type.type as DataType<Any?>).bind(query, idx, value)
                         }
-                    argumentTypes != null -> arguments!!.let { args ->
+                    argumentTypes != null -> sessionAndArguments!!.let { args ->
                         argumentTypes.forEachIndexed { idx, type ->
-                            (type as DataType<Any?>).bind(query, idx, args[idx])
+                            (type as DataType<Any?>).bind(query, idx, args[idx+1])
                         }
                     }
                     else ->
@@ -244,7 +240,7 @@ class SqliteSession(
         ): Array<Any?> =
                 select<SCH, ID>(table, columnNames, id).fetchColumns(columnTypes)
 
-        override val transaction: RealTransaction?
+        override val transaction: RealTransaction<Blocking<Cursor>>?
             get() = this@SqliteSession.transaction
 
         private fun <T> Cursor.fetchAllRows(type: DataType<T>): List<T> {
@@ -317,9 +313,11 @@ class SqliteSession(
         }
 
         override fun <T> cell(
-            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, type: Ilk<T, *>, orElse: () -> T
+            query: String,
+            argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+            type: Ilk<T, *>, orElse: () -> T
         ): T {
-            val cur = select(query, argumentTypes, arguments, 1)
+            val cur = select(query, argumentTypes, sessionAndArguments, 1)
             try {
                 if (!cur.moveToFirst()) return orElse()
                 val value = (type.type as DataType<T>).get(cur, 0)
@@ -329,9 +327,9 @@ class SqliteSession(
                 cur.close()
             }
         }
-        override fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int): Cursor =
+        override fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =
                 connection.rawQueryWithFactory(
-                        CurFac<Nothing, Nothing>(null, null, argumentTypes, arguments),
+                        CurFac<Nothing, Nothing>(null, null, argumentTypes, sessionAndArguments),
                         query,
                         null, null, null
                 ).also {
@@ -348,7 +346,6 @@ class SqliteSession(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
             transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
         ): Any? {
-            check((transactionAndArguments[0] as RealTransaction).lowSession == this)
             val statement = statements
                 .getOrSet(::newMap)
                 .getOrPut(query) { connection.compileStatement(query) }
@@ -455,7 +452,7 @@ class SqliteSession(
     }
 
 
-    override fun beginTransaction(): Transaction =
+    override fun beginTransaction(): Transaction<Blocking<Cursor>> =
         createTransaction(lock, lowLevel).also {
             connection.beginTransaction()
             transaction = it
@@ -471,11 +468,12 @@ class SqliteSession(
     }
 
     override fun <R> rawQuery(
-        @Language("SQL") query: String,
+        query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        argumentValues: Array<out Any>,
         fetch: Fetch<Blocking<Cursor>, R>
-    ): FuncN<Any, R> =
-            BlockingQuery(lowLevel, query, argumentTypes, fetch)
+    ): R =
+        fetch.fetch(lowLevel, query, argumentTypes, argumentValues)
 
     private val triggers: Triggerz = Triggerz(lowLevel)
     override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =

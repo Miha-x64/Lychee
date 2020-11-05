@@ -3,7 +3,6 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
 import net.aquadc.persistence.NullSchema
-import net.aquadc.persistence.array
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.fatMapTo
@@ -11,13 +10,12 @@ import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.IdBound
+import net.aquadc.persistence.sql.ListChanges
 import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.Transaction
-import net.aquadc.persistence.sql.FuncN
-import net.aquadc.persistence.sql.ListChanges
-import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.sql.TriggerReport
 import net.aquadc.persistence.sql.TriggerSubject
@@ -37,7 +35,6 @@ import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
-import org.intellij.lang.annotations.Language
 import java.io.Closeable
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -69,7 +66,7 @@ class JdbcSession(
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
-    @JvmField @JvmSynthetic internal var transaction: RealTransaction? = null
+    @JvmField @JvmSynthetic internal var transaction: RealTransaction<Blocking<ResultSet>>? = null
 
     private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
@@ -216,7 +213,7 @@ class JdbcSession(
         ): Array<Any?> =
             select<SCH, ID>(table, id, columnNames).fetchColumns(columnTypes)
 
-        override val transaction: RealTransaction?
+        override val transaction: RealTransaction<Blocking<ResultSet>>?
             get() = this@JdbcSession.transaction
 
         private fun <T> ResultSet.fetchAllRows(type: Ilk<T, *>): List<T> {
@@ -369,9 +366,13 @@ class JdbcSession(
 
 
         override fun <T> cell(
-            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, type: Ilk<T, *>, orElse: () -> T
+            query: String,
+            argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+            sessionAndArguments: Array<out Any>,
+            type: Ilk<T, *>,
+            orElse: () -> T
         ): T {
-            val rs = select(query, argumentTypes, arguments, 1)
+            val rs = select(query, argumentTypes, sessionAndArguments, 1)
             try {
                 if (!rs.next()) return orElse()
                 val value = type.get(rs, 0)
@@ -383,11 +384,13 @@ class JdbcSession(
         }
 
         override fun select(
-            query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
+            query: String,
+            argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+            expectedCols: Int
         ): ResultSet = statement(query, false)
                 .also { stmt ->
                     for (idx in argumentTypes.indices) {
-                        (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, arguments[idx])
+                        (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, sessionAndArguments[idx+1])
                     }
                 }
                 .executeQuery()
@@ -407,7 +410,6 @@ class JdbcSession(
             query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
             transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
         ): Any? {
-            check((transactionAndArguments[0] as RealTransaction).lowSession == this)
             val statement = statement(query, retKeyType != null)
             val altered = statement
                 .also { stmt ->
@@ -526,7 +528,7 @@ class JdbcSession(
     }
 
 
-    override fun beginTransaction(): Transaction =
+    override fun beginTransaction(): Transaction<Blocking<ResultSet>> =
         createTransaction(lock, lowLevel).also {
             connection.autoCommit = false
             transaction = it
@@ -542,11 +544,12 @@ class JdbcSession(
     }
 
     override fun <R> rawQuery(
-        @Language("SQL") query: String,
+        query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        argumentValues: Array<out Any>,
         fetch: Fetch<Blocking<ResultSet>, R>
-    ): FuncN<Any, R> =
-            BlockingQuery(lowLevel, query, argumentTypes, fetch)
+    ): R =
+        fetch.fetch(lowLevel, query, argumentTypes, argumentValues)
 
     private val triggers = Triggerz(lowLevel)
     override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =

@@ -4,6 +4,7 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.persistence.CloseableIterator
 import net.aquadc.persistence.CloseableStruct
 import net.aquadc.persistence.sql.BindBy
+import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.throwNse
@@ -23,12 +24,14 @@ interface Blocking<CUR> {
     // Android SQLite API has special methods for single-cell selections
     fun <T> cell(
         query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
         type: Ilk<T, *>, orElse: () -> T
     ): T
 
     fun select(
-        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>, expectedCols: Int
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        expectedCols: Int
     ): CUR
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
@@ -53,9 +56,6 @@ interface Blocking<CUR> {
      */
     fun close(cursor: CUR)
 }
-
-internal typealias Exec<SRC, R> =
-    (SRC, query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>) -> R
 
 object Eagerly { // TODO support Ilk everywhere
 
@@ -93,7 +93,7 @@ object Eagerly { // TODO support Ilk everywhere
 
     inline fun <T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<Blocking<*>, T> =
         ExecuteEagerlyFor(pkType).also { check(pkType !== nothing) }
-            as (Blocking<*>, String, Array<out Ilk<*, DataType.NotNull<*>>>, Array<out Any>) -> T
+            as Exec<Blocking<*>, T>
 }
 
 object Lazily {
