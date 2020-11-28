@@ -10,6 +10,10 @@ import net.aquadc.properties.MutableProperty
 /**
  * Returns a [View.OnClickListener] which sets [this] [RecyclerView.ViewHolder.getLayoutPosition] to [target] when triggered.
  */
+@Deprecated(
+    "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
+    ReplaceWith("setPositionWhenClicked", "net.aquadc.properties.android.bindings.androidx.widget.recycler.setPositionWhenClicked")
+)
 inline fun RecyclerView.ViewHolder.setPositionWhenClicked(target: MutableProperty<in Int>): View.OnClickListener =
         ClickListener<Nothing>(this, target)
 
@@ -17,6 +21,10 @@ inline fun RecyclerView.ViewHolder.setPositionWhenClicked(target: MutablePropert
 /**
  * Returns a [View.OnLongClickListener] which sets [this] [RecyclerView.ViewHolder.getLayoutPosition] to [target] when triggered.
  */
+@Deprecated(
+    "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
+    ReplaceWith("setPositionWhenLongClicked", "net.aquadc.properties.android.bindings.androidx.widget.recycler.setPositionWhenLongClicked")
+)
 inline fun RecyclerView.ViewHolder.setPositionWhenLongClicked(target: MutableProperty<in Int>): View.OnLongClickListener =
         ClickListener<Nothing>(this, target)
 
