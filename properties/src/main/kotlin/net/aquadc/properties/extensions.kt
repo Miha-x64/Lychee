@@ -72,10 +72,59 @@ fun <P : Property<T>, T> P.onEach(func: (T) -> Unit): P = apply { // TODO: concu
 
 /**
  * If [subscribe], calls [Property.addChangeListener]; if not, calls [Property.removeChangeListener].
+ * [onChange] value must be stable between invocations.
+ * Avoid passing a lambda, anonymous fun, object declaration, or bound function reference
+ * in place, store it in a field.
  */
+@Deprecated(
+    "This function ignores value changes happened in detached state.",
+    ReplaceWith("this.syncIf(subscribe, onChange, TODO())", "net.aquadc.properties.syncIf")
+)
 fun <T> Property<T>.observeChangesIf(subscribe: Boolean, onChange: ChangeListener<T>) {
     if (subscribe) addChangeListener(onChange)
     else removeChangeListener(onChange)
+}
+
+/**
+ * If [subscribe], adds [onChange] as a listener to this property and invokes it with up to date value;
+ * if not, unsubscribes and invokes [onChange] with [dummy] value.
+ *
+ * This could be used with ObservingAdapter to avoid listening changes when RecyclerView is detached.
+ *
+ * [onChange] value must be stable between invocations.
+ * Avoid passing a lambda, anonymous fun, object declaration, or bound function reference
+ * in place, store it in a field. (Yep, [onChange] parameter is intentionally not last.)
+ */
+@JvmName("syncUsingDummyIf")
+fun <T> Property<T>.syncIf(subscribe: Boolean, onChange: ChangeListener<T>, dummy: T) {
+    if (subscribe) {
+        addChangeListener(onChange)
+        onChange(dummy, value)
+    } else {
+        removeChangeListener(onChange)
+        onChange(value, dummy)
+    }
+}
+
+/**
+ * If [subscribe], adds [onChange] as a listener to this property and invokes it with up to date value;
+ * if not, unsubscribes.
+ *
+ * This could be used with ObservingAdapter to avoid listening changes when RecyclerView is detached.
+ * Pass the value left from the last change using [stale] parameter.
+ *
+ * [onChange] value must be stable between invocations.
+ * Avoid passing a lambda, anonymous fun, object declaration, or bound function reference
+ * in place, store it in a field. (Yep, [onChange] parameter is intentionally not last.)
+ */
+@JvmName("syncUsingStaleIf")
+fun <T> Property<T>.syncIf(subscribe: Boolean, onChange: ChangeListener<T>, stale: T, `kill me please`: Nothing? = null) {
+    if (subscribe) {
+        addChangeListener(onChange)
+        onChange(stale, value)
+    } else {
+        removeChangeListener(onChange)
+    }
 }
 
 /**

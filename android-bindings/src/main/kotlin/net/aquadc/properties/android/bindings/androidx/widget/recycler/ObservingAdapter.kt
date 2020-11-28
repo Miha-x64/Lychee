@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 /**
  * A simple abstract [RecyclerView.Adapter] which knows whether it is being observed by [RecyclerView] instances.
  * Don't forget to null out the adapter! Keep an eye on memory leaks! https://issuetracker.google.com/issues/154751401
+ * @see RecyclerView.observeAdapter
  */
 abstract class ObservingAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
 
