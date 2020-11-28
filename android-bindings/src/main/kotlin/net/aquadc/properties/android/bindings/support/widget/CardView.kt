@@ -12,7 +12,7 @@ import net.aquadc.properties.android.bindings.bindViewTo
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("bindCardBackgroundColorTo", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorTo")
+    ReplaceWith("this.bindCardBackgroundColorTo(backgroundColorProperty)", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorTo")
 )
 fun CardView.bindCardBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
         bindViewTo(backgroundColorProperty) { cv, color -> cv.setCardBackgroundColor(color) }
@@ -22,7 +22,7 @@ fun CardView.bindCardBackgroundColorTo(backgroundColorProperty: Property<Int>): 
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("bindCardBackgroundColorResTo", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorResTo")
+    ReplaceWith("this.bindCardBackgroundColorResTo(backgroundColorResProperty)", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorResTo")
 )
 fun CardView.bindCardBackgroundColorResTo(backgroundColorResProperty: Property<Int>): Unit =
         bindViewTo(backgroundColorResProperty) { cv, colorRes ->
