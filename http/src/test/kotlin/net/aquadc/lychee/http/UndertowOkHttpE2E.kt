@@ -58,7 +58,7 @@ class UndertowOkHttpE2E {
             rqXxx = xxx
             "Access granted."
         } }
-        val func = client.template(baseUrl, getUser, blocking { body!!.string() })
+        val func = client.template(baseUrl, getUser, blocking { body!!.use { it.string() } })
 
         val id = UUID.randomUUID()
         val authorizedFunc = func("sooper secred")
@@ -95,7 +95,7 @@ class UndertowOkHttpE2E {
             UUID.randomUUID()
         } }
 
-        val doUpdateUser = client.template(baseUrl, updateUser, blocking { UUID.fromString(body!!.string()) })
+        val doUpdateUser = client.template(baseUrl, updateUser, blocking { UUID.fromString(body!!.use { it.string() }) })
         var id = doUpdateUser(true, listOf("whatever" to "brrrr"), "John", "john@", 1736,
             listOf("blah" to "whatever1", "blah" to "whatever2", "zzz" to "xxx"))
         assertEquals(true, rqAdmin)
