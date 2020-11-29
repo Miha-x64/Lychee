@@ -141,8 +141,9 @@ fun <T : Any, U> Property<T?>.flatMapNotNullOrDefault(default: U, transform: (T)
  * Drops current binding, if any.
  */
 fun <T> MutableProperty<T>.unbind() {
-    val v = value
-    casValue(v, v)
+    do {
+        val v = value
+    } while (!casValue(v, v))
 }
 
 /**
