@@ -42,9 +42,12 @@ internal fun <V : View, T> V.bindViewToBinding(source: Property<T>, binding: Bin
 }
 
 @PublishedApi internal fun <T, V : View> V.attach(binding: Binding<V, T>) {
+    // the order is important: binding code from onViewAttachedToWindow() could remove view (like LazyView does)
+    // and we must get onViewDetachedFromWindow() called.
+    addOnAttachStateChangeListener(binding)
+
     // if the view is already attached, catch up with this state
     if (windowToken != null) binding.onViewAttachedToWindow(this)
-    addOnAttachStateChangeListener(binding)
 }
 
 /**
@@ -69,36 +72,34 @@ fun <V : View, T> V.bindViewTo(source: Property<T>, destination: android.util.Pr
       , (T, T) -> Unit, Runnable // value changed
 {
 
-    @UiThread override fun onViewAttachedToWindow(v: View) {
+    @UiThread final override fun onViewAttachedToWindow(v: View) {
         /*view.context.observeStartedIf(true, this)*/ invoke(true)
     }
-    @UiThread override fun onViewDetachedFromWindow(v: View) {
+    @UiThread final override fun onViewDetachedFromWindow(v: View) {
         /*view.context.observeStartedIf(false, this)*/ invoke(false)
     }
 
     @UiThread /*override*/ fun invoke(isStarted: Boolean) { // View is attached, let's think Activity is started
         if (isStarted) {
-            // We're probably the first listener,
-            // subscription may trigger value computation.
-            property.addUnconfinedChangeListener(this)
-            // support even single-threaded props confined to bg threads, why not? just bind from such threads, LOL
+            // We're probably the first listener, thus, our subscription will trigger value computation.
+            property.addUnconfinedChangeListener(this) // run() will call view.post() from any BG thread
 
-            run() // Bind when value computed.
+            run() // Now let's peek value, it is already computed at this point.
         } else {
             property.removeChangeListener(this)
-            view.removeCallbacks(this) // we're could be posted
+            view.removeCallbacks(this) // we could be posted
         }
     }
 
-    /*@AnyThread*/ override fun invoke(p1: T, p2: T) { // View is attached, Activity is started
-        if (Looper.myLooper() == view.handler.looper) { // Lint can't infer UiThread in this block,
-            run() // that's why @AnyThread is commented out.
+    /*@AnyThread*/ final override fun invoke(p1: T, p2: T) { // View is attached
+        if (Looper.myLooper() == view.handler.looper) {
+            run() // Lint can't infer UiThread in this block, that's why @AnyThread is commented out.
         } else { // post() can lead to double-triple-whatever posts, even from different threads,
             view.post(this) // but run() gonna debounce 'em all.
         }
     }
 
-    @UiThread override fun run() {
+    @UiThread final override fun run() {
         view.removeCallbacks(this) // debounce, whatever the thread
         bind(view, property.value)
     }
