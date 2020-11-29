@@ -3,7 +3,6 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion target_android_version
-    buildToolsVersion build_tools_version
 
     defaultConfig {
         //noinspection MinSdkTooLow

@@ -2,7 +2,6 @@ package net.aquadc.properties.function
 
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.executor.PlatformExecutors
-import java.util.Arrays
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
