@@ -105,10 +105,10 @@ class ContenededSubscription {
         assertEquals(1, mapperCalled)
 
         val listener: ChangeListener<Int> = { _, _ -> }
-        prop.addUnconfinedChangeListener(listener)
+        prop.addUnconfinedChangeListener(listener) // this will trigger value evaluation
         assertEquals(2, mapperCalled)
 
-        prop.value
+        prop.value // since value is already evaluated, nothing happens
         assertEquals(2, mapperCalled)
 
         original.value = 0
@@ -117,32 +117,32 @@ class ContenededSubscription {
         prop.value
         assertEquals(3, mapperCalled)
 
-        prop.removeChangeListener(listener)
+        prop.removeChangeListener(listener) // no one's listening, drop value
 
-        prop.value
+        prop.value // evaluate
         assertEquals(4, mapperCalled)
 
         prop.addUnconfinedChangeListener(object : ChangeListener<Int> {
             override fun invoke(old: Int, new: Int) {
-                prop.removeChangeListener(listener)
+                prop.removeChangeListener(listener) // I don't remember why I'm trying to remove nonexistent listener
                 prop.removeChangeListener(this)
             }
-        })
+        }) // subscribe & evaluate
         assertEquals(5, mapperCalled)
 
         original.value = 0
         assertEquals(6, mapperCalled)
 
-        prop.value
+        prop.value // this will also unsubscribe our listener from the above
         assertEquals(7, mapperCalled)
 
         prop.addUnconfinedChangeListener(object : ChangeListener<Int> {
             override fun invoke(old: Int, new: Int) {
-                prop.addUnconfinedChangeListener(listener)
-                prop.removeChangeListener(this)
-                prop.removeChangeListener(listener)
+                prop.addUnconfinedChangeListener(listener) // queued 'cause we're notifying now
+                prop.removeChangeListener(this) // unobserved
+                prop.removeChangeListener(listener) // unqueue
             }
-        })
+        }) // evaluate
         assertEquals(8, mapperCalled)
 
         original.value = 0

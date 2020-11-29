@@ -210,8 +210,10 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                 break // real end of queue, nothing to do here
 
             val newer = pendingValues[i]
-            if (newer is ConcListeners.AddListener<*>) {
-                nonSyncReallyAddChangeListener(newer.listener as LISTENER, pendingValues)
+            if (newer === Unset) {
+                // this is a soul of a dead listener
+            } else if (newer is ConcListeners.AddListener<*>) {
+                nonSyncReallyAddChangeListener(newer.listener as LISTENER, true)
             } else {
                 newer as UPDATE
                 val newerValue = unpackValue(newer)
@@ -285,22 +287,22 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         val old = concState().getUndUpdate {
             it.withListener(onChange)
         }
-        if (old.listeners.all { it == null } && old.pending.isEmpty()) {
+        if (old.listeners.all { it == null }) {
             changeObservedStateTo(true)
-        } // else if pending.isNotEmpTy() => we're currently notifying and won't change observed state
+        }
     }
 
     protected fun nonSyncAddChangeListenerInternal(onChange: LISTENER) {
         checkThread()
         val pending = nonSyncPending().get()
         if (pending === null) { // currently not notifying
-            nonSyncReallyAddChangeListener(onChange, pending)
+            nonSyncReallyAddChangeListener(onChange, false)
         } else { // currently notifying — postpone subscription
             nonSyncPending().lazySet(pending.with(ConcListeners.AddListener(onChange)))
         }
     }
 
-    private fun nonSyncReallyAddChangeListener(onChange: LISTENER, pending: Array<Any?>?) {
+    private fun nonSyncReallyAddChangeListener(onChange: LISTENER, notifyingNow: Boolean) {
         when (val listeners = nonSyncListeners) {
             null -> {
                 nonSyncListeners = onChange
@@ -309,10 +311,13 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
             // this typecheck will break if single-threaded DiffProperty will be added! [1/2]
             is Function2<*, *, *> -> nonSyncListeners = arrayOf(listeners, onChange)
             is Array<*> -> {
-                if (pending != null) {
+                if (notifyingNow) {
                     // notifying now, expand array without structural changes
                     nonSyncListeners = listeners.with(onChange)
-                    // don't check observed state, just assume it's 'true' during notification
+
+                    // It sounds contradictive but we could be unobserved while notifying.
+                    // It happens when our last listener unsubscribed itself when we called it.
+                    if (listeners.all { it == null }) changeObservedStateTo(true)
                 } else {
                     listeners as Array<Any?>
                     // not notifying, we can do anything we want
@@ -370,11 +375,10 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
                     prev.withoutListenerAt(victimIdx)
                 } else {
                     // at this point we don't mind this flag
-                    // since we're gonna remove a listener which has not been actually added,
+                    // since we're gonna remove a listener which was queued but not added yet,
                     // leaving observed state unchanged
                     hasOthers = true
 
-                    // we must also search in ConcListeners.pending since it may contain listeners, too
                     val prevPending = prev.pending
                     var pendingVictimIdx = -1
                     for (i in prevPending.indices) {
@@ -402,32 +406,47 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
         } else { // single-thread
             checkThread()
             when (val listeners = nonSyncListeners) {
-                null -> return
+                null -> { } // nothing to do here, proceed to pending
                 // this typecheck will break if single-threaded DiffProperty will be added! [2/2]
                 is Function2<*, *, *> -> {
                     @Suppress("UNCHECKED_CAST")
-                    if (!predicate(listeners as LISTENER))
-                        return
+                    if (predicate(listeners as LISTENER)) {
 
-                    nonSyncListeners =
+                        nonSyncListeners =
                             if (nonSyncPending().get() == null) null
                             else SingleNull.also { check(it[0] === null) }
 
-                    changeObservedStateTo(false)
+                        changeObservedStateTo(false)
+
+                        return
+                    }
                 }
                 is Array<*> -> {
                     val idx = listeners.indexOfFirst {
                         @Suppress("UNCHECKED_CAST")
                         it != null && predicate(it as LISTENER)
                     }
-                    if (idx < 0) return
 
-                    @Suppress("UNCHECKED_CAST")
-                    (listeners as Array<Any?>)[idx] = null
+                    if (idx >= 0) {
+                        @Suppress("UNCHECKED_CAST")
+                        (listeners as Array<Any?>)[idx] = null
 
-                    if (listeners.all { it == null }) changeObservedStateTo(false)
+                        if (listeners.all { it == null }) changeObservedStateTo(false)
+
+                        return
+                    }
                 }
                 else -> throw AssertionError()
+            }
+            // still no luck finding this listener, now let's search in pending
+            nonSyncPending().get()?.let { pending ->
+                val idx = pending.indexOfFirst {
+                    @Suppress("UNCHECKED_CAST")
+                    it is ConcListeners.AddListener<*> && predicate(it.listener as LISTENER)
+                }
+                if (idx >= 0) { // remove this listener without altering structure 'cause we're iterating `pending` now
+                    pending[idx] = Unset
+                }
             }
         }
     }
