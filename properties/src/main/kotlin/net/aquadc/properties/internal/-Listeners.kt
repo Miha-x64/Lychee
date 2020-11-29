@@ -542,4 +542,15 @@ abstract class `-Listeners`<out T, in D, LISTENER : Any, UPDATE> : AtomicReferen
     internal inline fun nonSyncPending() =
             this as AtomicReference<Array<Any?>?> // = UPDATE | AddListener<LISTENER>
 
+    override fun toString(): String {
+        val sb = StringBuilder(javaClass.simpleName)
+        var iof: Int
+        while (sb.indexOf('-').also { iof = it } >= 0) {
+            sb.replace(iof, iof + 1, "Property")
+        }
+        if (thread == null || thread == Thread.currentThread()) sb.append('(').append(value).append(')')
+        else sb.append("[can't access value on this thread]")
+        return sb.toString()
+    }
+
 }
