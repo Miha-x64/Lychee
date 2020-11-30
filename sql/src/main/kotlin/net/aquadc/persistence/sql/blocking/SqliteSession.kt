@@ -38,8 +38,8 @@ import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.createTable
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.wordCountForCols
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i32
@@ -66,8 +66,8 @@ class SqliteSession(
 
     @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement, Cursor>() {
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID {
-            val sql = SqliteDialect.insert(table)
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID {
+            val sql = with(SqliteDialect) { StringBuilder().insert(table, data.fields).toString() }
             val statement = statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
             bindInsertionParams(table, data) { type, idx, value ->
                 (type.type as DataType<Any?>).bind(statement, idx, value)

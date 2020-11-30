@@ -12,19 +12,31 @@ import net.aquadc.persistence.type.Ilk
  * Fetching or storing a single value is trivial,
  * but handling a nested struct is a bit different.
  */
-internal interface SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound> {
+internal abstract class SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound>(
+    @JvmField val colCount: Int
+) {
+    abstract fun nameAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): CharSequence
+    abstract fun typeAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): Ilk<*, *>
 
-    fun <T> fetch(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
+    abstract fun <T> fetch(
+        lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
     ): T
 
-    fun <T, CUR> get(
-            lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
-            bindBy: BindBy
+    abstract fun <T, CUR> get(
+        lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR, bindBy: BindBy
     ): T
+
+    abstract fun <T> flattenTo(out: Array<Any?>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, value: T)
 }
 
-internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH, ID> {
+internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH, ID>(1) {
+
+    override fun nameAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): CharSequence =
+        if (index == 0) table.schema.run { field.name }
+        else throw IndexOutOfBoundsException()
+    override fun typeAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): Ilk<*, *> =
+        if (index == 0) table.typeOf(field as FieldDef<SCH, Any?, DataType<Any?>>)
+        else throw IndexOutOfBoundsException()
 
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
@@ -37,6 +49,10 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
             bindBy: BindBy
     ): T =
             lowSession.cell<SCH, CUR, T>(cursor, table, field, bindBy)
+
+    override fun <T> flattenTo(out: Array<Any?>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, value: T) {
+        out[0] = value
+    }
 }
 
 internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
@@ -44,7 +60,12 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
     private val myOffset: Int,
     private val columnNames: Array<out CharSequence>,
     private val columnTypes: Array<Ilk<*, *>>
-) : SqlPropertyDelegate<SCH, ID> {
+) : SqlPropertyDelegate<SCH, ID>(recipe.first()!!.colCount) {
+
+    override fun nameAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): CharSequence =
+        columnNames[index]
+    override fun typeAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): Ilk<*, *>  =
+        columnTypes[index]
 
     override fun <T> fetch(
             lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
@@ -60,5 +81,9 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
     private fun <T> inflated(values: Array<Any?>): T {
         inflate(recipe, values, 0, 0, 0)
         return values[0] as T
+    }
+
+    override fun <T> flattenTo(out: Array<Any?>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, value: T) {
+        flatten(recipe, out, value, 0, 0)
     }
 }

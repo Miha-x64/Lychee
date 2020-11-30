@@ -9,7 +9,10 @@ import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.stream.DataStreams
 import net.aquadc.persistence.stream.write
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.type.DataType
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -21,11 +24,24 @@ import java.io.DataOutputStream
     private val arrayPostfix: String?
 ) : Dialect {
 
-    override fun <SCH : Schema<SCH>> insert(table: Table<SCH, *>): String = buildString {
-        val cols = table.managedColNames
-        append("INSERT INTO ").appendName(table.name).append(" (")
-                .appendNames(cols).append(") VALUES (").appendPlaceholders(cols.size)
-                .append(");")
+    override fun <SCH : Schema<SCH>> StringBuilder.insert(
+        table: Table<SCH, *>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>
+    ): StringBuilder {
+        var count = 0
+        return append("INSERT INTO ")
+            .appendName(table.name).append(" (")
+            .apply {
+                table.schema.forEach(fields) { f ->
+                    val d = table.delegateFor(f)
+                    val cc = d.colCount
+                    repeat(cc) {
+                        appendName(d.nameAt(table, f, it)).append(", ")
+                    }
+                    count += cc
+                }
+                setLength(length - 2) // last ", "
+            }
+            .append(") VALUES (").appendPlaceholders(count).append(");")
     }
 
     override fun <SCH : Schema<SCH>> StringBuilder.selectQuery(

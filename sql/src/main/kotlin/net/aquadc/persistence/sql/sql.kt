@@ -8,6 +8,7 @@ package net.aquadc.persistence.sql
 import androidx.annotation.CheckResult
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
@@ -126,7 +127,7 @@ interface Transaction<SRC> : Closeable {
     /**
      * Insert [data] into a [table].
      */
-    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>/*todo patch: Partial*/): ID
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>/*todo patch: Partial*/): ID
 
     /**
      * Insert all the [data] into a table.

@@ -5,6 +5,8 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
+import net.aquadc.persistence.struct.FieldDef
+import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.type.DataType
 
 /**
@@ -15,7 +17,7 @@ interface Dialect {
     /**
      * Constructs an `INSERT INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
      */
-    fun <SCH : Schema<SCH>> insert(table: Table<SCH, *>): String
+    fun <SCH : Schema<SCH>> StringBuilder.insert(table: Table<SCH, *>, fields: FieldSet<SCH, out FieldDef<SCH, *, *>>): StringBuilder
 
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`

@@ -6,8 +6,8 @@ import net.aquadc.persistence.sql.RealTransaction
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.Ilk
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
     val statements = ThreadLocal<MutableMap<Any, STMT>>()
 
-    abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID
+    abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID)
 

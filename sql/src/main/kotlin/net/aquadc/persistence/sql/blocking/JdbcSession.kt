@@ -27,8 +27,8 @@ import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.wordCountForCols
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -70,8 +70,8 @@ class JdbcSession(
 
     private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
-        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: Struct<SCH>): ID {
-            val sql = dialect.insert(table)
+        override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID {
+            val sql = with(dialect) { StringBuilder().insert(table, data.fields).toString() }
             val key = Pair(sql, null)
             val statements = statements.getOrSet(::newMap)
             val statement = statements.getOrPut(key) {

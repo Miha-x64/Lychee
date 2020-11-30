@@ -1,8 +1,8 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.sql.blocking.LowLevelSession
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 
 
 internal class RealTransaction<SRC>(
@@ -14,7 +14,7 @@ internal class RealTransaction<SRC>(
     private var isSuccessful = false
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(
-            table: Table<SCH, ID>, data: Struct<SCH>
+        table: Table<SCH, ID>, data: PartialStruct<SCH>
     ): ID {
         checkOpenAndThread()
         return lowSession.insert(table, data)

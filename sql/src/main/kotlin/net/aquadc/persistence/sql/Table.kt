@@ -12,14 +12,10 @@ import net.aquadc.persistence.struct.NamedLens
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
-import net.aquadc.persistence.struct.forEachIndexed
-import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing
-import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.properties.internal.Unset
 
 
 /**
@@ -44,6 +40,10 @@ private constructor(
 // TODO: foreign keys, [unique] indices https://github.com/greenrobot/greenDAO/blob/72cad8c9d5bf25d6ed3bdad493cee0aee5af8a70/greendao-api/src/main/java/org/greenrobot/greendao/annotation/Index.java
 ) {
 
+    @Deprecated(
+        "Since there's no Record anymore, it doesn't make sense to create a table without defining a primary key in a Struct.",
+        ReplaceWith("Table(schema, name, SCH.Id)")
+    )
     constructor(schema: SCH, name: String, idColName: String, idColType: DataType.NotNull.Simple<ID>) :
             this(schema, name, idColName, idColType, null)
 
@@ -224,10 +224,6 @@ private constructor(
                     outColumnTypes.subList(start, outColumns.size).array()
                 )) === null)
             }
-            else -> TODO()
-//            is Relation.ToOne<*, *, *, *, *> ->
-//            is Relation.ToMany<*, *, *, *, *, *, *> ->
-//            is Relation.ManyToMany<*, *, *, *, *> ->
         }.also { }
     }
 
@@ -349,6 +345,10 @@ private constructor(
 
 
 @Suppress("NOTHING_TO_INLINE") // pass-through
+@Deprecated(
+    "Since there's no Record anymore, it doesn't make sense to create a table without defining a primary key in a Struct.",
+    ReplaceWith("tableOf(schema, name, SCH.Id)")
+)
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, idColName: String, idColType: DataType.NotNull.Simple<ID>): Table<SCH, ID> =
         Table(schema, name, idColName, idColType)
 
@@ -359,6 +359,10 @@ inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(schema: SCH, name: String, 
 // infer type arguments instead of forcing client to specify them explicitly in object expression
 // (he-he, modern Java allows writing `new Table<>() {}`):
 
+@Deprecated(
+    "Since there's no Record anymore, it doesn't make sense to create a table without defining a primary key in a Struct.",
+    ReplaceWith("tableOf(schema, name, SCH.Id, meta)")
+)
 inline fun <SCH : Schema<SCH>, ID : IdBound> tableOf(
     schema: SCH, name: String, idColName: String, idColType: DataType.NotNull.Simple<ID>,
     crossinline meta: SCH.() -> Array<out ColMeta<SCH>>

@@ -1,16 +1,14 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
+import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StoredLens
 import net.aquadc.persistence.struct.StoredNamedLens
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
-import net.aquadc.persistence.struct.contains as originalContains
+import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
@@ -18,29 +16,8 @@ import net.aquadc.persistence.type.CustomType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.serialized
-import java.lang.ref.WeakReference
-import java.util.concurrent.ConcurrentMap
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
+import net.aquadc.persistence.struct.contains as originalContains
 
-
-internal typealias UpdatesMap = MutableMap<
-        Table<*, *>,
-        MutableMap<
-                IdBound,
-                @ParameterName("valuesByOrdinal") Array<Any?>
-                >
-        >
-
-@Suppress("NOTHING_TO_INLINE")
-internal inline fun UpdatesMap() = newMap<
-        Table<*, *>,
-        MutableMap<
-                IdBound,
-                Array<Any?>
-                >
-        >()
 
 internal inline fun <T, R> DataType<T>.flattened(func: (isNullable: Boolean, simple: DataType.NotNull.Simple<T>) -> R): R =
         when (this) {
@@ -65,46 +42,19 @@ internal inline fun <SCH : Schema<SCH>, ID : IdBound> bindQueryParams( // todo i
 
 internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
     table: Table<SCH, *>,
-    data: Struct<SCH>,
+    data: PartialStruct<SCH>,
     bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
 ) {
-    val columns = table.managedColTypes
-    arrayOfNulls<Any>(columns.size).also { flatten(table.recipe, it, data, 0, 0) }.forEachIndexed { idx, value ->
-        bind(columns[idx] as Ilk<Any?, *>, idx, value)
-    }
-}
-
-internal inline fun bindValues(
-        columnTypes: Any, values: Any?, bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
-): Int = if (columnTypes is Array<*>) {
-    columnTypes as Array<out Ilk<*, *>>
-    values as Array<*>?
-    columnTypes.forEachIndexed { i, type ->
-        bind(type as Ilk<Any?, *>, i, values?.get(i))
-    }
-    columnTypes.size
-} else {
-    bind(columnTypes as Ilk<Any?, *>, 0, values)
-    1
-}
-
-internal inline fun <K, V : Any> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V): V =
-        getOrPutWeak(key, create) { _, v -> v }
-
-@OptIn(ExperimentalContracts::class)
-internal inline fun <K, V : Any, R> ConcurrentMap<K, WeakReference<V>>.getOrPutWeak(key: K, create: () -> V, success: (WeakReference<V>, V) -> R): R {
-    contract {
-        callsInPlace(success, InvocationKind.EXACTLY_ONCE)
-    }
-
-    while (true) {
-        val ref = getOrPut(key) {
-            // putIfAbsent here may return either newly created or concurrently inserted value
-            WeakReference(create())
+    var tmp: Array<Any?>? = null
+    var idx = 0
+    table.schema.forEach(data.fields) { f ->
+        val d = table.delegateFor(f)
+        val cc = d.colCount
+        if (tmp == null || tmp!!.size < cc) tmp = arrayOfNulls(cc)
+        d.flattenTo(tmp!!, table, f as FieldDef<SCH, Any?, *>, data.getOrThrow(f))
+        repeat(cc) {
+            bind(d.typeAt(table, f, it) as Ilk<Any?, *>, idx++, tmp!![it])
         }
-        val value = ref.get()
-        if (value === null) remove(key, ref)
-        else return success(ref, value)
     }
 }
 
