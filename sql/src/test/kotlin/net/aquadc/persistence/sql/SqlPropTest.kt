@@ -1,13 +1,6 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.struct.invoke
-import net.aquadc.persistence.struct.transaction
-import net.aquadc.properties.ChangeListener
-import net.aquadc.properties.addUnconfinedChangeListener
-import net.aquadc.properties.testing.assertReturnsGarbage
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertSame
 import org.junit.Assert.fail
 import org.junit.AssumptionViolatedException
 import org.junit.Test

@@ -12,7 +12,6 @@ import net.aquadc.persistence.sql.dialect.postgres.PostgresDialect
 import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.struct.invoke
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
