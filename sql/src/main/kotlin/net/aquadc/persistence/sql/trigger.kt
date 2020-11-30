@@ -86,6 +86,10 @@ class ListChanges<SCH : Schema<SCH>, ID : IdBound> internal constructor(
     private val numWords =
         if (table == null) -1 else wordCountForCols(table.managedColumns.size)//.also { check(changes.size == updated.size * it) }
 
+    inline operator fun component1(): Set<ID> = inserted
+    inline operator fun component2(): Set<ID> = updated
+    inline operator fun component3(): Set<ID> = removed
+
     fun updatedColumns(id: ID): Array<StoredLens<SCH, *, *>> {
         val updIndex = _updated[id] ?: return emptyArray()
         val updOffset = updIndex * numWords
