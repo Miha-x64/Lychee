@@ -87,7 +87,7 @@ inline fun <reified E : Enum<E>> enumSet(
 
 
 @Suppress("UNCHECKED_CAST")
-@PublishedApi internal fun <E> enumSetInternal(
+@PublishedApi @JvmSynthetic internal fun <E> enumSetInternal(
     type: Class<E>,
     values: Array<E>,
     encodeAs: DataType.NotNull.Simple<Long>,
