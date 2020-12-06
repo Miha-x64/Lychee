@@ -94,7 +94,7 @@ fun <T> Property<T>.observeChangesIf(subscribe: Boolean, onChange: ChangeListene
  * in place, store it in a field. (Yep, [onChange] parameter is intentionally not last.)
  */
 @JvmName("syncUsingDummyIf")
-fun <T> Property<T>.syncIf(subscribe: Boolean, onChange: ChangeListener<T>, dummy: T) {
+fun <T> Property<T>.syncIf(subscribe: Boolean, onChange: ChangeListener<T>, dummy: T, `kill me please`: Unit? = null) {
     if (subscribe) {
         addChangeListener(onChange)
         onChange(dummy, value)
