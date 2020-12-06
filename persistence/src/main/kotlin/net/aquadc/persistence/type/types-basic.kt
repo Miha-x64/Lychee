@@ -132,13 +132,16 @@ fun <E, DE : DataType<E>> set(elementType: DE): DataType.NotNull.Collect<Set<E>,
 fun <E> list(@Suppress("UNUSED_PARAMETER") elementType: DataType<E>): Nothing =
         throw UnsupportedOperationException()
 
-@JvmField val nothing: DataType.NotNull.Simple<Nothing> = object : DataType.NotNull.Simple<Nothing>(Kind.I32) {
+@JvmField @JvmSynthetic
+val nothing: DataType.NotNull.Simple<Nothing> = object : DataType.NotNull.Simple<Nothing>(Kind.I32) {
     override fun load(value: SimpleValue): Nothing =
             throw UnsupportedOperationException()
-
     override fun store(value: Nothing): SimpleValue =
             throw UnsupportedOperationException()
 }
+@JvmName("nothing")
+fun nothing4J(): DataType.NotNull.Simple<Void> =
+    nothing as DataType.NotNull.Simple<Void>
 
 // originally these typealiases were in types.kt, but they were the only top-level declarations
 
