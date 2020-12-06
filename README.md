@@ -582,8 +582,8 @@ repositories {
 
 // module-level build.gradle
 dependencies {
-    def lychee = '0.0.16'
-//  val lychee = "0.0.16"
+    def lychee = '0.0.17'
+//  val lychee = "0.0.17"
     implementation("net.aquadc.properties:properties:$lychee") // observables for both JVM and Android
     implementation("net.aquadc.properties:persistence:$lychee") // persistence for JVM and Android
     implementation("net.aquadc.properties:extended-persistence:$lychee") // partial structs, tuples, either, unsigned, primitive[], token transforms
