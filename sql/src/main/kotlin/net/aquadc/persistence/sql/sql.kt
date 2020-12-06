@@ -28,11 +28,6 @@ import kotlin.contracts.contract
  */
 typealias IdBound = Any // Serializable in some frameworks
 
-/**
- * A shorthand for properties backed by RDBMS column & row.
- */
-@Deprecated("Record observability is poor, use SQL templates (session.query()=>function) instead.", level = DeprecationLevel.ERROR)
-typealias SqlProperty<T> = TransactionalProperty<Transaction<*>, T>
 
 @Retention(AnnotationRetention.BINARY)
 @RequiresOptIn("Under construction.", RequiresOptIn.Level.WARNING)
@@ -42,13 +37,6 @@ annotation class ExperimentalSql
  * A gateway into RDBMS.
  */
 interface Session<SRC> : Closeable {
-
-    /**
-     * Lazily creates and returns DAO for the given table.
-     */
-    @Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.",
-        level = DeprecationLevel.ERROR)
-    operator fun <SCH : Schema<SCH>, ID : IdBound> get(table: Table<SCH, ID>): Nothing = throw AssertionError()
 
     /**
      * Opens a transaction, allowing mutation of data.
@@ -83,13 +71,6 @@ interface Session<SRC> : Closeable {
 
 }
 
-
-/**
- * Represents a database session specialized for a certain [Table].
- * {@implNote [Manager] supertype is used by [ManagedProperty] instances}
- */
-@Deprecated("Query builder and record observability are poor, use SQL templates (session.query()=>function) instead.", level = DeprecationLevel.ERROR)
-typealias Dao<SCH, ID> = Nothing
 
 /**
  * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove [Record]s.

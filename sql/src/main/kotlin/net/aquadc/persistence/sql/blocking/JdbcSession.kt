@@ -539,7 +539,7 @@ class JdbcSession(
     override fun toString(): String =
             "JdbcSession(connection=$connection, dialect=${dialect.javaClass.simpleName})"
 
-    @Deprecated("This was intended to list ActiveRecord's queries")
+    @Deprecated("This was intended to list ActiveRecord's queries", level = DeprecationLevel.ERROR)
     fun dump(sb: StringBuilder) {
     }
 

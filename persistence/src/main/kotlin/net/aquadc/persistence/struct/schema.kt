@@ -131,13 +131,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
     // region interface which ends initialization
 
-    /**
-     * A list of fields of this struct.
-     */
-    @Deprecated("use allFieldSet and fieldAt instead", level = DeprecationLevel.ERROR)
-    val fields: Array<out FieldDef<SELF, *, *>>
-        get() = throw AssertionError()
-
     /** A set of all fields of this [Schema]. */
     val allFieldSet: FieldSet<SELF, FieldDef<SELF, *, *>>
         get() = FieldSet(fields().size.let { size ->

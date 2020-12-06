@@ -463,7 +463,7 @@ class SqliteSession(
     override fun toString(): String =
             "SqliteSession(connection=$connection)"
 
-    @Deprecated("This was intended to list ActiveRecord's queries")
+    @Deprecated("This was intended to list ActiveRecord's queries", level = DeprecationLevel.ERROR)
     fun dump(sb: StringBuilder) {
     }
 

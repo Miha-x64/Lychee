@@ -25,28 +25,6 @@ interface Dialect {
     fun <SCH : Schema<SCH>> StringBuilder.selectQuery(table: Table<SCH, *>, columns: Array<out CharSequence>): StringBuilder
 
     /**
-     * Constructs an SQL query like `SELECT COUNT(*) from <table> WHERE <condition>`
-     */
-    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.", level = DeprecationLevel.ERROR)
-    fun <SCH : Schema<SCH>> selectCountQuery(table: Table<SCH, *>, condition: Nothing): String =
-        throw AssertionError()
-
-    /**
-     * Appends ORDER clause (without ORDER BY itself) to [this] builder.
-     * @param order must be non-empty
-     */
-    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.", level = DeprecationLevel.ERROR)
-    fun <SCH : Schema<SCH>> StringBuilder.appendOrderClause(schema: SCH, order: Nothing): StringBuilder =
-        throw AssertionError()
-
-    /**
-     *  Constructs an SQL query like `UPDATE <table> SET <col> = ?`
-     */
-    @Deprecated("The query builder is poor, use SQL templates (session.query()=>function) instead.", level = DeprecationLevel.ERROR)
-    fun <SCH : Schema<SCH>> updateQuery(table: Table<SCH, *>, cols: Array<out CharSequence>): String =
-        throw AssertionError()
-
-    /**
      * Constructs an SQL query like `DELETE FROM <table> WHERE <idCol> = ?`
      */
     fun deleteRecordQuery(table: Table<*, *>): String
