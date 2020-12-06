@@ -283,9 +283,9 @@ internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
     name: CharSequence,
     final override val type: DT
 ) : CustomType<T>(name), Ilk<T, DT> {
-    override fun invoke(p1: T): Any? = p1
+    override fun store(payload: Any?, value: T): Any? = value
     @Suppress("UNCHECKED_CAST")
-    override fun back(p: Any?): T = p as T
+    override fun load(payload: Any?, value: Any?): T = value as T
 
     final override val custom: CustomType<T>? get() = this
 }

@@ -141,7 +141,16 @@ inline fun <T, DT : DataType<T>> nativeType(
     crossinline store: (T) -> Any?,
     crossinline load: (Any?) -> T
 ): Ilk<T, DT> =
+    nativeType<Any?, T, DT>(name, type, { _, v -> store(v) }, { _, v -> load(v) })
+
+inline fun <PL, T, DT : DataType<T>> nativeType(
+    name: CharSequence,
+    type: DT,
+    crossinline store: (PL, T) -> Any?,
+    crossinline load: (PL, Any?) -> T
+): Ilk<T, DT> =
+    @Suppress("UNCHECKED_CAST")
     object : NativeType<T, DT>(name, type) {
-        override fun invoke(p1: T): Any? = store(p1)
-        override fun back(p: Any?): T = load(p)
+        override fun store(payload: Any?, value: T): Any? = store.invoke(payload as PL, value)
+        override fun load(payload: Any?, value: Any?): T = load.invoke(payload as PL, value)
     }

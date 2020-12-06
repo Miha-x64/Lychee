@@ -25,9 +25,9 @@ import org.junit.Assert.assertNotSame
 import org.junit.AssumptionViolatedException
 import org.junit.Before
 import org.junit.Test
-import org.postgresql.jdbc.PgConnection
 import org.postgresql.util.PGobject
 import org.postgresql.util.PSQLException
+import java.sql.Connection
 import java.sql.ResultSet
 import java.util.UUID
 
@@ -156,8 +156,8 @@ class TemplatesPostgres : TemplatesTest() {
             >
             = nativeType(
             "int[][] NOT NULL", collection(intCollection),
-            { p1 -> (session as JdbcSession).connection.unwrap(PgConnection::class.java).createArrayOf("int", p1.toTypedArray()) },
-            { p -> ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() } }
+            { conn: Connection, p1 -> conn.createArrayOf("int", p1.toTypedArray()) },
+            { conn: Connection, p -> ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() } }
             // never cast to Array<Array<Int>>: ^^^^^^^^^^^ empty array will be returned as Array<Int>
         )
         val Yoozerz = tableOf(Yoozer, "yoozerz3", Yoozer.Id) { arrayOf(

@@ -247,7 +247,7 @@ class JdbcSession(
             val i = 1 + index
             val custom = this.custom
             if (custom != null) {
-                statement.setObject(i, custom.invoke(value))
+                statement.setObject(i, custom.store(connection, value))
             } else {
                 val t = type as DataType<T>
                 val type = if (t is DataType.Nullable<*, *>) {
@@ -316,7 +316,7 @@ class JdbcSession(
 
         private fun <T> Ilk<T, *>.get1indexed(resultSet: ResultSet, i: Int): T = custom.let { custom ->
             if (custom != null) {
-                custom.back(resultSet.getObject(i))
+                custom.load(connection, resultSet.getObject(i))
             } else {
                 val t = type as DataType<T>
                 val nullable: Boolean

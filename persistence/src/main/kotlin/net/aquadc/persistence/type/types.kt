@@ -239,12 +239,10 @@ sealed class DataType<T> {
 /**
  * A custom type.
  * Used by :sql to take advantage of native types (e.g. Postgres `uuid`, `point` etc) directly.
- *
- * Very similar to `TwoWay` interface from :properties,
- * but :persistence don't have common dependency with :properties.
  */
 abstract class CustomType<T>(
     @JvmField val name: CharSequence
-) : (T) -> Any? {
-    abstract fun back(p: Any?): T
+) {
+    abstract fun store(payload: Any?, value: T): Any?
+    abstract fun load(payload: Any?, value: Any?): T
 }
