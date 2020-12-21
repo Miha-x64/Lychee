@@ -28,6 +28,10 @@ class BindingTest {
         sample.value = "2"
         assertTrue(mutable.casValue("2", "ignored"))
 
+        // let's check equality CAS, too
+        assertTrue(mutable.casValue(StringBuilder("igno").append("red").toString(), "ignored2"))
+        assertFalse(mutable.casValue(StringBuilder("igno").append("red").toString(), "ignored2"))
+
         var new: String? = null
         sample.value = "just bound"
         mutable.addChangeListenerOn(UnconfinedExecutor) { _, n -> new = n }

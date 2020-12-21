@@ -68,7 +68,6 @@ internal class `ConcMutable-`<T>(
         val prevValOrBind = valueUpdater().get(this)
 
         val prevValue: T
-        val realExpect: Any?
         if (prevValOrBind is Binding<*>) {
             prevValOrBind as Binding<T>
             if (!tryLockTransition()) return false
@@ -77,8 +76,8 @@ internal class `ConcMutable-`<T>(
             prevValue = if (isBeingObserved()) prevValOrBind.ourValue else prevValOrBind.original.value
             // if not, just peek a fresh value, may be inexact, but it's OK, because no one have received these updates
 
-            if (prevValue !== expect) {
-                // under mutex (no update from Sample allowed) we understand that sample's value !== expected
+            if (prevValue != expect) {
+                // under mutex (no update from Sample allowed) we understand that sample's value != expected
                 unlockTransition()
                 // so just report failure
                 return false
@@ -86,13 +85,12 @@ internal class `ConcMutable-`<T>(
 
             prevValOrBind.original.removeChangeListener(this)
             unlockTransition()
-            realExpect = prevValOrBind
         } else {
             prevValue = prevValOrBind as T
-            realExpect = expect
+            if (prevValue != expect) return false
         }
 
-        val success = valueUpdater().compareAndSet(this, realExpect, update)
+        val success = valueUpdater().compareAndSet(this, prevValOrBind, update)
         if (success) {
             valueChanged(prevValue, update, null)
         }

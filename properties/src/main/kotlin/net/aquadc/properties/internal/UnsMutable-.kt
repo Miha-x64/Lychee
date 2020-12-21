@@ -62,7 +62,7 @@ internal class `UnsMutable-`<T>(
         checkThread()
         val sample = sample
         val actual = if (sample == null) valueRef else sample.value
-        return if (expect === actual) {
+        return if (expect == actual) {
             dropBinding()
             valueRef = update
             valueChanged(expect, update, null)

@@ -18,7 +18,9 @@ interface MutableProperty<T> : Property<T>/*, TransactionalProperty<Nothing?, T>
     fun bindTo(sample: Property<T>)
 
     /**
-     * CompareAndSet value atomically. Will break binding, if any.
+     * CompareAndSet value atomically.
+     * This checks equality, not identity, so please no jokes about 127 == 127 while 128 != 128.
+     * Will drop binding, if any.
      */
     fun casValue(expect: T, update: T): Boolean
 
