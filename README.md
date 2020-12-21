@@ -377,6 +377,19 @@ abstraction is an iterator over tokens and it's helpful for
 changing schema of provided data (instead of using “mappers”),
 see [sample transform usage](/android-bindings/src/test/kotlin/promo.kt#L61-L69).
 
+## Android `RemoteViews`
+
+`RemoteViews` API differs from normal `View`s API.
+Thus, `:android-bindings` module provides separate API for this. For example,
+```
+RemoteViews(packageName, R.layout.notification).bind(
+    android.R.id.text1 textTo vm.nameProp,
+    android.R.id.text2 textTo vm.emailProp,
+)
+```
+returns you a `Property<RemoteViews>`, so you can just observe it
+and update notification on every change.
+
 ## SQL
 
 `:sql` module provides `Table`, a wrapper over `Schema`:
