@@ -77,12 +77,24 @@ inline fun View.bindBackgroundColorTo(backgroundColorProperty: Property<Int>): U
  * Sets [clickedProperty] to `true` when [this] view gets clicked.
  */
 fun View.setWhenClicked(clickedProperty: MutableProperty<Boolean>): Unit =
-        setOnClickListener(SetWhenClicked(clickedProperty))
+    setOnClickListener(SetWhenClicked(clickedProperty))
+
+/**
+ * Sets [target] to [value] when [this] view gets clicked.
+ */
+fun <T> View.setWhenClicked(target: MutableProperty<in T>, value: T): Unit =
+    setOnClickListener(SetWhenClicked(target, value))
 
 /**
  * Sets [clickedProperty] to `true` when [this] view gets long-clicked.
  */
 fun View.setWhenLongClicked(clickedProperty: MutableProperty<Boolean>): Unit =
-        setOnLongClickListener(SetWhenClicked(clickedProperty))
+    setOnLongClickListener(SetWhenClicked(clickedProperty))
+
+/**
+ * Sets [target] to [value] when [this] view gets long-clicked.
+ */
+fun <T> View.setWhenLongClicked(target: MutableProperty<in T>, value: T): Unit =
+    setOnLongClickListener(SetWhenClicked(target, value))
 
 // endregion Event Bindings
