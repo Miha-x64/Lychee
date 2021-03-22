@@ -427,9 +427,9 @@ private fun parse(values: Deque<String>?, type: DataType<*>?): Any? = when (type
     is DataType.NotNull.Simple<*> ->
         type.loadFromStr((values ?: throw NoSuchElementException()).remove())
     is DataType.Nullable<*, *> ->
-        values?.poll()?.let((type.actualType as DataType.NotNull.Simple<*>)::loadFromStr)
+        values?.poll()?.let { (type.actualType as DataType.NotNull.Simple<*>).loadFromStr(it) }
     is DataType.NotNull.Collect<*, *, *> ->
-        type.load(values?.map((type.elementType as DataType.NotNull.Simple<*>)::loadFromStr) ?: emptyList<Any?>())
+        type.load(values?.map { (type.elementType as DataType.NotNull.Simple<*>).loadFromStr(it) } ?: emptyList<Any?>())
     else ->
         throw AssertionError()
 }
@@ -437,7 +437,7 @@ private fun parseField(values: Deque<FormData.FormValue>?, type: DataType<*>): A
     is DataType.NotNull.Simple<*> ->
         type.loadFromStr((values ?: throw NoSuchElementException()).remove().value)
     is DataType.Nullable<*, *> ->
-        values?.poll()?.value?.let((type.actualType as DataType.NotNull.Simple<*>)::loadFromStr)
+        values?.poll()?.value?.let { (type.actualType as DataType.NotNull.Simple<*>).loadFromStr(it) }
     is DataType.NotNull.Collect<*, *, *> ->
         type.load(values?.map { (type.elementType as DataType.NotNull.Simple<*>).loadFromStr(it.value) } ?: emptyList<Any?>())
     else ->
