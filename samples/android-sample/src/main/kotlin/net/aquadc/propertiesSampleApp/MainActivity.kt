@@ -108,7 +108,7 @@ class MainActivity : Activity() {
                         1,
                         Notification.Builder(this)
                             .setSmallIcon(R.mipmap.ic_launcher)
-                            .setCustomContentView(views)
+                            .setContent(views)
                             .setOngoing(true)
                             .build()
                     )
