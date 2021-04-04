@@ -29,11 +29,11 @@ import net.aquadc.lychee.http.param.Resp
 import net.aquadc.persistence.FuncXImpl
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.type.DataType
+import okhttp3.Call
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.MediaType
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.Response
@@ -45,85 +45,85 @@ import java.util.concurrent.Future
 import java.util.concurrent.FutureTask
 
 
-inline fun <B, R> OkHttpClient.template(
+inline fun <B, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint0<*, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): () -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T, R> OkHttpClient.template(
+inline fun <B, T, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint1<*, out Param<T>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, R> OkHttpClient.template(
+inline fun <B, T1, T2, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint2<*, *, out Param<T1>, out Param<T2>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, T3, R> OkHttpClient.template(
+inline fun <B, T1, T2, T3, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint3<*, *, out Param<T1>, out Param<T2>, out Param<T3>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, T3, T4, R> OkHttpClient.template(
+inline fun <B, T1, T2, T3, T4, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint4<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, R> OkHttpClient.template(
+inline fun <B, T1, T2, T3, T4, T5, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint5<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, T6, R> OkHttpClient.template(
+inline fun <B, T1, T2, T3, T4, T5, T6, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint6<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5, T6) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, T6, T7, R> OkHttpClient.template(
+inline fun <B, T1, T2, T3, T4, T5, T6, T7, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint7<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5, T7) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
+inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
     baseUrl: CharSequence?,
     endpoint: Endpoint8<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, out Param<T8>, B>,
-    noinline adapt: (OkHttpClient, Request, Resp<B>) -> R,
+    noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
     headers: Array<out CharSequence> = noCharSeqs
 ): (T1, T2, T3, T4, T5, T7, T8) -> R =
     OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
 
 
 @PublishedApi internal class OkHttpMethod<B, R>(
-    private val client: OkHttpClient,
+    private val client: Call.Factory,
     private val baseUrl: CharSequence?,
     private val endpoint: Endpoint<*, B>,
     private val headers: Array<out CharSequence>,
-    private val adapt: (OkHttpClient, Request, Resp<B>) -> R
+    private val adapt: (Call.Factory, Request, Resp<B>) -> R
 ) : FuncXImpl<Any?, R>() {
     private val multipart = endpoint.params.any { it is Part<*> || it is Parts<*> }
     override fun invokeUnchecked(vararg args: Any?): R {
@@ -300,14 +300,14 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> OkHttpClient.template(
 
 fun <T> blocking(
     parse: Response.(Resp<T>) -> T
-): (OkHttpClient, Request, Resp<T>) -> T =
+): (Call.Factory, Request, Resp<T>) -> T =
     { client, request, body ->
         client.newCall(request).execute().parse(body) // just pass IOException through
     }
 
 fun <T> future(
     executor: Executor, parse: Response.(Resp<T>) -> T
-): (OkHttpClient, Request, Resp<T>) -> Future<T> =
+): (Call.Factory, Request, Resp<T>) -> Future<T> =
     { client, request, body ->
         FutureTask(Callable { client.newCall(request).execute().parse(body) }).also(executor::execute)
     }

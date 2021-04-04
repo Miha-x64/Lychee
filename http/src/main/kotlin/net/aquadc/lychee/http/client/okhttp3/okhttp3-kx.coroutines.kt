@@ -6,7 +6,6 @@ import kotlinx.coroutines.Deferred
 import net.aquadc.lychee.http.param.Resp
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
@@ -15,7 +14,7 @@ import java.io.IOException
 
 fun <T> defer(
     parse: Response.(Resp<T>) -> T
-): (OkHttpClient, Request, Resp<T>) -> Deferred<T> =
+): (Call.Factory, Request, Resp<T>) -> Deferred<T> =
     { client, request, body ->
         val deferred = CompletableDeferred<T>()
         val call = client.newCall(request)
