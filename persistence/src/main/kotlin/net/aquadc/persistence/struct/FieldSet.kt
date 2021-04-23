@@ -159,6 +159,12 @@ inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(field: FieldDe
         (bitSet and (1L shl field.ordinal.toInt())) != 0L
 
 /**
+ * Checks whether [this] set contains all of these [fields].
+ */
+inline operator fun <SCH : Schema<SCH>> FieldSet<SCH, *>.contains(fields: FieldSet<SCH, *>): Boolean =
+        (bitSet and fields.bitSet) == fields.bitSet
+
+/**
  * Number of fields in this set, ∈ [1, 64]
  */
 val FieldSet<*, *>.size: Int
