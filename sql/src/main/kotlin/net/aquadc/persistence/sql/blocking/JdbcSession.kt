@@ -27,6 +27,7 @@ import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.wordCountForCols
+import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.AnyCollection
@@ -41,6 +42,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.sql.Statement.RETURN_GENERATED_KEYS
 import java.sql.Types
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
@@ -72,16 +74,21 @@ class JdbcSession(
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID {
             val sql = with(dialect) { StringBuilder().insert(table, data.fields).toString() }
-            val key = Pair(sql, null)
+            val key = Pair(sql, null) // this wrapper means 'return generated keys'
             val statements = statements.getOrSet(::newMap)
-            val statement = statements.getOrPut(key) {
-                connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
-            }
-            bindInsertionParams(table, data) { type, idx, value ->
-                type.bind(statement, idx, value)
-            }
+            val statement = statements.getOrPut(key) { connection.prepareStatement(sql, RETURN_GENERATED_KEYS) }
+            bindInsertionParams(table, data) { type, idx, value -> type.bind(statement, idx, value) }
             statement.executeOrEvict(statements, key)
             return statement.generatedKeys.fetchSingle(table.idColType)
+        }
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>) {
+            val fields = table.pkField?.let { patch.fields - it } ?: patch.fields
+            val sql = with(dialect) { StringBuilder().update(table, fields).toString() }
+            val statements = statements.getOrSet(::newMap)
+            val statement = statements.getOrPut(sql) { connection.prepareStatement(sql) }
+            val count = bindInsertionParams(table, patch) { type, idx, value -> type.bind(statement, idx, value) }
+            table.idColType.bind(statement, count, id)
+            statement.executeOrEvict(statements, sql)
         }
         override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID) {
             val sql = dialect.deleteRecordQuery(table)
@@ -431,7 +438,7 @@ class JdbcSession(
             statements
                 .getOrSet(::HashMap)
                 .getOrPut(if (retKeys) Pair(query, null) else query) {
-                    connection.prepareStatement(query, if (retKeys) Statement.RETURN_GENERATED_KEYS else 0)
+                    connection.prepareStatement(query, if (retKeys) RETURN_GENERATED_KEYS else 0)
                 }
 
         override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: Ilk<T, *>): T =

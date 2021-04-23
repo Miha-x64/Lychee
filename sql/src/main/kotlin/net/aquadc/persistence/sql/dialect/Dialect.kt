@@ -20,6 +20,11 @@ interface Dialect {
     fun <SCH : Schema<SCH>> StringBuilder.insert(table: Table<SCH, *>, fields: FieldSet<SCH, out FieldDef<SCH, *, *>>): StringBuilder
 
     /**
+     * Constructs an `INSERT INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
+     */
+    fun <SCH : Schema<SCH>> StringBuilder.update(table: Table<SCH, *>, fields: FieldSet<SCH, out FieldDef<SCH, *, *>>): StringBuilder
+
+    /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
      */
     fun <SCH : Schema<SCH>> StringBuilder.selectQuery(table: Table<SCH, *>, columns: Array<out CharSequence>): StringBuilder

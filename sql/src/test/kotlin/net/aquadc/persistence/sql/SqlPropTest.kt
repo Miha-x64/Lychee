@@ -1,9 +1,17 @@
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.extended.Partial
+import net.aquadc.persistence.sql.blocking.Blocking
+import net.aquadc.persistence.sql.blocking.Eagerly
+import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.struct.invoke
+import net.aquadc.persistence.type.i32
+import net.aquadc.persistence.type.string
+import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.AssumptionViolatedException
 import org.junit.Test
+import java.io.Closeable
 import java.sql.SQLException
 
 
@@ -32,7 +40,7 @@ abstract class SqlPropTest {
         }
     }
 
-    fun `can't insert twice with the same PK in different transactions`() {
+    @Test fun `can't insert twice with the same PK in different transactions`() {
         try {
             session.withTransaction {
                 insert(TableWithId, SchWithId {
@@ -65,13 +73,25 @@ abstract class SqlPropTest {
         }
     }
 
-    private fun Session<*>.createTestRecord() =
-        withTransaction {
-            insert(SomeTable, SomeSchema {
-                it[A] = "first"
-                it[B] = 2
-                it[C] = 3
+    @Test fun crud() {
+        val id = session.withTransaction {
+            insert(TableWithId, SchWithId {
+                it[Id] = 136
+                it[Value] = "aaa"
             })
         }
+
+        session.withTransaction {
+            update(TableWithId, id, SchWithId.Partial {
+                it[Value] = "bbb"
+            })
+        }
+
+        assertEquals(
+            "bbb",
+            Query("""SELECT "value" FROM with_id WHERE _id = ?""", i32, Eagerly.cell<Closeable, String>(string))
+                .invoke(session as Session<Blocking<Closeable>>, id)
+        )
+    }
 
 }

@@ -43,11 +43,12 @@ internal inline fun <SCH : Schema<SCH>, ID : IdBound> bindQueryParams( // todo i
 internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
     table: Table<SCH, *>,
     data: PartialStruct<SCH>,
+    fields: FieldSet<SCH, *> = data.fields,
     bind: (Ilk<Any?, *>, idx: Int, value: Any?) -> Unit
-) {
+): Int {
     var tmp: Array<Any?>? = null
     var idx = 0
-    table.schema.forEach(data.fields) { f ->
+    table.schema.forEach(fields) { f ->
         val d = table.delegateFor(f)
         val cc = d.colCount
         if (tmp == null || tmp!!.size < cc) tmp = arrayOfNulls(cc)
@@ -56,6 +57,7 @@ internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
             bind(d.typeAt(table, f, it) as Ilk<Any?, *>, idx++, tmp!![it])
         }
     }
+    return idx
 }
 
 internal inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {

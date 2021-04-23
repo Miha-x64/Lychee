@@ -17,6 +17,8 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID
 
+    abstract fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>)
+
     abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID)
 
     abstract fun truncate(table: Table<*, *>)

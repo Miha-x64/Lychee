@@ -20,6 +20,11 @@ internal class RealTransaction<SRC>(
         return lowSession.insert(table, data)
     }
 
+    override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>) {
+        checkOpenAndThread()
+        lowSession.update(table, id, patch)
+    }
+
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, id: ID) {
         checkOpenAndThread()
         lowSession.delete(table, id)

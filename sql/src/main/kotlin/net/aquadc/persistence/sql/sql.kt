@@ -13,9 +13,6 @@ import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
-import net.aquadc.properties.TransactionalProperty
-import net.aquadc.properties.internal.ManagedProperty
-import net.aquadc.properties.internal.Manager
 import org.intellij.lang.annotations.Language
 import java.io.Closeable
 import kotlin.contracts.ExperimentalContracts
@@ -108,7 +105,7 @@ interface Transaction<SRC> : Closeable {
     /**
      * Insert [data] into a [table].
      */
-    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>/*todo patch: Partial*/): ID
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID
 
     /**
      * Insert all the [data] into a table.
@@ -118,6 +115,12 @@ interface Transaction<SRC> : Closeable {
         for (struct in data)
             insert(table, struct)
     }
+
+    /**
+     * Patch [table] row #[id] with [patch].
+     */
+    fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>)
+
     // TODO emulate slow storage!
 
     fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, id: ID)

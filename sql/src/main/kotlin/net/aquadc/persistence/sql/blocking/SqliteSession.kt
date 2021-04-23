@@ -38,6 +38,7 @@ import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.createTable
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.wordCountForCols
+import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
@@ -73,6 +74,16 @@ class SqliteSession(
                 (type.type as DataType<Any?>).bind(statement, idx, value)
             }
             return statement.executeInsert().coercePk(table.idColType)
+        }
+        override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>) {
+            val fields = table.pkField?.let { patch.fields - it } ?: patch.fields
+            val sql = with(SqliteDialect) { StringBuilder().update(table, fields).toString() }
+            val statement = this.statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
+            val count = bindInsertionParams(table, patch) { type, idx, value ->
+                (type.type as DataType<Any?>).bind(statement, idx, value)
+            }
+            table.idColType.type.bind(statement, count, id)
+            statement.executeUpdateDelete()
         }
         private fun <T> Long.coercePk(type: Ilk<T, DataType.NotNull.Simple<T>>): T {
             check(this != -1L)

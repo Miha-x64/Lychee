@@ -29,19 +29,32 @@ import java.io.DataOutputStream
     ): StringBuilder {
         var count = 0
         return append("INSERT INTO ")
-            .appendName(table.name).append(" (")
+            .appendName(table.name).append(' ').append('(')
             .apply {
                 table.schema.forEach(fields) { f ->
                     val d = table.delegateFor(f)
                     val cc = d.colCount
-                    repeat(cc) {
-                        appendName(d.nameAt(table, f, it)).append(", ")
-                    }
+                    repeat(cc) { appendName(d.nameAt(table, f, it)).append(", ") }
                     count += cc
                 }
                 setLength(length - 2) // last ", "
             }
             .append(") VALUES (").appendPlaceholders(count).append(");")
+    }
+
+    override fun <SCH : Schema<SCH>> StringBuilder.update(
+        table: Table<SCH, *>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>
+    ): StringBuilder {
+        return append("UPDATE ")
+            .appendName(table.name).append(" SET ")
+            .apply {
+                table.schema.forEach(fields) { f ->
+                    val d = table.delegateFor(f)
+                    repeat(d.colCount) { appendName(d.nameAt(table, f, it)).append("=?, ") }
+                }
+                setLength(length - 2) // last ", "
+            }
+            .appendWhereIdEq(table)
     }
 
     override fun <SCH : Schema<SCH>> StringBuilder.selectQuery(
@@ -51,9 +64,10 @@ import java.io.DataOutputStream
             .append(" FROM ").appendName(table.name)
 
     override fun deleteRecordQuery(table: Table<*, *>): String =
-            StringBuilder("DELETE FROM ").appendName(table.name)
-                    .append(" WHERE ").appendName(table.idColName).append(" = ?;")
-                    .toString()
+        StringBuilder("DELETE FROM ").appendName(table.name).appendWhereIdEq(table).append(';').toString()
+
+    private fun StringBuilder.appendWhereIdEq(table: Table<*, *>) =
+        append(" WHERE ").appendName(table.idColName).append("=?")
 
     override fun StringBuilder.appendName(name: CharSequence): StringBuilder =
             append('"').appendReplacing(name, '"', "\"\"").append('"')
