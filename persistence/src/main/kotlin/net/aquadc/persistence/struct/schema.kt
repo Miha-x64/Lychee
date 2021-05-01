@@ -159,7 +159,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
     @PublishedApi internal fun indexByName(name: CharSequence): Int {
         val array = (fieldInternals as? Array<out Any?>) ?: freeze().let { fieldInternals as Array<out Any?> }
 
-        for (i in 0 .. array.size step 3)
+        for (i in 0 .. (array.size-3) step 3)
             if ((array[i] as CharSequence).eq(name, false))
                 return i/3
         return -1

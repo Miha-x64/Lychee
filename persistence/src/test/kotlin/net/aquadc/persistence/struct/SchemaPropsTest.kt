@@ -4,6 +4,7 @@ import net.aquadc.persistence.type.string
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import org.junit.Test
 
 class SchemaPropsTest {
@@ -42,6 +43,11 @@ class SchemaPropsTest {
         assertSame(string, InitTroll.run { Second.type })
         assertEquals("qwer", InitTroll.defaultOrElse(InitTroll.Second) { "error" })
         assertEquals(InitTroll.First + InitTroll.Second, InitTroll.allFieldSet)
+    }
+
+    @Test fun `field by name`() {
+        SomeSchema.fieldByName("a", { assertSame(SomeSchema.A, it) }, { fail() })
+        SomeSchema.fieldByName("z", { fail() }, { /* expected */ })
     }
 
 }
