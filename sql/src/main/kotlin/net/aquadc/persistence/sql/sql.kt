@@ -129,6 +129,8 @@ interface Transaction<SRC> : Closeable {
      * Clear the whole table.
      * This may be implemented either as `DELETE FROM table` or `TRUNCATE table`.
      */
+    @Deprecated("TRUNCATE is not a CRUD operation. Also, it is not guaranteed to invoke triggers in some DBMSes. " +
+        "You can TRUNCATE using Session.mutate() query at your own risk.")
     fun truncate(table: Table<*, *>)
 
     fun setSuccessful()
