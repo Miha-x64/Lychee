@@ -2,7 +2,10 @@ package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.sql.*
 import net.aquadc.persistence.sql.blocking.Blocking
-import net.aquadc.persistence.sql.blocking.Eagerly
+import net.aquadc.persistence.sql.blocking.Eagerly.cell
+import net.aquadc.persistence.sql.blocking.Eagerly.execute
+import net.aquadc.persistence.sql.blocking.Eagerly.struct
+import net.aquadc.persistence.sql.blocking.Eagerly.structs
 import net.aquadc.persistence.sql.template.Mutation
 import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.struct.Struct
@@ -11,6 +14,7 @@ import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
+import net.aquadc.properties.persistence.ObservableStruct
 import java.io.Closeable
 
 
@@ -19,23 +23,26 @@ class SqlViewModel<CUR>(
 ): Closeable {
 
     private val count: Session<Blocking<CUR>>.() -> Int =
-        Query("SELECT COUNT(*) FROM ${Human.Tbl.name}", Eagerly.cell<CUR, Int>(i32))
+        Query("SELECT COUNT(*) FROM ${Human.Tbl.name}", cell(i32))
     private val fetch: Session<Blocking<CUR>>.() -> List<Struct<Human>> =
-        Query("SELECT name, surname FROM ${Human.Tbl.name}", Eagerly.structs<CUR, Human>(Human.Tbl, BindBy.Name))
+        Query("SELECT * FROM ${Human.Tbl.name}", structs(Human.Tbl, BindBy.Name))
+    private val fetchName: Session<Blocking<CUR>>.(Long) -> String =
+        Query("SELECT \"name\" FROM ${Human.Tbl.name} WHERE _id = ?", i64, cell(string))
     private val _find: Session<Blocking<CUR>>.(Long) -> Struct<Human> =
-        Query("SELECT name, surname FROM ${Human.Tbl.name} WHERE _id = ?", i64, Eagerly.struct<CUR, Human>(Human.Tbl, BindBy.Name))
+        Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, struct(Human.Tbl, BindBy.Name))
     private val find: (Long) -> Struct<Human>? =
         { id -> try { session._find(id) } catch (e: NoSuchElementException) { null } } // FIXME
 
     private val updateName: Transaction<Blocking<CUR>>.(String, Long) -> Unit =
-        Mutation<Blocking<CUR>, String, Long, Unit>("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, Eagerly.execute())
+        Mutation("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, execute())
 
     private val carsWithConditionersByOwner: Session<Blocking<CUR>>.(Long) -> List<Struct<Car>> =
         Query("SELECT * FROM ${Car.Tbl.name} WHERE ${Car.run { OwnerId.name }} = ? AND ${Car.run { ConditionerModel.name }} IS NOT NULL",
             i64,
-            Eagerly.structs<CUR, Car>(Car.Tbl, BindBy.Name))
+            structs(Car.Tbl, BindBy.Name))
 
     val titleProp: Property<String>
+    private val people = HashMap<Long, ObservableStruct<Human>>()
     val humanListProp: Property<List<Struct<Human>>>
     val selectedProp = propertyOf<Struct<Human>?>(null)
     val disposeMePlz: Closeable
@@ -43,18 +50,28 @@ class SqlViewModel<CUR>(
     init {
         fillIfEmpty()
         val countProp = propertyOf(session.count())
-        titleProp = countProp.map { "Sample SQLite application ($it records)" }
-        humanListProp = propertyOf(session.fetch())
+        titleProp = countProp.map { "$it users" }
+        humanListProp = propertyOf(
+            session.fetch().map { h -> ObservableStruct(h, false).also { people[h[Human.Id]] = it } }
+        )
         disposeMePlz = session.observe(
             Human.Tbl to TriggerEvent.INSERT, Human.Tbl to TriggerEvent.UPDATE, Human.Tbl to TriggerEvent.DELETE) { report ->
-            val chg = report.of(Human.Tbl)
-            // todo val (ins, upd, del) = report.of(…)
-            countProp.value += chg.inserted.size - chg.removed.size
-            humanListProp.value =
-                /*if (chg.inserted.isEmpty() && chg.updated.isEmpty())
-                    humanListProp.value.filter { it.primaryKey !in chg.removed }
-                else*/
-                    session.fetch()
+            val (ins, upd, del) = report.of(Human.Tbl)
+            countProp.value += ins.size - del.size
+
+            val list = ArrayList(humanListProp.value)
+            del.forEach {
+                people.remove(it)?.let(list::remove)
+            }
+            upd.forEach { id ->
+                people[id]?.let { list.firstOrNull { it[Human.Id] == id }?.set(Human.Name, session.fetchName(id)) }
+            }
+            ins.forEach { id ->
+                val h = ObservableStruct(session._find(id), false)
+                people[id] = h
+                list.add(h)
+            }
+            humanListProp.value = list
         }
     }
 
@@ -63,9 +80,7 @@ class SqlViewModel<CUR>(
             if (new.isNotEmpty() && it.casValue(new, emptyMap())) {
                 session.withTransaction {
                     new.forEach { (humanId, newName) ->
-                        find(humanId) // if it was just deleted, ignore
-                            ?.takeIf { it[Human.Name] != newName }
-                            ?.let { updateName(newName, humanId) }
+                        updateName(newName, humanId)
                     }
                 }
             }
@@ -73,21 +88,24 @@ class SqlViewModel<CUR>(
     }
     val actionsEnabledProp = selectedProp.map(Objectz.IsNotNull)
 
-    /*val airConditionersTextProp = selectedProp
-            .map {
-                val cars = if (it == null) emptyList() else carsWithConditionersByOwner(it.primaryKey)
-                if (cars.isEmpty()) "none"
-                else
-                    cars.map { it[Car.ConditionerModel]!! }
-                        .joinToString(prefix = "Air conditioner(s) in car(s): [", postfix = "]")
-            }*/
+    val airConditionersTextProp = selectedProp
+        .map {
+            val cars = if (it == null) emptyList() else session.carsWithConditionersByOwner(it[Human.Id])
+            if (cars.isEmpty()) "none"
+            else
+                cars.map { it[Car.ConditionerModel]!! }
+                    .joinToString(prefix = "Air conditioner(s) in car(s): [", postfix = "]")
+        }
 
-    val nameProp = selectedProp.map { it?.get(Human.Name) } // TODO mapNotNull?
-    /*val editableNameProp = propertyOf("")
-        .onEach { newText ->
-            selectedProp.value
-                ?.let { namePatch += it.primaryKey to newText }
-        }*/
+    val nameProp = selectedProp.map { it?.get(Human.Name) ?: "" }
+    val editableNameProp = propertyOf("")
+        .onEach { newName ->
+            selectedProp.value?.let {
+                val id = it[Human.Id]
+                if (newName == it[Human.Name]) namePatch -= id
+                else namePatch += it[Human.Id] to newName
+            }
+        }
 
     val lastInserted = propertyOf<Struct<Human>?>(null)
 
@@ -96,14 +114,11 @@ class SqlViewModel<CUR>(
             lastInserted.value = find(insert(Human.Tbl, Human("<new>", "")))!!
         }
 
-    /*val deleteClicked = propertyOf(false)
+    val deleteClicked = propertyOf(false)
         .clearEachAndTransact {
-            delete(Human.Tbl, selectedProp.value!!.primaryKey)
-        }*/
-
-    val truncateClicked = propertyOf(false)
-        .clearEachAndTransact {
-            truncate(Human.Tbl)
+            val id = selectedProp.value!![Human.Id]
+            namePatch -= id
+            delete(Human.Tbl, id)
         }
 
     private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: Transaction<Blocking<CUR>>.() -> Unit): P =
@@ -120,15 +135,15 @@ class SqlViewModel<CUR>(
                 // don't know anything about their friendship, just a sample
                 insert(Friendship.Tbl, Friendship(relativist, electrician))
 
-                val car = insert(Car.Tbl, Car(electrician, "the coolest air cooler"))
+                insert(Car.Tbl, Car(electrician, "the coolest air cooler"))
             }
         }
     }
 
-    /*fun nameSurnameProp(human: Struct<Human>): Property<String> =
+    fun nameSurnameProp(human: Struct<Human>): Property<String> =
         humanListProp.map {
-            it.first { it.primaryKey == human.primaryKey }.let { it[Human.Name] + " " + it[Human.Surname] }
-        }*/
+            it.firstOrNull { it[Human.Id] == human[Human.Id] }?.let { it[Human.Name] + " " + it[Human.Surname] } ?: ""
+        }
 
     override fun close() =
         disposeMePlz.close()

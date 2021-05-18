@@ -4,5 +4,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation project(':properties')
     implementation project(':persistence')
+    implementation project(':extended-persistence')
     implementation project(':sql')
 }

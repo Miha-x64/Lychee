@@ -58,17 +58,17 @@ fun startSqlSample(stage: Stage) {
                 children += JFXTextField().apply {
                     bindEnableTo(vm.actionsEnabledProp)
                     vm.nameProp.addChangeListener { _, new -> if (text != new) text = new }
-//                    textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
+                    textProperty().addListener { _, _, newText -> vm.editableNameProp.value = newText }
                 }
 
                 children += Label().apply {
                     padding = Insets(10.0, 0.0, 0.0, 0.0)
-//                    bindTextTo(vm.airConditionersTextProp)
+                    bindTextTo(vm.airConditionersTextProp)
                 }
 
                 children += JFXButton("Delete").apply {
                     bindEnableTo(vm.actionsEnabledProp)
-//                    setWhenClicked(vm.deleteClicked)
+                    setWhenClicked(vm.deleteClicked)
                 }
 
                 children += Pane().apply {
@@ -79,10 +79,6 @@ fun startSqlSample(stage: Stage) {
                 children += HBox().apply {
                     children += JFXButton("Create new").apply {
                         setWhenClicked(vm.createClicked)
-                    }
-
-                    children += JFXButton("Truncate").apply {
-                        setWhenClicked(vm.truncateClicked)
                     }
                 }
             }
@@ -100,7 +96,7 @@ private fun SqlViewModel<*>.createListCell(lv: ListView<Struct<Human>>): JFXList
             super.updateItem(item, empty)
             if (item != null && !empty) {
                 graphic = null
-//                textProperty().bind(nameSurnameProp(item).fx())
+                textProperty().bind(nameSurnameProp(item).fx())
             }
         }
     }

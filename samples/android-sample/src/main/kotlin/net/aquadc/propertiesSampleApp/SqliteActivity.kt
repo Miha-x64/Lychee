@@ -156,7 +156,7 @@ class SqliteActivity : Activity() {
 
                     override fun onBindViewHolder(holder: SimpleHolder, position: Int) {
                         val human = list.value[position]
-//                        holder.textProp.bindTo(vm.nameSurnameProp(human))
+                        holder.textProp.bindTo(vm.nameSurnameProp(human))
                     }
 
                     override fun getItemCount(): Int =
@@ -190,16 +190,16 @@ class SqliteActivity : Activity() {
                     .setTitle("Edit")
                     .setView(
                             frameLayout {
-                                /*addView(editText {
+                                addView(editText {
                                     bindTextTo(vm.nameProp)
                                     bindToText(vm.editableNameProp)
                                 }, lParams(matchParent, wrapContent) {
                                     leftMargin = dip(8)
                                     rightMargin = dip(8)
-                                })*/
+                                })
                             })
                     .setPositiveButton("Ok", null)
-//                    .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
+                    .setNegativeButton("Delete", SetWhenClicked(vm.deleteClicked))
                     .create()
         }
 
