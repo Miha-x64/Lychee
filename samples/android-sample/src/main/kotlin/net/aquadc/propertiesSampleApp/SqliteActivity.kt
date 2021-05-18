@@ -24,10 +24,13 @@ import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.properties.ChangeListener
 import net.aquadc.properties.android.bindings.SetWhenClicked
+import net.aquadc.properties.android.bindings.androidx.widget.recycler.ObservingAdapter
+import net.aquadc.properties.android.bindings.androidx.widget.recycler.observeAdapter
 import net.aquadc.properties.android.bindings.widget.bindTextTo
 import net.aquadc.properties.android.bindings.widget.bindToText
 import net.aquadc.properties.propertyOf
 import net.aquadc.properties.set
+import net.aquadc.properties.syncIf
 import net.aquadc.propertiesSampleLogic.sql.Human
 import net.aquadc.propertiesSampleLogic.sql.SampleTables
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
@@ -138,7 +141,7 @@ class SqliteActivity : Activity() {
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle?): View {
             return RecyclerView(container.context).apply {
                 layoutManager = LinearLayoutManager(container.context)
-                adapter = object : RecyclerView.Adapter<SimpleHolder>(), ChangeListener<List<Struct<Human>>> {
+                observeAdapter(object : ObservingAdapter<SimpleHolder>(), ChangeListener<List<Struct<Human>>> {
 
                     val list = vm.humanListProp
 
@@ -162,19 +165,15 @@ class SqliteActivity : Activity() {
                     override fun getItemCount(): Int =
                             list.value.size
 
-                    private var recyclers = 0
-                    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-                        if (recyclers++ == 0) list.addChangeListener(this)
-                    }
-                    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-                        if (--recyclers == 0) list.removeChangeListener(this)
+                    override fun onObservedStateChanged(observed: Boolean) {
+                        list.syncIf(observed, this, dummy = emptyList())
                     }
 
                     override fun invoke(old: List<Struct<Human>>, new: List<Struct<Human>>) {
                         notifyDataSetChanged()
                     }
 
-                }
+                })
             }
         }
 

@@ -1,6 +1,8 @@
 @file:JvmName("Properties")
 package net.aquadc.properties
 
+import net.aquadc.properties.diff.DiffChangeListener
+import net.aquadc.properties.diff.DiffProperty
 import net.aquadc.properties.executor.InPlaceWorker
 import net.aquadc.properties.executor.Worker
 import net.aquadc.properties.function.OnEach
@@ -104,6 +106,17 @@ fun <T> Property<T>.syncIf(subscribe: Boolean, onChange: ChangeListener<T>, dumm
     }
 }
 
+@JvmName("syncUsingDummyIf")
+fun <T, D : Any> DiffProperty<T, D>.syncIf(subscribe: Boolean, onChange: DiffChangeListener<T, D?>, dummy: T, _hack: Unit? = null) {
+    if (subscribe) {
+        addChangeListener(onChange)
+        onChange(dummy, value, null)
+    } else {
+        removeChangeListener(onChange)
+        onChange(value, dummy, null)
+    }
+}
+
 /**
  * If [subscribe], adds [onChange] as a listener to this property and invokes it with up to date value;
  * if not, unsubscribes.
@@ -120,6 +133,16 @@ fun <T> Property<T>.syncIf(subscribe: Boolean, onChange: ChangeListener<T>, stal
     if (subscribe) {
         addChangeListener(onChange)
         onChange(stale, value)
+    } else {
+        removeChangeListener(onChange)
+    }
+}
+
+@JvmName("syncUsingStaleIf")
+fun <T, D : Any> DiffProperty<T, D>.syncIf(subscribe: Boolean, onChange: DiffChangeListener<T, D?>, stale: T, _hack: Nothing? = null) {
+    if (subscribe) {
+        addChangeListener(onChange)
+        onChange(stale, value, null)
     } else {
         removeChangeListener(onChange)
     }

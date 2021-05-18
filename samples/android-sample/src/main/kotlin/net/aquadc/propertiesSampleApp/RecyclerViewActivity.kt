@@ -9,9 +9,12 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
+import net.aquadc.properties.android.bindings.androidx.widget.recycler.ObservingAdapter
+import net.aquadc.properties.android.bindings.androidx.widget.recycler.observeAdapter
 import net.aquadc.properties.diff.calculateDiffOn
 import net.aquadc.properties.executor.WorkerOnExecutor
 import net.aquadc.properties.propertyOf
+import net.aquadc.properties.syncIf
 import splitties.views.dsl.recyclerview.recyclerView
 import java.util.concurrent.Executors
 
@@ -40,7 +43,7 @@ class RecyclerViewActivity : Activity() {
 
         setContentView(recyclerView {
             layoutManager = LinearLayoutManager(this@RecyclerViewActivity)
-            adapter = object : RecyclerView.Adapter<StringHolder>() {
+            observeAdapter(object : ObservingAdapter<StringHolder>() {
 
                 override fun getItemCount(): Int = diffData.value.size
 
@@ -50,20 +53,16 @@ class RecyclerViewActivity : Activity() {
                 override fun onBindViewHolder(holder: StringHolder, position: Int) =
                         holder.bind(diffData.value[position])
 
-                private var recyclers = 0
-                override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-                    if (recyclers++ == 0) diffData.addChangeListener(onChange)
+                override fun onObservedStateChanged(observed: Boolean) {
+                    diffData.syncIf(observed, onChange, dummy = emptyList())
                 }
-                override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-                    if (--recyclers == 0) diffData.removeChangeListener(onChange)
-                }
-                private val onChange: (List<String>, List<String>, DiffUtil.DiffResult) -> Unit = { _, _, diff ->
-                    handler.post {
-                        diff.dispatchUpdatesTo(this)
+                private val onChange: (List<String>, List<String>, DiffUtil.DiffResult?) -> Unit = { _, _, diff ->
+                    this@RecyclerViewActivity.handler.post {
+                        diff?.dispatchUpdatesTo(this) ?: notifyDataSetChanged()
                     }
                 }
 
-            }
+            })
         })
 
         handler.postDelayed({ data.value += "second" }, 1000)
