@@ -140,22 +140,22 @@ interface Transaction<SRC> : Closeable {
 inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
     NativeType(name, type)
 
-inline fun <T, DT : DataType<T>> nativeType(
+inline fun <T, DT : DataType<T>, S> nativeType(
     name: CharSequence,
     type: DT,
-    crossinline store: (T) -> Any?,
-    crossinline load: (Any?) -> T
+    crossinline store: (T) -> S,
+    crossinline load: (S) -> T
 ): Ilk<T, DT> =
-    nativeType<Any?, T, DT>(name, type, { _, v -> store(v) }, { _, v -> load(v) })
+    nativeType<Any?, T, DT, S>(name, type, { _, v -> store(v) }, { _, v -> load(v) })
 
-inline fun <PL, T, DT : DataType<T>> nativeType(
+inline fun <PL, T, DT : DataType<T>, S> nativeType(
     name: CharSequence,
     type: DT,
-    crossinline store: (PL, T) -> Any?,
-    crossinline load: (PL, Any?) -> T
+    crossinline store: (PL, T) -> S,
+    crossinline load: (PL, S) -> T
 ): Ilk<T, DT> =
     @Suppress("UNCHECKED_CAST")
     object : NativeType<T, DT>(name, type) {
         override fun store(payload: Any?, value: T): Any? = store.invoke(payload as PL, value)
-        override fun load(payload: Any?, value: Any?): T = load.invoke(payload as PL, value)
+        override fun load(payload: Any?, value: Any?): T = load.invoke(payload as PL, value as S)
     }
