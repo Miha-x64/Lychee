@@ -4,6 +4,8 @@ include ':persistence'
 include ':extended-persistence'
 
 include ':sql'
+include ':sql:testing'
+
 include ':http'
 
 include ':fx-bindings'

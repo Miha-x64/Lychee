@@ -2,15 +2,10 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
 }
 
-// expose tests for android-bindings which use the same test classes with SQLiteDatabase
-configurations { testOutput }
-task testJar(type:Jar) { from sourceSets.main.output + sourceSets.test.output }
-artifacts { testOutput testJar }
-
 dependencies {
     compileOnly "com.google.android:android:$android_artifact_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    implementation "net.aquadc.collections:Collection-utils-jvm:1.0-$collection_utils_version"
+    implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
     implementation project(':properties')
     implementation project(':persistence')
 
@@ -18,9 +13,9 @@ dependencies {
     compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0'
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation project(':sql:testing')
     testImplementation "org.xerial:sqlite-jdbc:$sqlite_jdbc_version"
     testImplementation 'org.postgresql:postgresql:42.2.14.jre7'
-    testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence')
 }
 

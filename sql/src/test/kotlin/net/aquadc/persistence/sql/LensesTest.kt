@@ -3,6 +3,7 @@ package net.aquadc.persistence.sql
 import net.aquadc.persistence.extended.buildPartial
 import net.aquadc.persistence.extended.tuple.Tuple4
 import net.aquadc.persistence.extended.partial
+import net.aquadc.persistence.extended.tuple.Tuple
 import net.aquadc.persistence.extended.tuple.times
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.invoke
@@ -97,10 +98,10 @@ class LensesTest {
 
     @Test fun `non-struct nullability propagation`() {
         val schema = schemaWithNullableEither
-        assertEquals(nullable(string), (schema.First % schema.First.type(schema).schema.First).type(schema))
-        assertEquals(nullable(string), (schema.First % schema.First.type(schema).schema.Second).type(schema))
-        assertEquals(nullable(string), (schema.Second % schema.First.type(schema).schema.First).type(schema))
-        assertEquals(nullable(string), (schema.Second % schema.First.type(schema).schema.Second).type(schema))
+        assertEquals(nullable(string), (schema.First % (schema.First.type(schema).schema as Tuple).First).type(schema))
+        assertEquals(nullable(string), (schema.First % (schema.First.type(schema).schema as Tuple).Second).type(schema))
+        assertEquals(nullable(string), (schema.Second % (schema.First.type(schema).schema as Tuple).First).type(schema))
+        assertEquals(nullable(string), (schema.Second % (schema.First.type(schema).schema as Tuple).Second).type(schema))
     }
 
 }

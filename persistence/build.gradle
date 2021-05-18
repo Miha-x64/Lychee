@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
-    implementation "net.aquadc.collections:Collection-utils-jvm:1.0-$collection_utils_version"
+    implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
 
     compileOnly 'androidx.annotation:annotation:1.1.0'
     compileOnly 'com.squareup.okio:okio:1.0.0' // don't use $okio_version here, let's compile against 1.0

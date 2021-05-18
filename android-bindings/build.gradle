@@ -24,6 +24,10 @@ android {
         main.java.srcDirs += 'src/main/kotlin'
         test.java.srcDirs += 'src/test/kotlin'
     }
+
+    lintOptions {
+        disable 'GradleCompatible'
+    }
 }
 
 repositories {
@@ -31,17 +35,17 @@ repositories {
 }
 
 dependencies {
-    // these are *.aar deps which can be opened only by Android plug-in
+    // these are *.aar deps which can be opened only by Android plug-in. Thus, we're com.android.library
     compileOnly "com.android.support:design:$support_version"
     compileOnly "com.android.support:cardview-v7:$support_version"
     compileOnly "com.android.support:recyclerview-v7:$support_version"
-    compileOnly 'androidx.annotation:annotation:1.1.0'
+    compileOnly 'androidx.annotation:annotation:1.2.0'
     compileOnly 'com.google.android.material:material:1.0.0'
     compileOnly 'androidx.cardview:cardview:1.0.0'
     compileOnly 'androidx.recyclerview:recyclerview:1.0.0'
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation "net.aquadc.collections:Collection-utils-jvm:1.0-$collection_utils_version"
+    implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
     implementation project(':properties') // subscriptions & reactivity
     implementation project(':persistence') // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
 
@@ -50,7 +54,8 @@ dependencies {
     testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence') // partial(Struct) is here
     testImplementation 'org.robolectric:robolectric:4.3.1'
-    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(':sql')
+    testImplementation project(':sql:testing')
     testImplementation project(':android-json')
     testImplementation project(':android-json-on-jvm')
 }

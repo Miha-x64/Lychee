@@ -27,14 +27,8 @@ fun Bytes(mediaType: CharSequence): Body<ByteArray> =
             value.size.toLong()
         override fun stream(value: ByteArray): InputStream =
             ByteArrayInputStream(value)
-        override fun fromStream(estimateSize: Long, stream: InputStream): ByteArray {
-            val len =
-                if (estimateSize > 0 && estimateSize < Int.MAX_VALUE) estimateSize.toInt()
-                else DEFAULT_BUFFER_SIZE
-            return stream.use { input ->
-                input.readBytes(len)
-            }
-        }
+        override fun fromStream(estimateSize: Long, stream: InputStream): ByteArray =
+            stream.use(InputStream::readBytes)
     }
 
 fun Text(mediaType: CharSequence): Body<CharSequence> =

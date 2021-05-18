@@ -1,5 +1,6 @@
 package net.aquadc.propertiesSampleApp
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
 import android.text.Editable
@@ -25,6 +26,7 @@ class MonolithicActivity : Activity() {
     private lateinit var surnameInput: EditText
     private lateinit var saveButton: Button
 
+    @SuppressLint("ResourceType")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

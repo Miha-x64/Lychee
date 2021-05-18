@@ -123,7 +123,7 @@ sealed class DataType<T> {
 
         /**
          * A collection of elements of [elementType].
-         * In-memory type [C] is typically a collection, but it is not required.
+         * In-memory type [C] is typically a collection, but this is not required.
          * May have [List] or [Set] semantics, depending on implementations
          * of both this data type and the underlying storage.
          *

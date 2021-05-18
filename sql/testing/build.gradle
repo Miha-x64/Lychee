@@ -1,0 +1,15 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation project(':persistence')
+    implementation project(':extended-persistence')
+    implementation project(':sql')
+    implementation group: 'junit', name: 'junit', version: '4.12'
+}

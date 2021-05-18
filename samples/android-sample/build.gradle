@@ -57,6 +57,12 @@ android {
         exclude 'META-INF/*.version'
         exclude 'kotlin/**'
     }
+
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
+    }
+
 }
 
 repositories {

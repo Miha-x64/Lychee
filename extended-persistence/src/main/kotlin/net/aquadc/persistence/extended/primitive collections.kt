@@ -37,7 +37,7 @@ val doubleCollection: DataType.NotNull.Collect<DoubleArray, Double, DataType.Not
 private class ArrayNoOp<C, E>(type: Simple<E>) : DataType.NotNull.Collect<C, E, DataType.NotNull.Simple<E>>(type) {
 
     override fun load(value: AnyCollection): C {
-        val kind = elementType.kind
+        val kind = (elementType as Simple).kind
         return when (value) {
             is Collection<*> -> coerceToArray(value, kind)
             is Array<*> -> coerceToArray(value, kind)
@@ -75,7 +75,7 @@ private class ArrayNoOp<C, E>(type: Simple<E>) : DataType.NotNull.Collect<C, E, 
             } as C
 
     private fun sanityCheck(value: Any?) {
-        when (elementType.kind) {
+        when ((elementType as Simple).kind) {
             Simple.Kind.Bool -> throw AssertionError()
             Simple.Kind.I32 -> value as IntArray
             Simple.Kind.I64 -> value as LongArray

@@ -1,8 +1,10 @@
 package net.aquadc.propertiesSampleApp
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Notification
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
@@ -37,6 +39,7 @@ class MainActivity : Activity() {
 
     private lateinit var vm: MainVm
 
+    @SuppressLint("ResourceType")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -110,7 +113,7 @@ class MainActivity : Activity() {
                             .setSmallIcon(R.mipmap.ic_launcher)
                             .setContent(views)
                             .setOngoing(true)
-                            .build()
+                            .run { if (Build.VERSION.SDK_INT >= 16) build() else notification }
                     )
                 }
             }
