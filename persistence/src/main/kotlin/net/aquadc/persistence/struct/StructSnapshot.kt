@@ -9,7 +9,7 @@ import net.aquadc.persistence.valuesAndSchema
 /**
  * Represents a fully immutable snapshot of a struct.
  */
-inline class StructSnapshot<SCH : Schema<SCH>>
+/*@JvmInline value*/ class StructSnapshot<SCH : Schema<SCH>>
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
         private val values: Array<Any?>
 ) : Struct<SCH> {

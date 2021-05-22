@@ -257,7 +257,7 @@ typealias FldSet<SCH> = FieldSet<SCH, FieldDef<SCH, *, *>>
 /**
  * Represents an allocation-less [Set]<FieldDef<SCH, FLD>>.
  */
-inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
+/*@JvmInline value*/ class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
         /**
          * A value with bits set according to fields present.
@@ -266,4 +266,6 @@ inline class FieldSet<SCH : Schema<SCH>, out FLD : FieldDef<SCH, *, *>>
          * as it is written to and read from persistent storages.
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) val bitSet: Long
-)
+) {
+    override fun equals(other: Any?): Boolean = other is FieldSet<*, *> && bitSet == other.bitSet
+}

@@ -73,7 +73,7 @@ class PartialsTest {
         assertSame(full, full.take(SomeSchema.allFieldSet))
     }
 
-    /*@Test fun `copy from`() {
+    @Test fun `copy from`() {
         assertEquals(SomeSchema.buildPartial {
             it[A] = "a"
             it[B] = 1
@@ -86,9 +86,9 @@ class PartialsTest {
             }, A + B)
             assertEquals(B.asFieldSet(), changed)
         })
-    }*/
+    }
 
-    /*@Test fun `copy partially`() {
+    @Test fun `copy partially`() {
         val some = SomeSchema {
             it[A] = "some"
             it[B] = 2
@@ -101,7 +101,7 @@ class PartialsTest {
                 },
                 some.copy(SomeSchema.C.asFieldSet())
         )
-    }*/
+    }
 
     @Test fun `create packed`() {
         assertEquals(SomeSchema.buildPartial {
