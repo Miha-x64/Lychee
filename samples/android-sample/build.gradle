@@ -66,14 +66,14 @@ android {
 }
 
 repositories {
-    maven { url "https://jitpack.io" } // com.github.grishka
+    jcenter() // Splitties
 }
 dependencies {
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
 
     freshImplementation 'com.github.grishka.litex:recyclerview:1.0'
     freshImplementation 'com.github.grishka.litex:collection:1.0'
-    legacyImplementation 'androidx.recyclerview:recyclerview:1.1.0'
+    legacyImplementation 'androidx.recyclerview:recyclerview:1.2.0'
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 

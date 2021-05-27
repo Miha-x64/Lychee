@@ -3,7 +3,14 @@ plugins {
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.code.gson:gson:2.8.6'
 }
 
-apply from: rootProject.file('etc/release-bintray.gradle')
+ext {
+    PUBLISH_GROUP_ID = 'su.lychee'
+    PUBLISH_ARTIFACT_ID = 'android-json-on-jvm'
+    PUBLISH_VERSION = '0.0.17'
+    PUBLISH_NAME = 'android.util.JsonReader/Writer on JVM'
+    PUBLISH_DESCRIPTION = 'android.util.JsonReader/JsonWriter implementation for JVM'
+}
+apply from: rootProject.file('etc/publish-module.gradle')

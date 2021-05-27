@@ -49,7 +49,7 @@ dependencies {
     implementation project(':properties') // subscriptions & reactivity
     implementation project(':persistence') // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
 
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
     testImplementation "com.squareup.okio:okio:$okio_version"
     testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence') // partial(Struct) is here
@@ -60,4 +60,11 @@ dependencies {
     testImplementation project(':android-json-on-jvm')
 }
 
-apply from: rootProject.file('etc/release-bintray.gradle')
+ext {
+    PUBLISH_GROUP_ID = 'su.lychee'
+    PUBLISH_ARTIFACT_ID = 'android-bindings'
+    PUBLISH_VERSION = '0.0.17'
+    PUBLISH_NAME = 'Android Bindings for Lychee'
+    PUBLISH_DESCRIPTION = 'Bindings between Lychee Properties and Android Views'
+}
+apply from: rootProject.file('etc/publish-module.gradle')

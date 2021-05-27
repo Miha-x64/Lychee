@@ -7,9 +7,9 @@ dependencies {
     implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
     compileOnly project(':etc:fake-bindings')
     compileOnly project(':persistence') // ManagedProperty uses FieldDef from :persistence
-    compileOnly 'androidx.annotation:annotation:1.1.0'
+    compileOnly 'androidx.annotation:annotation:1.2.0'
 
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation project(':persistence')
     testImplementation project(':etc:testing')
 }
@@ -24,4 +24,11 @@ test {
     finalizedBy jacocoTestReport
 }*/
 
-apply from: rootProject.file('etc/release-bintray.gradle')
+ext {
+    PUBLISH_GROUP_ID = 'su.lychee'
+    PUBLISH_ARTIFACT_ID = 'properties'
+    PUBLISH_VERSION = '0.0.17'
+    PUBLISH_NAME = 'Lychee Properties'
+    PUBLISH_DESCRIPTION = 'Lightweight observable properties'
+}
+apply from: rootProject.file('etc/publish-module.gradle')

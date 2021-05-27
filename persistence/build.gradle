@@ -6,13 +6,20 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
     implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
 
-    compileOnly 'androidx.annotation:annotation:1.1.0'
+    compileOnly 'androidx.annotation:annotation:1.2.0'
     compileOnly 'com.squareup.okio:okio:1.0.0' // don't use $okio_version here, let's compile against 1.0
     compileOnly "com.google.android:android:$android_artifact_version"
 
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation project(':etc:testing')
     testImplementation "com.squareup.okio:okio:$okio_version"
 }
 
-apply from: rootProject.file('etc/release-bintray.gradle')
+ext {
+    PUBLISH_GROUP_ID = 'su.lychee'
+    PUBLISH_ARTIFACT_ID = 'persistence'
+    PUBLISH_VERSION = '0.0.17'
+    PUBLISH_NAME = 'Persistence Layer for Lychee'
+    PUBLISH_DESCRIPTION = 'Universal observable persistence'
+}
+apply from: rootProject.file('etc/publish-module.gradle')
