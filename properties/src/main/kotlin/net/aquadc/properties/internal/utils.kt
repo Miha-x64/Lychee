@@ -90,6 +90,7 @@ inline fun <T> emptyArrayOf(): Array<T> =
 @[JvmField JvmSynthetic PublishedApi] internal val TRUE = `Immutable-`(true)
 @[JvmField JvmSynthetic PublishedApi] internal val FALSE = `Immutable-`(false)
 @[JvmField JvmSynthetic PublishedApi] internal val UNIT = `Immutable-`(Unit)
+@[JvmField JvmSynthetic PublishedApi] internal val NULL = `Immutable-`(null)
 
 /**
  * Represents a function which can be un-applied.

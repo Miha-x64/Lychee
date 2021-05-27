@@ -7,7 +7,7 @@ import java.util.concurrent.Executor
 @PublishedApi
 internal class `Immutable-`<out T>(
         override val value: T
-) : Property<T> {
+) : Property<T>, () -> T {
 
     override val mayChange: Boolean get() = false
     override val isConcurrent: Boolean get() = true
@@ -17,5 +17,8 @@ internal class `Immutable-`<out T>(
     override fun addChangeListenerOn(executor: Executor, onChange: ChangeListener<T>) = Unit
 
     override fun removeChangeListener(onChange: (old: T, new: T) -> Unit) = Unit
+
+    /** @see net.aquadc.properties.function.just */
+    override fun invoke(): T = value
 
 }

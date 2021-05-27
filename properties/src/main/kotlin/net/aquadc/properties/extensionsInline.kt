@@ -209,6 +209,12 @@ inline fun immutablePropertyOf(@Suppress("UNUSED_PARAMETER") value: Unit): Prope
         UNIT
 
 /**
+ * Returns an immutable [Property] with `null` value.
+ */
+inline fun immutablePropertyOf(@Suppress("UNUSED_PARAMETER") value: Nothing?): Property<Nothing?> =
+        NULL
+
+/**
  * Returns an immutable property representing [value].
  */
 inline fun <T> immutablePropertyOf(value: T): Property<T> =

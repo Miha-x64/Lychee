@@ -2,6 +2,12 @@
 @file:Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
 package net.aquadc.properties.function
 
+import net.aquadc.properties.internal.FALSE
+import net.aquadc.properties.internal.NULL
+import net.aquadc.properties.internal.TRUE
+import net.aquadc.properties.internal.UNIT
+import net.aquadc.properties.internal.`Immutable-`
+
 // These methods are representing public way of getting functions.
 // A typical function consists of getfield/getstatic + areturn,
 // which means it's a great candidate for inlining.
@@ -43,3 +49,12 @@ inline fun isSameAs(that: Any?): (Any?) -> Boolean =
  */
 inline fun notSameAs(that: Any?): (Any?) -> Boolean =
         `AppliedFunc1-`(that, 6) as (Any?) -> Boolean
+
+/** A function which just returns the [value]. */
+inline fun just(value: Boolean): () -> Boolean = if (value) TRUE else FALSE
+/** A function which just returns the [value]. */
+inline fun just(@Suppress("UNUSED_PARAMETER") value: Unit): () -> Unit = UNIT
+/** A function which just returns the [value]. */
+inline fun just(@Suppress("UNUSED_PARAMETER") value: Nothing?): () -> Nothing? = NULL
+/** A function which just returns the [value]. */
+inline fun <T> just(value: T): () -> T = `Immutable-`(value)
