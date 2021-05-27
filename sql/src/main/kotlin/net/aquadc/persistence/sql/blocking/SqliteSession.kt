@@ -326,12 +326,12 @@ class SqliteSession(
         override fun <T> cell(
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
-            type: Ilk<T, *>, orElse: () -> T
+            type: Ilk<out T, *>, orElse: () -> T
         ): T {
             val cur = select(query, argumentTypes, sessionAndArguments, 1)
             try {
                 if (!cur.moveToFirst()) return orElse()
-                val value = (type.type as DataType<T>).get(cur, 0)
+                val value = (type.type as DataType<out T>).get(cur, 0)
                 check(!cur.moveToNext())
                 return value
             } finally {

@@ -15,6 +15,7 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.SimpleNullable
 import net.aquadc.persistence.type.nothing
+import net.aquadc.properties.function.just
 import java.io.InputStream
 
 /**
@@ -25,7 +26,7 @@ interface Blocking<CUR> {
     fun <T> cell(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
-        type: Ilk<T, *>, orElse: () -> T
+        type: Ilk<out T, *>, orElse: () -> T
     ): T
 
     fun select(
@@ -60,12 +61,12 @@ interface Blocking<CUR> {
 object Eagerly { // TODO support Ilk everywhere
 
     @JvmOverloads inline fun <CUR, R> cell(
-        returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
+        returnType: DataType.NotNull.Simple<out R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R> =
             FetchCellEagerly(returnType, orElse)
 
     @JvmOverloads inline fun <CUR, R : Any> cell(
-            returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
+            returnType: SimpleNullable<out R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, R?> =
             FetchCellEagerly(returnType, orElse)
 
@@ -78,6 +79,14 @@ object Eagerly { // TODO support Ilk everywhere
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
     ): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
+            FetchStructEagerly<SCH, CUR>(table, bindBy, orElse) as Fetch<Blocking<CUR>, StructSnapshot<SCH>/*!!*/>
+    // unfortunately, I don't know how to hack type inference so that
+    // orElse: () -> R, where StructSnapshot<SCH> : R, or R super StructSnapshot<SCH>.
+    // Theoretically, R could be Snapshot, Snapshot?, Struct, Struct?, Partial, Partial?, Any, Any?.
+    // I hope that supporting Snapshot? is enough.
+    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
+            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH>? = just(null)
+    ): Fetch<Blocking<CUR>, StructSnapshot<SCH>?> =
             FetchStructEagerly(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(
@@ -98,12 +107,12 @@ object Eagerly { // TODO support Ilk everywhere
 
 object Lazily {
     @JvmOverloads inline fun <CUR, R> cell(
-        returnType: DataType.NotNull.Simple<R>, noinline orElse: () -> R = throwNse
+        returnType: DataType.NotNull.Simple<out R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R>> =
             FetchCellLazily(returnType, orElse)
 
     @JvmOverloads inline fun <CUR, R : Any> cell(
-            returnType: SimpleNullable<R>, noinline orElse: () -> R = throwNse
+            returnType: SimpleNullable<out R>, noinline orElse: () -> R = throwNse
     ): Fetch<Blocking<CUR>, Lazy<R?>> =
             FetchCellLazily(returnType, orElse)
 
@@ -120,6 +129,10 @@ object Lazily {
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
     ): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
+            FetchStructLazily<SCH, CUR>(table, bindBy, orElse) as Fetch<Blocking<CUR>, CloseableStruct<SCH>/*!!*/>
+    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
+            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = throwNse
+    ): Fetch<Blocking<CUR>, CloseableStruct<SCH>?> =
             FetchStructLazily(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(

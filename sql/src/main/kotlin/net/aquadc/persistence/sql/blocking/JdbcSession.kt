@@ -317,11 +317,11 @@ class JdbcSession(
             }
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        private /*wannabe inline*/ fun <T> Ilk<T, *>.get(resultSet: ResultSet, index: Int): T {
+        private /*wannabe inline*/ fun <T> Ilk<out T, *>.get(resultSet: ResultSet, index: Int): T {
             return get1indexed(resultSet, 1 + index)
         }
 
-        private fun <T> Ilk<T, *>.get1indexed(resultSet: ResultSet, i: Int): T = custom.let { custom ->
+        private fun <T> Ilk<out T, *>.get1indexed(resultSet: ResultSet, i: Int): T = custom.let { custom ->
             if (custom != null) {
                 custom.load(connection, resultSet.getObject(i))
             } else {
@@ -376,7 +376,7 @@ class JdbcSession(
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
             sessionAndArguments: Array<out Any>,
-            type: Ilk<T, *>,
+            type: Ilk<out T, *>,
             orElse: () -> T
         ): T {
             val rs = select(query, argumentTypes, sessionAndArguments, 1)

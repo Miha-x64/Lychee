@@ -19,7 +19,7 @@ import java.sql.ResultSet
 import java.sql.SQLFeatureNotSupportedException
 
 @PublishedApi internal class FetchCellLazily<CUR, R>(
-    private val rt: Ilk<R, *>,
+    private val rt: Ilk<out R, *>,
     private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, Lazy<R>> {
     override fun fetch(
@@ -46,10 +46,10 @@ import java.sql.SQLFeatureNotSupportedException
 }
 
 @PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR>(
-        private val table: Table<SCH, *>,
-        private val bindBy: BindBy,
-        private val orElse: () -> Struct<SCH>
-) : Fetch<Blocking<CUR>, CloseableStruct<SCH>>, CloseableStruct<SCH> {
+    private val table: Table<SCH, *>,
+    private val bindBy: BindBy,
+    private val orElse: () -> Struct<SCH>?,
+) : Fetch<Blocking<CUR>, CloseableStruct<SCH>?>, CloseableStruct<SCH> {
 
     private var fallback: Struct<SCH>? = null
     override fun fetch(
@@ -63,7 +63,7 @@ import java.sql.SQLFeatureNotSupportedException
 
     override fun <T> get(field: FieldDef<SCH, T, *>): T = fallback!![field]
     override val schema: SCH get() = fallback!!.schema
-    override fun close() { /* nothing to do here */ }
+    override fun close() { (fallback as? CloseableStruct)?.close() } // some dirty crap here, but damn, what can I do?
 }
 
 @PublishedApi internal class FetchStructListLazily<CUR, SCH : Schema<SCH>>(

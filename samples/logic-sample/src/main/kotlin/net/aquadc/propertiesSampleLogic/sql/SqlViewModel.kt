@@ -5,6 +5,7 @@ import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly.cell
 import net.aquadc.persistence.sql.blocking.Eagerly.execute
 import net.aquadc.persistence.sql.blocking.Eagerly.struct
+import net.aquadc.persistence.sql.blocking.Eagerly.structNullable
 import net.aquadc.persistence.sql.blocking.Eagerly.structs
 import net.aquadc.persistence.sql.template.Mutation
 import net.aquadc.persistence.sql.template.Query
@@ -14,6 +15,7 @@ import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
+import net.aquadc.properties.function.just
 import net.aquadc.properties.persistence.ObservableStruct
 import java.io.Closeable
 
@@ -24,14 +26,17 @@ class SqlViewModel<CUR>(
 
     private val count: Session<Blocking<CUR>>.() -> Int =
         Query("SELECT COUNT(*) FROM ${Human.Tbl.name}", cell(i32))
+
     private val fetch: Session<Blocking<CUR>>.() -> List<Struct<Human>> =
         Query("SELECT * FROM ${Human.Tbl.name}", structs(Human.Tbl, BindBy.Name))
+
     private val fetchName: Session<Blocking<CUR>>.(Long) -> String =
         Query("SELECT \"name\" FROM ${Human.Tbl.name} WHERE _id = ?", i64, cell(string))
-    private val _find: Session<Blocking<CUR>>.(Long) -> Struct<Human> =
+
+    private val require: Session<Blocking<CUR>>.(Long) -> Struct<Human> =
         Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, struct(Human.Tbl, BindBy.Name))
-    private val find: (Long) -> Struct<Human>? =
-        { id -> try { session._find(id) } catch (e: NoSuchElementException) { null } } // FIXME
+    private val find: Session<Blocking<CUR>>.(Long) -> Struct<Human>? =
+        Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, structNullable(Human.Tbl, BindBy.Name))
 
     private val updateName: Transaction<Blocking<CUR>>.(String, Long) -> Unit =
         Mutation("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, execute())
@@ -67,7 +72,7 @@ class SqlViewModel<CUR>(
                 people[id]?.let { list.firstOrNull { it[Human.Id] == id }?.set(Human.Name, session.fetchName(id)) }
             }
             ins.forEach { id ->
-                val h = ObservableStruct(session._find(id), false)
+                val h = ObservableStruct(session.require(id), false)
                 people[id] = h
                 list.add(h)
             }
@@ -111,7 +116,7 @@ class SqlViewModel<CUR>(
 
     val createClicked = propertyOf(false)
         .clearEachAndTransact {
-            lastInserted.value = find(insert(Human.Tbl, Human("<new>", "")))!!
+            lastInserted.value = session.find(insert(Human.Tbl, Human("<new>", "")))!!
         }
 
     val deleteClicked = propertyOf(false)

@@ -12,7 +12,7 @@ import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing
 
 @PublishedApi internal class FetchCellEagerly<CUR, R>(
-        private val rt: Ilk<R, *>,
+        private val rt: Ilk<out R, *>,
         private val orElse: () -> R
 ) : Fetch<Blocking<CUR>, R> {
     override fun fetch(
@@ -47,14 +47,14 @@ import net.aquadc.persistence.type.nothing
 }
 
 @PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR>(
-        private val table: Table<SCH, *>,
-        private val bindBy: BindBy,
-        private val orElse: () -> StructSnapshot<SCH>
-) : Fetch<Blocking<CUR>, StructSnapshot<SCH>> {
+    private val table: Table<SCH, *>,
+    private val bindBy: BindBy,
+    private val orElse: () -> StructSnapshot<SCH>?,
+) : Fetch<Blocking<CUR>, StructSnapshot<SCH>?> {
     override fun fetch(
         from: Blocking<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): StructSnapshot<SCH> {
+    ): StructSnapshot<SCH>? {
         val managedColNames = table.managedColNames
         val managedColTypes = table.managedColTypes
         val cur = from.select(query, argumentTypes, receiverAndArguments, managedColNames.size)

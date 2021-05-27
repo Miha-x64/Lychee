@@ -35,11 +35,11 @@ abstract class TemplatesTest {
     @Test fun <CUR> cell() {
         val session = session as Session<Blocking<CUR>>
         Eagerly.run {
-            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
-            assertEquals("lolkek", session.kek("lol"))
+            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String?>(string, orElse = { null }))
+            assertEquals("lolkek", session.kek("lol")!!) //  just check that we can do this: ^^^^^^^^
         }
         Lazily.run {
-            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String>(string))
+            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String?>(string, orElse = { null }))
             assertEquals("lolkek", session.kek("lol").value)
         }
     }
@@ -76,9 +76,9 @@ abstract class TemplatesTest {
         Eagerly.run {
             val sumAndMul = Query(
                 "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
+                structNullable<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
-            val (f, s) = session.sumAndMul(80, 4, 6, 8)
+            val (f, s) = session.sumAndMul(80, 4, 6, 8)!!
             assertEquals(Pair(84, 48), Pair(f, s))
         }
         Lazily.run {
