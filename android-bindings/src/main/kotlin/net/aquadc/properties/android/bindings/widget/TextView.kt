@@ -190,7 +190,7 @@ internal fun Resources.getDrawableCompat(@DrawableRes id: Int): Drawable? =
 /**
  * A tuple of two [Int]s for [net.aquadc.properties.android.bindings.widget.bindErrorMessageAndIconTo].
  */
-class MessageAndIconRes( // Hey, look at me! I want to be an inline class! Pleeeease!
+class MessageAndIconRes(
         @JvmField @StringRes val messageRes: Int,
         @JvmField @DrawableRes val iconRes: Int
 )

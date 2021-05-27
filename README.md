@@ -20,7 +20,7 @@ Lychee is a library to rule all the data.
 * [Properties sample](#properties-sample)
 * [Sample usage in GUI application](#sample-usage-in-gui-application)
 * [Persistence and Android](#persistence-and-android)
-* [SQL](#sql)
+* [SQL](#sql) <!-- TODO other SQL libraries -->
 * [HTTP](#http)
 * [FAQ](#faq)
 * [Adding to a project](#adding-to-a-project)
@@ -134,7 +134,7 @@ or `LiveData` in Android Arch.
 
 * Simple and easy-to-use
 * Lightweight: persistence + properties + android-bindings define around 1500 methods
-  including easy-to-shrink `inline fun`s and `inline class`es
+  including easy-to-shrink `inline fun`s and `value class`es
 * zero reflection <small>([the only use of kotlin.reflect](https://github.com/Miha-x64/Lychee/blob/ccea2e165f0da5dbaedac2d3562c4a843614241f/properties/src/main/kotlin/net/aquadc/properties/operatorsInline.kt#L168-L179) is required if you delegate your Kotlin property to a Lychee `Property` and [eliminated by Kotlin 1.3.70+ compiler](https://youtrack.jetbrains.com/issue/KT-14513))</small>
 * Extensible: not confined to Android, JavaFX or whatever (want MPP? File an issue with sample use-cases)
 * Single-threaded and concurrent (lock-free) implementations
@@ -558,7 +558,7 @@ along with the whole View hierarchy.
 
 #### How much black magic do you use under the hood?
 
-Some operator overloading, some inline classes, several compilation error suppressions, tons of unchecked casts.
+Some operator overloading, some value classes, several compilation error suppressions, tons of unchecked casts.
 No reflection, zero annotation processing.
 If you encounter any problems, they most likely will be related to type inference or Java interop.
 
