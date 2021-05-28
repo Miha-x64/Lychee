@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/Miha-x64/Lychee.svg?branch=master)](https://travis-ci.org/Miha-x64/Lychee)
 ![Extremely lightweight](https://img.shields.io/badge/🦋-Extremely%20Lightweight-7799cc.svg)
 [![Hits-of-Code](https://hitsofcode.com/github/Miha-x64/Lychee)](https://hitsofcode.com/view/github/Miha-x64/Lychee)
-[![Kotlin 1.4](https://img.shields.io/badge/kotlin-1.4-blue.svg)](http://kotlinlang.org)
+[![Kotlin 1.5](https://img.shields.io/badge/kotlin-1.5-blue.svg)](http://kotlinlang.org)
 [![Awesome Kotlin](https://kotlin.link/awesome-kotlin.svg)](https://kotlin.link)
 [![Channel at Kotlin Slack](https://img.shields.io/static/v1?label=kotlinlang&message=Lychee&color=brightgreen&logo=slack)](https://app.slack.com/client/T09229ZC6/CPVLZ7LBT)
 [![Telegram chat](https://img.shields.io/static/v1?label=chat&message=Lychee&color=brightgreen&logo=telegram)](https://t.me/kotlin_lychee)
@@ -390,7 +390,7 @@ RemoteViews(packageName, R.layout.notification).bind(
 returns you a `Property<RemoteViews>`, so you can just observe it
 and update notification on every change.
 
-## SQL
+## SQL (experimental)
 
 `:sql` module provides `Table`, a wrapper over `Schema`:
 ```kt
@@ -578,32 +578,44 @@ triggering UI state change as needed and without any callbacks.
 
 ## Adding to a project
 
-[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aproperties/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aproperties/_latestVersion) Properties
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/properties/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/properties/0.0.17/jar) Properties
 
-[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Apersistence/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Apersistence/_latestVersion) Persistence
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/persistence/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/persistence/0.0.17/jar) Persistence
 
-[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aextended-persistence/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aextended-persistence/_latestVersion) Extended Persistence
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/extended-persistence/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/extended-persistence/0.0.17/jar) Extended Persistence
 
-[![Download](https://api.bintray.com/packages/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/images/download.svg)](https://bintray.com/miha-x64/maven/net.aquadc.properties%3Aandroid-bindings/_latestVersion) Android Bindings
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/android-bindings/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/android-bindings/0.0.17/aar) Android Bindings
+
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/http/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/http/0.0.17/jar) HTTP
+
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/sql/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/sql/0.0.17/jar) SQL (experimental)
+
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/android-json/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/android-json/0.0.17/jar) Android JSON
+
+[![Download](https://maven-badges.herokuapp.com/maven-central/su.lychee/android-json-on-jvm/badge.svg?style=flat)](https://search.maven.org/artifact/su.lychee/android-json-on-jvm/0.0.17/jar) Android JSON on JVM
 
 ```groovy
 // `allprojects` section of top-level build.gradle || root of module-level build.gradle
 repositories {
     ...
-    maven { url 'https://dl.bintray.com/miha-x64/maven' }
+    mavenCentral()
+    maven { url "https://jitpack.io" } // our dependency, Collection-utils, still lives there
 }
 
 // module-level build.gradle
 dependencies {
+    // I am a bit dumb, so with my first publication on Maven Central I ended up having empty <dependencies> for some of artifacts
+    implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:1.0-alpha05"
+  
     def lychee = '0.0.17'
 //  val lychee = "0.0.17"
-    implementation("net.aquadc.properties:properties:$lychee") // observables for both JVM and Android
-    implementation("net.aquadc.properties:persistence:$lychee") // persistence for JVM and Android
-    implementation("net.aquadc.properties:extended-persistence:$lychee") // partial structs, tuples, either, unsigned, primitive[], token transforms
-    implementation("net.aquadc.properties:android-bindings:$lychee") // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
-    implementation("net.aquadc.properties:android-json:$lychee") // android.util.JsonReader as TokenStream
-    implementation("net.aquadc.properties:android-json-on-jvm:$lychee") // implements android.util.JsonReader for server and desktop, use with android-json outside of Android 
-    implementation("net.aquadc.properties:sql:$lychee") // observable SQL and SQL templates
-    implementation("net.aquadc.properties:http:$lychee") // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
+    implementation("su.lychee:properties:$lychee") // observables for both JVM and Android
+    implementation("su.lychee:persistence:$lychee") // persistence for JVM and Android
+    implementation("su.lychee:extended-persistence:$lychee") // partial structs, tuples, either, unsigned, primitive[], token transforms
+    implementation("su.lychee:android-bindings:$lychee") // AAR for Android(x): View bindings, Parcel, SharedPreferences as Struct, Handler as Executor
+    implementation("su.lychee:android-json:$lychee") // android.util.JsonReader as TokenStream
+    implementation("su.lychee:android-json-on-jvm:$lychee") // implements android.util.JsonReader for server and desktop, use with android-json outside of Android 
+    implementation("su.lychee:sql:$lychee") // observable SQL and SQL templates
+    implementation("su.lychee:http:$lychee") // RPC over HTTP: client-side HTTP templates, server-side routing, type-safe link generator
 }
 ```
