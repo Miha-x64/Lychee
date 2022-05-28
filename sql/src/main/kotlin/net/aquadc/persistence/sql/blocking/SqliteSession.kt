@@ -112,10 +112,6 @@ class SqliteSession(
             check(statement.executeUpdateDelete() == 1)
         }
 
-        override fun truncate(table: Table<*, *>) {
-            connection.execSQL(SqliteDialect.truncate(table))
-        }
-
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
             try {
@@ -473,10 +469,6 @@ class SqliteSession(
 
     override fun toString(): String =
             "SqliteSession(connection=$connection)"
-
-    @Deprecated("This was intended to list ActiveRecord's queries", level = DeprecationLevel.ERROR)
-    fun dump(sb: StringBuilder) {
-    }
 
     override fun <R> rawQuery(
         query: String,

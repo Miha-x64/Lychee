@@ -3,7 +3,7 @@ package net.aquadc.persistence.android
 import net.aquadc.persistence.android.json.json
 import net.aquadc.persistence.android.json.tokens
 import net.aquadc.persistence.android.json.writeTo
-import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.Partial
 import net.aquadc.persistence.extended.tuple.Tuple
 import net.aquadc.persistence.extended.tuple.Tuple3
 import net.aquadc.persistence.extended.tuple.buildPartial
@@ -108,14 +108,14 @@ class PersistenceTest {
             it[BYTES] = setOf()
             it[BLOB] = "B10B".decodeHex()
             it[STRUCT] = null
-            it[PART] = Sch.buildPartial { }
+            it[PART] = Sch.Partial { }
             it[EITHER] = EitherLeft(tupleType(10, 20.0))
             it[COLOUR] = 0xFFFF8845.toInt()
             it[COLOURS] = listOf()
             it[UUID] = java.util.UUID.randomUUID()
             it[UUIDS] = emptyList()
         }
-        it[PART] = Sch.buildPartial {
+        it[PART] = Sch.Partial {
             it[STRING] = "I'm partial!"
         }
         it[EITHER] = EitherRight(14)

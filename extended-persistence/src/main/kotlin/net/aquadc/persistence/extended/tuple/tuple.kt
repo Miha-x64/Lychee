@@ -2,7 +2,7 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package net.aquadc.persistence.extended.tuple
 
-import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.Partial
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
@@ -118,7 +118,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>>
         Tuple<A, DA, B, DB>.buildPartial(
         first: A? = null, second: B? = null
 ): PartialStruct<Tuple<A, DA, B, DB>> =
-        buildPartial<Tuple<A, DA, B, DB>> {
+        Partial<Tuple<A, DA, B, DB>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
         }
@@ -178,7 +178,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         Tuple3<A, DA, B, DB, C, DC>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null
 ): PartialStruct<Tuple3<A, DA, B, DB, C, DC>> =
-        buildPartial<Tuple3<A, DA, B, DB, C, DC>> {
+        Partial<Tuple3<A, DA, B, DB, C, DC>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
             if (third != null) it[Third] = third
@@ -247,7 +247,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         Tuple4<A, DA, B, DB, C, DC, D, DD>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null
 ): PartialStruct<Tuple4<A, DA, B, DB, C, DC, D, DD>> =
-        buildPartial<Tuple4<A, DA, B, DB, C, DC, D, DD>> {
+        Partial<Tuple4<A, DA, B, DB, C, DC, D, DD>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
             if (third != null) it[Third] = third
@@ -325,7 +325,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null
 ): PartialStruct<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> =
-        buildPartial<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> {
+        Partial<Tuple5<A, DA, B, DB, C, DC, D, DD, E, DE>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
             if (third != null) it[Third] = third
@@ -412,7 +412,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null
 ): PartialStruct<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> =
-        buildPartial<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> {
+        Partial<Tuple6<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
             if (third != null) it[Third] = third
@@ -508,7 +508,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null, seventh: G? = null
 ): PartialStruct<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> =
-        buildPartial<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> {
+        Partial<Tuple7<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
             if (third != null) it[Third] = third
@@ -612,7 +612,7 @@ inline fun <A : Any, DA : DataType<A>, B : Any, DB : DataType<B>, C : Any, DC : 
         Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>.buildPartial(
         first: A? = null, second: B? = null, third: C? = null, fourth: D? = null, fifth: E? = null, sixth: F? = null, seventh: G? = null, eighth: H? = null
 ): PartialStruct<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> =
-        buildPartial<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> {
+        Partial<Tuple8<A, DA, B, DB, C, DC, D, DD, E, DE, F, DF, G, DG, H, DH>> {
             if (first != null) it[First] = first
             if (second != null) it[Second] = second
             if (third != null) it[Third] = third

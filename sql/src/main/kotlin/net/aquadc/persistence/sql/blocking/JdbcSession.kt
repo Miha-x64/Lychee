@@ -106,15 +106,6 @@ class JdbcSession(
                 throw e
             }
 
-        override fun truncate(table: Table<*, *>) {
-            val stmt = connection.createStatement()
-            try {
-                stmt.execute(dialect.truncate(table))
-            } finally {
-                stmt.close()
-            }
-        }
-
         override fun onTransactionEnd(successful: Boolean) {
             val transaction = transaction ?: throw AssertionError()
             try {
@@ -545,10 +536,6 @@ class JdbcSession(
 
     override fun toString(): String =
             "JdbcSession(connection=$connection, dialect=${dialect.javaClass.simpleName})"
-
-    @Deprecated("This was intended to list ActiveRecord's queries", level = DeprecationLevel.ERROR)
-    fun dump(sb: StringBuilder) {
-    }
 
     override fun <R> rawQuery(
         query: String,

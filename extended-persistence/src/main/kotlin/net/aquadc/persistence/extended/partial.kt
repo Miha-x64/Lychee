@@ -115,14 +115,9 @@ inline fun <SCH : Schema<SCH>, T> PartialStruct<SCH>.getOrElse(field: FieldDef<S
 /**
  * Builds a [PartialStruct].
  */
-@Deprecated("renamed", ReplaceWith("this.Partial(build)", "net.aquadc.persistence.extended.Partial"))
-inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) -> Unit): PartialStruct<SCH> {
-    contract { callsInPlace(build, InvocationKind.EXACTLY_ONCE) }
-
-    val builder = newBuilder(this)
-    build(this, builder)
-    return finish(builder)
-}
+@Deprecated("renamed", ReplaceWith("this.Partial(build)", "net.aquadc.persistence.extended.Partial"), DeprecationLevel.ERROR)
+inline fun <SCH : Schema<SCH>> SCH.buildPartial(build: SCH.(StructBuilder<SCH>) -> Unit): PartialStruct<SCH> =
+    throw AssertionError()
 
 /**
  * Builds a [PartialStruct].

@@ -130,8 +130,8 @@ interface Transaction<SRC> : Closeable {
      * This may be implemented either as `DELETE FROM table` or `TRUNCATE table`.
      */
     @Deprecated("TRUNCATE is not a CRUD operation. Also, it is not guaranteed to invoke triggers in some DBMSes. " +
-        "You can TRUNCATE using Session.mutate() query at your own risk.")
-    fun truncate(table: Table<*, *>)
+        "You can TRUNCATE using Session.mutate() query at your own risk.", level = DeprecationLevel.ERROR)
+    fun truncate(table: Table<*, *>): Unit = throw AssertionError()
 
     fun setSuccessful()
 

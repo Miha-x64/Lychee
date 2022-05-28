@@ -21,8 +21,6 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, primaryKey: ID)
 
-    abstract fun truncate(table: Table<*, *>)
-
     abstract fun onTransactionEnd(successful: Boolean)
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(

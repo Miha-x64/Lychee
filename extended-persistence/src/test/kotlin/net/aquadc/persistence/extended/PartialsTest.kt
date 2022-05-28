@@ -18,14 +18,14 @@ class PartialsTest {
 
     @Test(expected = NoSuchElementException::class)
     fun `require absent`() {
-        SomeSchema.buildPartial { }.getOrThrow(SomeSchema.A)
+        SomeSchema.Partial { }.getOrThrow(SomeSchema.A)
     }
     @Test fun absent() {
-        assertEquals(null, SomeSchema.buildPartial { }.getOrNull(SomeSchema.A))
+        assertEquals(null, SomeSchema.Partial { }.getOrNull(SomeSchema.A))
     }
 
     @Test fun partial() {
-        val p = SomeSchema.buildPartial {
+        val p = SomeSchema.Partial {
             it[A] = "123"
             it[B] = 99
         }
@@ -36,7 +36,7 @@ class PartialsTest {
     }
 
     @Test fun full() {
-        val p = SomeSchema.buildPartial {
+        val p = SomeSchema.Partial {
             it[A] = "123"
             it[B] = 99
             it[C] = 100500L
@@ -74,13 +74,13 @@ class PartialsTest {
     }
 
     @Test fun `copy from`() {
-        assertEquals(SomeSchema.buildPartial {
+        assertEquals(SomeSchema.Partial {
             it[A] = "a"
             it[B] = 1
-        }, SomeSchema.buildPartial {
+        }, SomeSchema.Partial {
             it[A] = "a"
         }.copy {
-            val changed = it.setFrom(SomeSchema.buildPartial {
+            val changed = it.setFrom(SomeSchema.Partial {
                 it[B] = 1
                 it[C] = 1L
             }, A + B)
@@ -96,7 +96,7 @@ class PartialsTest {
         }
 
         assertEquals(
-                SomeSchema.buildPartial {
+                SomeSchema.Partial {
                     it[C] = 6L
                 },
                 some.copy(SomeSchema.C.asFieldSet())
@@ -104,14 +104,14 @@ class PartialsTest {
     }
 
     @Test fun `create packed`() {
-        assertEquals(SomeSchema.buildPartial {
+        assertEquals(SomeSchema.Partial {
             it[B] = 99
             it[C] = 100L
         }, partial(SomeSchema).load(SomeSchema.B + SomeSchema.C, arrayOf<Any>(99, 100L)))
     }
 
     @Test fun `create single`() {
-        assertEquals(SomeSchema.buildPartial {
+        assertEquals(SomeSchema.Partial {
             it[B] = 99
         }, partial(SomeSchema).load(SomeSchema.B.asFieldSet(), 99))
     }
@@ -121,7 +121,7 @@ class PartialsTest {
     }
 
     @Test fun singleNull() {
-        val partial = CoolSchema.buildPartial { it[Single] = null }
+        val partial = CoolSchema.Partial { it[Single] = null }
         assertEquals(partial, partial(CoolSchema).load(CoolSchema.Single.asFieldSet(), null))
     }
 

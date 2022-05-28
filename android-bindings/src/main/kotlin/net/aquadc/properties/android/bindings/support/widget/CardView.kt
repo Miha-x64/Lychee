@@ -4,7 +4,6 @@ package net.aquadc.properties.android.bindings.support.widget
 import android.support.v4.content.ContextCompat
 import android.support.v7.widget.CardView
 import net.aquadc.properties.Property
-import net.aquadc.properties.android.bindings.bindViewTo
 
 
 /**
@@ -12,19 +11,19 @@ import net.aquadc.properties.android.bindings.bindViewTo
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("this.bindCardBackgroundColorTo(backgroundColorProperty)", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorTo")
+    ReplaceWith("this.bindCardBackgroundColorTo(backgroundColorProperty)", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorTo"),
+    DeprecationLevel.ERROR
 )
 fun CardView.bindCardBackgroundColorTo(backgroundColorProperty: Property<Int>): Unit =
-        bindViewTo(backgroundColorProperty) { cv, color -> cv.setCardBackgroundColor(color) }
+    throw AssertionError()
 
 /**
  * Binds background color resource using [CardView.setBackgroundColor] and [ContextCompat.getColor].
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("this.bindCardBackgroundColorResTo(backgroundColorResProperty)", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorResTo")
+    ReplaceWith("this.bindCardBackgroundColorResTo(backgroundColorResProperty)", "net.aquadc.properties.android.bindings.androidx.widget.bindCardBackgroundColorResTo"),
+    DeprecationLevel.ERROR
 )
 fun CardView.bindCardBackgroundColorResTo(backgroundColorResProperty: Property<Int>): Unit =
-        bindViewTo(backgroundColorResProperty) { cv, colorRes ->
-            cv.setCardBackgroundColor(ContextCompat.getColor(cv.context, colorRes))
-        }
+    throw AssertionError()

@@ -12,7 +12,6 @@ dependencies {
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
     PUBLISH_ARTIFACT_ID = 'android-json'
-    PUBLISH_VERSION = '0.0.17'
     PUBLISH_NAME = 'Lychee Android JSON bindings'
     PUBLISH_DESCRIPTION = 'android.util.JsonReader/JsonWriter bindings for Lychee persistence'
 }

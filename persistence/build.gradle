@@ -18,7 +18,6 @@ dependencies {
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
     PUBLISH_ARTIFACT_ID = 'persistence'
-    PUBLISH_VERSION = '0.0.17'
     PUBLISH_NAME = 'Persistence Layer for Lychee'
     PUBLISH_DESCRIPTION = 'Universal observable persistence'
 }

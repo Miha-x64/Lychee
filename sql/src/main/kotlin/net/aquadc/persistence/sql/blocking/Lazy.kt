@@ -13,10 +13,6 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
-import java.io.FilterInputStream
-import java.io.InputStream
-import java.sql.ResultSet
-import java.sql.SQLFeatureNotSupportedException
 
 @PublishedApi internal class FetchCellLazily<CUR, R>(
     private val rt: Ilk<out R, *>,
@@ -83,27 +79,6 @@ import java.sql.SQLFeatureNotSupportedException
                 if (transient) this else StructSnapshot(this)
         }
     }
-}
-
-@PublishedApi internal object InputStreamFromResultSet : Fetch<Blocking<ResultSet>, InputStream> {
-
-    override fun fetch(
-        from: Blocking<ResultSet>, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): InputStream =
-            from.select(query, argumentTypes, receiverAndArguments, 1).let { rs ->
-                check(rs.next()) { rs.close(); "ResultSet is empty." }
-
-                val stream = try { rs.getBlob(0).binaryStream } // Postgres-JDBC supports this, SQLite-JDBC doesn't
-                catch (e: SQLFeatureNotSupportedException) { rs.getBinaryStream(0) } // this is typically just in-memory :'(
-
-                object : FilterInputStream(stream) {
-                    override fun close() {
-                        super.close()
-                        rs.close()
-                    }
-                }
-            }
 }
 
 private open class CurIterator<CUR, SCH : Schema<SCH>, R>(

@@ -183,7 +183,7 @@ internal class Triggerz( // @file:JvmName("Triggers")
 
             val diff = HashMap<Table<*, *>, InlineEnumSet<TriggerEvent>>()
             subjects.forEach {
-                if (it !in activeSubjects) diff[it.first] = (diff[it.first] ?: noneOf()) + it.second
+                if (it !in activeSubjects) diff[it.first] = (diff[it.first] ?: noneOf<TriggerEvent>()) + it.second
                 activeSubjects += it
             }
             if (diff.isNotEmpty()) lowLevelSession.addTriggers(diff) // make some IO while holding a lock, yay!
@@ -203,7 +203,7 @@ internal class Triggerz( // @file:JvmName("Triggers")
                 val diff = HashMap<Table<*, *>, InlineEnumSet<TriggerEvent>>()
                 subjects.forEach {
                     activeSubjects.remove(it)
-                    if (it !in activeSubjects) diff[it.first] = (diff[it.first] ?: noneOf()) + it.second
+                    if (it !in activeSubjects) diff[it.first] = (diff[it.first] ?: noneOf<TriggerEvent>()) + it.second
                 }
                 if (diff.isNotEmpty()) lowLevelSession.removeTriggers(diff)
             }
@@ -228,7 +228,7 @@ internal class Triggerz( // @file:JvmName("Triggers")
 internal fun Array<out TriggerSubject>.toSubjectMap(): Map<Table<*, *>, InlineEnumSet<TriggerEvent>> {
     val map = HashMap<Table<*, *>, InlineEnumSet<TriggerEvent>>()
     forEach { (table, event) ->
-        val set = map[table] ?: noneOf()
+        val set = map[table] ?: noneOf<TriggerEvent>()
         map[table] = set + event
     }
     return map

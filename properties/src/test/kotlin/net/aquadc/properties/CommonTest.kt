@@ -90,7 +90,7 @@ class CommonTest {
         assertEquals(0, called)
         assertEquals(original.value, dist.value)
 
-        original.value = (" " + original.value).substring(1)
+        original.value = String(original.value.toByteArray())
         assertEquals(1, called)
         assertEquals(original.value, dist.value)
     }

@@ -17,12 +17,12 @@ interface Dialect {
     /**
      * Constructs an `INSERT INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
      */
-    fun <SCH : Schema<SCH>> StringBuilder.insert(table: Table<SCH, *>, fields: FieldSet<SCH, out FieldDef<SCH, *, *>>): StringBuilder
+    fun <SCH : Schema<SCH>> StringBuilder.insert(table: Table<SCH, *>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>): StringBuilder
 
     /**
      * Constructs an `INSERT INTO <table> (<col>, <col>, ...) VALUES (?, ?, ...)` SQL query
      */
-    fun <SCH : Schema<SCH>> StringBuilder.update(table: Table<SCH, *>, fields: FieldSet<SCH, out FieldDef<SCH, *, *>>): StringBuilder
+    fun <SCH : Schema<SCH>> StringBuilder.update(table: Table<SCH, *>, fields: FieldSet<SCH, FieldDef<SCH, *, *>>): StringBuilder
 
     /**
      * Constructs an SQL query like `SELECT <col> from <table> WHERE <condition>`
@@ -44,6 +44,7 @@ interface Dialect {
      */
     fun createTable(table: Table<*, *>, temporary: Boolean = false, ifNotExists: Boolean = false): String
 
+    @Deprecated("Building DDL is a non-goal. This becomes internal API")
     fun StringBuilder.createTable(
         temporary: Boolean, ifNotExists: Boolean, name: String, namePostfix: String?, idColName: CharSequence,
         idColTypeName: SqlTypeName, managedPk: Boolean,
@@ -53,6 +54,8 @@ interface Dialect {
     /**
      * Returns `TRUNCATE` query to clear the whole table.
      */
+    @Deprecated("TRUNCATE is not a CRUD operation. Also, it is not guaranteed to invoke triggers in some DBMSes. " +
+        "You can TRUNCATE using Session.mutate() query at your own risk.")
     fun truncate(table: Table<*, *>): String
 
     /**

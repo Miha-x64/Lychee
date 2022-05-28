@@ -156,9 +156,6 @@ object Lazily {
             table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, true)
-
-    inline fun cellByteStream(): Fetch<Blocking<java.sql.ResultSet>, InputStream> =
-            InputStreamFromResultSet //         ^^^^^^^^^ JDBC-only. Not supported by Android SQLite
 }
 
 //fun <T> observableValue(/*todo dependencies*/): FetchValue<BlockingSession, T, Property<T>, Property<LazyList<T>>> = TODO()

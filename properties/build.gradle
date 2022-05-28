@@ -27,7 +27,6 @@ test {
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
     PUBLISH_ARTIFACT_ID = 'properties'
-    PUBLISH_VERSION = '0.0.17'
     PUBLISH_NAME = 'Lychee Properties'
     PUBLISH_DESCRIPTION = 'Lightweight observable properties'
 }

@@ -19,15 +19,6 @@ fun <T, R> Property<T>.map(transform: (T) -> R): Property<R> = when {
 }
 
 /**
- * Returns new property with [transform]ed value.
- * Calling [transform] from [worker] thread is not guaranteed:
- * it will be called in-place if there's no pre-mapped value.
- */
-@Deprecated("mappedProperty.value awaits for result blockingly", level = DeprecationLevel.ERROR)
-fun <T, R> Property<T>.mapOn(worker: Worker<*>, transform: (T) -> R): Property<R> =
-    throw AssertionError()
-
-/**
  * Returns new property with [transform]ed value depending on two properties' values.
  */
 fun <T, U, R> Property<T>.mapWith(that: Property<U>, transform: (T, U) -> R): Property<R> = when {
@@ -70,20 +61,6 @@ fun <P : Property<T>, T> P.onEach(func: (T) -> Unit): P = apply { // TODO: concu
         func(value)
     }
 }
-
-/**
- * If [subscribe], calls [Property.addChangeListener]; if not, calls [Property.removeChangeListener].
- * [onChange] value must be stable between invocations.
- * Avoid passing a lambda, anonymous fun, object declaration, or bound function reference
- * in place, store it in a field.
- */
-@Deprecated(
-    "This function ignores value changes happened in detached state.",
-    ReplaceWith("this.syncIf(subscribe, onChange, TODO())", "net.aquadc.properties.syncIf"),
-    DeprecationLevel.ERROR
-)
-fun <T> Property<T>.observeChangesIf(subscribe: Boolean, onChange: ChangeListener<T>): Nothing =
-    throw AssertionError()
 
 /**
  * If [subscribe], adds [onChange] as a listener to this property and invokes it with up to date value;

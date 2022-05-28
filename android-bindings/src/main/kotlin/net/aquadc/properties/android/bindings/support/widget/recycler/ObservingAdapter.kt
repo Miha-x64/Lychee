@@ -8,23 +8,10 @@ import androidx.annotation.CallSuper
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("ObservingAdapter", "net.aquadc.properties.android.bindings.androidx.widget.recycler.ObservingAdapter")
+    ReplaceWith("ObservingAdapter", "net.aquadc.properties.android.bindings.androidx.widget.recycler.ObservingAdapter"),
+    DeprecationLevel.ERROR
 )
 abstract class ObservingAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
-
-    private var recyclers = 0
-
-    @CallSuper
-    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-        super.onAttachedToRecyclerView(recyclerView)
-        if (recyclers++ == 0) onObservedStateChanged(true)
-    }
-
-    @CallSuper
-    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        if (--recyclers == 0) onObservedStateChanged(false)
-        super.onDetachedFromRecyclerView(recyclerView)
-    }
 
     /**
      * Called to notify that this adapter observed or not observed now.

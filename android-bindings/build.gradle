@@ -53,7 +53,7 @@ dependencies {
     testImplementation "com.squareup.okio:okio:$okio_version"
     testImplementation project(':etc:testing')
     testImplementation project(':extended-persistence') // partial(Struct) is here
-    testImplementation 'org.robolectric:robolectric:4.3.1'
+    testImplementation 'org.robolectric:robolectric:4.8.1'
     testImplementation project(':sql')
     testImplementation project(':sql:testing')
     testImplementation project(':android-json')
@@ -63,7 +63,6 @@ dependencies {
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
     PUBLISH_ARTIFACT_ID = 'android-bindings'
-    PUBLISH_VERSION = '0.0.17'
     PUBLISH_NAME = 'Android Bindings for Lychee'
     PUBLISH_DESCRIPTION = 'Bindings between Lychee Properties and Android Views'
 }

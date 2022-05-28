@@ -1,6 +1,6 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.Partial
 import net.aquadc.persistence.extended.either.EitherRight
 import net.aquadc.persistence.extended.tuple.invoke
 import net.aquadc.persistence.struct.Schema
@@ -113,7 +113,7 @@ class EmbedUtilsTest {
     @Test fun partialNested0() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {  }
+                it[Nested] = SchWithId.Partial {  }
                 it[OwnField] = "zzz"
             },
             arrayOf(
@@ -125,7 +125,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedId() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[Id] = 123
                 }
                 it[OwnField] = "zzz"
@@ -139,7 +139,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[Value] = "456"
                 }
                 it[OwnField] = "zzz"
@@ -153,7 +153,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedMutValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[MutValue] = "789"
                 }
                 it[OwnField] = "zzz"
@@ -167,7 +167,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedIdValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[Id] = 111
                     it[Value] = "222"
                 }
@@ -182,7 +182,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedIdMutValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[Id] = 111
                     it[MutValue] = "222"
                 }
@@ -197,7 +197,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedValueMutValue() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[Value] = "111"
                     it[MutValue] = "222"
                 }
@@ -212,7 +212,7 @@ class EmbedUtilsTest {
     @Test fun partialNestedAll() = assertWorks(
             TableWithPartialEmbed,
             WithPartialNested {
-                it[Nested] = SchWithId.buildPartial {
+                it[Nested] = SchWithId.Partial {
                     it[Id] = 111
                     it[Value] = "222"
                     it[MutValue] = "333"

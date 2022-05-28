@@ -1,6 +1,6 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.extended.buildPartial
+import net.aquadc.persistence.extended.Partial
 import net.aquadc.persistence.extended.tuple.Tuple4
 import net.aquadc.persistence.extended.partial
 import net.aquadc.persistence.extended.tuple.Tuple
@@ -72,7 +72,7 @@ class LensesTest {
     @Test fun partial() {
         val lens = NestedPartial.Item / SomeSchema.A
         val struct = NestedPartial {
-            it[Item] = SomeSchema.buildPartial {  }
+            it[Item] = SomeSchema.Partial {  }
         }
         val value = lens(struct)
         assertEquals(null, value)

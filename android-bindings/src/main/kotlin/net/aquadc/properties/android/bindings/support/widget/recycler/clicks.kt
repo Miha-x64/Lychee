@@ -12,10 +12,11 @@ import net.aquadc.properties.MutableProperty
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("this.setPositionWhenClicked(target)", "net.aquadc.properties.android.bindings.androidx.widget.recycler.setPositionWhenClicked")
+    ReplaceWith("this.setPositionWhenClicked(target)", "net.aquadc.properties.android.bindings.androidx.widget.recycler.setPositionWhenClicked"),
+    DeprecationLevel.ERROR
 )
 inline fun RecyclerView.ViewHolder.setPositionWhenClicked(target: MutableProperty<in Int>): View.OnClickListener =
-        ClickListener<Nothing>(this, target)
+    throw AssertionError()
 
 
 /**
@@ -23,25 +24,8 @@ inline fun RecyclerView.ViewHolder.setPositionWhenClicked(target: MutablePropert
  */
 @Deprecated(
     "Bindings to Android Support library are abandoned. Consider migrating to AndroidX.",
-    ReplaceWith("this.setPositionWhenLongClicked(target)", "net.aquadc.properties.android.bindings.androidx.widget.recycler.setPositionWhenLongClicked")
+    ReplaceWith("this.setPositionWhenLongClicked(target)", "net.aquadc.properties.android.bindings.androidx.widget.recycler.setPositionWhenLongClicked"),
+    DeprecationLevel.ERROR
 )
 inline fun RecyclerView.ViewHolder.setPositionWhenLongClicked(target: MutableProperty<in Int>): View.OnLongClickListener =
-        ClickListener<Nothing>(this, target)
-
-
-@Suppress("UNCHECKED_CAST")
-@PublishedApi internal class ClickListener<T>(
-        private val holder: Any,
-        private val positionTarget: MutableProperty<in Int>
-) : View.OnClickListener, View.OnLongClickListener {
-
-    override fun onClick(ignored: View?) {
-        positionTarget.value = (holder as RecyclerView.ViewHolder).layoutPosition
-    }
-
-    override fun onLongClick(ignored: View?): Boolean {
-        onClick(null)
-        return true
-    }
-
-}
+    throw AssertionError()

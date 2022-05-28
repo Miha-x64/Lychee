@@ -35,20 +35,20 @@ class StreamsTest {
 
     @Test fun `empty struct from&to stream`() {
         assertEquals(
-                SomeSchema.buildPartial {  },
-                read(partialSchema, write(partialSchema, SomeSchema.buildPartial {  }))
+                SomeSchema.Partial {  },
+                read(partialSchema, write(partialSchema, SomeSchema.Partial {  }))
         )
     }
 
     @Test fun `single struct from&to stream`() {
         assertEquals(
-                SomeSchema.buildPartial { it[A] = "some" },
-                read(partialSchema, write(partialSchema, SomeSchema.buildPartial { it[A] = "some" }))
+                SomeSchema.Partial { it[A] = "some" },
+                read(partialSchema, write(partialSchema, SomeSchema.Partial { it[A] = "some" }))
         )
     }
 
     @Test fun `full struct from&to stream`() {
-        val partial = SomeSchema.buildPartial { it[A] = "lorem"; it[B] = 11; it[C] = 31L }
+        val partial = SomeSchema.Partial { it[A] = "lorem"; it[B] = 11; it[C] = 31L }
         assertEquals(
                 partial,
                 read(partialSchema, write(partialSchema, partial))

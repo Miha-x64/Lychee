@@ -22,7 +22,6 @@ dependencies {
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
     PUBLISH_ARTIFACT_ID = 'sql'
-    PUBLISH_VERSION = '0.0.17'
     PUBLISH_NAME = 'SQL bindings for Lychee'
     PUBLISH_DESCRIPTION = 'Type-safe SQL for Lychee'
 }

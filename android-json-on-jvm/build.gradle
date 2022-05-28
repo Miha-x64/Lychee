@@ -9,7 +9,6 @@ dependencies {
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
     PUBLISH_ARTIFACT_ID = 'android-json-on-jvm'
-    PUBLISH_VERSION = '0.0.17'
     PUBLISH_NAME = 'android.util.JsonReader/Writer on JVM'
     PUBLISH_DESCRIPTION = 'android.util.JsonReader/JsonWriter implementation for JVM'
 }

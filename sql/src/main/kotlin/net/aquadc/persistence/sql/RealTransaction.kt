@@ -30,11 +30,6 @@ internal class RealTransaction<SRC>(
         lowSession.delete(table, id)
     }
 
-    override fun truncate(table: Table<*, *>) {
-        checkOpenAndThread()
-        lowSession.truncate(table)
-    }
-
     override fun setSuccessful() {
         checkOpenAndThread()
         isSuccessful = true
