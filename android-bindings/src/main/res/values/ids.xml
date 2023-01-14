@@ -1,0 +1,6 @@
+<resources>
+    <!--suppress AndroidDomInspection | docs said I could -->
+    <public /> <!-- make everything (i.e. lychee_adapterAttacher) private -->
+
+    <item type="id" name="_lychee_adapterAttacher" />
+</resources>
