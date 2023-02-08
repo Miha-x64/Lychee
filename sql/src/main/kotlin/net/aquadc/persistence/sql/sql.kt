@@ -66,6 +66,8 @@ interface Session<SRC> : Closeable {
 
     fun trimMemory()
 
+    override fun close() // rm 'throws IOException`
+
 }
 
 
@@ -98,8 +100,9 @@ fun <SRC> Session<SRC>.withTransaction4j(block: java.util.function.Consumer<Tran
     }
 }
 
-interface Transaction<SRC> : Closeable {
+interface Transaction<SRC> : Session<SRC>, Closeable {
 
+    @Deprecated("Transaction implements Session now", ReplaceWith("this"))
     val mySession: Session<SRC>
 
     /**
@@ -135,7 +138,12 @@ interface Transaction<SRC> : Closeable {
 
     fun setSuccessful()
 
+    override fun close() // rm 'throws IOException`
+
 }
+
+inline fun <SCH : Schema<SCH>, ID : IdBound> Transaction<*>.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
+    insertAll(table, data.iterator())
 
 inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
     NativeType(name, type)

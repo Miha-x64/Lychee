@@ -2,18 +2,15 @@ package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.persistence.sql.IdBound
-import net.aquadc.persistence.sql.RealTransaction
-import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.Ilk
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 
 internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
-    val statements = ThreadLocal<MutableMap<Any, STMT>>()
+    @JvmField val statements = ThreadLocal<MutableMap<Any, STMT>>()
 
     abstract fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID
 
@@ -31,15 +28,6 @@ internal abstract class LowLevelSession<STMT, CUR> : Blocking<CUR> {
         table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
     ): Array<Any?>
 
-    abstract val transaction: RealTransaction<Blocking<CUR>>?
-
     abstract fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     abstract fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
-}
-
-internal fun <SRC> Session<SRC>.createTransaction(lock: ReentrantReadWriteLock, lowLevel: LowLevelSession<*, *>): RealTransaction<SRC> {
-    val wLock = lock.writeLock()
-    check(!wLock.isHeldByCurrentThread) { "Thread ${Thread.currentThread()} is already in a transaction" }
-    wLock.lock()
-    return RealTransaction(this, lowLevel)
 }

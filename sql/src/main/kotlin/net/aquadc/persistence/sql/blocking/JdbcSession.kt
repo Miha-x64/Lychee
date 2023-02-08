@@ -27,9 +27,9 @@ import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.wordCountForCols
-import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -44,7 +44,6 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Statement.RETURN_GENERATED_KEYS
 import java.sql.Types
-import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
 
 /**
@@ -63,12 +62,9 @@ class JdbcSession(
 ) : Session<Blocking<ResultSet>> {
     val changesPostfix = '_' + nodeName + "_changes"
 
-    @JvmField @JvmSynthetic internal val lock = ReentrantReadWriteLock()
-
     // region transactions and modifying statements
 
     // transactional things, guarded by write-lock
-    @JvmField @JvmSynthetic internal var transaction: RealTransaction<Blocking<ResultSet>>? = null
 
     private val lowLevel: LowLevelSession<PreparedStatement, ResultSet> = object : LowLevelSession<PreparedStatement, ResultSet>() {
 
@@ -107,19 +103,12 @@ class JdbcSession(
             }
 
         override fun onTransactionEnd(successful: Boolean) {
-            val transaction = transaction ?: throw AssertionError()
-            try {
-                if (successful) {
-                    connection.commit()
-                } else {
-                    connection.rollback()
-                }
-                this@JdbcSession.transaction = null
-            } finally {
-                lock.writeLock().unlock()
+            if (successful) {
+                connection.commit()
+            } else {
+                connection.rollback()
             }
 
-            // new SQL-friendly API
             if (successful) {
                 deliverTriggeredChanges()
             }
@@ -210,18 +199,6 @@ class JdbcSession(
             table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
         ): Array<Any?> =
             select<SCH, ID>(table, id, columnNames).fetchColumns(columnTypes)
-
-        override val transaction: RealTransaction<Blocking<ResultSet>>?
-            get() = this@JdbcSession.transaction
-
-        private fun <T> ResultSet.fetchAllRows(type: Ilk<T, *>): List<T> {
-            // TODO pre-size collection && try not to box primitives
-            val values = ArrayList<T>()
-            while (next())
-                values.add(type.get(this, 0))
-            close()
-            return values
-        }
 
         private fun <T> ResultSet.fetchSingle(type: Ilk<T, *>): T =
                 try {
@@ -527,9 +504,8 @@ class JdbcSession(
 
 
     override fun beginTransaction(): Transaction<Blocking<ResultSet>> =
-        createTransaction(lock, lowLevel).also {
+        RealTransaction(this, lowLevel).also {
             connection.autoCommit = false
-            transaction = it
         }
 
     // endregion transactions and modifying statements

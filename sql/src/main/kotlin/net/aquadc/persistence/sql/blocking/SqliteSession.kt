@@ -38,15 +38,14 @@ import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect.createTable
 import net.aquadc.persistence.sql.flattened
 import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.wordCountForCols
-import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import java.io.Closeable
-import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.getOrSet
 
 /**
@@ -58,12 +57,7 @@ class SqliteSession(
         @JvmSynthetic @JvmField internal val connection: SQLiteDatabase
 ) : Session<Blocking<Cursor>> {
 
-    @JvmSynthetic internal val lock = ReentrantReadWriteLock()
-
     // region transactions and modifying statements
-
-    // transactional things, guarded by write-lock
-    @JvmSynthetic @JvmField internal var transaction: RealTransaction<Blocking<Cursor>>? = null
 
     @JvmSynthetic @JvmField internal val lowLevel = object : LowLevelSession<SQLiteStatement, Cursor>() {
 
@@ -113,16 +107,10 @@ class SqliteSession(
         }
 
         override fun onTransactionEnd(successful: Boolean) {
-            val transaction = transaction ?: throw AssertionError()
-            try {
-                if (successful) {
-                    connection.setTransactionSuccessful()
-                }
-                connection.endTransaction()
-                this@SqliteSession.transaction = null
-            } finally {
-                lock.writeLock().unlock()
+            if (successful) {
+                connection.setTransactionSuccessful()
             }
+            connection.endTransaction()
 
             // new SQL-friendly API
             if (successful) {
@@ -246,23 +234,6 @@ class SqliteSession(
             table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
         ): Array<Any?> =
                 select<SCH, ID>(table, columnNames, id).fetchColumns(columnTypes)
-
-        override val transaction: RealTransaction<Blocking<Cursor>>?
-            get() = this@SqliteSession.transaction
-
-        private fun <T> Cursor.fetchAllRows(type: DataType<T>): List<T> {
-            if (!moveToFirst()) {
-                close()
-                return emptyList()
-            }
-
-            val values = ArrayList<Any?>() // fixme pre-allocate a fixed array
-            do {
-                values.add(type.get(this, 0))
-            } while (moveToNext())
-            close()
-            return values as List<T>
-        }
 
         private fun <T> Cursor.fetchSingle(type: DataType<T>): T =
                 try {
@@ -460,9 +431,8 @@ class SqliteSession(
 
 
     override fun beginTransaction(): Transaction<Blocking<Cursor>> =
-        createTransaction(lock, lowLevel).also {
+        RealTransaction(this, lowLevel).also {
             connection.beginTransaction()
-            transaction = it
         }
 
     // endregion transactions and modifying statements
