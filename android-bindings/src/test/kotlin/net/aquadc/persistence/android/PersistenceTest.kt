@@ -37,7 +37,8 @@ import net.aquadc.persistence.type.nullable
 import net.aquadc.persistence.type.serialized
 import net.aquadc.persistence.type.set
 import net.aquadc.persistence.type.string
-import net.aquadc.properties.persistence.enum
+import net.aquadc.properties.function.Enumz
+import net.aquadc.properties.persistence.enumByName
 import okio.ByteString.Companion.decodeHex
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -60,9 +61,9 @@ class PersistenceTest {
     enum class SomeEnum {
         A, B, C, D;
         companion object {
-            val Type = enum<SomeEnum>()
+            val Type = enumByName<SomeEnum>()
             val SetType = enumSet(Type)
-            val BitmaskType = enumSet(i64, SomeEnum::ordinal)
+            val BitmaskType = enumSet<SomeEnum>(i64, Enumz.Ordinal)
         }
     }
 

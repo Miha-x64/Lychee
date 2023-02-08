@@ -13,7 +13,7 @@ import net.aquadc.persistence.struct.transaction
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.getValue
 import net.aquadc.properties.persistence.PropertyIo
-import net.aquadc.properties.persistence.enum
+import net.aquadc.properties.persistence.enumByName
 import net.aquadc.properties.persistence.memento.PersistableProperties
 import net.aquadc.properties.persistence.memento.restoreTo
 import net.aquadc.properties.persistence.x
@@ -109,7 +109,7 @@ class PersistenceRoboTest {
             io x prop1
             io x prop2
             io x prop3
-            with (io) { enum<Thread.State>()(prop4) }
+            with (io) { enumByName<Thread.State>()(prop4) }
         }
     }
 

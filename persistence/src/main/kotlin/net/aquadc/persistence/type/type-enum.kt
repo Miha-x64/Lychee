@@ -19,7 +19,7 @@ import kotlin.collections.HashSet
  */
 @Suppress("UNCHECKED_CAST") // NoConstant is intentionally erased
 inline fun <reified E : Any, U : Any> enum(
-    values: Array<E>,
+    values: Array<out E>,
     encodeAs: DataType.NotNull.Simple<U>,
     noinline encode: (E) -> U,
     noinline fallback: (U) -> E = NoConstant(E::class.java) as (Any?) -> Nothing
@@ -30,13 +30,13 @@ inline fun <reified E : Any, U : Any> enum(
  * Represents values of [E] type like [U] values.
  * [values] sample: `E.values()`
  * [encodeAs] sample: [string]
- * [encode] sample: `E::name`
+ * [encode] sample: `Enumz.Name`
  * [fallback] sample: `{ E.UNSUPPORTED }`
  */
-@JvmName("enumeration") // Java-friendly
+@JvmName("enumeration") // Java-friendly, no reified
 @Suppress("UNCHECKED_CAST")
 fun <E : Any, U : Any> enumInternal(
-    values: Array<E>,
+    values: Array<out E>,
     encodeAs: DataType.NotNull.Simple<U>,
     encode: (E) -> U,
     fallback: (U) -> E
@@ -69,7 +69,7 @@ fun <E : Any, U : Any> enumInternal(
  * @param ordinal a getter for `values.indexOf(value)`
  */
 inline fun <reified E> enumSet(
-    values: Array<E>,
+    values: Array<out E>,
     encodeAs: DataType.NotNull.Simple<Long>,
     noinline ordinal: (E) -> Int
 ): DataType.NotNull.Simple<Set<E>> =
@@ -89,7 +89,7 @@ inline fun <reified E : Enum<E>> enumSet(
 @Suppress("UNCHECKED_CAST")
 @PublishedApi @JvmSynthetic internal fun <E> enumSetInternal(
     type: Class<E>,
-    values: Array<E>,
+    values: Array<out E>,
     encodeAs: DataType.NotNull.Simple<Long>,
     ordinal: (E) -> Int
 ): DataType.NotNull.Simple<Set<E>> =
@@ -134,7 +134,7 @@ inline fun <reified E, DE : DataType<E>> enumSet(
 
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) class NoConstant(private val t: Class<*>) : (Any?) -> Any? {
-    override fun invoke(p1: Any?): Any? {
-        throw NoSuchElementException("No enum constant with name $p1 in type $t")
+    override fun invoke(p1: Any?): Any? { // avoid bridge method creation by erasing return type -^^^^
+        throw NoSuchElementException("No enum constant $p1 in type $t")
     }
 }
