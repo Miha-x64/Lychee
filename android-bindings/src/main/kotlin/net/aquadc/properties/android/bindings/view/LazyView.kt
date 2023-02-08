@@ -15,10 +15,11 @@ import net.aquadc.properties.android.bindings.bindViewTo
  * Calls [createView] and replaces self with it
  * when [visibleProperty] becomes `true`.
  */
+@SuppressLint("ViewConstructor")
 class LazyView(
     context: Context,
     private val visibleProperty: Property<Boolean>,
-    private val createView: Context.() -> View
+    private val createView: ViewGroup.() -> View
 ) : View(context) {
 
     init {
@@ -41,7 +42,7 @@ class LazyView(
         // this must detach us from window and unsubscribe from the property:
         parent.removeViewsInLayout(index, 1)
 
-        val view = context.createView()
+        val view = parent.createView()
         view.bindVisibilityHardlyTo(visibleProperty)
 
         // If a view has its own LP, just use them. Otherwise transfer our, if any.
@@ -55,11 +56,17 @@ class LazyView(
 /**
  * Create new [LazyView] in this context.
  */
-inline fun Context.lazyView(visibleProperty: Property<Boolean>, noinline createView: Context.() -> View): LazyView =
-    LazyView(this, visibleProperty, createView)
+/*
+Despite the purpose of this method looks strange, please note that
+1. it's conceptually correct to have this overload
+2. one may want to setContentView(lazyView { ... }) under certain circumstances
+ */
+inline fun Context.lazyView(visibleProperty: Property<Boolean>, crossinline createView: Context.() -> View): LazyView =
+    LazyView(this, visibleProperty) { context.createView() }
 
 /**
- * Create new [LazyView] using context of this view.
+ * Create new [LazyView] for use within this ViewGroup.
  */
-inline fun View.lazyView(visibleProperty: Property<Boolean>, noinline createView: Context.() -> View): LazyView =
-    LazyView(context, visibleProperty, createView)
+@Suppress("UNCHECKED_CAST")
+inline fun <VG : ViewGroup> VG.lazyView(visibleProperty: Property<Boolean>, noinline createView: VG.() -> View): LazyView =
+    LazyView(context, visibleProperty, createView as ViewGroup.() -> View)
