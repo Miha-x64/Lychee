@@ -103,10 +103,14 @@ class JdbcSession(
             }
 
         override fun onTransactionEnd(successful: Boolean) {
-            if (successful) {
-                connection.commit()
-            } else {
-                connection.rollback()
+            try {
+                if (successful) {
+                    connection.commit()
+                } else {
+                    connection.rollback()
+                }
+            } finally {
+                connection.autoCommit = true
             }
 
             if (successful) {
@@ -169,6 +173,8 @@ class JdbcSession(
             } catch (t: Throwable) {
                 connection.rollback()
                 throw t
+            } finally {
+                connection.autoCommit = true
             }
 
             triggers.notifyPending()
@@ -451,11 +457,14 @@ class JdbcSession(
             } catch (t: Throwable) {
                 connection.rollback()
                 throw t
+            } finally {
+                connection.autoCommit = true
             }
         }
 
         override fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
             val sb = StringBuilder()
+            connection.autoCommit = false
             val stmt = connection.createStatement()
             try {
                 victims.forEach { (table, events) ->
@@ -476,6 +485,8 @@ class JdbcSession(
             } catch (t: Throwable) {
                 connection.rollback()
                 throw t
+            } finally {
+                connection.autoCommit = true
             }
         }
 
