@@ -26,9 +26,11 @@ import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mapIndexedToArray
+import net.aquadc.persistence.sql.mutate
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
@@ -408,6 +410,13 @@ constructor(
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID =
         dataSource.connection.use { insert(it, table, data) }
             .also { deliverTriggeredChanges() }
+
+    override fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>) {
+        mutate {
+            for (struct in data)
+                insert(table, struct)
+        }
+    }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>): Unit =
         dataSource.connection.use { update(it, table, id, patch) }

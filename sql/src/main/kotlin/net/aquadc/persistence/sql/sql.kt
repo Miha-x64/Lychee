@@ -93,6 +93,7 @@ interface Exchange<CUR> : Source<CUR> {
     fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>/*todo patch: Partial*/) {
         for (struct in data)
             insert(table, struct)
+        // overridden in Sessions, left as is in Transactions
     }
 
     /**
