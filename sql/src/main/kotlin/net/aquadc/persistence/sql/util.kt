@@ -1,7 +1,6 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
@@ -240,14 +239,14 @@ private inline fun flattenFieldValues(
 private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
         this != null && this.originalContains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
 
-internal fun <CUR> Blocking<CUR>.row(
+internal fun <CUR> FreeSource<CUR>.row(
     cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy
 ): Array<Any?> = when (bindBy) {
     BindBy.Name -> rowByName(cursor, columnNames, columnTypes)
     BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
 }
 
-internal fun <SCH : Schema<SCH>, CUR, R> Blocking<CUR>.cell(
+internal fun <SCH : Schema<SCH>, CUR, R> FreeSource<CUR>.cell(
     cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R {
     val type = column.type(table.schema) as Ilk<R, *>
@@ -266,7 +265,7 @@ private fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, col
         )
     }
 
-internal fun <CUR, SCH : Schema<SCH>> Blocking<CUR>.mapRow(
+internal fun <CUR, SCH : Schema<SCH>> FreeSource<CUR>.mapRow(
         bindBy: BindBy,
         cur: CUR,
         colNames: Array<out CharSequence>,

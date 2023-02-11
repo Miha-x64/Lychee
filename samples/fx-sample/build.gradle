@@ -27,7 +27,7 @@ dependencies {
     fxModules.each { // ideally, should use plugin instead
         implementation "org.openjfx:javafx-$it:13:linux"
     }
-    implementation 'com.jfoenix:jfoenix:9.0.9'
+    implementation 'com.jfoenix:jfoenix:9.0.10'
     implementation project(':fx-bindings')
     implementation project(':samples:logic-sample')
     implementation project(':persistence')

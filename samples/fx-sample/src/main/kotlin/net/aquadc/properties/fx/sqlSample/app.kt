@@ -85,7 +85,7 @@ fun startSqlSample(stage: Stage) {
 
         },
         500.0, 400.0)
-    stage.setOnCloseRequest { connection.close() }
+    stage.setOnCloseRequest { vm.close() }
     stage.show()
 }
 

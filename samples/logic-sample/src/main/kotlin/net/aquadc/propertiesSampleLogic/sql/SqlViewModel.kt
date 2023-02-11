@@ -1,7 +1,6 @@
 package net.aquadc.propertiesSampleLogic.sql
 
 import net.aquadc.persistence.sql.*
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly.cell
 import net.aquadc.persistence.sql.blocking.Eagerly.execute
 import net.aquadc.persistence.sql.blocking.Eagerly.struct
@@ -15,50 +14,51 @@ import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
-import net.aquadc.properties.function.just
 import net.aquadc.properties.persistence.ObservableStruct
 import java.io.Closeable
 
 
 class SqlViewModel<CUR>(
-    private val session: Session<Blocking<CUR>>
+    private val session: Session<CUR>
 ): Closeable {
 
-    private val count: Session<Blocking<CUR>>.() -> Int =
+    private val count: FreeSource<CUR>.() -> Int =
         Query("SELECT COUNT(*) FROM ${Human.Tbl.name}", cell(i32))
 
-    private val fetch: Session<Blocking<CUR>>.() -> List<Struct<Human>> =
+    private val fetch: FreeSource<CUR>.() -> List<Struct<Human>> =
         Query("SELECT * FROM ${Human.Tbl.name}", structs(Human.Tbl, BindBy.Name))
 
-    private val fetchName: Session<Blocking<CUR>>.(Long) -> String =
+    private val fetchName: FreeSource<CUR>.(Long) -> String =
         Query("SELECT \"name\" FROM ${Human.Tbl.name} WHERE _id = ?", i64, cell(string))
 
-    private val require: Session<Blocking<CUR>>.(Long) -> Struct<Human> =
+    private val require: FreeSource<CUR>.(Long) -> Struct<Human> =
         Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, struct(Human.Tbl, BindBy.Name))
-    private val find: Session<Blocking<CUR>>.(Long) -> Struct<Human>? =
+    private val find: FreeSource<CUR>.(Long) -> Struct<Human>? =
         Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, structNullable(Human.Tbl, BindBy.Name))
 
-    private val updateName: Transaction<Blocking<CUR>>.(String, Long) -> Unit =
+    private val updateName: FreeExchange<CUR>.(String, Long) -> Unit =
         Mutation("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, execute())
 
-    private val carsWithConditionersByOwner: Session<Blocking<CUR>>.(Long) -> List<Struct<Car>> =
+    private val carsWithConditionersByOwner: FreeSource<CUR>.(Long) -> List<Struct<Car>> =
         Query("SELECT * FROM ${Car.Tbl.name} WHERE ${Car.run { OwnerId.name }} = ? AND ${Car.run { ConditionerModel.name }} IS NOT NULL",
             i64,
             structs(Car.Tbl, BindBy.Name))
 
     val titleProp: Property<String>
     private val people = HashMap<Long, ObservableStruct<Human>>()
-    val humanListProp: Property<List<Struct<Human>>>
+    val humanListProp: Property<List<ObservableStruct<Human>>>
     val selectedProp = propertyOf<Struct<Human>?>(null)
-    val disposeMePlz: Closeable
+    private val disposeMePlz: Closeable
 
     init {
         fillIfEmpty()
-        val countProp = propertyOf(session.count())
+        val countProp = propertyOf(0)
         titleProp = countProp.map { "$it users" }
-        humanListProp = propertyOf(
-            session.fetch().map { h -> ObservableStruct(h, false).also { people[h[Human.Id]] = it } }
-        )
+        humanListProp = propertyOf(emptyList())
+        session.read {
+            countProp.value = count()
+            humanListProp.value = fetch().map { h -> ObservableStruct(h, false).also { people[h[Human.Id]] = it } }
+        }
         disposeMePlz = session.observe(
             Human.Tbl to TriggerEvent.INSERT, Human.Tbl to TriggerEvent.UPDATE, Human.Tbl to TriggerEvent.DELETE) { report ->
             val (ins, upd, del) = report.of(Human.Tbl)
@@ -68,13 +68,15 @@ class SqlViewModel<CUR>(
             del.forEach {
                 people.remove(it)?.let(list::remove)
             }
-            upd.forEach { id ->
-                people[id]?.let { list.firstOrNull { it[Human.Id] == id }?.set(Human.Name, session.fetchName(id)) }
-            }
-            ins.forEach { id ->
-                val h = ObservableStruct(session.require(id), false)
-                people[id] = h
-                list.add(h)
+            session.read {
+                upd.forEach { id ->
+                    people[id]?.let { list.firstOrNull { it[Human.Id] == id }?.set(Human.Name, fetchName(id)) }
+                }
+                ins.forEach { id ->
+                    val h = ObservableStruct(require(id), false)
+                    people[id] = h
+                    list.add(h)
+                }
             }
             humanListProp.value = list
         }
@@ -83,7 +85,7 @@ class SqlViewModel<CUR>(
     private val namePatch = propertyOf(mapOf<@ParameterName("humanId") Long, String>()).also {
         it.debounced(1000L).onEach { new ->
             if (new.isNotEmpty() && it.casValue(new, emptyMap())) {
-                session.withTransaction {
+                session.mutate {
                     new.forEach { (humanId, newName) ->
                         updateName(newName, humanId)
                     }
@@ -126,12 +128,12 @@ class SqlViewModel<CUR>(
             delete(Human.Tbl, id)
         }
 
-    private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: Transaction<Blocking<CUR>>.() -> Unit): P =
-        clearEachAnd { session.withTransaction { func() } }
+    private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: FreeExchange<CUR>.() -> Unit): P =
+        clearEachAnd { session.mutate { func() } }
 
     private fun fillIfEmpty() {
-        if (session.count() == 0) {
-            session.withTransaction {
+        session.mutate {
+            if (count() == 0) {
                 insert(Human.Tbl, Human("Stephen", "Hawking"))
                 val relativist = insert(Human.Tbl, Human("Albert", "Einstein"))
                 insert(Human.Tbl, Human("Dmitri", "Mendeleev"))

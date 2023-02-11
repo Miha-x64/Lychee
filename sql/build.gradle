@@ -5,6 +5,7 @@ plugins {
 dependencies {
     compileOnly "com.google.android:android:$android_artifact_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
     implementation project(':properties')
     implementation project(':persistence')

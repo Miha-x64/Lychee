@@ -3,6 +3,7 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
+import net.aquadc.persistence.sql.FreeSource
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.mapRow
 import net.aquadc.persistence.struct.Schema
@@ -14,19 +15,21 @@ import net.aquadc.persistence.type.nothing
 @PublishedApi internal class FetchCellEagerly<CUR, R>(
         private val rt: Ilk<out R, *>,
         private val orElse: () -> R
-) : Fetch<Blocking<CUR>, R> {
+) : Fetch<CUR, R> {
     override fun fetch(
-        from: Blocking<CUR>, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
+        from: FreeSource<CUR>,
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        receiverAndArguments: Array<out Any>
     ): R =
         from.cell(query, argumentTypes, receiverAndArguments, rt, orElse)
 }
 
 @PublishedApi internal class FetchColEagerly<CUR, R>(
         private val rt: Ilk<R, *>
-) : Fetch<Blocking<CUR>, List<R>> {
+) : Fetch<CUR, List<R>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String,
+        from: FreeSource<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<R> {
         val cur = from.select(query, argumentTypes, receiverAndArguments, 1)
@@ -50,9 +53,9 @@ import net.aquadc.persistence.type.nothing
     private val table: Table<SCH, *>,
     private val bindBy: BindBy,
     private val orElse: () -> StructSnapshot<SCH>?,
-) : Fetch<Blocking<CUR>, StructSnapshot<SCH>?> {
+) : Fetch<CUR, StructSnapshot<SCH>?> {
     override fun fetch(
-        from: Blocking<CUR>, query: String,
+        from: FreeSource<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): StructSnapshot<SCH>? {
         val managedColNames = table.managedColNames
@@ -72,9 +75,9 @@ import net.aquadc.persistence.type.nothing
 @PublishedApi internal class FetchStructListEagerly<CUR, SCH : Schema<SCH>>(
         private val table: Table<SCH, *>,
         private val bindBy: BindBy
-) : Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> {
+) : Fetch<CUR, List<StructSnapshot<SCH>>> {
     override fun fetch(
-        from: Blocking<CUR>, query: String,
+        from: FreeSource<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<StructSnapshot<SCH>> {
         val colNames = table.managedColNames
@@ -99,15 +102,15 @@ import net.aquadc.persistence.type.nothing
 }
 
 @PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerlyFor(nothing)
-    as Fetch<Blocking<*>, Unit>
+    as Fetch<*, Unit>
 @PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerlyFor<Nothing>(null)
-    as Fetch<Blocking<*>, Int>
+    as Fetch<*, Int>
 
 @PublishedApi internal class ExecuteEagerlyFor<ID>(
     private val retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
-) : Exec<Blocking<*>, Any?> {
+) : Exec<Any, Any?> {
     override fun fetch(
-        from: Blocking<*>, query: String,
+        from: FreeSource<Any>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Any? {
         val ret = from.execute(query, argumentTypes, receiverAndArguments, if (retKeyType === nothing) null else retKeyType)

@@ -13,7 +13,6 @@ import net.aquadc.collections.noneOf
 import net.aquadc.collections.plus
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.realToString
-import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FldSet
 import net.aquadc.persistence.struct.Schema
@@ -50,6 +49,9 @@ class TriggerReport internal constructor(
     fun <SCH : Schema<SCH>> of(table: Table<SCH, Long>): ListChangesLongPk<SCH> = TODO()*/
 
     internal fun take(filter: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>): TriggerReport? {
+        if (tableToChanges.isEmpty())
+            return null // it's important not to trigger listeners when nothing has changed
+
         var myCopy: HashMap<Table<*, *>, ListChanges<*, *>>? = null
 
         tableToChanges.forEach { (table, changes) ->
@@ -163,9 +165,7 @@ class ListChanges<SCH : Schema<SCH>, ID : IdBound> internal constructor(
 internal fun wordCountForCols(colCount: Int) = colCount / 64 + signum(colCount % 64)
 
 @OptIn(ExperimentalStdlibApi::class)
-internal class Triggerz( // @file:JvmName("Triggers")
-    private val lowLevelSession: LowLevelSession<*, *>
-) {
+internal class Triggerz { // @file:JvmName("Triggers")
 
     @GuardedBy("activeSubjects") private val activeSubjects = ArrayList<TriggerSubject>()
     fun activeSubjects(): Collection<Table<*, *>> =
@@ -174,7 +174,7 @@ internal class Triggerz( // @file:JvmName("Triggers")
     // reuse lock-free notification + instant unsubscription machinery
     private val notifier = concurrentDiffPropertyOf<Unit, TriggerReport>(Unit)
 
-    fun addListener(subjects: Array<out TriggerSubject>, listener: (TriggerReport) -> Unit): Closeable {
+    fun addListener(transact: () -> InternalTransaction<*>, subjects: Array<out TriggerSubject>, listener: (TriggerReport) -> Unit): Closeable {
         synchronized(activeSubjects) {
             // unfortunately, having AtomicReference<Array<TriggerSubject>> won't help:
             // adding two identical triggers concurrently could lead to such an execution that
@@ -186,7 +186,15 @@ internal class Triggerz( // @file:JvmName("Triggers")
                 if (it !in activeSubjects) diff[it.first] = (diff[it.first] ?: noneOf<TriggerEvent>()) + it.second
                 activeSubjects += it
             }
-            if (diff.isNotEmpty()) lowLevelSession.addTriggers(diff) // make some IO while holding a lock, yay!
+            if (diff.isNotEmpty()) {
+                val t = transact()
+                try {
+                    t.addTriggers(diff)
+                    t.setSuccessful()
+                } finally {
+                    t.close(false)
+                }
+            } // make some IO while holding a lock, yay!
         }
 
         val filter = subjects.toSubjectMap()
@@ -205,7 +213,15 @@ internal class Triggerz( // @file:JvmName("Triggers")
                     activeSubjects.remove(it)
                     if (it !in activeSubjects) diff[it.first] = (diff[it.first] ?: noneOf<TriggerEvent>()) + it.second
                 }
-                if (diff.isNotEmpty()) lowLevelSession.removeTriggers(diff)
+                if (diff.isNotEmpty()) {
+                    val t = transact()
+                    try {
+                        t.removeTriggers(diff)
+                        t.setSuccessful()
+                    } finally {
+                        t.close(false)
+                    }
+                }
             }
         }
     }

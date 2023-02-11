@@ -1,7 +1,6 @@
 package net.aquadc.persistence.sql
 
 import net.aquadc.persistence.extended.Partial
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
 import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.struct.invoke
@@ -22,7 +21,7 @@ abstract class SqlPropTest {
 
     fun `can't insert twice with the same PK in one transaction`() {
         try {
-            session.withTransaction {
+            session.mutate {
                 insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "yyy"
@@ -42,13 +41,13 @@ abstract class SqlPropTest {
 
     @Test fun `can't insert twice with the same PK in different transactions`() {
         try {
-            session.withTransaction {
+            session.mutate {
                 insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "yyy"
                 })
             }
-            session.withTransaction {
+            session.mutate {
                 insert(TableWithId, SchWithId {
                     it[Id] = 44
                     it[Value] = "zzz"
@@ -65,7 +64,7 @@ abstract class SqlPropTest {
         `can't insert twice with the same PK in one transaction`()
         // now the statement may be poisoned
 
-        session.withTransaction {
+        session.mutate {
             insert(TableWithId, SchWithId {
                 it[Id] = 86
                 it[Value] = "aaa"
@@ -74,24 +73,26 @@ abstract class SqlPropTest {
     }
 
     @Test fun crud() {
-        val id = session.withTransaction {
+        val id = session.mutate {
             insert(TableWithId, SchWithId {
                 it[Id] = 136
                 it[Value] = "aaa"
             })
         }
 
-        session.withTransaction {
+        session.mutate {
             update(TableWithId, id, SchWithId.Partial {
                 it[Value] = "bbb"
             })
         }
 
-        assertEquals(
-            "bbb",
-            Query("""SELECT "value" FROM with_id WHERE _id = ?""", i32, Eagerly.cell<Closeable, String>(string))
-                .invoke(session as Session<Blocking<Closeable>>, id)
-        )
+        session.read {
+            assertEquals(
+                "bbb",
+                Query("""SELECT "value" FROM with_id WHERE _id = ?""", i32, Eagerly.cell<Closeable, String>(string))
+                    .invoke(this as FreeSource<Closeable>, id)
+            )
+        }
     }
 
 }

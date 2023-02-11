@@ -1,7 +1,5 @@
 package net.aquadc.persistence.sql
 
-import net.aquadc.persistence.sql.blocking.Blocking
-import net.aquadc.persistence.sql.blocking.LowLevelSession
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.DataType
@@ -18,12 +16,8 @@ internal abstract class SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound>(
     abstract fun nameAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): CharSequence
     abstract fun typeAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): Ilk<*, *>
 
-    abstract fun <T> fetch(
-        lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
-    ): T
-
     abstract fun <T, CUR> get(
-        lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR, bindBy: BindBy
+        lowSession: FreeSource<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR, bindBy: BindBy
     ): T
 
     abstract fun <T> flattenTo(out: Array<Any?>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, value: T)
@@ -38,14 +32,8 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
         if (index == 0) table.typeOf(field as FieldDef<SCH, Any?, DataType<Any?>>)
         else throw IndexOutOfBoundsException()
 
-    override fun <T> fetch(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
-    ): T = table.schema.let { sch -> // the following cast seems to be unnecessary with new inference
-        lowSession.fetchSingle(table, sch.run { field.name }, table.typeOf(field as FieldDef<SCH, T, DataType<T>>), id)
-    }
-
     override fun <T, CUR> get(
-            lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+            lowSession: FreeSource<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =
             lowSession.cell<SCH, CUR, T>(cursor, table, field, bindBy)
@@ -67,13 +55,8 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
     override fun typeAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): Ilk<*, *>  =
         columnTypes[index]
 
-    override fun <T> fetch(
-            lowSession: LowLevelSession<*, *>, table: Table<SCH, ID>, field: FieldDef<SCH, T, *>, id: ID
-    ): T =
-            inflated(lowSession.fetch(table, columnNames, columnTypes, id))
-
     override fun <T, CUR> get(
-            lowSession: Blocking<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+            lowSession: FreeSource<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
             bindBy: BindBy
     ): T =
             inflated(lowSession.row(cursor, myOffset, columnNames, columnTypes, bindBy))

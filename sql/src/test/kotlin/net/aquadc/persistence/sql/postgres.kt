@@ -5,7 +5,6 @@ import net.aquadc.persistence.extended.uuid
 import net.aquadc.persistence.sql.ColMeta.Companion.embed
 import net.aquadc.persistence.sql.ColMeta.Companion.nativeType
 import net.aquadc.persistence.sql.ColMeta.Companion.type
-import net.aquadc.persistence.sql.blocking.Blocking
 import net.aquadc.persistence.sql.blocking.Eagerly
 import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.dialect.postgres.PostgresDialect
@@ -95,7 +94,7 @@ class TemplatesPostgres : TemplatesTest() {
         assertInserts(schema, Yuzerz)
         assertEquals(
             "Some name",
-            (session as Session<Blocking<CUR>>)
+            (session as Session<CUR>)
                 .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"numbers\" = ?", intCollection, Eagerly.cell<CUR, String>(string)))
                 (intArrayOf(0, 1, 2))
         )
@@ -122,16 +121,18 @@ class TemplatesPostgres : TemplatesTest() {
         assertInserts(schema, Yuzerz)
         assertEquals(
             "Some name",
-            (session as Session<Blocking<CUR>>)
+            (session as Session<CUR>)
                 .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"extras\" = ?", serialized(SomeSchema), Eagerly.cell<CUR, String>(string)))
                 (sampleYoozer[Yoozer.Extras])
         )
     }
 
     @Test fun <CUR> `very custom table`() {
-        val stmt = (session as JdbcSession).connection.createStatement()
-        stmt.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-        stmt.close()
+        (session as JdbcSession).dataSource.connection.use {
+            it.createStatement().use {
+                it.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+            }
+        }
 
         val someJsonb: Ilk<Struct<SomeSchema>, SomeSchema> = nativeType(
             "jsonb NOT NULL", SomeSchema,
@@ -180,7 +181,7 @@ class TemplatesPostgres : TemplatesTest() {
         assertInserts(schema, Yoozerz)
         assertEquals(
             "Some name",
-            (session as Session<Blocking<CUR>>)
+            (session as Session<CUR>)
                 .(Query("SELECT \"name\" FROM \"${Yoozerz.name}\" WHERE \"id\" = ? AND \"extras\" = ?",
                 nativeType("uuid", uuid),
                 someJsonb,
@@ -189,13 +190,14 @@ class TemplatesPostgres : TemplatesTest() {
         )
     }
     private fun <ID : IdBound> assertInserts(create: String, table: Table<Yoozer, ID>) {
-        session.withTransaction {
-            (session as JdbcSession).connection.createStatement().run {
-                execute(create)
-                close()
+        (session as JdbcSession).dataSource.connection.use {
+            it.createStatement().use {
+                it.execute(create)
             }
+        }
+        (session as JdbcSession).mutate {
             val pk = insert(table, sampleYoozer)
-            val rec = (session as Session<Blocking<ResultSet>>)
+            val rec = (session as Session<ResultSet>)
                 .(Query("SELECT ${table.managedColNames.joinToString()} FROM ${table.name} WHERE ${table.idColName} = ?",
                     table.idColType,
                     Eagerly.struct<ResultSet, Yoozer>(table, BindBy.Name)

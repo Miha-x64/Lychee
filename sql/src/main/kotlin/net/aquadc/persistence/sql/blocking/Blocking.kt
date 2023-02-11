@@ -18,126 +18,87 @@ import net.aquadc.persistence.type.nothing
 import net.aquadc.properties.function.just
 import java.io.InputStream
 
-/**
- * SQL session tied to blocking API with cursors of type [CUR].
- */
-interface Blocking<CUR> {
-    // Android SQLite API has special methods for single-cell selections
-    fun <T> cell(
-        query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
-        type: Ilk<out T, *>, orElse: () -> T
-    ): T
-
-    fun select(
-        query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
-        expectedCols: Int
-    ): CUR
-    fun sizeHint(cursor: CUR): Int
-    fun next(cursor: CUR): Boolean
-
-    fun <ID> execute(
-        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
-    ): Any?
-
-    fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
-    fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
-
-    fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?>
-    fun rowByPosition(cursor: CUR, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?>
-
-    /**
-     * Closes the given cursor.
-     * [java.sql.ResultSet] is [AutoCloseable],
-     * while [android.database.Cursor] is [java.io.Closeable].
-     * [AutoCloseable] is more universal but requires Java 7 / Android SDK 19.
-     * Let's support mammoth crap smoothly.
-     */
-    fun close(cursor: CUR)
-}
 
 object Eagerly { // TODO support Ilk everywhere
 
     @JvmOverloads inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Simple<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<Blocking<CUR>, R> =
+    ): Fetch<CUR, R> =
             FetchCellEagerly(returnType, orElse)
 
     @JvmOverloads inline fun <CUR, R : Any> cell(
             returnType: SimpleNullable<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<Blocking<CUR>, R?> =
+    ): Fetch<CUR, R?> =
             FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR, R> col(elementType: DataType.NotNull.Simple<R>): Fetch<Blocking<CUR>, List<R>> =
+    inline fun <CUR, R> col(elementType: DataType.NotNull.Simple<R>): Fetch<CUR, List<R>> =
             FetchColEagerly(elementType)
 
-    inline fun <CUR, R : Any> col(elementType: SimpleNullable<R>): Fetch<Blocking<CUR>, List<R?>> =
+    inline fun <CUR, R : Any> col(elementType: SimpleNullable<R>): Fetch<CUR, List<R?>> =
             FetchColEagerly(elementType)
 
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
-    ): Fetch<Blocking<CUR>, StructSnapshot<SCH>> =
-            FetchStructEagerly<SCH, CUR>(table, bindBy, orElse) as Fetch<Blocking<CUR>, StructSnapshot<SCH>/*!!*/>
+    ): Fetch<CUR, StructSnapshot<SCH>> =
+            FetchStructEagerly<SCH, CUR>(table, bindBy, orElse) as Fetch<CUR, StructSnapshot<SCH>/*!!*/>
     // unfortunately, I don't know how to hack type inference so that
     // orElse: () -> R, where StructSnapshot<SCH> : R, or R super StructSnapshot<SCH>.
     // Theoretically, R could be Snapshot, Snapshot?, Struct, Struct?, Partial, Partial?, Any, Any?.
     // I hope that supporting Snapshot? is enough.
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH>? = just(null)
-    ): Fetch<Blocking<CUR>, StructSnapshot<SCH>?> =
+    ): Fetch<CUR, StructSnapshot<SCH>?> =
             FetchStructEagerly(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(
             table: Table<SCH, *>, bindBy: BindBy
-    ): Fetch<Blocking<CUR>, List<StructSnapshot<SCH>>> =
+    ): Fetch<CUR, List<StructSnapshot<SCH>>> =
             FetchStructListEagerly(table, bindBy)
 
-    inline fun execute(): Exec<Blocking<*>, Unit> =
-        ExecuteForUnit
+    inline fun <CUR> execute(): Exec<CUR, Unit> =
+        ExecuteForUnit as Exec<CUR, Unit>
 
-    inline fun executeForRowCount(): Exec<Blocking<*>, Int> =
-        ExecuteForRowCount
+    inline fun <CUR> executeForRowCount(): Exec<CUR, Int> =
+        ExecuteForRowCount as Exec<CUR, Int>
 
-    inline fun <T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<Blocking<*>, T> =
+    inline fun <CUR, T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<CUR, T> =
         ExecuteEagerlyFor(pkType).also { check(pkType !== nothing) }
-            as Exec<Blocking<*>, T>
+            as Exec<CUR, T>
 }
 
 object Lazily {
     @JvmOverloads inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Simple<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<Blocking<CUR>, Lazy<R>> =
+    ): Fetch<CUR, Lazy<R>> =
             FetchCellLazily(returnType, orElse)
 
     @JvmOverloads inline fun <CUR, R : Any> cell(
             returnType: SimpleNullable<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<Blocking<CUR>, Lazy<R?>> =
+    ): Fetch<CUR, Lazy<R?>> =
             FetchCellLazily(returnType, orElse)
 
     inline fun <CUR, R> col(
             elementType: DataType.NotNull.Simple<R>
-    ): Fetch<Blocking<CUR>, CloseableIterator<R>> =
+    ): Fetch<CUR, CloseableIterator<R>> =
             FetchColLazily(elementType)
 
     inline fun <CUR, R : Any> col(
             elementType: SimpleNullable<R>
-    ): Fetch<Blocking<CUR>, CloseableIterator<R?>> =
+    ): Fetch<CUR, CloseableIterator<R?>> =
             FetchColLazily(elementType)
 
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
-    ): Fetch<Blocking<CUR>, CloseableStruct<SCH>> =
-            FetchStructLazily<SCH, CUR>(table, bindBy, orElse) as Fetch<Blocking<CUR>, CloseableStruct<SCH>/*!!*/>
+    ): Fetch<CUR, CloseableStruct<SCH>> =
+            FetchStructLazily<SCH, CUR>(table, bindBy, orElse) as Fetch<CUR, CloseableStruct<SCH>/*!!*/>
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = throwNse
-    ): Fetch<Blocking<CUR>, CloseableStruct<SCH>?> =
+    ): Fetch<CUR, CloseableStruct<SCH>?> =
             FetchStructLazily(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(
             table: Table<SCH, *>, bindBy: BindBy
-    ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
+    ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, false)
 
     /**
@@ -154,7 +115,7 @@ object Lazily {
      */
     inline fun <CUR, SCH : Schema<SCH>> transientStructs(
             table: Table<SCH, *>, bindBy: BindBy
-    ): Fetch<Blocking<CUR>, CloseableIterator<Struct<SCH>>> =
+    ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, true)
 }
 

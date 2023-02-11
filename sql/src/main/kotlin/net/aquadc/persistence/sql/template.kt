@@ -13,9 +13,9 @@ interface FuncN<T, R> {
     fun invokeUnchecked(vararg arg: T): R
 }
 
-interface Fetch<in SRC, out R> {
+interface Fetch<CUR, out R> {
     fun fetch(
-        from: SRC,
+        from: FreeSource<CUR>,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         receiverAndArguments: Array<out Any>

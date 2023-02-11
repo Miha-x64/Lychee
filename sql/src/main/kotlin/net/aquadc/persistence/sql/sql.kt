@@ -1,23 +1,17 @@
 @file:[
     JvmName("Sql")
-    OptIn(ExperimentalContracts::class)
     Suppress("NOTHING_TO_INLINE")
 ]
 package net.aquadc.persistence.sql
 
 import androidx.annotation.CheckResult
-import androidx.annotation.RequiresApi
-import androidx.annotation.RestrictTo
+import net.aquadc.collections.InlineEnumSet
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
-import org.intellij.lang.annotations.Language
 import java.io.Closeable
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 
 /**
@@ -31,23 +25,127 @@ typealias IdBound = Any // Serializable in some frameworks
 annotation class ExperimentalSql
 
 /**
- * A gateway into RDBMS.
+ * A readable database or transaction.
  */
-interface Session<SRC> : Closeable {
+interface Source<CUR> {
+    // TODO fun select(where, order by)
+
+    fun sizeHint(cursor: CUR): Int
+    fun next(cursor: CUR): Boolean
+
+    fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
+    fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
+
+    fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?>
+    fun rowByPosition(cursor: CUR, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?>
 
     /**
-     * Opens a transaction, allowing mutation of data.
+     * Closes the given cursor.
+     * [java.sql.ResultSet] is [AutoCloseable],
+     * while [android.database.Cursor] is [java.io.Closeable].
+     * [AutoCloseable] is more universal but requires Java 7 / Android SDK 19.
+     * Let's support mammoth crap smoothly.
      */
-    fun beginTransaction(): Transaction<SRC>
+    fun close(cursor: CUR)
+}
 
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // effectively private and type-unsafe API
-    fun <R> rawQuery(
-        @Language("SQL") query: String,
-    //  ^^^^^^^^^^^^^^^^ add Database Navigator to IntelliJ for SQL highlighting in String literals
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        argumentValues: Array<out Any>,
-        fetch: Fetch<SRC, R>
-    ): R
+/**
+ * A readable database or transaction supporting free-form SQL queries.
+ *
+ * [android.content.ContentResolver] does not, that's why we have simpler [Source].
+ */
+interface FreeSource<CUR> : Source<CUR> {
+
+    fun <T> cell(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        type: Ilk<out T, *>, orElse: () -> T
+    ): T
+
+    fun select(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        expectedCols: Int
+    ): CUR
+
+    fun <ID> execute(
+        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
+    ): Any?
+}
+
+interface ReadableTransaction<CUR> : FreeSource<CUR>, Closeable
+
+/**
+ * A writable database or transaction.
+ */
+interface Exchange<CUR> : Source<CUR> {
+
+    /**
+     * Insert [data] into a [table].
+     */
+    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID
+
+    /**
+     * Insert all the [data] into a table.
+     * Iterators over __transient structs__ are welcome.
+     */
+    fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>/*todo patch: Partial*/) {
+        for (struct in data)
+            insert(table, struct)
+    }
+
+    /**
+     * Patch [table] row #[id] with [patch].
+     */
+    fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>)
+
+    // TODO fun update(where)
+
+    fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, id: ID)
+
+    // TODO fun delete(where)
+}
+
+/**
+ * A writable database or transaction supporting free-form SQL queries.
+ *
+ * [android.content.ContentResolver] does not, that's why we have simpler [Source].
+ */
+interface FreeExchange<CUR> : FreeSource<CUR>, Exchange<CUR>
+
+interface MutableTransaction<CUR> : ReadableTransaction<CUR>, FreeExchange<CUR> {
+    fun setSuccessful()
+}
+
+interface InternalTransaction<SRC> : MutableTransaction<SRC> {
+    fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
+        table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
+    ): T
+
+    fun <SCH : Schema<SCH>, ID : IdBound> fetch(
+        table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
+    ): Array<Any?>
+
+    fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
+    fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
+    fun close(deliver: Boolean)
+}
+
+/**
+ * A gateway into RDBMS.
+ */
+interface Session<CUR> : FreeExchange<CUR>, Closeable {
+
+    /**
+     * Opens a readable transaction.
+     */
+    fun read(): ReadableTransaction<CUR>
+
+    /**
+     * Opens a writable transaction.
+     */
+    fun mutate(): MutableTransaction<CUR>
 
     /**
      * Registers trigger listener for all [subject]s.
@@ -70,83 +168,17 @@ interface Session<SRC> : Closeable {
 
 }
 
+// TODO: observe(DEFERRED)
 
-/**
- * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove [Record]s.
- * In future will retry conflicting transaction by calling [block] more than once.
- */
-inline fun <SRC, R> Session<SRC>.withTransaction(block: Transaction<SRC>.() -> R): R {
-    contract {
-        callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
-    }
 
-    val transaction = beginTransaction()
-    try {
-        val r = block(transaction)
-        transaction.setSuccessful()
-        return r
-    } finally {
-        transaction.close()
-    }
-}
-@RequiresApi(24) @JvmName("withTransaction")
-fun <SRC> Session<SRC>.withTransaction4j(block: java.util.function.Consumer<Transaction<SRC>>) {
-    val transaction = beginTransaction()
-    try {
-        block.accept(transaction)
-        transaction.setSuccessful()
-    } finally {
-        transaction.close()
-    }
-}
-
-interface Transaction<SRC> : Session<SRC>, Closeable {
-
-    @Deprecated("Transaction implements Session now", ReplaceWith("this"))
-    val mySession: Session<SRC>
-
-    /**
-     * Insert [data] into a [table].
-     */
-    fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID
-
-    /**
-     * Insert all the [data] into a table.
-     * Iterators over __transient structs__ are welcome.
-     */
-    fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>/*todo patch: Partial*/) {
-        for (struct in data)
-            insert(table, struct)
-    }
-
-    /**
-     * Patch [table] row #[id] with [patch].
-     */
-    fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>)
-
-    // TODO emulate slow storage!
-
-    fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, id: ID)
-
-    /**
-     * Clear the whole table.
-     * This may be implemented either as `DELETE FROM table` or `TRUNCATE table`.
-     */
-    @Deprecated("TRUNCATE is not a CRUD operation. Also, it is not guaranteed to invoke triggers in some DBMSes. " +
-        "You can TRUNCATE using Session.mutate() query at your own risk.", level = DeprecationLevel.ERROR)
-    fun truncate(table: Table<*, *>): Unit = throw AssertionError()
-
-    fun setSuccessful()
-
-    override fun close() // rm 'throws IOException`
-
-}
-
-inline fun <SCH : Schema<SCH>, ID : IdBound> Transaction<*>.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
+inline fun <SCH : Schema<SCH>, ID : IdBound> MutableTransaction<*>.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
     insertAll(table, data.iterator())
 
 inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
     NativeType(name, type)
+
+inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT, sqlType: Class<T>): Ilk<T, DT> =
+    TODO()
 
 inline fun <T, DT : DataType<T>, S> nativeType(
     name: CharSequence,
