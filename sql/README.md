@@ -47,21 +47,24 @@ val session = SqliteSession(object : SQLiteOpenHelper(context, "app.db", null, 1
         throw UnsupportedOperationException()
     }
 }.writableDatabase)
+
+// server setup
+JdbcSession(hikariDataSource, PostgresDialect)
 ```
 
 Inserting:
 ```kt
-val playerRecord = session.withTransaction {
+val playerRecord = session.mutate {
     insert(PlayerTable, Player { ... })
 }
 ```
 
 ## SQL templates
 ```kt
-val namesToEmails = session.query(
+val namesToEmails = Query(
     "SELECT u.name, c.email FROM users u " +
     "INNER JOIN contacts c ON u._id = c.user_id " +
-    "LIMIT ?, ?", /*offset*/ i32, /*rowCount*/ u32,
+    "LIMIT ?, ?", /*offset*/ i32, /*rowCount*/ i32,
     /* fetch as */ structs(string * string, BindBy.Position)
 )
 namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
@@ -70,15 +73,18 @@ namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
     }
 }
 
-val update = session.mutate(
+val update = Mutation(
     "UPDATE users SET name = ? WHERE email = ?",
     string, string,
     executeForRowCount()
 )
 
-session.withTransaction {
+session.mutate { // update in a transaction
     assertEquals(1, update("java@sun.com", "Java™"))
 }
+
+// single statement transaction
+session.update(...)
 ```
 
 
@@ -91,3 +97,4 @@ session.withTransaction {
 * [@y2k](https://github.com/y2k) for help in API design
 * [Andrey Antipov](https://github.com/gorttar) for type inference hints
 * [Denis Podlesnykh](https://github.com/denniselite) for help with triggers
+* [TutGruzBot](https://bot.tutgruz.ru/) for server-side experience
