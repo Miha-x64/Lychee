@@ -19,10 +19,11 @@ dependencies {
         xml.enabled true
         html.enabled false
     }
-}
-test {
-    finalizedBy jacocoTestReport
 }*/
+tasks.test {
+    maxParallelForks = Integer.min(Runtime.getRuntime().availableProcessors(), 4)
+//  finalizedBy jacocoTestReport
+}
 
 ext {
     PUBLISH_GROUP_ID = 'su.lychee'
