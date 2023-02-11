@@ -235,7 +235,7 @@ class SubscriptionTest {
             // make the pool busy
             while (state.value == 0) synchronized(state, state::wait)
             check(state.casValue(1, 2))
-            synchronized(state, state::notify)
+            synchronized(state, state::notifyAll)
         }
 
         prop.value = 1 // unconfined will notify in-place
@@ -247,7 +247,6 @@ class SubscriptionTest {
 
         if (confined) { // and wait for it
             while (state.value == 1) synchronized(state, state::wait)
-            Thread.sleep(10)
         }
 
         val shouldBeCalled = !confined
