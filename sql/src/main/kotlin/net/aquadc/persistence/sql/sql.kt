@@ -90,7 +90,7 @@ interface Exchange<CUR> : Source<CUR> {
      * Insert all the [data] into a table.
      * Iterators over __transient structs__ are welcome.
      */
-    fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>/*todo patch: Partial*/) {
+    fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<PartialStruct<SCH>>) {
         for (struct in data)
             insert(table, struct)
         // overridden in Sessions, left as is in Transactions

@@ -30,7 +30,6 @@ import net.aquadc.persistence.sql.mutate
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
@@ -411,7 +410,7 @@ constructor(
         dataSource.connection.use { insert(it, table, data) }
             .also { deliverTriggeredChanges() }
 
-    override fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<Struct<SCH>>) {
+    override fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<PartialStruct<SCH>>) {
         mutate {
             for (struct in data)
                 insert(table, struct)
