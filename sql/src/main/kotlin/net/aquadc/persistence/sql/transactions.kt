@@ -25,15 +25,15 @@ inline fun <SRC, R> Session<SRC>.read(block: FreeSource<SRC>.() -> R): R {
 
 @RequiresApi(24) @JvmName("acceptRead")
 fun <SRC> Session<SRC>.read4j(block: java.util.function.Consumer<FreeSource<SRC>>): Unit =
-    read().use(block::accept)
+    read { block.accept(this) }
 
 @RequiresApi(24) @JvmName("applyRead")
 fun <SRC, R> Session<SRC>.read4j(block: java.util.function.Function<FreeSource<SRC>, R>): R =
-    read().use(block::apply)
+    read { block.apply(this) }
 
 
 /**
- * Calls [block] within transaction passing [Transaction] which has functionality to create, mutate, remove data.
+ * Calls [block] within transaction passing [FreeExchange] which has functionality to create, mutate, remove data.
  * In future could retry conflicting transaction by calling [block] more than once.
  */
 @OptIn(ExperimentalContracts::class)
@@ -52,11 +52,11 @@ inline fun <SRC, R> Session<SRC>.mutate(block: FreeExchange<SRC>.() -> R): R {
 
 @RequiresApi(24) @JvmName("acceptMutation")
 fun <SRC> Session<SRC>.mutate4j(block: java.util.function.Consumer<FreeExchange<SRC>>): Unit =
-    mutate().use(block::accept)
+    mutate { block.accept(this) }
 
 @RequiresApi(24) @JvmName("applyMutation")
 fun <SRC, R> Session<SRC>.mutate4j(block: java.util.function.Function<FreeExchange<SRC>, R>): R =
-    mutate().use(block::apply)
+    mutate { block.apply(this) }
 
 @Deprecated("renamed, use read{} and mutate{}", ReplaceWith("this.mutate(block)"))
 inline fun <SRC, R> Session<SRC>.withTransaction(block: FreeExchange<SRC>.() -> R): R =
