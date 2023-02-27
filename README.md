@@ -20,7 +20,7 @@ Lychee is a library to rule all the data.
 * [Properties sample](#properties-sample)
 * [Sample usage in GUI application](#sample-usage-in-gui-application)
 * [Persistence and Android](#persistence-and-android)
-* [SQL](#sql) <!-- TODO other SQL libraries -->
+* [SQL](#sql-experimental) <!-- TODO other SQL libraries -->
 * [HTTP](#http)
 * [FAQ](#faq)
 * [Adding to a project](#adding-to-a-project)
@@ -36,10 +36,10 @@ Typically, we declare data using classes:
 )
 ```
 But there are some mistakes in the example above:
-* there aren't any convenient ways to handle arbitrary class properties:
+* there aren't any convenient ways to manipulate the properties of arbitrary classes:
   * reflection does not play well with ProGuard/R8 and Graal,
   * kapt is slow and does not play well with separate compilation,
-  * both break encapsulation and expose field names (or values of annotations) as serialization interface,
+  * both break encapsulation by exposing field names (or values of annotations) as serialization interface,
   * none of them knows precisely how to serialize values, they just try to guess according to field types,
   * there are no standard annotations:
     every JSON library has its own annotations (Gson: `@SerializedName` and `@TypeAdapter`),
@@ -57,22 +57,22 @@ But there are some mistakes in the example above:
   extends your classes so getters&setters are overridden while fields are unused,
   and rewrites your bare field accesses, if any, to use getters&setters.)
   Theoretically, this can be fixed by extracting `interface`:
-```kt
-interface Player {
-    val name: String
-    val surname: String
-    var score: Int
- // fun copy()? can we also ask to implement equals()? no.
-}
-data class MemoryPlayer(override val …) : Player
-class JsonPlayer(private val json: JsonObject) : Player {
-    override val name: String get() = json.getString("name")
-    …
-}
-class SqlPlayer(private val connection: Connection) : Player {
-    override val name: String get() = connection.createStatement()…
-}
-```
+    ```kt
+    interface Player {
+        val name: String
+        val surname: String
+        var score: Int
+     // fun copy()? can we also ask to implement equals()? no.
+    }
+    data class MemoryPlayer(override val …) : Player
+    class JsonPlayer(private val json: JsonObject) : Player {
+        override val name: String get() = json.getString("name")
+        …
+    }
+    class SqlPlayer(private val connection: Connection) : Player {
+        override val name: String get() = connection.createStatement()…
+    }
+    ```
 
    but implementations are 146% boilerplate;
 * no mutability control. `var score` is mutable but not observable;
@@ -110,7 +110,7 @@ val player: StructSnapshot<Player> = Player { p ->
 assertEquals(0, player[Player.Score])
 ```
 Here, `Player {}` is `SCHEMA.invoke(build: SCHEMA.() -> Unit)` function which tries to mimic struct literal;
-`p` is `StructBuilder<SCHEMA>`—a fully mutable temporary object.
+`p` is `StructBuilder<SCHEMA>`–a fully mutable temporary object.
 `Struct`s implement `hashCode`, `equals`, `toString`, and `copy` of this kind: `player.copy { it[Score] = 9000 }`.
 It creates new `StructBuilder` and passes it to the function you provide.
 (Similar thing is called `newBuilder` in OkHttp, and `buildUpon` in `android.net.Uri`.)
@@ -138,7 +138,8 @@ or `LiveData` in Android Arch.
 * zero reflection <small>([the only use of kotlin.reflect](https://github.com/Miha-x64/Lychee/blob/ccea2e165f0da5dbaedac2d3562c4a843614241f/properties/src/main/kotlin/net/aquadc/properties/operatorsInline.kt#L168-L179) is required if you delegate your Kotlin property to a Lychee `Property` and [eliminated by Kotlin 1.3.70+ compiler](https://youtrack.jetbrains.com/issue/KT-14513))</small>
 * Extensible: not confined to Android, JavaFX or whatever (want MPP? File an issue with sample use-cases)
 * Single-threaded and concurrent (lock-free) implementations
-* Ready to use MVVM/data-binding for Android (and some bindings to JavaFX)
+* Ready to use Android bindings like `tv.bindTextTo(prop)`, not `ld.observe(viewLifecycleOwner) { tv.text = it }`
+* Some bindings for JavaFX
 * Sweet with View DSLs like
   [Splitties](https://github.com/LouisCAD/Splitties/) 
   and [TornadoFX](https://github.com/edvin/tornadofx)
@@ -180,7 +181,7 @@ to explain why I've rolled my own:
   (`ObservableProperty<T>` and `ObservableList<T>`);
   [UnknownJoe796/kotlin-components-starter](https://github.com/UnknownJoe796/kotlin-components-starter) (MIT)
 
-* [MarcinMoskala/KotlinAndroidViewBindings](https://github.com/MarcinMoskala/KotlinAndroidViewBindings):
+* [MarcinMoskala/KotlinAndroidViewBindings](https://github.com/MarcinMoskala/KotlinAndroidViewBindings) (Apache 2.0):
   delegates properties of Views-by-id to to Kotlin properties
 
 ## Properties sample
@@ -270,8 +271,8 @@ Common ViewModel:
 
 ```kt
 class MainVm(
-        // user is backed by arbitrary data source: in-memory, database, SharedPreferences, …
-        private val user: TransactionalPropertyStruct<User>
+    // user is backed by arbitrary data source: in-memory, database, SharedPreferences, …
+    private val user: TransactionalPropertyStruct<User>
 ) : PersistableProperties {
 
     // user input
@@ -381,7 +382,7 @@ see [sample transform usage](/android-bindings/src/test/kotlin/promo.kt#L61-L69)
 
 `RemoteViews` API differs from normal `View`s API.
 Thus, `:android-bindings` module provides separate API for this. For example,
-```
+```kt
 RemoteViews(packageName, R.layout.notification).bind(
     android.R.id.text1 textTo vm.nameProp,
     android.R.id.text2 textTo vm.emailProp,
@@ -397,23 +398,25 @@ and update notification on every change.
 // trivial table. Primary key column is not mentioned within Schema
 val Players = tableOf(Player, "players", "_id", i64)
 ```
-With `Session` (implementations: `JdbcSession`,
-Android-specific `SqliteSession`), you're getting
+With `Session` (implementations: Android-specific `SqliteSession`, ~~general-purpose `JdbcSession`~~ DON'T USE THIS SHIT TILL THE NEXT RELEASE), you're getting
 * SQL templates:
 ```kt
-val selectNameEmailBySmth = session.query(
+val selectNameEmailBySmth = Query(
     "SELECT a.name, b.email FROM anywhere a JOIN anything b WHERE smth = ?",
     /* argument */ string,
     // return a list of positionally bound string-to-string tuples:
     structs(projection(string, string), BindBy.Position)
-) // (String) -> List<Struct<Tuple<String, …, String, …>>>
+) // Session.(String) -> List<Struct<Tuple<String, …, String, …>>>
 
-val updateNameByEmail = session.mutate(
+val updateNameByEmail = Mutation(
     "UPDATE users SET name = ? WHERE email = ?",
     string, string,
     execute()
 ) // Transaction.(String, String) -> Unit
 ```
+
+(To be clear, the receivers are not exactly Session and Transaction. You can call a mutation just on a session, or query in a transaction.)
+
 * Triggers:
 ```kt
 val listener = session.observe(
@@ -518,10 +521,7 @@ I will take into account which APIs do you use and maybe add a link to your libr
 `0.1.0` version is to be released after adding mutational and [linearization](https://github.com/Kotlin/kotlinx-lincheck) tests,
 `1.0.0` is planned after dropping workarounds for
   [KT-24981: @JvmSynthetic for classes](https://youtrack.jetbrains.com/issue/KT-24981),
-  [KT-24067: type checking and casting of multi-arity function objects](https://youtrack.jetbrains.com/issue/KT-24067),
-  and when `inline` classes come more stable (e. g.
-    [KT-31431 JVM backend failure on inline functions of inline classes](https://youtrack.jetbrains.com/issue/KT-31431),
-    [KT-33224: @JvmName for function with inline class parameter](https://youtrack.jetbrains.com/issue/KT-33224)
+  [KT-24067: type checking and casting of multi-arity function objects](https://youtrack.jetbrains.com/issue/KT-24067)
   ).
 
 #### Where and how should I dispose subscriptions?
