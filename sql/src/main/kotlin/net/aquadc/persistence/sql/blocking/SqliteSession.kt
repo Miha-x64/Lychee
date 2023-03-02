@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteCursor
 import android.database.sqlite.SQLiteCursorDriver
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteDoneException
 import android.database.sqlite.SQLiteProgram
 import android.database.sqlite.SQLiteQuery
 import android.database.sqlite.SQLiteQueryBuilder
@@ -113,16 +114,53 @@ abstract class SqliteExchange internal constructor(
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
         type: Ilk<out T, *>, orElse: () -> T
     ): T {
+        val tt = type.type
+        val isIntOrLong = tt is DataType.NotNull.Simple &&
+            (tt.kind == DataType.NotNull.Simple.Kind.I32 || tt.kind == DataType.NotNull.Simple.Kind.I64)
+        if (isIntOrLong || tt.isStringInclNullable) {
+            return try {
+                simpleQueryForCell(query, argumentTypes, sessionAndArguments, isIntOrLong, tt)
+            } catch (e: SQLiteDoneException) {
+                orElse()
+            }
+        }
+
         val cur = select(query, argumentTypes, sessionAndArguments, 1)
         try {
             if (!cur.moveToFirst()) return orElse()
-            val value = (type.type as DataType<out T>).get(cur, 0)
-            check(!cur.moveToNext())
+            val value = (tt as DataType<out T>).get(cur, 0)
+            check(!cur.moveToNext()) { "cursor returned ${cur.count} rows, 1 needed" }
             return value
         } finally {
             cur.close()
         }
     }
+    private val DataType<*>.isStringInclNullable
+        get() = (this is DataType.NotNull.Simple && this.kind == DataType.NotNull.Simple.Kind.Str) ||
+            (this is DataType.Nullable<*, *> &&
+                this.actualType.let { it is DataType.NotNull.Simple<*> && it.kind == DataType.NotNull.Simple.Kind.Str })
+    private fun <T> simpleQueryForCell(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        sessionAndArguments: Array<out Any>,
+        isIntOrLong: Boolean,
+        tt: DataType<*>
+    ) = statement(query) { statement ->
+        bindParams(argumentTypes, statement, sessionAndArguments)
+        if (isIntOrLong) {
+            val long = statement.simpleQueryForLong()
+            if ((tt as DataType.NotNull.Simple).kind == DataType.NotNull.Simple.Kind.I32)
+                tt.load(long.toInt())
+            else tt.load(long)
+        } else {
+            val string = statement.simpleQueryForString()
+            if (tt is DataType.Nullable<*, *>) {
+                string?.let((tt.actualType as DataType.NotNull.Simple<*>)::load)
+            } else {
+                (tt as DataType.NotNull.Simple).load(string)
+            }
+        }
+    } as T
 
     final override fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =
         connection.rawQueryWithFactory(
@@ -139,9 +177,11 @@ abstract class SqliteExchange internal constructor(
 
     private inline fun <R> statement(query: String, block: (SQLiteStatement) -> R): R {
         val stmt = acquireStmt(query)
-        val r = block(stmt) // no try-finally, not sure about poisoned statement behavior, let it leak
-        freeStmt(query, stmt)
-        return r
+        try {
+            return block(stmt)
+        } finally {
+            freeStmt(query, stmt)
+        }
     }
     private fun acquireStmt(query: String): SQLiteStatement =
         statements.remove(query) ?: connection.compileStatement(query)
@@ -153,9 +193,7 @@ abstract class SqliteExchange internal constructor(
         query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
     ): Any? = statement(query) { statement ->
-        argumentTypes.forEachIndexed { idx, type ->
-            (type as DataType<Any?>).bind(statement, idx, transactionAndArguments[idx + 1])
-        }
+        bindParams(argumentTypes, statement, transactionAndArguments)
 
         if (retKeyType == null) statement.executeUpdateDelete()
         else statement.executeInsert().coercePk(retKeyType)
@@ -219,7 +257,6 @@ abstract class SqliteExchange internal constructor(
 /**
  * Represents a connection with an [SQLiteDatabase].
  */
-// TODO: use simpleQueryForLong and simpleQueryForString with compiled statements where possible
 @ExperimentalSql
 class SqliteSession(
         connection: SQLiteDatabase
@@ -516,9 +553,7 @@ private class CurFac<ID : IdBound, SCH : Schema<SCH>>(
                     (type.type as DataType<Any?>).bind(query, idx, value)
                 }
             argumentTypes != null -> sessionAndArguments!!.let { args ->
-                argumentTypes.forEachIndexed { idx, type ->
-                    (type as DataType<Any?>).bind(query, idx, args[idx+1])
-                }
+                bindParams(argumentTypes, query, args)
             }
             else ->
                 throw AssertionError()
@@ -527,7 +562,15 @@ private class CurFac<ID : IdBound, SCH : Schema<SCH>>(
         return SQLiteCursor(masterQuery, editTable, query)
     }
 }
-
+private fun bindParams(
+    argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+    statement: SQLiteProgram,
+    transactionAndArguments: Array<out Any>,
+) {
+    argumentTypes.forEachIndexed { idx, type ->
+        (type as DataType<Any?>).bind(statement, idx, transactionAndArguments[idx + 1])
+    }
+}
 private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {
     val i = 1 + index
     flattened { isNullable, simple ->
