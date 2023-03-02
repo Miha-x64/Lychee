@@ -14,7 +14,6 @@ import net.aquadc.collections.forEach
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.eq
-import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.FreeExchange
 import net.aquadc.persistence.sql.IdBound
@@ -48,13 +47,14 @@ import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import java.io.Closeable
-import kotlin.concurrent.getOrSet
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Base for SQLite Session and Transaction.
  */
 abstract class SqliteExchange internal constructor(
     @JvmField protected val connection: SQLiteDatabase,
+    @JvmField protected val statements: ConcurrentHashMap<String, SQLiteStatement>,
 ) : FreeExchange<Cursor> {
 
     // Source
@@ -137,23 +137,28 @@ abstract class SqliteExchange internal constructor(
             }
         }
 
-    @JvmField protected val statements = ThreadLocal<MutableMap<Any, SQLiteStatement>>()
+    private inline fun <R> statement(query: String, block: (SQLiteStatement) -> R): R {
+        val stmt = acquireStmt(query)
+        val r = block(stmt) // no try-finally, not sure about poisoned statement behavior, let it leak
+        freeStmt(query, stmt)
+        return r
+    }
+    private fun acquireStmt(query: String): SQLiteStatement =
+        statements.remove(query) ?: connection.compileStatement(query)
+    private fun freeStmt(query: String, stmt: SQLiteStatement) {
+        statements.put(query, stmt)?.close()
+    }
+
     override fun <ID> execute(
         query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
-    ): Any? {
-        val statement = statements
-            .getOrSet(::newMap)
-            .getOrPut(query) { connection.compileStatement(query) }
-            .also { stmt ->
-                argumentTypes.forEachIndexed { idx, type ->
-                    (type as DataType<Any?>).bind(stmt, idx, transactionAndArguments[idx + 1])
-                }
-            }
-        return (
-            if (retKeyType == null) statement.executeUpdateDelete()
-            else statement.executeInsert().coercePk(retKeyType)
-            )
+    ): Any? = statement(query) { statement ->
+        argumentTypes.forEachIndexed { idx, type ->
+            (type as DataType<Any?>).bind(statement, idx, transactionAndArguments[idx + 1])
+        }
+
+        if (retKeyType == null) statement.executeUpdateDelete()
+        else statement.executeInsert().coercePk(retKeyType)
     }
     private fun <T> Long.coercePk(type: Ilk<T, DataType.NotNull.Simple<T>>): T {
         check(this != -1L)
@@ -181,29 +186,32 @@ abstract class SqliteExchange internal constructor(
         table: Table<SCH, ID>, data: PartialStruct<SCH>
     ): ID {
         val sql = with(SqliteDialect) { StringBuilder().insert(table, data.fields).toString() }
-        val statement = statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
-        bindInsertionParams(table, data) { type, idx, value ->
-            (type.type as DataType<Any?>).bind(statement, idx, value)
+        return statement(sql) { statement ->
+            bindInsertionParams(table, data) { type, idx, value ->
+                (type.type as DataType<Any?>).bind(statement, idx, value)
+            }
+            statement.executeInsert().coercePk(table.idColType)
         }
-        return statement.executeInsert().coercePk(table.idColType)
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>) {
         val fields = table.pkField?.let { patch.fields - it } ?: patch.fields
         val sql = with(SqliteDialect) { StringBuilder().update(table, fields).toString() }
-        val statement = statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
-        val count = bindInsertionParams(table, patch) { type, idx, value ->
-            (type.type as DataType<Any?>).bind(statement, idx, value)
+        statement(sql) { statement ->
+            val count = bindInsertionParams(table, patch) { type, idx, value ->
+                (type.type as DataType<Any?>).bind(statement, idx, value)
+            }
+            table.idColType.type.bind(statement, count, id)
+            statement.executeUpdateDelete()
         }
-        table.idColType.type.bind(statement, count, id)
-        statement.executeUpdateDelete()
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, id: ID) {
         val sql = SqliteDialect.deleteRecordQuery(table)
-        val statement = statements.getOrSet(::newMap).getOrPut(sql) { connection.compileStatement(sql) }
-        table.idColType.type.bind(statement, 0, id)
-        check(statement.executeUpdateDelete() == 1)
+        statement(sql) { statement ->
+            table.idColType.type.bind(statement, 0, id)
+            check(statement.executeUpdateDelete() == 1)
+        }
     }
 
 }
@@ -215,7 +223,7 @@ abstract class SqliteExchange internal constructor(
 @ExperimentalSql
 class SqliteSession(
         connection: SQLiteDatabase
-) : SqliteExchange(connection), Session<Cursor> {
+) : SqliteExchange(connection, ConcurrentHashMap()), Session<Cursor> {
 
     init {
         // https://android.googlesource.com/platform/frameworks/support/+/androidx-master-dev/room/runtime/src/main/java/androidx/room/InvalidationTracker.java#176
@@ -280,20 +288,19 @@ class SqliteSession(
         }, subject, listener)
 
     override fun trimMemory() {
-        clearStatements()
+        statements.keys.forEach { sql ->
+            // slow but concurrently safe
+            statements.remove(sql)?.close()
+        }
+
         connection.execSQL(SqliteDialect.trimMemory())
     }
 
     override fun close() {
-        clearStatements()
         connection.close()
-    }
-
-    private fun clearStatements() {
-        statements.get()?.let {
-            it.values.forEach(SQLiteStatement::close)
-            it.clear() // FIXME: Other threads' statements gonna dangle until GC
-        }
+        // At this point, all statements are already invalid.
+        // Waste some cycles to help GC free up useless SQL queries and statements if we dangle.
+        statements.clear()
     }
 
     // misc
@@ -358,7 +365,7 @@ class SqliteSession(
         triggers.notifyPending()
     }
 
-    private inner class SqliteTransaction : SqliteExchange(connection), InternalTransaction<Cursor> {
+    private inner class SqliteTransaction : SqliteExchange(connection, statements), InternalTransaction<Cursor> {
 
         private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
         private var isSuccessful = false
@@ -366,7 +373,7 @@ class SqliteSession(
         // Transaction
 
         override fun setSuccessful() {
-//            checkOpenAndThread()
+            checkOpenAndThread()
             isSuccessful = true
         }
 
@@ -374,7 +381,7 @@ class SqliteSession(
             close(true)
         }
         override fun close(deliver: Boolean) {
-//            checkOpenAndThread()
+            checkOpenAndThread()
             val successful = isSuccessful
             if (successful) {
                 connection.setTransactionSuccessful()
