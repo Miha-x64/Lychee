@@ -398,7 +398,7 @@ and update notification on every change.
 // trivial table. Primary key column is not mentioned within Schema
 val Players = tableOf(Player, "players", "_id", i64)
 ```
-With `Session` (implementations: Android-specific `SqliteSession`, ~~general-purpose `JdbcSession`~~ DON'T USE THIS SHIT TILL THE NEXT RELEASE), you're getting
+With `Session` (implementations: general-purpose `JdbcSession`, Android-specific `SqliteSession`), you're getting
 * SQL templates:
 ```kt
 val selectNameEmailBySmth = Query(
