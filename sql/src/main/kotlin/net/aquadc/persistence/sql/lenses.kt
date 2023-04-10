@@ -21,6 +21,47 @@ import net.aquadc.persistence.type.nullable
  */
 interface NamingConvention {
     fun concatNames(outer: CharSequence, nested: CharSequence): CharSequence
+
+    companion object {
+        /**
+         * Generates names concatenated with a dot.
+         */
+        @JvmField val Dot: NamingConvention = ConcatConvention(".")
+
+        /**
+         * Generates names concatenated without any dividers.
+         */
+        @JvmField val Concat: NamingConvention = ConcatConvention("")
+
+        /**
+         * Uses nested names dropping outer ones.
+         */
+        @JvmField val Nested: NamingConvention = object : NamingConvention {
+            override fun concatNames(outer: CharSequence, nested: CharSequence): CharSequence =
+                nested
+        }
+
+        /**
+         * Generates names concatenated with snake_case
+         */
+        @JvmField val SnakeCase: NamingConvention = ConcatConvention("_")
+
+        /**
+         * Generates names concatenated with camelCase
+         */
+        @JvmField val CamelCase: NamingConvention = object : NamingConvention {
+
+            override fun concatNames(outer: CharSequence, nested: CharSequence): String = buildString(outer.length + nested.length) {
+                append(outer)
+                if (nested.isNotEmpty()) {
+                    val firstCodePoint = Character.codePointAt(nested, 0)
+                    appendCodePoint(Character.toTitleCase(firstCodePoint))
+                    append(nested, Character.charCount(firstCodePoint), nested.length)
+                }
+            }
+
+        }
+    }
 }
 
 
@@ -144,33 +185,19 @@ internal fun <SCH : Schema<SCH>, PRT : PartialStruct<SCH>, STR : Struct<SCH>> Na
     )
 }
 
-/**
- * Generates names concatenated with snake_case
- */
-@JvmField val SnakeCase: NamingConvention = ConcatConvention('_')
+@Deprecated("moved", ReplaceWith("net.aquadc.persistence.sql.NamingConvention.SnakeCase"))
+@JvmField val SnakeCase: NamingConvention = NamingConvention.SnakeCase
 
-/**
- * Generates names concatenated with camelCase
- */
-@JvmField val CamelCase: NamingConvention = object : NamingConvention {
+@Deprecated("moved", ReplaceWith("net.aquadc.persistence.sql.NamingConvention.CamelCase"))
+@JvmField val CamelCase: NamingConvention = NamingConvention.CamelCase
 
-    override fun concatNames(outer: CharSequence, nested: CharSequence): String = buildString(outer.length + nested.length) {
-        append(outer)
-        if (nested.isNotEmpty()) {
-            val firstCodePoint = Character.codePointAt(nested, 0)
-            appendCodePoint(Character.toTitleCase(firstCodePoint))
-            append(nested, Character.charCount(firstCodePoint), nested.length)
-        }
-    }
+@Deprecated("moved", ReplaceWith("net.aquadc.persistence.sql.NamingConvention.Dot"))
+@JvmField val NestingCase: NamingConvention = NamingConvention.Dot
 
-}
+@Deprecated("moved", ReplaceWith("net.aquadc.persistence.sql.NamingConvention.Concat"))
+@JvmField val Concat: NamingConvention = NamingConvention.Concat
 
-/**
- * Generates names concatenated with a dot.
- */
-@JvmField val NestingCase: NamingConvention = ConcatConvention('.')
-
-private class ConcatConvention(private val delimiter: Char) : NamingConvention {
+private class ConcatConvention(private val delimiter: String) : NamingConvention {
     override fun concatNames(outer: CharSequence, nested: CharSequence): String =
             buildString(outer.length + 1 + nested.length) {
                 append(outer).append(delimiter).append(nested)

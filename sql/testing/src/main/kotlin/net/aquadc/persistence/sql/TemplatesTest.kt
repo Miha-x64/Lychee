@@ -134,8 +134,8 @@ abstract class TemplatesTest {
         val userAndContact = Tuple("u", User, "c", Contact)
         //  ^^^^^^^^^^^^^^ should inline this variable after inference fix
         val joined = projection(userAndContact) { arrayOf(
-            embed(NestingCase, First)
-              , embed(NestingCase, Second)
+            embed(NamingConvention.Dot, First)
+              , embed(NamingConvention.Dot, Second)
         ) }
 
         val USER_BY_NAME =
