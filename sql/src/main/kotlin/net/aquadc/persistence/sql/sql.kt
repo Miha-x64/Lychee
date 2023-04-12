@@ -120,14 +120,6 @@ interface MutableTransaction<CUR> : ReadableTransaction<CUR>, FreeExchange<CUR> 
 }
 
 interface InternalTransaction<SRC> : MutableTransaction<SRC> {
-    fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-        table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
-    ): T
-
-    fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-        table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
-    ): Array<Any?>
-
     fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     fun close(deliver: Boolean)

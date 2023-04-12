@@ -434,20 +434,6 @@ class SqliteSession(
 
         // InternalTransaction
 
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
-        ): T {
-            checkOpenAndThread() // FIXME vvvvvvvvvvvvvvvv allocation
-            return select<SCH, ID>(table, arrayOf(colName), id).fetchSingle(colType.type as DataType<T>)
-        }
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-            table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
-        ): Array<Any?> {
-            checkOpenAndThread()
-            return select<SCH, ID>(table, columnNames, id).fetchColumns(columnTypes)
-        }
-
         override fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
             val sb = StringBuilder()
             newbies.forEach { (table, events) ->
@@ -496,7 +482,7 @@ class SqliteSession(
                 }
             }
         }
-        
+
         // etc
 
         private fun checkOpenAndThread() {

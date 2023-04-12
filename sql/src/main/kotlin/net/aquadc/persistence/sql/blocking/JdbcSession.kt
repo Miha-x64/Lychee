@@ -404,8 +404,6 @@ constructor(
 
     // Exchange
 
-    // Exchange
-
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID =
         dataSource.connection.use { insert(it, table, data) }
             .also { deliverTriggeredChanges() }
@@ -543,16 +541,6 @@ constructor(
             delete(conn, table, id)
 
         // InternalTransaction
-
-        override fun <SCH : Schema<SCH>, ID : IdBound, T> fetchSingle(
-            table: Table<SCH, ID>, colName: CharSequence, colType: Ilk<T, *>, id: ID
-        ): T =
-            select<SCH, ID>(conn, table, id, /* fixme allocation */ arrayOf(colName)).fetchSingle(colType)
-
-        override fun <SCH : Schema<SCH>, ID : IdBound> fetch(
-            table: Table<SCH, ID>, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, id: ID
-        ): Array<Any?> =
-            select<SCH, ID>(conn, table, id, columnNames).fetchColumns(columnTypes)
 
         override fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>) {
             val sb = StringBuilder()
