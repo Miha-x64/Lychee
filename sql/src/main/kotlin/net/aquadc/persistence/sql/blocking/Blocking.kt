@@ -13,29 +13,19 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
-import net.aquadc.persistence.type.SimpleNullable
 import net.aquadc.persistence.type.nothing
 import net.aquadc.properties.function.just
-import java.io.InputStream
 
 
-object Eagerly { // TODO support Ilk everywhere
+object Eagerly : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 
     @JvmOverloads inline fun <CUR, R> cell(
-        returnType: DataType.NotNull.Simple<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<CUR, R> =
-            FetchCellEagerly(returnType, orElse)
+        returnType: Ilk<out R, *>, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, R> = FetchCellEagerly(returnType, orElse)
 
-    @JvmOverloads inline fun <CUR, R : Any> cell(
-            returnType: SimpleNullable<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<CUR, R?> =
-            FetchCellEagerly(returnType, orElse)
-
-    inline fun <CUR, R> col(elementType: DataType.NotNull.Simple<R>): Fetch<CUR, List<R>> =
-            FetchColEagerly(elementType)
-
-    inline fun <CUR, R : Any> col(elementType: SimpleNullable<R>): Fetch<CUR, List<R?>> =
-            FetchColEagerly(elementType)
+    inline fun <CUR, R> col(
+        elementType: Ilk<out R, *>,
+    ): Fetch<CUR, List<R>> = FetchColEagerly(elementType)
 
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
@@ -66,26 +56,15 @@ object Eagerly { // TODO support Ilk everywhere
             as Exec<CUR, T>
 }
 
-object Lazily {
-    @JvmOverloads inline fun <CUR, R> cell(
-        returnType: DataType.NotNull.Simple<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<CUR, Lazy<R>> =
-            FetchCellLazily(returnType, orElse)
+object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 
-    @JvmOverloads inline fun <CUR, R : Any> cell(
-            returnType: SimpleNullable<out R>, noinline orElse: () -> R = throwNse
-    ): Fetch<CUR, Lazy<R?>> =
-            FetchCellLazily(returnType, orElse)
+    @JvmOverloads inline fun <CUR, R> cell(
+        returnType: Ilk<out R, *>, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, Lazy<R>> = FetchCellLazily(returnType, orElse)
 
     inline fun <CUR, R> col(
-            elementType: DataType.NotNull.Simple<R>
-    ): Fetch<CUR, CloseableIterator<R>> =
-            FetchColLazily(elementType)
-
-    inline fun <CUR, R : Any> col(
-            elementType: SimpleNullable<R>
-    ): Fetch<CUR, CloseableIterator<R?>> =
-            FetchColLazily(elementType)
+        elementType: Ilk<out R, *>,
+    ): Fetch<CUR, CloseableIterator<R>> = FetchColLazily(elementType)
 
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
             table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
@@ -117,6 +96,28 @@ object Lazily {
             table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
             FetchStructListLazily<CUR, SCH>(table, bindBy, true)
+}
+
+abstract class ProhibitCellsAndColsOfCollectionAndPartialTypes internal constructor() {
+
+    @Deprecated("single cell can't hold a Collection unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    @JvmOverloads inline fun <CUR, R> cell(
+        returnType: DataType.NotNull.Collect<out R, *, *>, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, R> = throw AssertionError()
+
+    @Deprecated("single cell can't hold a Partial/Struct unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    @JvmOverloads inline fun <CUR, R> cell(
+        returnType: DataType.NotNull.Partial<out R, *>, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, R> = throw AssertionError()
+
+    @Deprecated("single col can't hold a Collection unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    inline fun <CUR, R> col(elementType: DataType.NotNull.Collect<out R, *, *>): Fetch<CUR, List<R>> =
+        throw AssertionError()
+
+    @Deprecated("single col can't hold a Partial/Struct unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    inline fun <CUR, R> col(elementType: DataType.NotNull.Partial<out R, *>): Fetch<CUR, List<R>> =
+        throw AssertionError()
+
 }
 
 //fun <T> observableValue(/*todo dependencies*/): FetchValue<BlockingSession, T, Property<T>, Property<LazyList<T>>> = TODO()
