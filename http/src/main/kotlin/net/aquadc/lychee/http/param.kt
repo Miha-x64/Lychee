@@ -110,7 +110,7 @@ object Headers : ExtracorpParam<Collection<Pair<CharSequence, CharSequence>>>()
 // Request body
 
 abstract class Body<T>(
-    @JvmField val mediaType: CharSequence
+    @JvmField val mediaType: CharSequence?
 ) : Param<T>() {
     open fun contentLength(value: T): Long = -1
     abstract fun stream(value: T): InputStream

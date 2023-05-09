@@ -249,8 +249,8 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
 
     private fun <T> bodyFor(param: Body<T>, value: T): RequestBody {
         return object : RequestBody() {
-            override fun contentType(): MediaType =
-                MediaType.parse(param.mediaType.toString())
+            override fun contentType(): MediaType? =
+                param.mediaType?.toString()?.let(MediaType::parse)
             override fun contentLength(): Long =
                 param.contentLength(value)
             override fun writeTo(sink: BufferedSink) {
