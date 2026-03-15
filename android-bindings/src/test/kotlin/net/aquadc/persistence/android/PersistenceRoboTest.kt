@@ -87,7 +87,7 @@ class PersistenceRoboTest {
         parcel.writeParcelable(memento, 0)
 
         parcel.setDataPosition(0)
-        val restored = parcel.readParcelable<ParcelPropertiesMemento>(ParcelPropertiesMemento::class.java.classLoader)
+        val restored = parcel.readParcelable<ParcelPropertiesMemento>(ParcelPropertiesMemento::class.java.classLoader)!!
         parcel.recycle()
 
         assertNotSame(memento, restored)

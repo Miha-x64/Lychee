@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 
 
 private fun sqliteDb() = object : SQLiteOpenHelper(
-        RuntimeEnvironment.application, "test.db", null, 1
+        RuntimeEnvironment.getApplication(), "test.db", null, 1
 ) {
     override fun onCreate(db: SQLiteDatabase) {
         TestTables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
@@ -50,11 +50,11 @@ class SqlPropRoboTest : SqlPropTest() {
     @Test fun `assert robolectric works`() {
         db.execSQL("CREATE TABLE test(value STRING)")
         db.execSQL("INSERT INTO test VALUES ('test value')")
-        db.query("test", arrayOf("COUNT(*)"), null, null, null, null, null).let {
+        db.query("test", arrayOf("COUNT(*)"), null, null, null, null, null).use{
             check(it.moveToFirst())
             assertEquals(1, it.getInt(0))
         }
-        db.query("test", arrayOf("*"), null, null, null, null, null).let {
+        db.query("test", arrayOf("*"), null, null, null, null, null).use {
             check(it.moveToFirst())
             assertEquals(1, it.count)
             assertEquals(1, it.columnCount)

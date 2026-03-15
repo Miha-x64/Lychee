@@ -115,7 +115,7 @@ fun <E, DE : DataType<E>> set(elementType: DE): DataType.NotNull.Collect<Set<E>,
                 if (value is Set<*>) value as Set<E>
                 else value.fatTo(
                         if (enumType === null) HashSet()
-                        else (EnumSet.noneOf(enumType as Class<Thread.State>) as MutableSet<E>)
+                        else (EnumSetUnchecked(enumType) as MutableSet<E>)
                 )
     }
 }

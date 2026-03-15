@@ -452,9 +452,9 @@ class SqliteSession(
                 events.forEach { event ->
                     sb.setLength(0)
                     connection.execSQL(
-                        @Suppress("UPPER_BOUND_VIOLATED")
-                        sb.changesTrigger<Schema<*>, IdBound>(
-                            "_lychee_changes", event, table as Table<Schema<*>, IdBound>,
+                        @Suppress("UNCHECKED_CAST")
+                        sb.changesTrigger(
+                            "_lychee_changes", event, table as Table<NullSchema, IdBound>,
                             create = true
                         ).toString()
                     )
@@ -473,9 +473,9 @@ class SqliteSession(
                 events.forEach { event ->
                     sb.setLength(0)
                     connection.execSQL(
-                        @Suppress("UPPER_BOUND_VIOLATED")
-                        sb.changesTrigger<Schema<*>, IdBound>(
-                            "_lychee_changes", event, table as Table<Schema<*>, IdBound>,
+                        @Suppress("UNCHECKED_CAST")
+                        sb.changesTrigger(
+                            "_lychee_changes", event, table as Table<NullSchema, IdBound>,
                             create = false
                         ).toString()
                     )

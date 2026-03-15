@@ -60,8 +60,8 @@ class ParcelPropertiesMemento : PropertiesMemento, Parcelable {
         @Suppress("unused") @JvmField val CREATOR: Parcelable.Creator<Any?> =
                 object : Parcelable.Creator<Any?> {
 
-                    override fun createFromParcel(source: Parcel): Any? =
-                            ParcelPropertiesMemento(source.createByteArray())
+                    override fun createFromParcel(source: Parcel): Any =
+                            ParcelPropertiesMemento(source.createByteArray()!!)
 
                     override fun newArray(size: Int): Array<out Any?> =
                             arrayOfNulls<ParcelPropertiesMemento>(size)

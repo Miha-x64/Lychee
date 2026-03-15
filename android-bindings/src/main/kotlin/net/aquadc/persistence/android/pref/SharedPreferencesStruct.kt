@@ -99,19 +99,26 @@ class SharedPreferencesStruct<SCH : Schema<SCH>> : BaseStruct<SCH>, Transactiona
         }
 
         // `SharedPreferences` keeps a weak reference and not going to leak us
-        override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-            schema.fieldByName(key, { field ->
-                val idx = field.ordinal.toInt()
-                val value = schema.get(field, sharedPreferences)
-                field.foldOrdinal(
-                    ifMutable = {
-                        (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?, Nothing?>).commit(value)
-                    },
-                    ifImmutable = {
-                        throw UnsupportedOperationException("Immutable field $field in $prefs was mutated externally!")
-                    } // there will be ugly but a bit informative toString. Deal with it
-                )
-            }, { return })
+        override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+            if (key == null) {
+                schema.forEach(schema.allFieldSet) { field ->
+                    update(field, sharedPreferences)
+                }
+            } else {
+                schema.fieldByName(key, { update(it, sharedPreferences) }, { })
+            }
+        }
+
+        private fun update(field: FieldDef<SCH, *, *>, sharedPreferences: SharedPreferences) {
+            val value = schema.get(field, sharedPreferences)
+            field.foldOrdinal(
+                ifMutable = { idx ->
+                    (values[idx] as ManagedProperty<SCH, StructTransaction<SCH>, Any?, Nothing?>).commit(value)
+                },
+                ifImmutable = {
+                    throw UnsupportedOperationException("Immutable field $field in $prefs was mutated externally!")
+                } // there will be ugly but a bit informative toString. Deal with it
+            )
         }
 
     }

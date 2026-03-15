@@ -33,8 +33,8 @@ class LazyView(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         setMeasuredDimension(0, 0)
     }
-    @SuppressLint("MissingSuperCall") override fun draw(canvas: Canvas?) {}
-    override fun dispatchDraw(canvas: Canvas?) {}
+    @SuppressLint("MissingSuperCall") override fun draw(canvas: Canvas) {}
+    override fun dispatchDraw(canvas: Canvas) {}
 
     @JvmSynthetic internal fun create() {
         val parent = parent as ViewGroup

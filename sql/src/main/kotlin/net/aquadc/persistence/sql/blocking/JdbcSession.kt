@@ -609,25 +609,25 @@ constructor(
                 close()
             }
 
-        @Suppress("UPPER_BOUND_VIOLATED")
         private fun prepareAndCreateTrigger(
             sb: StringBuilder, event: TriggerEvent, table: Table<*, *>, stmt: Statement, create: Boolean
         ): Unit = with(dialect) {
-            table as Table<Schema<*>, IdBound>
+            @Suppress("UNCHECKED_CAST")
+            table as Table<NullSchema, IdBound>
 
             if (!create) { // drop trigger before dropping function as trigger depends on it
                 sb.setLength(0)
-                stmt.execute(sb.changesTrigger<Schema<*>, IdBound>(changesPostfix, event, table, create = false).toString())
+                stmt.execute(sb.changesTrigger(changesPostfix, event, table, create = false).toString())
             }
 
             sb.setLength(0)
-            if (sb.prepareChangesTrigger<Schema<*>, IdBound>(changesPostfix, event, table, create).isNotEmpty()) {
+            if (sb.prepareChangesTrigger(changesPostfix, event, table, create).isNotEmpty()) {
                 stmt.execute(sb.toString())
             }
 
             if (create) {
                 sb.setLength(0)
-                stmt.execute(sb.changesTrigger<Schema<*>, IdBound>(changesPostfix, event, table, create = true).toString())
+                stmt.execute(sb.changesTrigger(changesPostfix, event, table, create = true).toString())
             }
         }
     }

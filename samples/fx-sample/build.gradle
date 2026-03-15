@@ -9,19 +9,11 @@
 plugins {
     id 'kotlin'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
-    id 'org.beryx.runtime' version '1.8.5'
+    id 'com.gradleup.shadow' version '9.4.0'
+//  id 'org.beryx.runtime' version '2.0.1'
 }
 
 def fxModules = ['base', 'controls', 'graphics']
-/*
-// FX plugin requires new JDK, and we're stuck with 11 because of Robolectric
-id 'org.openjfx.javafxplugin' version '0.0.8'
-javafx {
-    version = '13'
-    modules = fxModules.collect { 'javafx.' + it }
-}
-*/
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     fxModules.each { // ideally, should use plugin instead
@@ -39,7 +31,7 @@ dependencies {
 }
 
 application {
-    mainClassName = 'net.aquadc.properties.fx.FxWithOurPropsSample'
+    setMainClass('net.aquadc.properties.fx.FxWithOurPropsSample')
     applicationName = 'propsSample'
     applicationDefaultJvmArgs = [
             '-client', '-XX:+TieredCompilation', '-Xverify:none', '-XX:CompileThreshold=100',
@@ -124,9 +116,9 @@ try {
     keep 'class * { <init>(***); }' // DAMN IT! Still NoSuchMethodError("<init>"), gonna keep 'em all
 }*/
 
-runtime { // :runtimeZip task: build custom JDK
-    options.set(['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages'])
-    javaHome.set(props.getProperty('jdk11')) // upgrade blocked by https://github.com/jfoenixadmin/JFoenix/issues/955
+/*runtime { // :runtimeZip task: build custom JDK
+    options.set(['--strip-debug', '--compress', 'zip-6', '--no-header-files', '--no-man-pages'])
+    javaHome.set(this requires JDK 11, upgrade blocked by https://github.com/jfoenixadmin/JFoenix/issues/955)
     jvmVersion.set(11)
-    modules.set(['java.desktop', 'jdk.unsupported', /*"java.scripting",*/ /*"java.logging",*/ 'java.xml', 'java.sql'])
-}
+    modules.set(['java.desktop', 'jdk.unsupported', /*"java.scripting", /*"java.logging", 'java.xml', 'java.sql'])
+}*/

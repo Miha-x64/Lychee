@@ -138,7 +138,7 @@ class TemplatesPostgres : TemplatesTest() {
             "jsonb NOT NULL", SomeSchema,
             { p1 -> PGobject("jsonb", """["${p1[SomeSchema.A]}", ${p1[SomeSchema.B]}, ${p1[SomeSchema.C]}]""") },
             { p ->
-                (p as PGobject).value.trim('[', ']').split(", ").let { tokens ->
+                (p as PGobject).value!!.trim('[', ']').split(", ").let { tokens ->
                     SomeSchema {
                         it[A] = tokens[0].trim('"')
                         it[B] = tokens[1].toInt()

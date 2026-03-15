@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
+    namespace = 'net.aquadc.propertiesSampleApp'
     compileSdkVersion target_android_version
 
     defaultConfig {
@@ -24,14 +25,14 @@ android {
 
     buildTypes {
         debug {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled = false
+            shrinkResources = false
         }
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig = signingConfigs.release
         }
     }
 
@@ -53,9 +54,9 @@ android {
     }
 
     packagingOptions {
-        exclude 'META-INF/*kotlin*'
-        exclude 'META-INF/*.version'
-        exclude 'kotlin/**'
+        resources {
+            excludes += ['META-INF/*kotlin*', 'META-INF/*.version', 'kotlin/**']
+        }
     }
 
     compileOptions {
@@ -65,11 +66,8 @@ android {
 
 }
 
-repositories {
-    jcenter() // Splitties
-}
 dependencies {
-    testImplementation 'junit:junit:4.13.2'
+    testImplementation "junit:junit:$junit_version"
 
     freshImplementation 'com.github.grishka.litex:recyclerview:1.0'
     freshImplementation 'com.github.grishka.litex:collection:1.0'
@@ -87,7 +85,7 @@ dependencies {
     implementation project(':persistence') // required for saving state — ParcelPropertiesMemento is there
     implementation project(':samples:logic-sample') // ViewModels are here
 
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-3'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
 }
 private static void implNoX(DependencyHandler h, String what) {
     h.legacyImplementation what

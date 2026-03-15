@@ -10,11 +10,11 @@ dependencies {
     compileOnly 'io.undertow:undertow-core:2.1.0.Final'
     compileOnly "com.google.android:android:$android_artifact_version"
 
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
-    testImplementation 'com.squareup.okhttp3:okhttp:4.9.1'
+    testImplementation "junit:junit:$junit_version"
+    testImplementation 'com.squareup.okhttp3:okhttp:4.9.2'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1'
     testImplementation(project(':extended-persistence')) { because 'uuid, either' }
-    testImplementation('io.undertow:undertow-core:2.1.0.Final') { because 'end-to-end tests' }
+    testImplementation('io.undertow:undertow-core:2.4.0.Beta1') { because 'end-to-end tests' }
 }
 
 ext {

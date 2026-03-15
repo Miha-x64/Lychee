@@ -16,7 +16,7 @@ constructor(concurrent: Boolean, initialRef: REF)
     protected var ref: REF = initialRef
 
     @Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
-    protected /*inline*/ fun refUpdater() =
+    protected /*inline*/ fun refUpdater(): AtomicReferenceFieldUpdater<`Notifier-1AtomicRef`<@UnsafeVariance T, REF>, REF> =
             RefUpdater as AtomicReferenceFieldUpdater<`Notifier-1AtomicRef`<@UnsafeVariance T, REF>, REF>
 
     private companion object {

@@ -1,6 +1,7 @@
 @file:Suppress("UNCHECKED_CAST") // this file is for unchecked casts :)
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
 import net.aquadc.persistence.struct.PartialStruct
@@ -72,7 +73,6 @@ internal inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T
  * Transforms flat column values to in-memory instance.
  * Puts the resulting [StructSnapshot] into [mutColumnValues] at [_dstPos].
  */
-@Suppress("UPPER_BOUND_VIOLATED")
 internal fun inflate(
         recipe: Array<out Table.StructStart?>,
         mutColumnValues: Array<Any?>,
@@ -85,10 +85,10 @@ internal fun inflate(
     var srcPos = _srcPos
     val schema = start.unwrappedType.schema
     val fieldSet = if (start.hasFieldSet) {
-        (mutColumnValues[srcPos++] as Long?)?.let { FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>(it) }
+        (mutColumnValues[srcPos++] as Long?)?.let { FieldSet<NullSchema, FieldDef<NullSchema, *, *>>(it) }
     } else { // no fieldSet implies it's a non-partial Struct
-        schema.allFieldSet as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>
-    }
+        schema.allFieldSet
+    } as FieldSet<NullSchema, FieldDef<NullSchema, *, *>>?
 
     var dstPos = _dstPos
     var lastMovedFieldIdx = -1
@@ -132,8 +132,7 @@ internal fun inflate(
     }
 
     // yay! commit & push
-    val t = start.unwrappedType as DataType.NotNull.Partial<Any?, Any?>
-    fieldSet as FieldSet<Any?, FieldDef<Any?, *, *>>?
+    val t = start.unwrappedType as DataType.NotNull.Partial<Any?, NullSchema>
     mutColumnValues[_dstPos] =
             if (fieldSet == null) null
             else t.load(fieldSet, when (fieldSet.size) {
@@ -165,9 +164,9 @@ internal fun flatten(
     val erased = start.unwrappedType as DataType.NotNull.Partial<Any?, *>
 
     val fieldSet =
-            if (start.hasFieldSet) (erased.fields(value) as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>).also {
+            if (start.hasFieldSet) (erased.fields(value) as FieldSet<NullSchema, FieldDef<NullSchema, *, *>>).also {
                 out[dstPos++] = it.bitSet
-            } else erased.schema.allFieldSet as FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>
+            } else erased.schema.allFieldSet as FieldSet<NullSchema, FieldDef<NullSchema, *, *>>
 
     val schema = start.unwrappedType.schema
     when (fieldSet.size) {
@@ -179,7 +178,7 @@ internal fun flatten(
         else -> {
             val fieldValues = erased.store(value) as Array<Any?> // fixme allocation
             flattenFieldValues(_recipeOffset, { f ->
-                fieldValues[fieldSet.indexOf<Schema<*>>(f as FieldDef<Schema<*>, *, *>)]
+                fieldValues[fieldSet.indexOf(f as FieldDef<NullSchema, *, *>)]
             }, recipe, schema, fieldSet, out, dstPos)
         }
     }
@@ -187,8 +186,8 @@ internal fun flatten(
 
 @Suppress("UPPER_BOUND_VIOLATED")
 private inline fun flattenFieldValues(
-        _recipeOffset: Int, fieldValue: (FieldDef<out Schema<*>, *, *>) -> Any?, recipe: Array<out Table.StructStart?>,
-        schema: Schema<*>, fieldSet: FieldSet<Schema<*>, FieldDef<Schema<*>, *, *>>,
+        _recipeOffset: Int, fieldValue: (FieldDef<*, *, *>) -> Any?, recipe: Array<out Table.StructStart?>,
+        schema: Schema<*>, fieldSet: FieldSet<*, FieldDef<*, *, *>>,
         out: Array<Any?>, _dstPos: Int
 ) {
     var dstPos = _dstPos
@@ -235,9 +234,9 @@ private inline fun flattenFieldValues(
     }
 }
 
-@Suppress("UPPER_BOUND_VIOLATED", "NOTHING_TO_INLINE")
-private inline operator fun FieldSet<Schema<*>, *>?.contains(field: FieldDef<*, *, *>): Boolean =
-        this != null && this.originalContains<Schema<*>>(field as FieldDef<Schema<*>, *, *>)
+@Suppress("NOTHING_TO_INLINE")
+private inline operator fun FieldSet<*, *>?.contains(field: FieldDef<*, *, *>): Boolean =
+        this != null && (this as FieldSet<NullSchema, *>).originalContains(field as FieldDef<NullSchema, *, *>)
 
 internal fun <CUR> FreeSource<CUR>.row(
     cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy

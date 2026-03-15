@@ -101,8 +101,7 @@ inline fun <reified E : Enum<E>> enumSet(
 
             override fun load(value: SimpleValue): Any? {
                 var bitmask = encodeAs.load(value)
-                @Suppress("UPPER_BOUND_VIOLATED")
-                val set: MutableSet<E> = if (type.isEnum) EnumSet.noneOf<E>(type) else HashSet()
+                val set: MutableSet<E> = if (type.isEnum) EnumSetUnchecked(type) as MutableSet<E> else HashSet()
                 var ord = 0
                 while (bitmask != 0L) {
                     if ((bitmask and 1L) == 1L) {
@@ -138,3 +137,7 @@ inline fun <reified E, DE : DataType<E>> enumSet(
         throw NoSuchElementException("No enum constant $p1 in type $t")
     }
 }
+
+@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+internal inline fun EnumSetUnchecked(type: Class<*>): EnumSet<*> =
+    EnumSet.noneOf(type as Class<AnnotationRetention /* whatever*/>)

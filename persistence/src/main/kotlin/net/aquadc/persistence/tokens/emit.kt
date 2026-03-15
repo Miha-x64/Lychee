@@ -3,6 +3,7 @@
 package net.aquadc.persistence.tokens
 
 import net.aquadc.collections.get
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.FieldSet
@@ -50,8 +51,8 @@ private suspend fun <T> TokenStreamScope.yield(type: DataType<T>, value: T) {
         }
         is DataType.NotNull.Partial<*, *> -> {
             yieldDictionary {
-                type as DataType.NotNull.Partial<Any?, Schema<*>>
-                yieldFieldNamesAndValues<Schema<*>>(type.fields(value), type.schema, type.store(value))
+                type as DataType.NotNull.Partial<Any?, NullSchema>
+                yieldFieldNamesAndValues(type.fields(value), type.schema, type.store(value))
             }
         }
     }

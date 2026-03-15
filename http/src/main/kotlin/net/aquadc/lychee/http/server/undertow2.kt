@@ -214,7 +214,7 @@ private class QueryPredicate(
         if (constQuery.any { (key, values) -> queryParams[key]?.containsAll(values) != true }) return false
 
         // we're fine but let's remove constant query parameters now:
-        constQuery.forEach { key, values -> check(queryParams[key]!!.removeAll(values)) }
+        constQuery.forEach { (key, values) -> check(queryParams[key]!!.removeAll(values)) }
         return true
     }
 }
@@ -275,6 +275,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
             when (param) {
                 is QueryParams -> args[index] = gather(exchange.queryParameters)
                 is Headers -> args[index] = gather(exchange.requestHeaders)
+                else -> {}
             }
         } catch (e: Exception) {
             return exchange.badEnd(respondBadRequest, param, e)
@@ -292,6 +293,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                         is Part<*> -> args[index] =
                             (formData.get(param.name.toString())?.poll()?.fileItem ?: throw NoSuchElementException())
                                 .let { param.body.fromStream(it.fileSize, it.inputStream) }
+                        else -> {}
                     }
                 } catch (e: Exception) {
                     return exchange.badEnd(respondBadRequest, param, e)
@@ -302,6 +304,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                     when (param) {
                         is Fields -> args[index] = gather(formData)
                         is Parts<*> -> args[index] = gather(formData, param.body)
+                        else -> {}
                     }
                 } catch (e: Exception) {
                     return exchange.badEnd(respondBadRequest, param, e)
@@ -316,6 +319,7 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
                 try {
                     when (param) {
                         is Body<*> -> args[index] = param.fromStream(message.size.toLong(), message.inputStream())
+                        else -> {}
                     }
                 } catch (e: Exception) {
                     return exchange.badEnd(respondBadRequest, param, e)

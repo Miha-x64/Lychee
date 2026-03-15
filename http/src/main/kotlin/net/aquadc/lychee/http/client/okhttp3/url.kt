@@ -130,6 +130,7 @@ private fun String.maybeStripProto(baseUrl: CharSequence?, endpoint: Endpoint<*,
                 val type = param.type as DataType.NotNull.Simple<Any?>
                 urlTemplate.replacePathSegm(param.name, type.storeAsStr(value))
             }
+            else -> {}
         }
     }
 

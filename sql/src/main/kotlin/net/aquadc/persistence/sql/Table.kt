@@ -1,6 +1,7 @@
 @file:JvmName("Tables")
 package net.aquadc.persistence.sql
 
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.array
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.newSet
@@ -197,7 +198,7 @@ private constructor(
             is ColMeta.Rel.Embed<*> -> {
                 val start = outColumns.size
                 val fieldSetCol = rel.fieldSetColName?.let { fieldSetColName ->
-                    (rel.naming.concatErased(this.schema, schema, path, FieldSetLens<Schema<*>>(fieldSetColName))
+                    (rel.naming.concatErased(this.schema, schema, path, FieldSetLens<NullSchema>(fieldSetColName))
                         as StoredNamedLens<SCH, out Long?, *>).also { path ->
                         val tOverr = types?.remove(path)
                         addColumn(outColumns, outColumnTypes, outColumnTypeNames, path, tOverr)

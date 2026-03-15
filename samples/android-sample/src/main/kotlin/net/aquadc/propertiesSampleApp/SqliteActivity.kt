@@ -17,6 +17,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.withStyledAttributes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import net.aquadc.persistence.sql.blocking.SqliteSession
@@ -36,7 +37,6 @@ import net.aquadc.propertiesSampleLogic.sql.SampleTables
 import net.aquadc.propertiesSampleLogic.sql.SqlViewModel
 import splitties.dimensions.dip
 import splitties.resources.styledDrawable
-import splitties.resources.withStyledAttributes
 import splitties.views.dsl.core.editText
 import splitties.views.dsl.core.frameLayout
 import splitties.views.dsl.core.lParams
@@ -138,8 +138,8 @@ class SqliteActivity : Activity() {
             }
         }
 
-        override fun onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle?): View {
-            return RecyclerView(container.context).apply {
+        override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+            return RecyclerView(container!!.context).apply {
                 layoutManager = LinearLayoutManager(container.context)
                 observeAdapter(object : ObservingAdapter<SimpleHolder>(), ChangeListener<List<Struct<Human>>> {
 
@@ -151,7 +151,7 @@ class SqliteActivity : Activity() {
                                         layoutParams = RecyclerView.LayoutParams(matchParent, wrapContent)
                                         setPaddingDp(16, 8, 16, 8)
                                         background = styledDrawable(android.R.attr.selectableItemBackground)
-                                        textAppearance = context.withStyledAttributes(android.R.attr.textAppearanceListItemSmall) { getResourceId(it, 0) }
+                                        context.withStyledAttributes(attrs = intArrayOf(android.R.attr.textAppearanceListItemSmall)) { textAppearance = getResourceId(0, 0) }
                                     },
                                     { vm.selectedProp.value = list.value[it] },
                                     null

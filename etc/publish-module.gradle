@@ -2,6 +2,14 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 if (project.hasProperty("android")) { // Android libraries
+    plugins.withId("com.android.library") {
+        android {
+            publishing {
+                singleVariant("release") { withSourcesJar() }
+            }
+        }
+    }
+
     task sourcesJar(type: Jar) {
         archiveClassifier.set 'sources'
         from android.sourceSets.main.java.srcDirs
@@ -11,36 +19,16 @@ if (project.hasProperty("android")) { // Android libraries
         source = android.sourceSets.main.java.srcDirs
         classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     }
-
-    apply plugin: "org.jetbrains.dokka"
-    tasks.dokkaJavadoc.configure {
-        outputDirectory.set(file("$buildDir/javadoc"))
-    }
-
-    task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
-        archiveClassifier.set 'javadoc'
-        from "$buildDir/javadoc"
-    }
-} else { // Java libraries
-    task sourcesJar(type: Jar, dependsOn: classes) {
-        archiveClassifier.set 'sources'
-        from sourceSets.main.allSource
-    }
-
-    apply plugin: "org.jetbrains.dokka"
-    tasks.dokkaJavadoc.configure {
-        outputDirectory.set(file("$buildDir/javadoc"))
-    }
-
-    task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
-        archiveClassifier.set 'javadoc'
-        from "$buildDir/javadoc"
+} else {
+    plugins.withId("java") {
+        java { withSourcesJar() }
     }
 }
 
-artifacts {
-    archives javadocJar
-    archives sourcesJar
+apply plugin: "org.jetbrains.dokka"
+task javadocJar(type: Jar, dependsOn: dokkaGenerate) {
+    archiveClassifier.set 'javadoc'
+    from "$buildDir/dokka/html"
 }
 
 group = PUBLISH_GROUP_ID
@@ -50,9 +38,9 @@ afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
-                groupId PUBLISH_GROUP_ID
-                artifactId PUBLISH_ARTIFACT_ID
-                version PUBLISH_VERSION
+                groupId = PUBLISH_GROUP_ID
+                artifactId = PUBLISH_ARTIFACT_ID
+                version = PUBLISH_VERSION
 
                 // Two artifacts, the `aar` (or `jar`) and the sources
                 if (project.plugins.findPlugin("com.android.library")) {

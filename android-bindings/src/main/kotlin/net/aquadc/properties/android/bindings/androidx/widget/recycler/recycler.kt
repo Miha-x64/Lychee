@@ -32,10 +32,10 @@ val RecyclerView.observedAdapter: RecyclerView.Adapter<*>?
 private class AdapterAttacher(
     @JvmField var adapter: RecyclerView.Adapter<*>?,
 ) : View.OnAttachStateChangeListener {
-    override fun onViewAttachedToWindow(p0: View?) {
+    override fun onViewAttachedToWindow(p0: View) {
         (p0 as RecyclerView).swapAdapter(adapter, false)
     }
-    override fun onViewDetachedFromWindow(p0: View?) {
+    override fun onViewDetachedFromWindow(p0: View) {
         (p0 as RecyclerView).swapAdapter(null, false)
     }
 }

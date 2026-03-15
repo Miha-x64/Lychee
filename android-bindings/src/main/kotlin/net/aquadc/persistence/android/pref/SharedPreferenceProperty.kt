@@ -26,8 +26,8 @@ class SharedPreferenceProperty<T>(
     }
 
     @Suppress("MemberVisibilityCanBePrivate") // internal — to avoid synthetic accessors
-    internal fun changed(key: String) {
-        if (this.key == key) {
+    internal fun changed(key: String?) {
+        if (key == null || this.key == key) {
             val new = type.get(prefs, this.key, defaultValue)
             val old = refUpdater().getAndSet(this, new)
             valueChanged(old, new, null)
