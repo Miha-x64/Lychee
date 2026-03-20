@@ -50,7 +50,7 @@ internal fun TokenStream.writeBracketSequenceTo(buffer: MutableCollection<Any?>,
         Token.BeginSequence -> {
             while (true) {
                 val next = poll()
-                if (next == Token.EndSequence) break
+                if (next === Token.EndSequence) break
                 writeBracketSequenceTo(buffer, next)
             }
             buffer.add(Token.EndSequence)
@@ -58,7 +58,7 @@ internal fun TokenStream.writeBracketSequenceTo(buffer: MutableCollection<Any?>,
         Token.BeginDictionary -> {
             while (true) {
                 val next = poll()
-                if (next == Token.EndDictionary) break
+                if (next === Token.EndDictionary) break
                 writeBracketSequenceTo(buffer, next)
             }
             buffer.add(Token.EndDictionary)

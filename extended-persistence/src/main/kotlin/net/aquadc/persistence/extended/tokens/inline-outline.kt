@@ -68,7 +68,7 @@ import net.aquadc.persistence.tokens.coerce
         // source may remember name of object we've inlined, so don't show it
 
         // plusNesting=1 means we're within some object/sequence and we have either name or index
-        if (v == Token.BeginDictionary && matches(1)) {
+        if (v === Token.BeginDictionary && matches(1)) {
             check(buffer.isEmpty())
             copyPath()
             check(inlinedMapping == null)
@@ -85,7 +85,7 @@ import net.aquadc.persistence.tokens.coerce
                     while (true) {
                         val inlineName = source.poll()
                         if (inlineName is Token) {
-                            check(inlineName == Token.EndDictionary)
+                            check(inlineName === Token.EndDictionary)
                             break
                         }
                         tokensToInline.add(rename(inlineName.checkName()))
@@ -167,7 +167,7 @@ import net.aquadc.persistence.tokens.coerce
     override fun poll(coerceTo: Token?): Any? = when (outlining) {
         -3 -> {
             val value = source.poll(coerceTo)
-            if (value == Token.BeginDictionary && matches(1)) {
+            if (value === Token.BeginDictionary && matches(1)) {
                 outlining = -2
                 expectingName = true
             } else {
@@ -223,7 +223,7 @@ import net.aquadc.persistence.tokens.coerce
         while (true) {
             val tok = source.peek()
 
-            if (tok == Token.EndDictionary) {
+            if (tok === Token.EndDictionary) {
                 buffer.add(Token.EndDictionary)
                 return
             }

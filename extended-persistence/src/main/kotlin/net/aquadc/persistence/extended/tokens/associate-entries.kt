@@ -22,7 +22,7 @@ import net.aquadc.persistence.tokens.TokenStream
         // nothing special, maybe standing before our BeginDictionary
         -4 -> {
             val token = source.peek()
-            if (token == Token.BeginSequence && matches(0)) Token.BeginDictionary else token
+            if (token === Token.BeginSequence && matches(0)) Token.BeginDictionary else token
         }
 
         // standing in the beginning; unreachable for [name, value] version
@@ -49,10 +49,10 @@ import net.aquadc.persistence.tokens.TokenStream
     override fun poll(coerceTo: Token?): Any? = when (state) {
         -4 -> {
             // we represent sequences as dictionaries, request sequence from delegate if dictionary requested
-            val token = source.poll(if (coerceTo == Token.BeginDictionary) Token.BeginSequence else coerceTo)
-            if (token == Token.BeginSequence && matches(1)) { // we've polled BeginSequence, no we're inside it, so plusNesting = 1
+            val token = source.poll(if (coerceTo === Token.BeginDictionary) Token.BeginSequence else coerceTo)
+            if (token === Token.BeginSequence && matches(1)) { // we've polled BeginSequence, no we're inside it, so plusNesting = 1
                 copyPath().afterToken(Token.BeginDictionary)
-                state = if (source.peek() == Token.EndSequence) {
+                state = if (source.peek() === Token.EndSequence) {
                     1 // the end! Empty sequence -> empty dictionary
                 } else {
                     source.poll(beginWrap) // remove nested wrapper right now, we ain't gonna need it
@@ -95,7 +95,7 @@ import net.aquadc.persistence.tokens.TokenStream
                 _path!!.afterToken(value)
                 if (_path!!.size == pathMatcher.size + 1) { // path of interest . name
                     // we're outside 'value', this is either beginning or end of 'value'
-                    if (value !is Token || value.let { it == Token.EndSequence || it == Token.EndDictionary }) {
+                    if (value !is Token || value.let { it === Token.EndSequence || it === Token.EndDictionary }) {
                         exitMapping() // gonna advance to be either before new mapping or in the end of the sequence
                     } // else give out nesting inside value as is
                 } // else just continue giving out value tokens
@@ -148,7 +148,7 @@ import net.aquadc.persistence.tokens.TokenStream
                 source.skipValue()
 
                 // pass nesting change to path
-                if (token.let { it == Token.EndSequence || it == Token.EndDictionary }) _path!!.afterToken(token)
+                if (token.let { it === Token.EndSequence || it === Token.EndDictionary }) _path!!.afterToken(token)
                 else _path!!.skip()
 
                 if (_path!!.size == pathMatcher.size + 1) {
@@ -269,7 +269,7 @@ import net.aquadc.persistence.tokens.TokenStream
         // nothing interesting here, just looking for BeginDictionary and an opportunity to emit our BeginSequence
         0 -> {
             val token = source.peek()
-            if (token == Token.BeginDictionary && matches(0)) Token.BeginSequence else token
+            if (token === Token.BeginDictionary && matches(0)) Token.BeginSequence else token
         }
 
         // standing before key, gonna emit beginWrap
@@ -310,10 +310,10 @@ import net.aquadc.persistence.tokens.TokenStream
     override fun poll(coerceTo: Token?): Any? = when (state) {
         0 -> {
             if (matches(0)) {
-                val token = source.poll(if (coerceTo == Token.BeginSequence) Token.BeginDictionary else coerceTo)
-                if (token == Token.BeginDictionary) {
+                val token = source.poll(if (coerceTo === Token.BeginSequence) Token.BeginDictionary else coerceTo)
+                if (token === Token.BeginDictionary) {
                     copyPath().afterToken(Token.BeginSequence)
-                    state = if (source.peek() == Token.EndDictionary) 7 else 1
+                    state = if (source.peek() === Token.EndDictionary) 7 else 1
 
                     Token.BeginSequence
                 } else {
@@ -377,7 +377,7 @@ import net.aquadc.persistence.tokens.TokenStream
         }
 
         6 -> {
-            state = if (source.peek() == Token.EndDictionary) 7 else 1
+            state = if (source.peek() === Token.EndDictionary) 7 else 1
             coerceTo.coerce(endWrap).also(_path!!::afterToken)
         }
 
@@ -400,7 +400,7 @@ import net.aquadc.persistence.tokens.TokenStream
             source.skipValue()
             source.skipValue()
             _path!!.skip()
-            if (source.peek() == Token.EndDictionary) state = 7 // skipped last entry
+            if (source.peek() === Token.EndDictionary) state = 7 // skipped last entry
             Unit
         }
         2 -> {
@@ -439,7 +439,7 @@ import net.aquadc.persistence.tokens.TokenStream
             }
         }
         6 -> {
-            state = if (source.peek() == Token.EndDictionary) 7 else 1
+            state = if (source.peek() === Token.EndDictionary) 7 else 1
             _path!!.afterToken(endWrap)
         }
         7 -> {
@@ -462,7 +462,7 @@ import net.aquadc.persistence.tokens.TokenStream
         val value = source.poll(coerceTo)
         _path!!.afterToken(value)
         if (_path!!.size == pathMatcher.size + 2) {
-            if (value !is Token || value.let { it == Token.EndSequence || it == Token.EndDictionary }) {
+            if (value !is Token || value.let { it === Token.EndSequence || it === Token.EndDictionary }) {
                 state = nextState
             }
         }
@@ -471,7 +471,7 @@ import net.aquadc.persistence.tokens.TokenStream
 
     private fun skipValueToken(nextState: Int) {
         val skipping = source.peek()
-        if (skipping == Token.EndDictionary || skipping == Token.EndSequence) _path!!.afterToken(skipping)
+        if (skipping === Token.EndDictionary || skipping === Token.EndSequence) _path!!.afterToken(skipping)
         else _path!!.skip()
 
         source.skipValue()
