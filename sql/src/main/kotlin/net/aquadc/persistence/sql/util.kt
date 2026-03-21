@@ -51,22 +51,17 @@ internal inline fun <SCH : Schema<SCH>> bindInsertionParams(
     table.schema.forEach(fields) { f ->
         val d = table.delegateFor(f)
         val cc = d.colCount
-        if (tmp == null || tmp!!.size < cc) tmp = arrayOfNulls(cc)
-        d.flattenTo(tmp!!, table, f as FieldDef<SCH, Any?, *>, data.getOrThrow(f))
+        if (tmp == null || tmp.size < cc) tmp = arrayOfNulls(cc)
+        d.flattenTo(tmp, table, f as FieldDef<SCH, Any?, *>, data.getOrThrow(f))
         repeat(cc) {
-            bind(d.typeAt(table, f, it) as Ilk<Any?, *>, idx++, tmp!![it])
+            bind(d.typeAt(table, f, it) as Ilk<Any?, *>, idx++, tmp[it])
         }
     }
     return idx
 }
 
 internal inline fun <T, reified R> Array<T>.mapIndexedToArray(transform: (Int, T) -> R): Array<R> {
-    val array = arrayOfNulls<R>(size)
-    for (i in indices) {
-        array[i] = transform(i, this[i])
-    }
-    @Suppress("UNCHECKED_CAST") // now it's filled with items and not thus not nullable
-    return array as Array<R>
+    return Array(size) { transform(it, this[it]) }
 }
 
 /**
@@ -145,7 +140,6 @@ internal fun inflate(
 /**
  * Scatters in-memory value to column values.
  */
-@Suppress("UPPER_BOUND_VIOLATED")
 internal fun flatten(
         recipe: Array<out Table.StructStart?>,
         out: Array<Any?>,
@@ -184,7 +178,6 @@ internal fun flatten(
     }
 }
 
-@Suppress("UPPER_BOUND_VIOLATED")
 private inline fun flattenFieldValues(
         _recipeOffset: Int, fieldValue: (FieldDef<*, *, *>) -> Any?, recipe: Array<out Table.StructStart?>,
         schema: Schema<*>, fieldSet: FieldSet<*, FieldDef<*, *, *>>,
