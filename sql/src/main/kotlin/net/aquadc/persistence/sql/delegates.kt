@@ -17,7 +17,7 @@ internal abstract class SqlPropertyDelegate<SCH : Schema<SCH>, ID : IdBound>(
     abstract fun typeAt(table: Table<SCH, *>, field: FieldDef<SCH, *, *>, index: Int): Ilk<*, *>
 
     abstract fun <T, CUR> get(
-        lowSession: FreeSource<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR, bindBy: BindBy
+        lowSession: SqlDatabase<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR, bindBy: BindBy
     ): T
 
     abstract fun <T> flattenTo(out: Array<Any?>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, value: T)
@@ -33,8 +33,8 @@ internal class Simple<SCH : Schema<SCH>, ID : IdBound> : SqlPropertyDelegate<SCH
         else throw IndexOutOfBoundsException()
 
     override fun <T, CUR> get(
-            lowSession: FreeSource<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
-            bindBy: BindBy
+        lowSession: SqlDatabase<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+        bindBy: BindBy
     ): T =
             lowSession.cell<SCH, CUR, T>(cursor, table, field, bindBy)
 
@@ -56,8 +56,8 @@ internal class Embedded<SCH : Schema<SCH>, ID : IdBound>(
         columnTypes[index]
 
     override fun <T, CUR> get(
-            lowSession: FreeSource<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
-            bindBy: BindBy
+        lowSession: SqlDatabase<CUR>, table: Table<SCH, *>, field: FieldDef<SCH, T, *>, cursor: CUR,
+        bindBy: BindBy
     ): T =
             inflated(lowSession.row(cursor, myOffset, columnNames, columnTypes, bindBy))
 

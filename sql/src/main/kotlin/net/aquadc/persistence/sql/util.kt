@@ -231,14 +231,14 @@ private inline fun flattenFieldValues(
 private inline operator fun FieldSet<*, *>?.contains(field: FieldDef<*, *, *>): Boolean =
         this != null && (this as FieldSet<NullSchema, *>).originalContains(field as FieldDef<NullSchema, *, *>)
 
-internal fun <CUR> FreeSource<CUR>.row(
+internal fun <CUR> SqlDatabase<CUR>.row(
     cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy
 ): Array<Any?> = when (bindBy) {
     BindBy.Name -> rowByName(cursor, columnNames, columnTypes)
     BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
 }
 
-internal fun <SCH : Schema<SCH>, CUR, R> FreeSource<CUR>.cell(
+internal fun <SCH : Schema<SCH>, CUR, R> SqlDatabase<CUR>.cell(
     cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
 ): R {
     val type = column.type(table.schema) as Ilk<R, *>
@@ -257,7 +257,7 @@ private fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, col
         )
     }
 
-internal fun <CUR, SCH : Schema<SCH>> FreeSource<CUR>.mapRow(
+internal fun <CUR, SCH : Schema<SCH>> SqlDatabase<CUR>.mapRow(
         bindBy: BindBy,
         cur: CUR,
         colNames: Array<out CharSequence>,

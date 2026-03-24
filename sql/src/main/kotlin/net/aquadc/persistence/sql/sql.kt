@@ -27,8 +27,12 @@ annotation class ExperimentalSql
 /**
  * A readable database or transaction.
  */
-interface Source<CUR> {
-    // TODO fun select(where, order by)
+interface Database<CUR> {
+
+//    fun <SCH : Schema<SCH>, ID : IdBound> TODO
+//        select(from: Table<SCH, ID>, what: FieldSet<SCH, *>, /*where: String?, whereArgs: Array<Any>?, orderBy: String?*/): CUR
+
+    // fun observe()
 
     fun sizeHint(cursor: CUR): Int
     fun next(cursor: CUR): Boolean
@@ -52,9 +56,9 @@ interface Source<CUR> {
 /**
  * A readable database or transaction supporting free-form SQL queries.
  *
- * [android.content.ContentResolver] does not, that's why we have simpler [Source].
+ * [android.content.ContentResolver] does not, that's why we have simpler [Database].
  */
-interface FreeSource<CUR> : Source<CUR> {
+interface SqlDatabase<CUR> : Database<CUR> {
 
     fun <T> cell(
         query: String,
@@ -74,12 +78,12 @@ interface FreeSource<CUR> : Source<CUR> {
     ): Any?
 }
 
-interface ReadableTransaction<CUR> : FreeSource<CUR>, Closeable
+interface SqlTransaction<CUR> : SqlDatabase<CUR>, Closeable
 
 /**
  * A writable database or transaction.
  */
-interface Exchange<CUR> : Source<CUR> {
+interface MutableDatabase<CUR> : Database<CUR> {
 
     /**
      * Insert [data] into a [table].
@@ -111,15 +115,15 @@ interface Exchange<CUR> : Source<CUR> {
 /**
  * A writable database or transaction supporting free-form SQL queries.
  *
- * [android.content.ContentResolver] does not, that's why we have simpler [Source].
+ * [android.content.ContentResolver] does not, that's why we have simpler [Database].
  */
-interface FreeExchange<CUR> : FreeSource<CUR>, Exchange<CUR>
+interface MutableSqlDatabase<CUR> : SqlDatabase<CUR>, MutableDatabase<CUR>
 
-interface MutableTransaction<CUR> : ReadableTransaction<CUR>, FreeExchange<CUR> {
+interface MutableSqlTransaction<CUR> : SqlTransaction<CUR>, MutableSqlDatabase<CUR> {
     fun setSuccessful()
 }
 
-interface InternalTransaction<SRC> : MutableTransaction<SRC> {
+internal interface InternalTransaction<SRC> : MutableSqlTransaction<SRC> {
     fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     fun close(deliver: Boolean)
@@ -128,17 +132,17 @@ interface InternalTransaction<SRC> : MutableTransaction<SRC> {
 /**
  * A gateway into RDBMS.
  */
-interface Session<CUR> : FreeExchange<CUR>, Closeable {
+interface Session<CUR> : MutableSqlDatabase<CUR>, Closeable {
 
     /**
      * Opens a readable transaction.
      */
-    fun read(): ReadableTransaction<CUR>
+    fun read(): SqlTransaction<CUR>
 
     /**
-     * Opens a writable transaction.
+     * Opens a mutable transaction.
      */
-    fun mutate(): MutableTransaction<CUR>
+    fun mutate(): MutableSqlTransaction<CUR>
 
     /**
      * Registers trigger listener for all [subject]s.
@@ -151,7 +155,7 @@ interface Session<CUR> : FreeExchange<CUR>, Closeable {
      * (even SQLite can have multiple processes or connections), this method adds listeners eagerly,
      * blocking until all current transactions finish, if any.
      * The thread which calls [listener] is not defined.
-     * @return subscription handle which removes [listener] when [Closeable.close]d
+     * @return subscription handle which removes [listener] when [closed][Closeable.close].
      */
     @CheckResult fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable
 
@@ -164,7 +168,7 @@ interface Session<CUR> : FreeExchange<CUR>, Closeable {
 // TODO: observe(DEFERRED)
 
 
-inline fun <SCH : Schema<SCH>, ID : IdBound> MutableTransaction<*>.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
+inline fun <SCH : Schema<SCH>, ID : IdBound> MutableSqlTransaction<*>.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
     insertAll(table, data.iterator())
 
 inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =

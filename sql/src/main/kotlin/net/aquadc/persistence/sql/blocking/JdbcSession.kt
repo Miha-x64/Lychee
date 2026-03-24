@@ -7,12 +7,12 @@ import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.sql.ExperimentalSql
-import net.aquadc.persistence.sql.FreeExchange
+import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.InternalTransaction
 import net.aquadc.persistence.sql.ListChanges
-import net.aquadc.persistence.sql.MutableTransaction
-import net.aquadc.persistence.sql.ReadableTransaction
+import net.aquadc.persistence.sql.MutableSqlTransaction
+import net.aquadc.persistence.sql.SqlTransaction
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
@@ -52,11 +52,11 @@ import javax.sql.DataSource
 /**
  * Base for JDBC Session and Transaction.
  */
-abstract class JdbcExchange internal constructor(
+abstract class JdbcDb internal constructor(
     @JvmField protected val dialect: Dialect,
-) : FreeExchange<ResultSet> {
+) : MutableSqlDatabase<ResultSet> {
 
-    // Source
+    // Database
 
     final override fun sizeHint(cursor: ResultSet): Int =
         -1
@@ -129,7 +129,7 @@ abstract class JdbcExchange internal constructor(
             if (it == null) castNull(nullable, elT::toString) else elT.load(it)
         })
 
-    // FreeSource
+    // SqlDatabase
 
     final override fun <T> cell(
         query: String,
@@ -283,7 +283,7 @@ abstract class JdbcExchange internal constructor(
             close()
         }
 
-    // Exchange
+    // MutableDatabase
 
     protected fun <ID : IdBound, SCH : Schema<SCH>> insert(conn: Connection, table: Table<SCH, ID>, data: PartialStruct<SCH>): ID {
         val sql = with(dialect) { StringBuilder().insert(table, data.fields).toString() }
@@ -334,7 +334,7 @@ constructor(
          * to avoid temp table or trigger name clashes.
          */
         nodeName: String = genNodeName()
-) : JdbcExchange(dialect), Session<ResultSet> {
+) : JdbcDb(dialect), Session<ResultSet> {
 
     private var singleConnection: AutoCloseable? = null
 
@@ -380,7 +380,7 @@ constructor(
 
     private val changesPostfix = '_' + nodeName + "_changes"
 
-    // FreeSource
+    // SqlDatabase
 
     override fun select(
         query: String,
@@ -402,7 +402,7 @@ constructor(
         dataSource.connection.use { execute(it, query, retKeyType, argumentTypes, transactionAndArguments) }
             .also { deliverTriggeredChanges() }
 
-    // Exchange
+    // MutableDatabase
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID =
         dataSource.connection.use { insert(it, table, data) }
@@ -425,12 +425,12 @@ constructor(
 
     // Session
 
-    override fun read(): ReadableTransaction<ResultSet> =
+    override fun read(): SqlTransaction<ResultSet> =
         JdbcTransaction(newTrConn(), true)
     //       always commit read-only ^^^^ transactions
     //  https://medium.com/javarevisited/spring-never-rollback-readonly-transactions-ffc21958b0d0
 
-    override fun mutate(): MutableTransaction<ResultSet> =
+    override fun mutate(): MutableSqlTransaction<ResultSet> =
         JdbcTransaction(newTrConn(), false)
 
     private val triggers = Triggerz()
@@ -478,7 +478,7 @@ constructor(
     private inner class JdbcTransaction(
         private val conn: Connection,
         readOnly: Boolean,
-    ) : JdbcExchange(dialect), InternalTransaction<ResultSet> {
+    ) : JdbcDb(dialect), InternalTransaction<ResultSet> {
 
         private var isSuccessful = readOnly
 
@@ -529,7 +529,7 @@ constructor(
             }
         }
 
-        // Exchange
+        // MutableDatabase
 
         override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID =
             insert(conn, table, data)

@@ -8,11 +8,11 @@ import kotlin.contracts.contract
 
 
 /**
- * Calls [block] within transaction passing [FreeSource] which has functionality to read data.
+ * Calls [block] within transaction passing [SqlDatabase] which has functionality to read data.
  * In future could retry conflicting transaction by calling [block] more than once.
  */
 @OptIn(ExperimentalContracts::class)
-inline fun <SRC, R> Session<SRC>.read(block: FreeSource<SRC>.() -> R): R {
+inline fun <SRC, R> Session<SRC>.read(block: SqlDatabase<SRC>.() -> R): R {
     contract { callsInPlace(block, InvocationKind.AT_LEAST_ONCE) }
 
     val transaction = read()
@@ -24,20 +24,20 @@ inline fun <SRC, R> Session<SRC>.read(block: FreeSource<SRC>.() -> R): R {
 }
 
 @RequiresApi(24) @JvmName("acceptRead")
-fun <SRC> Session<SRC>.read4j(block: java.util.function.Consumer<FreeSource<SRC>>): Unit =
+fun <SRC> Session<SRC>.read4j(block: java.util.function.Consumer<SqlDatabase<SRC>>): Unit =
     read { block.accept(this) }
 
 @RequiresApi(24) @JvmName("applyRead")
-fun <SRC, R> Session<SRC>.read4j(block: java.util.function.Function<FreeSource<SRC>, R>): R =
+fun <SRC, R> Session<SRC>.read4j(block: java.util.function.Function<SqlDatabase<SRC>, R>): R =
     read { block.apply(this) }
 
 
 /**
- * Calls [block] within transaction passing [FreeExchange] which has functionality to create, mutate, remove data.
+ * Calls [block] within transaction passing [MutableSqlDatabase] which has functionality to create, mutate, remove data.
  * In future could retry conflicting transaction by calling [block] more than once.
  */
 @OptIn(ExperimentalContracts::class)
-inline fun <SRC, R> Session<SRC>.mutate(block: FreeExchange<SRC>.() -> R): R {
+inline fun <SRC, R> Session<SRC>.mutate(block: MutableSqlDatabase<SRC>.() -> R): R {
     contract { callsInPlace(block, InvocationKind.AT_LEAST_ONCE) }
 
     val transaction = mutate()
@@ -51,13 +51,13 @@ inline fun <SRC, R> Session<SRC>.mutate(block: FreeExchange<SRC>.() -> R): R {
 }
 
 @RequiresApi(24) @JvmName("acceptMutation")
-fun <SRC> Session<SRC>.mutate4j(block: java.util.function.Consumer<FreeExchange<SRC>>): Unit =
+fun <SRC> Session<SRC>.mutate4j(block: java.util.function.Consumer<MutableSqlDatabase<SRC>>): Unit =
     mutate { block.accept(this) }
 
 @RequiresApi(24) @JvmName("applyMutation")
-fun <SRC, R> Session<SRC>.mutate4j(block: java.util.function.Function<FreeExchange<SRC>, R>): R =
+fun <SRC, R> Session<SRC>.mutate4j(block: java.util.function.Function<MutableSqlDatabase<SRC>, R>): R =
     mutate { block.apply(this) }
 
 @Deprecated("renamed, use read{} and mutate{}", ReplaceWith("this.mutate(block)"))
-inline fun <SRC, R> Session<SRC>.withTransaction(block: FreeExchange<SRC>.() -> R): R =
+inline fun <SRC, R> Session<SRC>.withTransaction(block: MutableSqlDatabase<SRC>.() -> R): R =
     mutate(block)

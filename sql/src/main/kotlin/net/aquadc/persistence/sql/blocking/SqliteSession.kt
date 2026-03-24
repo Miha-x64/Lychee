@@ -16,12 +16,12 @@ import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.eq
 import net.aquadc.persistence.sql.ExperimentalSql
-import net.aquadc.persistence.sql.FreeExchange
+import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.InternalTransaction
 import net.aquadc.persistence.sql.ListChanges
-import net.aquadc.persistence.sql.MutableTransaction
-import net.aquadc.persistence.sql.ReadableTransaction
+import net.aquadc.persistence.sql.MutableSqlTransaction
+import net.aquadc.persistence.sql.SqlTransaction
 import net.aquadc.persistence.sql.Session
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
@@ -53,12 +53,12 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Base for SQLite Session and Transaction.
  */
-abstract class SqliteExchange internal constructor(
+abstract class SqliteDb internal constructor(
     @JvmField protected val connection: SQLiteDatabase,
     @JvmField protected val statements: ConcurrentHashMap<String, SQLiteStatement>,
-) : FreeExchange<Cursor> {
+) : MutableSqlDatabase<Cursor> {
 
-    // Source
+    // Database
 
     final override fun sizeHint(cursor: Cursor): Int =
         cursor.count
@@ -107,7 +107,7 @@ abstract class SqliteExchange internal constructor(
         return idx
     }
 
-    // FreeSource
+    // SqlDatabase
 
     final override fun <T> cell(
         query: String,
@@ -218,7 +218,7 @@ abstract class SqliteExchange internal constructor(
         return this
     }
 
-    // Exchange
+    // MutableDatabase
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(
         table: Table<SCH, ID>, data: PartialStruct<SCH>
@@ -260,7 +260,7 @@ abstract class SqliteExchange internal constructor(
 @ExperimentalSql
 class SqliteSession(
         connection: SQLiteDatabase
-) : SqliteExchange(connection, ConcurrentHashMap()), Session<Cursor> {
+) : SqliteDb(connection, ConcurrentHashMap()), Session<Cursor> {
 
     init {
         // https://android.googlesource.com/platform/frameworks/support/+/androidx-master-dev/room/runtime/src/main/java/androidx/room/InvalidationTracker.java#176
@@ -273,7 +273,7 @@ class SqliteSession(
 //        connection.execSQL("PRAGMA trusted_schema=0;") // “There are advantages to turning it off (…), all applications are encouraged to switch this setting off”
     }
 
-    // FreeSource
+    // SqlDatabase
 
     override fun <ID> execute(
         query: String,
@@ -284,7 +284,7 @@ class SqliteSession(
         super.execute(query, argumentTypes, transactionAndArguments, retKeyType)
             .also { deliverTriggeredChanges() }
 
-    // Exchange
+    // MutableDatabase
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID =
         super.insert(table, data)
@@ -307,12 +307,12 @@ class SqliteSession(
 
     // Session
 
-    override fun read(): ReadableTransaction<Cursor> {
+    override fun read(): SqlTransaction<Cursor> {
         connection.beginTransactionNonExclusive()
         return SqliteTransaction()
     }
 
-    override fun mutate(): MutableTransaction<Cursor> {
+    override fun mutate(): MutableSqlTransaction<Cursor> {
         connection.beginTransaction()
         return SqliteTransaction()
     }
@@ -402,7 +402,7 @@ class SqliteSession(
         triggers.notifyPending()
     }
 
-    private inner class SqliteTransaction : SqliteExchange(connection, statements), InternalTransaction<Cursor> {
+    private inner class SqliteTransaction : SqliteDb(connection, statements), InternalTransaction<Cursor> {
 
         private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
         private var isSuccessful = false

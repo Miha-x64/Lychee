@@ -3,7 +3,7 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
-import net.aquadc.persistence.sql.FreeSource
+import net.aquadc.persistence.sql.SqlDatabase
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.mapRow
 import net.aquadc.persistence.struct.Schema
@@ -17,7 +17,7 @@ import net.aquadc.persistence.type.nothing
         private val orElse: () -> R
 ) : Fetch<CUR, R> {
     override fun fetch(
-        from: FreeSource<CUR>,
+        from: SqlDatabase<CUR>,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         receiverAndArguments: Array<out Any>
@@ -29,7 +29,7 @@ import net.aquadc.persistence.type.nothing
         private val rt: Ilk<R, *>
 ) : Fetch<CUR, List<R>> {
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<R> {
         val cur = from.select(query, argumentTypes, receiverAndArguments, 1)
@@ -55,7 +55,7 @@ import net.aquadc.persistence.type.nothing
     private val orElse: () -> StructSnapshot<SCH>?,
 ) : Fetch<CUR, StructSnapshot<SCH>?> {
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): StructSnapshot<SCH>? {
         val managedColNames = table.managedColNames
@@ -77,7 +77,7 @@ import net.aquadc.persistence.type.nothing
         private val bindBy: BindBy
 ) : Fetch<CUR, List<StructSnapshot<SCH>>> {
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<StructSnapshot<SCH>> {
         val colNames = table.managedColNames
@@ -110,7 +110,7 @@ import net.aquadc.persistence.type.nothing
     private val retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
 ) : Exec<Any, Any?> {
     override fun fetch(
-        from: FreeSource<Any>, query: String,
+        from: SqlDatabase<Any>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Any? {
         val ret = from.execute(query, argumentTypes, receiverAndArguments, if (retKeyType === nothing) null else retKeyType)

@@ -22,24 +22,24 @@ class SqlViewModel<CUR>(
     private val session: Session<CUR>
 ): Closeable {
 
-    private val count: FreeSource<CUR>.() -> Int =
+    private val count: SqlDatabase<CUR>.() -> Int =
         Query("SELECT COUNT(*) FROM ${Human.Tbl.name}", cell(i32))
 
-    private val fetch: FreeSource<CUR>.() -> List<Struct<Human>> =
+    private val fetch: SqlDatabase<CUR>.() -> List<Struct<Human>> =
         Query("SELECT * FROM ${Human.Tbl.name}", structs(Human.Tbl, BindBy.Name))
 
-    private val fetchName: FreeSource<CUR>.(Long) -> String =
+    private val fetchName: SqlDatabase<CUR>.(Long) -> String =
         Query("SELECT \"name\" FROM ${Human.Tbl.name} WHERE _id = ?", i64, cell(string))
 
-    private val require: FreeSource<CUR>.(Long) -> Struct<Human> =
+    private val require: SqlDatabase<CUR>.(Long) -> Struct<Human> =
         Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, struct(Human.Tbl, BindBy.Name))
-    private val find: FreeSource<CUR>.(Long) -> Struct<Human>? =
+    private val find: SqlDatabase<CUR>.(Long) -> Struct<Human>? =
         Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, structNullable(Human.Tbl, BindBy.Name))
 
-    private val updateName: FreeExchange<CUR>.(String, Long) -> Unit =
+    private val updateName: MutableSqlDatabase<CUR>.(String, Long) -> Unit =
         Mutation("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, execute())
 
-    private val carsWithConditionersByOwner: FreeSource<CUR>.(Long) -> List<Struct<Car>> =
+    private val carsWithConditionersByOwner: SqlDatabase<CUR>.(Long) -> List<Struct<Car>> =
         Query("SELECT * FROM ${Car.Tbl.name} WHERE ${Car.run { OwnerId.name }} = ? AND ${Car.run { ConditionerModel.name }} IS NOT NULL",
             i64,
             structs(Car.Tbl, BindBy.Name))
@@ -128,7 +128,7 @@ class SqlViewModel<CUR>(
             delete(Human.Tbl, id)
         }
 
-    private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: FreeExchange<CUR>.() -> Unit): P =
+    private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: MutableSqlDatabase<CUR>.() -> Unit): P =
         clearEachAnd { session.mutate { func() } }
 
     private fun fillIfEmpty() {

@@ -90,7 +90,7 @@ abstract class SqlPropTest {
             assertEquals(
                 "bbb",
                 Query("""SELECT "value" FROM with_id WHERE _id = ?""", i32, Eagerly.cell<Closeable, String>(string))
-                    .invoke(this as FreeSource<Closeable>, id)
+                    .invoke(this as SqlDatabase<Closeable>, id)
             )
         }
     }

@@ -6,7 +6,7 @@ import net.aquadc.persistence.IteratorAndTransientStruct
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
-import net.aquadc.persistence.sql.FreeSource
+import net.aquadc.persistence.sql.SqlDatabase
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
@@ -20,7 +20,7 @@ import net.aquadc.persistence.type.Ilk
     private val orElse: () -> R
 ) : Fetch<CUR, Lazy<R>> {
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Lazy<R> {
         val rt = rt; val orElse = orElse // don't capture `this`
@@ -32,7 +32,7 @@ import net.aquadc.persistence.type.Ilk
     private val rt: Ilk<R, *>
 ) : Fetch<CUR, CloseableIterator<R>> {
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<R> {
         val rt = rt // don't capture `this`
@@ -50,7 +50,7 @@ import net.aquadc.persistence.type.Ilk
 
     private var fallback: Struct<SCH>? = null
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableStruct<SCH> {
         val lazy = CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, receiverAndArguments, table, bindBy, table.schema)
@@ -69,7 +69,7 @@ import net.aquadc.persistence.type.Ilk
         private val transient: Boolean
 ) : Fetch<CUR, CloseableIterator<Struct<SCH>>> {
     override fun fetch(
-        from: FreeSource<CUR>, query: String,
+        from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<Struct<SCH>> {
         val transient = transient // don't capture this
@@ -83,7 +83,7 @@ import net.aquadc.persistence.type.Ilk
 }
 
 private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
-    protected val from: FreeSource<CUR>,
+    protected val from: SqlDatabase<CUR>,
     private val query: String,
     private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
     private val sessionAndArguments: Array<out Any>,

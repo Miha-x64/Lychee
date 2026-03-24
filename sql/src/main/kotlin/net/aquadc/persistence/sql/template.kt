@@ -15,7 +15,7 @@ interface FuncN<T, R> {
 
 interface Fetch<CUR, out R> {
     fun fetch(
-        from: FreeSource<CUR>,
+        from: SqlDatabase<CUR>,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         receiverAndArguments: Array<out Any>
