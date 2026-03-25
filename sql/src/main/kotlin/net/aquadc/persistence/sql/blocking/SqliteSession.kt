@@ -324,13 +324,20 @@ class SqliteSession(
             SqliteTransaction()
         }, subject, listener)
 
-    override fun trimMemory() {
-        statements.keys.forEach { sql ->
-            // slow but concurrently safe
-            statements.remove(sql)?.close()
+    override fun trimMemory(level: Int): Int {
+        var count = 0
+        val iter = statements.iterator()
+        while (iter.hasNext()) {
+            val (sql, stmt) = iter.next()
+            stmt.close()
+            count += 16 + sql.length + 32
+            iter.remove()
         }
 
+        count += 1
         connection.execSQL(SqliteDialect.trimMemory())
+
+        return count
     }
 
     override fun close() {

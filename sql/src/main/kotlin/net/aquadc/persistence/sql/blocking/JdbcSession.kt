@@ -447,14 +447,16 @@ constructor(
     private fun newTrConn() =
         dataSource.connection.also { it.autoCommit = false }
 
-    override fun trimMemory() {
+    override fun trimMemory(level: Int): Int {
         dialect.trimMemory()?.let { sql ->
             dataSource.connection.use { conn ->
                 conn.createStatement().use { stmt ->
                     stmt.execute(sql)
                 }
+                return 1
             }
         }
+        return 0
     }
 
     override fun close() {

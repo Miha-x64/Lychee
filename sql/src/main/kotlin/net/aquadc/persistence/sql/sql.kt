@@ -132,7 +132,7 @@ internal interface InternalTransaction<SRC> : MutableSqlTransaction<SRC> {
 /**
  * A gateway into RDBMS.
  */
-interface Session<CUR> : MutableSqlDatabase<CUR>, Closeable {
+interface Session<CUR> : MutableSqlDatabase<CUR>, MemoryTrimmable, Closeable {
 
     /**
      * Opens a readable transaction.
@@ -159,10 +159,19 @@ interface Session<CUR> : MutableSqlDatabase<CUR>, Closeable {
      */
     @CheckResult fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable
 
-    fun trimMemory()
-
     override fun close() // rm 'throws IOException`
 
+}
+
+interface MemoryTrimmable {
+    /**
+     * Trim memory usage, e.g. wipe some caches.
+     * The [level] is according to [android.content.ComponentCallbacks2.TrimMemoryLevel]:
+     * >= 20 ⇒ background task, not important
+     * >= 40 ⇒ cached, not running
+     * @return estimated number of bytes freed
+     */
+    fun trimMemory(level: Int): Int
 }
 
 // TODO: observe(DEFERRED)
