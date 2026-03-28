@@ -68,7 +68,7 @@ abstract class SqliteDb internal constructor(
     final override fun <T> cellByName(cursor: Cursor, name: CharSequence, type: Ilk<T, *>): T =
         cellByName(cursor, Integer.MAX_VALUE /* don't even try to guess */, name, type)
     final override fun <T> cellAt(cursor: Cursor, col: Int, type: Ilk<T, *>): T =
-        (type.type as DataType<T>).get(cursor, col)
+        cursor.cell(type.type as DataType<T>, col)
 
     final override fun rowByName(cursor: Cursor, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?> =
         Array(columnNames.size) { idx ->
@@ -76,28 +76,15 @@ abstract class SqliteDb internal constructor(
         }
     final override fun rowByPosition(cursor: Cursor, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?> =
         Array(types.size) { idx ->
-            types[idx].type.get(cursor, offset + idx)
+            cursor.cell(types[idx].type, offset + idx)
         }
 
     final override fun close(cursor: Cursor) =
         cursor.close()
 
     private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: Ilk<T, *>): T =
-        (type.type as DataType<T>).get(cursor, cursor.getColIdx(guess, name))
-    protected fun <T> DataType<T>.get(cursor: Cursor, index: Int): T = flattened { isNullable, simple ->
-        if (cursor.isNull(index))
-            castNull(isNullable) { "$this at [$index]" }
-        else simple.load(when (simple.kind) {
-            DataType.NotNull.Simple.Kind.Bool -> cursor.getInt(index) == 1
-            DataType.NotNull.Simple.Kind.I32 -> cursor.getInt(index)
-            DataType.NotNull.Simple.Kind.I64 -> cursor.getLong(index)
-            DataType.NotNull.Simple.Kind.F32 -> cursor.getFloat(index)
-            DataType.NotNull.Simple.Kind.F64 -> cursor.getDouble(index)
-            DataType.NotNull.Simple.Kind.Str -> cursor.getString(index)
-            DataType.NotNull.Simple.Kind.Blob -> cursor.getBlob(index)
-            else -> throw AssertionError()
-        })
-    }
+        cursor.cell(type.type as DataType<T>, cursor.getColIdx(guess, name))
+
     // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
     private fun Cursor.getColIdx(guess: Int, name: CharSequence): Int { // native `getColumnIndex` wrecks labels with '.'!
         val columnNames = columnNames!!
@@ -128,7 +115,7 @@ abstract class SqliteDb internal constructor(
         val cur = select(query, argumentTypes, sessionAndArguments, 1)
         try {
             if (!cur.moveToFirst()) return orElse()
-            val value = (tt as DataType<out T>).get(cur, 0)
+            val value = cur.cell(tt as DataType<out T>, 0)
             check(!cur.moveToNext()) { "cursor returned ${cur.count} rows, 1 needed" }
             return value
         } finally {
@@ -375,7 +362,7 @@ class SqliteSession(
 
                 val pkType = table.idColType.type
                 while (cursor.moveToNext()) {
-                    val pk = pkType.get(cursor, 0)
+                    val pk = cursor.cell(pkType, 0)
                     when (val what = cursor.getInt(1)) {
                         -1 -> removed.add(pk)
                         0 -> {
@@ -513,21 +500,6 @@ class SqliteSession(
             SQLiteDatabase.findEditTable(table.name), // TODO: whether it is necessary?
             /*cancellationSignal=*/null
         )
-
-        private fun <T> Cursor.fetchSingle(type: DataType<T>): T =
-            try {
-                check(moveToFirst())
-                type.get(this, 0)
-            } finally {
-                close()
-            }
-        private fun Cursor.fetchColumns(columnTypes: Array<out Ilk<*, *>>): Array<Any?> =
-            try {
-                check(moveToFirst())
-                columnTypes.mapIndexedToArray { index, type -> type.type.get(this, index) }
-            } finally {
-                close()
-            }
     }
 }
 
@@ -580,7 +552,7 @@ private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T)
                 DataType.NotNull.Simple.Kind.F64 -> statement.bindDouble(i, (v as Number).toDouble())
                 DataType.NotNull.Simple.Kind.Str -> statement.bindString(i, v as String)
                 DataType.NotNull.Simple.Kind.Blob -> statement.bindBlob(i, v as ByteArray)
-            }//.also { }
+            }
         }
     }
 }

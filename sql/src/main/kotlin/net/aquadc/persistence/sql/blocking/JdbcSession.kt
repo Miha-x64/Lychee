@@ -5,7 +5,6 @@ import net.aquadc.collections.forEach
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatAsList
-import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.IdBound
@@ -25,7 +24,6 @@ import net.aquadc.persistence.sql.bindInsertionParams
 import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
-import net.aquadc.persistence.sql.mapIndexedToArray
 import net.aquadc.persistence.sql.mutate
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.PartialStruct
@@ -64,70 +62,20 @@ abstract class JdbcDb internal constructor(
         cursor.next()
 
     final override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: Ilk<T, *>): T =
-        type.get1indexed(cursor, cursor.findColumn(name.toString()))
+        cursor.cell(type, cursor.findColumn(name.toString()), dialect.hasArraySupport)
     final override fun <T> cellAt(cursor: ResultSet, col: Int, type: Ilk<T, *>): T =
-        type.get(cursor, col)
+        cursor.cell(type, col)
     final override fun rowByName(cursor: ResultSet, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?> =
         Array(columnNames.size) { idx -> cellByName(cursor, columnNames[idx], columnTypes[idx]) }
     final override fun rowByPosition(cursor: ResultSet, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?> =
-        Array(types.size) { idx -> types[idx].get(cursor, offset + idx) }
+        Array(types.size) { idx -> cursor.cell(types[idx], offset + idx) }
 
     final override fun close(cursor: ResultSet) =
         cursor.close()
 
     @Suppress("NOTHING_TO_INLINE")
-    protected inline fun <T> Ilk<out T, *>.get(resultSet: ResultSet, index: Int): T {
-        return get1indexed(resultSet, 1 + index)
-    }
-    protected fun <T> Ilk<out T, *>.get1indexed(resultSet: ResultSet, i: Int): T = custom.let { custom ->
-        if (custom != null) {
-            custom.load(resultSet.statement.connection, resultSet.getObject(i))
-        } else {
-            val t = type as DataType<T>
-            val nullable: Boolean
-            val type =
-                if (t is DataType.Nullable<*, *>) { nullable = true; t.actualType as DataType.NotNull<T> }
-                else { nullable = false; type as DataType.NotNull<T> }
-            when (type) {
-                is DataType.NotNull.Simple -> {
-                    val v = when (type.kind) {
-                        DataType.NotNull.Simple.Kind.Bool -> resultSet.getBoolean(i)
-                        DataType.NotNull.Simple.Kind.I32 -> resultSet.getInt(i)
-                        DataType.NotNull.Simple.Kind.I64 -> resultSet.getLong(i)
-                        DataType.NotNull.Simple.Kind.F32 -> resultSet.getFloat(i)
-                        DataType.NotNull.Simple.Kind.F64 -> resultSet.getDouble(i)
-                        DataType.NotNull.Simple.Kind.Str -> resultSet.getString(i)
-                        DataType.NotNull.Simple.Kind.Blob -> resultSet.getBytes(i)
-                        else -> throw AssertionError()
-                    }
-                    // must check, will get zeroes otherwise
-                    if (resultSet.wasNull()) castNull(nullable) { "$type at [$i+1]" }
-                    else type.load(v)
-                }
-                is DataType.NotNull.Collect<T, *, *> -> {
-                    foldArrayType(dialect.hasArraySupport, type.elementType,
-                        { nullable, elT ->
-                            val arr = resultSet.getArray(i)
-                            if (resultSet.wasNull()) castNull(nullable) { "$type at [$i+1]" }
-                            else fromArray(type, arr.array as Array<out Any?>, nullable, elT)
-                        },
-                        {
-                            val obj = resultSet.getObject(i)
-                            if (resultSet.wasNull()) castNull(nullable) { "$type at [$i+1]" }
-                            else serialized(type).load(obj)
-                        }
-                    )
-                }
-                is DataType.NotNull.Partial<T, *> -> {
-                    throw AssertionError()
-                }
-            }
-        }
-    }
-    private fun <T> fromArray(type: DataType.NotNull.Collect<T, *, *>, value: AnyCollection, nullable: Boolean, elT: DataType.NotNull.Simple<*>): T =
-        type.load(value.fatMapTo(::ArrayList) { it: Any? ->
-            if (it == null) castNull(nullable, elT::toString) else elT.load(it)
-        })
+    protected inline fun <T> ResultSet.cell(type: Ilk<out T, *>, index: Int): T =
+        cell(type, 1 + index, dialect.hasArraySupport)
 
     // SqlDatabase
 
@@ -141,7 +89,7 @@ abstract class JdbcDb internal constructor(
         val rs = select(query, argumentTypes, sessionAndArguments, 1)
         try {
             if (!rs.next()) return orElse()
-            val value = type.get(rs, 0)
+            val value = rs.cell(type, 0)
             check(!rs.next())
             return value
         } finally {
@@ -278,7 +226,7 @@ abstract class JdbcDb internal constructor(
     protected fun <T> ResultSet.fetchSingle(type: Ilk<T, *>): T =
         try {
             check(next())
-            type.get(this, 0)
+            cell(type, 0)
         } finally {
             close()
         }
@@ -603,14 +551,6 @@ constructor(
             return closeAlongResultSet(stmt.executeQuery(), stmt)
         }
 
-        private fun ResultSet.fetchColumns(types: Array<out Ilk<*, *>>): Array<Any?> =
-            try {
-                check(next())
-                types.mapIndexedToArray { index, type -> type.get(this, index) }
-            } finally {
-                close()
-            }
-
         private fun prepareAndCreateTrigger(
             sb: StringBuilder, event: TriggerEvent, table: Table<*, *>, stmt: Statement, create: Boolean
         ): Unit = with(dialect) {
@@ -662,7 +602,7 @@ constructor(
                 ).use { rs ->
                     val pkType = table.idColType
                     while (rs.next()) {
-                        val pk = pkType.get(rs, 0)
+                        val pk = rs.cell(pkType, 0)
                         when (val what = rs.getInt(1 + 1)) {
                             -1 -> removed.add(pk)
                             0 -> {

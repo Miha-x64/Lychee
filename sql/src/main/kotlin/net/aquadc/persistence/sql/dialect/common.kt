@@ -39,15 +39,14 @@ internal inline fun <R> foldArrayType(
     ifNot: () -> R
 ): R {
     val nullable: Boolean = elementType is DataType.Nullable<*, *>
-    val actualElementType: DataType.NotNull<*> = // damn. I really miss Java assignment as expression
-        if (nullable) (elementType as DataType.Nullable<*, *>).actualType
-        else elementType as DataType.NotNull<*>
+    val actualElementType: DataType.NotNull<*> =
+        if (nullable) elementType.actualType else elementType as DataType.NotNull<*>
 
     // arrays of arrays or structs are still serialized.
     // PostgreSQL multidimensional arrays are actually matrices
     // which is kinda weird surprise and inappropriate constraint.
-    if (hasArraySupport && actualElementType is DataType.NotNull.Simple)
-        return ifAppropriate(nullable, actualElementType)
+    return if (hasArraySupport && actualElementType is DataType.NotNull.Simple)
+        ifAppropriate(nullable, actualElementType)
     else
-        return ifNot()
+        ifNot()
 }
