@@ -113,7 +113,7 @@ internal fun <T> DataType<T>.put(editor: SharedPreferences.Editor, key: String, 
                 editor.putStringSet(
                     key,
                     type.store(value)
-                        .fatMapTo<HashSet<String>, T, String>(HashSet()) { v ->
+                        .fatMapTo(::HashSet) { v: T ->
                             (elementType as DataType.NotNull.Simple<T>)
                                 .let { if (it.hasStringRepresentation) it.storeAsString(v) else it.store(v) as CharSequence }
                                 .toString()

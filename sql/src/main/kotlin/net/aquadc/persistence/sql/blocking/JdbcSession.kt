@@ -125,7 +125,7 @@ abstract class JdbcDb internal constructor(
         }
     }
     private fun <T> fromArray(type: DataType.NotNull.Collect<T, *, *>, value: AnyCollection, nullable: Boolean, elT: DataType.NotNull.Simple<*>): T =
-        type.load(value.fatMapTo(ArrayList<Any?>()) { it: Any? ->
+        type.load(value.fatMapTo(::ArrayList) { it: Any? ->
             if (it == null) castNull(nullable, elT::toString) else elT.load(it)
         })
 

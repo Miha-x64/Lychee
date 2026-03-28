@@ -140,16 +140,17 @@ private fun ByteArray.toHexString(): String =
     else -> throw AssertionError()
 }.asList() as List<R>*/
 
+@Suppress("UNCHECKED_CAST") // unsafe by design
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest: C, transform: (T) -> R): C = when (this) {
-    is Collection<*> -> (this as Collection<T>).mapTo(dest, transform)
-    is Array<*> -> (this as Array<T>).mapTo(dest, transform)
-    is ByteArray -> this.mapTo(dest) { transform(it as T) }
-    is ShortArray -> this.mapTo(dest) { transform(it as T) }
-    is IntArray -> this.mapTo(dest) { transform(it as T) }
-    is LongArray -> this.mapTo(dest) { transform(it as T) }
-    is FloatArray -> this.mapTo(dest) { transform(it as T) }
-    is DoubleArray -> this.mapTo(dest) { transform(it as T) }
+inline fun <C : MutableCollection<R>, T, R> AnyCollection.fatMapTo(dest: (Int) -> C, transform: (T) -> R): C = when (this) {
+    is Collection<*> -> (this as Collection<T>).mapTo(dest(size), transform)
+    is Array<*> -> (this as Array<T>).mapTo(dest(size), transform)
+    is ByteArray -> this.mapTo(dest(size)) { transform(it as T) }
+    is ShortArray -> this.mapTo(dest(size)) { transform(it as T) }
+    is IntArray -> this.mapTo(dest(size)) { transform(it as T) }
+    is LongArray -> this.mapTo(dest(size)) { transform(it as T) }
+    is FloatArray -> this.mapTo(dest(size)) { transform(it as T) }
+    is DoubleArray -> this.mapTo(dest(size)) { transform(it as T) }
     else -> throw AssertionError()
 }
 
