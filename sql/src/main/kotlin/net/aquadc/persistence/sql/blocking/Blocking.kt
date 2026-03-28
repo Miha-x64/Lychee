@@ -98,24 +98,45 @@ object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
             FetchStructListLazily<CUR, SCH>(table, bindBy, true)
 }
 
+@Suppress("unused") // all parameters are used to maintain matching signature
 abstract class ProhibitCellsAndColsOfCollectionAndPartialTypes internal constructor() {
 
-    @Deprecated("single cell can't hold a Collection unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    @Deprecated("single cell can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
     @JvmOverloads inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Collect<out R, *, *>, noinline orElse: () -> R = throwNse,
     ): Fetch<CUR, R> = throw AssertionError()
 
-    @Deprecated("single cell can't hold a Partial/Struct unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    @Deprecated("single cell can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
     @JvmOverloads inline fun <CUR, R> cell(
         returnType: DataType.NotNull.Partial<out R, *>, noinline orElse: () -> R = throwNse,
     ): Fetch<CUR, R> = throw AssertionError()
 
-    @Deprecated("single col can't hold a Collection unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    @Deprecated("single cell can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+    @JvmOverloads inline fun <CUR, R : Any> cell(
+        returnType: DataType.Nullable<out R, DataType.NotNull.Collect<out R, *, *>>, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, R> = throw AssertionError()
+
+    @JvmName("nsCell")
+    @Deprecated("single cell can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+    @JvmOverloads inline fun <CUR, R : Any> cell(
+        returnType: DataType.Nullable<out R, DataType.NotNull.Partial<out R, *>>, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, R> = throw AssertionError()
+
+    @Deprecated("single column can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
     inline fun <CUR, R> col(elementType: DataType.NotNull.Collect<out R, *, *>): Fetch<CUR, List<R>> =
         throw AssertionError()
 
-    @Deprecated("single col can't hold a Partial/Struct unless nativeType(): Ilk is used", level = DeprecationLevel.ERROR)
+    @Deprecated("single column can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
     inline fun <CUR, R> col(elementType: DataType.NotNull.Partial<out R, *>): Fetch<CUR, List<R>> =
+        throw AssertionError()
+
+    @Deprecated("single column can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+    inline fun <CUR, R : Any> col(elementType: DataType.Nullable<out R, DataType.NotNull.Collect<out R, *, *>>): Fetch<CUR, List<R>> =
+        throw AssertionError()
+
+    @JvmName("nsCol")
+    @Deprecated("single column can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+    inline fun <CUR, R : Any> col(elementType: DataType.Nullable<out R, DataType.NotNull.Partial<out R, *>>): Fetch<CUR, List<R>> =
         throw AssertionError()
 
 }
