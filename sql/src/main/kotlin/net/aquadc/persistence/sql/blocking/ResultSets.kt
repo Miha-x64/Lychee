@@ -1,9 +1,12 @@
 @file:JvmName("ResultSets")
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.persistence.CloseableIterator
+import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.sql.dialect.foldArrayType
+import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -112,3 +115,42 @@ private fun <T> fromArray(
     })
 
 private fun errorLocation(type: DataType<*>, index: Int): String = "$type at $index₁"
+
+
+// column
+
+/**
+ * Fetch all cells of [type] at a given column [index]₁ out of [this] [ResultSet].
+ */
+@JvmOverloads fun <T> ResultSet.asColumnIterator(type: Ilk<out T, *>, index: Int = 1): CloseableIterator<T> =
+    object : ResultSetIterator<NullSchema, T>(NullSchema, this) {
+        override fun row(cur: ResultSet): T =
+            cur.cell(type, index)
+    }
+
+@Suppress("unused", "UnusedReceiverParameter")
+@Deprecated("single column can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+@JvmOverloads fun ResultSet.asColumnIterator(type: DataType.NotNull.Collect<*, *, *>, index: Int = 1): Nothing = throw AssertionError()
+
+@Suppress("unused", "UnusedReceiverParameter")
+@Deprecated("single column can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+@JvmOverloads fun ResultSet.asColumnIterator(type: DataType.NotNull.Partial<*, *>, index: Int = 1): Nothing = throw AssertionError()
+
+@Suppress("unused", "UnusedReceiverParameter")
+@Deprecated("single column can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+@JvmOverloads fun ResultSet.asColumnIterator(type: DataType.Nullable<*, DataType.NotNull.Collect<*, *, *>>, index: Int = 1): Nothing = throw AssertionError()
+
+@JvmName("nsColumn")
+@Suppress("unused", "UnusedReceiverParameter")
+@Deprecated("single column can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
+@JvmOverloads fun ResultSet.asColumnIterator(type: DataType.Nullable<*, DataType.NotNull.Partial<*, *>>, index: Int = 1): Nothing = throw AssertionError()
+
+
+// iter impl
+
+internal abstract class ResultSetIterator<SCH : Schema<SCH>, R>(
+    schema: SCH, initial: ResultSet?,
+) : DbIter<ResultSet, SCH, R>(schema, initial) {
+    override fun moveToNext(): Boolean = cur.next()
+    override fun onClose() = cur.close()
+}

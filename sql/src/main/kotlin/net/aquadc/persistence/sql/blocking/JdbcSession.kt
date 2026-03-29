@@ -2,6 +2,7 @@ package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
+import net.aquadc.persistence.CloseableIterator
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatAsList
@@ -79,23 +80,18 @@ abstract class JdbcDb internal constructor(
 
     // SqlDatabase
 
-    final override fun <T> cell(
+    override fun <T> column(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         sessionAndArguments: Array<out Any>,
-        type: Ilk<out T, *>,
-        orElse: () -> T
-    ): T {
-        val rs = select(query, argumentTypes, sessionAndArguments, 1)
-        try {
-            if (!rs.next()) return orElse()
-            val value = rs.cell(type, 0)
-            check(!rs.next())
-            return value
-        } finally {
-            rs.close()
+        type: Ilk<out T, *>
+    ): CloseableIterator<T> =
+        object : ResultSetIterator<NullSchema, T>(NullSchema, null) {
+            override fun open(): ResultSet =
+                select(query, argumentTypes, sessionAndArguments, 1)
+            override fun row(cur: ResultSet): T =
+                cur.cell(type, 0)
         }
-    }
 
     protected fun select(
         connection: Connection,

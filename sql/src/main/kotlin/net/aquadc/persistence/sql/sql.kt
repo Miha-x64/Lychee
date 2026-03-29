@@ -6,6 +6,8 @@ package net.aquadc.persistence.sql
 
 import androidx.annotation.CheckResult
 import net.aquadc.collections.InlineEnumSet
+import net.aquadc.persistence.CloseableIterator
+import net.aquadc.persistence.SizedIterator
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
@@ -63,8 +65,27 @@ interface SqlDatabase<CUR> : Database<CUR> {
     fun <T> cell(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
-        type: Ilk<out T, *>, orElse: () -> T
-    ): T
+        type: Ilk<out T, *>, orElse: () -> T,
+    ): T {
+        val iter = column(query, argumentTypes, sessionAndArguments, type)
+        try {
+            return if (iter.hasNext()) {
+                val value = iter.next()
+                check(!iter.hasNext()) {
+                    "cursor returned ${if (iter is SizedIterator<*>) iter.size.toString() else ">1"} rows, 1 required"
+                }
+                value
+            } else orElse()
+        } finally {
+            iter.close()
+        }
+    }
+
+    fun <T> column(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        type: Ilk<out T, *>,
+    ): CloseableIterator<T>
 
     fun select(
         query: String,

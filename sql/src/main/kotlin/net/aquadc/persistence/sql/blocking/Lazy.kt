@@ -3,7 +3,6 @@ package net.aquadc.persistence.sql.blocking
 import net.aquadc.persistence.CloseableIterator
 import net.aquadc.persistence.CloseableStruct
 import net.aquadc.persistence.IteratorAndTransientStruct
-import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.SqlDatabase
@@ -34,12 +33,8 @@ import net.aquadc.persistence.type.Ilk
     override fun fetch(
         from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): CloseableIterator<R> {
-        val rt = rt // don't capture `this`
-        return object : CurIterator<CUR, NullSchema, R>(from, query, argumentTypes, receiverAndArguments, null, BindBy.Name/*whatever*/, NullSchema) {
-            override fun row(cur: CUR): R = from.cellAt(cur, 0, rt)
-        }
-    }
+    ): CloseableIterator<R> =
+        from.column(query, argumentTypes, receiverAndArguments, rt)
 }
 
 @PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR>(
@@ -53,7 +48,16 @@ import net.aquadc.persistence.type.Ilk
         from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableStruct<SCH> {
-        val lazy = CurIterator<CUR, SCH, CloseableStruct<SCH>>(from, query, argumentTypes, receiverAndArguments, table, bindBy, table.schema)
+        val table = table; val bindBy = bindBy; val orElse = orElse // don't capture `this`
+        val lazy = object : DbIter<CUR, SCH, CloseableStruct<SCH>>(table.schema, null) {
+            override fun open(): CUR =
+                from.select(query, argumentTypes, receiverAndArguments, table.managedColNames.size)
+            override fun <T> cell(field: FieldDef<SCH, T, *>): T =
+                table.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
+
+            override fun moveToNext(): Boolean = from.next(cur)
+            override fun onClose() = from.close(cur)
+        }
 
         return if (lazy.hasNext() /* move to first */) lazy else this.also { fallback = orElse() }
     }
@@ -72,38 +76,40 @@ import net.aquadc.persistence.type.Ilk
         from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<Struct<SCH>> {
-        val transient = transient // don't capture this
-        return object : CurIterator<CUR, SCH, Struct<SCH>>(
-            from, query, argumentTypes, receiverAndArguments, table, bindBy, table.schema
-        ) {
+        val transient = transient; val table = table; val bindBy = bindBy // don't capture `this`
+        return object : DbIter<CUR, SCH, Struct<SCH>>(table.schema, null) {
+            override fun open(): CUR =
+                from.select(query, argumentTypes, receiverAndArguments, table.managedColNames.size)
             override fun row(cur: CUR): Struct<SCH> =
                 if (transient) this else StructSnapshot(this)
+            override fun <T> cell(field: FieldDef<SCH, T, *>): T =
+                table.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
+
+            override fun moveToNext(): Boolean = from.next(cur)
+            override fun onClose() = from.close(cur)
         }
     }
 }
 
-private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
-    protected val from: SqlDatabase<CUR>,
-    private val query: String,
-    private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-    private val sessionAndArguments: Array<out Any>,
-
-    private val table: Table<SCH, *>?,
-    private val bindBy: BindBy,
-    schema: SCH
+internal abstract class DbIter<CUR, SCH : Schema<SCH>, R>(
+    schema: SCH,
+    initialCur: CUR?,
 ) : IteratorAndTransientStruct<SCH, R>(schema) {
 
-    private var _cur: CUR? = null
-    private val cur get() = _cur ?: run {
+    private var state = 0 // 0: no element; 1: hasNext() returned true; 2: closed
+
+    private var _cur: CUR? = initialCur
+    protected val cur get() = _cur ?: run {
         check(state == 0) { "Iterator is closed." }
-        from.select(query, argumentTypes, sessionAndArguments, table?.managedColNames?.size ?: 1).also { _cur = it }
+        open().also { _cur = it }
     }
 
-    var state = 0
+    protected open fun open(): CUR =
+        throw UnsupportedOperationException()
 
     final override fun next(): R = cur.let { cur ->
         when (state) {
-            0 -> if (!move(cur, toState = 0)) throw NoSuchElementException()
+            0 -> if (!move(toState = 0)) throw NoSuchElementException()
             1 -> state = 0
             2 -> throw NoSuchElementException()
             else -> throw AssertionError()
@@ -111,30 +117,36 @@ private open class CurIterator<CUR, SCH : Schema<SCH>, R>(
         row(cur)
     }
     final override fun hasNext(): Boolean =
-            when (state) {
-                0 -> move(cur, 1)
-                1 -> true
-                2 -> false
-                else -> throw AssertionError()
-            }
+        when (state) {
+            0 -> move(toState = 1)
+            1 -> true
+            2 -> false
+            else -> throw AssertionError()
+        }
     final override fun close() {
-        _cur?.let { from.close(it); _cur = null }
+        _cur?.let { onClose(); _cur = null }
         state = 2
     }
 
-    private fun move(cur: CUR, toState: Int): Boolean = from.next(cur).also {
-        if (it) state = toState
-        else close()
-    }
+    private fun move(toState: Int): Boolean =
+        moveToNext()
+            .also { if (it) state = toState else close() }
+
+    protected abstract fun moveToNext(): Boolean
+
+    protected abstract fun onClose()
 
     protected open fun row(cur: CUR): R =
-            throw UnsupportedOperationException()
+        throw UnsupportedOperationException()
 
     final override fun <T> get(field: FieldDef<SCH, T, *>): T = when (state) {
         0,
-        1 -> table!!.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
-        2 -> throw UnsupportedOperationException()
+        1 -> cell(field)
+        2 -> throw IllegalStateException()
         else -> throw AssertionError()
     }
+
+    protected open fun <T> cell(field: FieldDef<SCH, T, *>): T =
+        throw UnsupportedOperationException()
 
 }

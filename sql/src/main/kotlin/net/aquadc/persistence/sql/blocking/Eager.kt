@@ -1,5 +1,6 @@
 package net.aquadc.persistence.sql.blocking
 
+import net.aquadc.persistence.SizedIterator
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
@@ -26,25 +27,26 @@ import net.aquadc.persistence.type.nothing
 }
 
 @PublishedApi internal class FetchColEagerly<CUR, R>(
-        private val rt: Ilk<R, *>
+    private val rt: Ilk<R, *>
 ) : Fetch<CUR, List<R>> {
     override fun fetch(
         from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): List<R> {
-        val cur = from.select(query, argumentTypes, receiverAndArguments, 1)
+        val iter = from.column(query, argumentTypes, receiverAndArguments, rt)
         try {
-            return if (from.next(cur)) {
-                val first = from.cellAt(cur, 0, rt)
-                if (from.next(cur)) {
-                    ArrayList<R>(from.sizeHint(cur).let { if (it < 0) 10 else it }).also {
-                        it.add(first)
-                        do it.add(from.cellAt(cur, 0, rt)) while (from.next(cur))
+            return if (iter.hasNext()) {
+                val first = iter.next()
+                if (iter.hasNext()) {
+                    // TODO collect to primitive array if possible
+                    (if (iter is SizedIterator<*>) ArrayList(iter.size) else ArrayList<R>()).also { dst ->
+                        dst.add(first)
+                        do dst.add(iter.next()) while (iter.hasNext())
                     }
                 } else listOf(first)
             } else emptyList()
         } finally {
-            from.close(cur)
+            iter.close()
         }
     }
 }

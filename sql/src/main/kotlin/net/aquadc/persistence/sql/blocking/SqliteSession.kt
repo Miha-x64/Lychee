@@ -12,6 +12,7 @@ import android.database.sqlite.SQLiteQueryBuilder
 import android.database.sqlite.SQLiteStatement
 import net.aquadc.collections.InlineEnumSet
 import net.aquadc.collections.forEach
+import net.aquadc.persistence.CloseableSizedIterator
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.eq
@@ -104,22 +105,14 @@ abstract class SqliteDb internal constructor(
         val tt = type.type
         val isIntOrLong = tt is DataType.NotNull.Simple &&
             (tt.kind == DataType.NotNull.Simple.Kind.I32 || tt.kind == DataType.NotNull.Simple.Kind.I64)
-        if (isIntOrLong || tt.isStringInclNullable) {
-            return try {
+        return if (isIntOrLong || tt.isStringInclNullable) {
+            try {
                 simpleQueryForCell(query, argumentTypes, sessionAndArguments, isIntOrLong, tt)
             } catch (e: SQLiteDoneException) {
                 orElse()
             }
-        }
-
-        val cur = select(query, argumentTypes, sessionAndArguments, 1)
-        try {
-            if (!cur.moveToFirst()) return orElse()
-            val value = cur.cell(tt as DataType<out T>, 0)
-            check(!cur.moveToNext()) { "cursor returned ${cur.count} rows, 1 needed" }
-            return value
-        } finally {
-            cur.close()
+        } else {
+            super.cell(query, argumentTypes, sessionAndArguments, type, orElse)
         }
     }
     private val DataType<*>.isStringInclNullable
@@ -148,6 +141,19 @@ abstract class SqliteDb internal constructor(
             }
         }
     } as T
+
+    final override fun <T> column(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        sessionAndArguments: Array<out Any>,
+        type: Ilk<out T, *>
+    ): CloseableSizedIterator<T> = // covariant return
+        object : CursorIterator<NullSchema, T>(NullSchema, null) {
+            override fun open(): Cursor =
+                select(query, argumentTypes, sessionAndArguments, 1)
+            override fun row(cur: Cursor): T =
+                cur.cell(type.type, 0)
+        }
 
     final override fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =
         connection.rawQueryWithFactory(
