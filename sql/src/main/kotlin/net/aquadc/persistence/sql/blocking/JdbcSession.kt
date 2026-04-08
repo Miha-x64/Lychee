@@ -40,8 +40,6 @@ import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
 import java.io.Closeable
 import java.io.PrintWriter
-import java.lang.Exception
-import java.lang.reflect.Proxy
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -118,31 +116,25 @@ abstract class JdbcDb internal constructor(
         for (idx in argumentTypes.indices) {
             (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, sessionAndArguments[idx + 1])
         }
-        closeAlongResultSet(stmt.executeQuery().also {
+        stmt.executeQuery().also {
             val meta = stmt.metaData
             val actualCols = meta.columnCount
             if (actualCols != expectedCols) {
                 val cols = Array(actualCols) { meta.getColumnLabel(it + 1) }.contentToString()
                 throw IllegalArgumentException("Expected $expectedCols cols, got $cols") // todo relax, bro
             }
-        }, stmt)
+        }.closeAlong(stmt)
     }
-    protected fun closeAlongResultSet(rs: ResultSet, victim: AutoCloseable) =
-        Proxy.newProxyInstance(ResultSet::class.java.classLoader, arrayOf(ResultSet::class.java)) { _, meth, args ->
-            if (meth.name == "close" && args.isNullOrEmpty()) {
-                rs.close()
+
+    // As per JDBC Javadoc, closing a Statement closes its ResultSet.
+    // So we have to close them both ourselves.
+    protected fun ResultSet.closeAlong(victim: AutoCloseable) =
+        object : ResultSet by this {
+            override fun close() {
+                this@closeAlong.close()
                 victim.close()
-            } else {
-                try {
-                    meth.invoke(rs, *(args ?: EMPTY_ARRAY))
-                } catch (e: Exception) {
-                    throw e
-                }
             }
-        } as ResultSet
-    private companion object {
-        private val EMPTY_ARRAY = emptyArray<Any>()
-    }
+        }
 
     protected fun <ID> execute(
         connection: Connection,
@@ -349,7 +341,7 @@ constructor(
     ): ResultSet {
         val conn = dataSource.connection
         val rs = select(conn, query, argumentTypes, sessionAndArguments, expectedCols)
-        return closeAlongResultSet(rs, conn)
+        return rs.closeAlong(conn)
     }
 
     override fun <ID> execute(
@@ -559,7 +551,7 @@ constructor(
             val query = dialect.run { StringBuilder().selectQuery(table, columns).toString() }
             val stmt = connection.prepareStatement(query, 0)
             bindQueryParams(table, id) { type, idx, value -> type.bind(stmt, idx, value) }
-            return closeAlongResultSet(stmt.executeQuery(), stmt)
+            return stmt.executeQuery().closeAlong(stmt)
         }
 
         private fun prepareAndCreateTrigger(
