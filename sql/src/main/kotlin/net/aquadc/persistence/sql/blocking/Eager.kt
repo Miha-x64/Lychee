@@ -6,9 +6,7 @@ import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
 import net.aquadc.persistence.sql.SqlDatabase
 import net.aquadc.persistence.sql.Table
-import net.aquadc.persistence.sql.mapRow
 import net.aquadc.persistence.struct.Schema
-import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing
@@ -26,81 +24,52 @@ import net.aquadc.persistence.type.nothing
         from.cell(query, argumentTypes, receiverAndArguments, rt, orElse)
 }
 
-@PublishedApi internal class FetchColEagerly<CUR, R>(
-    private val rt: Ilk<R, *>
-) : Fetch<CUR, List<R>> {
+@PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR>(
+    private val table: Table<SCH, *>,
+    private val bindBy: BindBy,
+    private val orElse: () -> Any?,
+) : Fetch<CUR, Any?> {
     override fun fetch(
         from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): List<R> {
-        val iter = from.column(query, argumentTypes, receiverAndArguments, rt)
-        try {
-            return if (iter.hasNext()) {
-                val first = iter.next()
-                if (iter.hasNext()) {
-                    // TODO collect to primitive array if possible
-                    (if (iter is SizedIterator<*>) ArrayList(iter.size) else ArrayList<R>()).also { dst ->
-                        dst.add(first)
-                        do dst.add(iter.next()) while (iter.hasNext())
-                    }
-                } else listOf(first)
-            } else emptyList()
+    ): Any? {
+        val iter = from.rows(query, argumentTypes, receiverAndArguments, table, bindBy, false)
+        return try {
+            if (iter.hasNext()) {
+                iter.next().also {
+                    require(!iter.hasNext()) { "The query has returned more than one row." }
+                }
+            } else {
+                orElse()
+            }
         } finally {
             iter.close()
         }
     }
 }
 
-@PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR>(
-    private val table: Table<SCH, *>,
-    private val bindBy: BindBy,
-    private val orElse: () -> StructSnapshot<SCH>?,
-) : Fetch<CUR, StructSnapshot<SCH>?> {
-    override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): StructSnapshot<SCH>? {
-        val managedColNames = table.managedColNames
-        val managedColTypes = table.managedColTypes
-        val cur = from.select(query, argumentTypes, receiverAndArguments, managedColNames.size)
-        try {
-            if (!from.next(cur)) return orElse()
-            val value = from.mapRow<CUR, SCH>(bindBy, cur, managedColNames, managedColTypes, table.recipe)
-            check(!from.next(cur)) // single row expected
-            return value
-        } finally {
-            from.close(cur)
-        }
+internal fun <CUR, R> Fetch<CUR, Iterator<R>>.collect(): Fetch<CUR, List<R>> =
+    object : Fetch<CUR, List<R>> {
+        override fun fetch(
+            from: SqlDatabase<CUR>,
+            query: String,
+            argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+            receiverAndArguments: Array<out Any>
+        ): List<R> =
+            this@collect.fetch(from, query, argumentTypes, receiverAndArguments).collect()
     }
-}
 
-@PublishedApi internal class FetchStructListEagerly<CUR, SCH : Schema<SCH>>(
-        private val table: Table<SCH, *>,
-        private val bindBy: BindBy
-) : Fetch<CUR, List<StructSnapshot<SCH>>> {
-    override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): List<StructSnapshot<SCH>> {
-        val colNames = table.managedColNames
-        val colTypes = table.managedColTypes
-        val recipe = table.recipe
-
-        val cur = from.select(query, argumentTypes, receiverAndArguments, colNames.size)
-        try {
-            return if (from.next(cur)) {
-                val first = from.mapRow<CUR, SCH>(bindBy, cur, colNames, colTypes, recipe)
-                if (from.next(cur)) {
-                    ArrayList<StructSnapshot<SCH>>(from.sizeHint(cur).let { if (it < 0) 10 else it }).also {
-                        it.add(first)
-                        do it.add(from.mapRow(bindBy, cur, colNames, colTypes, recipe)) while (from.next(cur))
-                    }
-                } else listOf<StructSnapshot<SCH>>(first)
-            } else emptyList()
-        } finally {
-            from.close(cur)
-        }
-    }
+private fun <R> Iterator<R>.collect(): List<R> {
+    return if (hasNext()) {
+        val first = next()
+        if (hasNext()) {
+            // TODO collect to primitive array if possible
+            (if (this is SizedIterator<*>) ArrayList(this.size) else ArrayList<R>()).also { dst ->
+                dst.add(first)
+                do dst.add(next()) while (hasNext())
+            }
+        } else listOf(first)
+    } else emptyList()
 }
 
 @PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerlyFor(nothing)

@@ -87,6 +87,12 @@ interface SqlDatabase<CUR> : Database<CUR> {
         type: Ilk<out T, *>,
     ): CloseableIterator<T>
 
+    fun <SCH : Schema<SCH>> rows(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        table: Table<SCH, *>, bindBy: BindBy, transient: Boolean,
+    ): CloseableIterator<Struct<SCH>>
+
     fun select(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,

@@ -15,7 +15,7 @@ import net.aquadc.collections.forEach
 import net.aquadc.persistence.CloseableSizedIterator
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
-import net.aquadc.persistence.eq
+import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.IdBound
@@ -43,6 +43,7 @@ import net.aquadc.persistence.sql.mutate
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -85,15 +86,6 @@ abstract class SqliteDb internal constructor(
 
     private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: Ilk<T, *>): T =
         cursor.cell(type.type as DataType<T>, cursor.getColIdx(guess, name))
-
-    // TODO: could subclass SQLiteCursor and attach IntArray<myColIdx, SQLiteColIdx> instead of looking this up every time
-    private fun Cursor.getColIdx(guess: Int, name: CharSequence): Int { // native `getColumnIndex` wrecks labels with '.'!
-        val columnNames = columnNames!!
-        if (columnNames.size > guess && name.eq(columnNames[guess], false)) return guess
-        val idx = columnNames.indexOfFirst { name.eq(it, false) }
-        if (idx < 0) error { "$name !in ${columnNames.contentToString()}" }
-        return idx
-    }
 
     // SqlDatabase
 
@@ -153,6 +145,19 @@ abstract class SqliteDb internal constructor(
                 select(query, argumentTypes, sessionAndArguments, 1)
             override fun row(cur: Cursor): T =
                 cur.cell(type.type, 0)
+        }
+
+    override fun <SCH : Schema<SCH>> rows(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        sessionAndArguments: Array<out Any>,
+        table: Table<SCH, *>,
+        bindBy: BindBy,
+        transient: Boolean
+    ): CloseableSizedIterator<Struct<SCH>> = // covariant return
+        object : CursorStructIterator<SCH>(null, table, bindBy, transient) {
+            override fun open(): Cursor =
+                select(query, argumentTypes, sessionAndArguments, table.managedColNames.size)
         }
 
     final override fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =

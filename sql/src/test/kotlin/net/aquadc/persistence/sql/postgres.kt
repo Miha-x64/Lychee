@@ -200,7 +200,7 @@ class TemplatesPostgres : TemplatesTest() {
             val rec = (session as Session<ResultSet>)
                 .(Query("SELECT ${table.managedColNames.joinToString()} FROM ${table.name} WHERE ${table.idColName} = ?",
                     table.idColType,
-                    Eagerly.struct<ResultSet, Yoozer>(table, BindBy.Name)
+                    Eagerly.struct<ResultSet, Yoozer, Struct<Yoozer>>(table, BindBy.Name)
                 ))(pk)
             assertNotSame(sampleYoozer, rec)
             assertEquals(sampleYoozer, rec)

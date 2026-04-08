@@ -2,7 +2,6 @@
 package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.persistence.CloseableIterator
-import net.aquadc.persistence.CloseableStruct
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
@@ -21,29 +20,36 @@ object Eagerly : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 
     @JvmOverloads inline fun <CUR, R> cell(
         returnType: Ilk<out R, *>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> = FetchCellEagerly(returnType, orElse)
+    ): Fetch<CUR, R> =
+        FetchCellEagerly(returnType, orElse)
 
-    inline fun <CUR, R> col(
+    fun <CUR, R> col(
         elementType: Ilk<out R, *>,
-    ): Fetch<CUR, List<R>> = FetchColEagerly(elementType)
+    ): Fetch<CUR, List<R>> =
+        FetchColLazily<CUR, _>(elementType).collect()
 
-    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
-            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH> = throwNse
-    ): Fetch<CUR, StructSnapshot<SCH>> =
-            FetchStructEagerly<SCH, CUR>(table, bindBy, orElse) as Fetch<CUR, StructSnapshot<SCH>/*!!*/>
-    // unfortunately, I don't know how to hack type inference so that
-    // orElse: () -> R, where StructSnapshot<SCH> : R, or R super StructSnapshot<SCH>.
-    // Theoretically, R could be Snapshot, Snapshot?, Struct, Struct?, Partial, Partial?, Any, Any?.
-    // I hope that supporting Snapshot? is enough.
+    @Suppress(
+        "ONLY_ONE_CLASS_BOUND_ALLOWED", "INCONSISTENT_TYPE_PARAMETER_BOUNDS", // https://youtrack.jetbrains.com/issue/KT-209/
+        "UNCHECKED_CAST", // (FetchStructEagerly as Fetch)::R = Struct<SCH> | orElse::R
+    )
+    @JvmOverloads inline fun <CUR, SCH, R> struct(
+        table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> R = throwNse,
+    ): Fetch<CUR, R> where
+            SCH : Schema<SCH>, SCH : DataType.NotNull.Partial<out R, SCH> =
+        FetchStructEagerly<SCH, CUR>(table, bindBy, orElse) as Fetch<CUR, R>
+
+    @Deprecated("Type inference was hacked successfully.", ReplaceWith("this.struct(table, bindBy, orElse)"))
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
-            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> StructSnapshot<SCH>? = just(null)
-    ): Fetch<CUR, StructSnapshot<SCH>?> =
-            FetchStructEagerly(table, bindBy, orElse)
+        table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = just(null),
+    ): Fetch<CUR, Struct<SCH>?> =
+        struct(table, bindBy, orElse)
 
-    inline fun <CUR, SCH : Schema<SCH>> structs(
-            table: Table<SCH, *>, bindBy: BindBy
+    fun <CUR, SCH : Schema<SCH>> structs(
+        table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<CUR, List<StructSnapshot<SCH>>> =
-            FetchStructListEagerly(table, bindBy)
+        @Suppress("UNCHECKED_CAST") // FetchStructsLazily::R::T = StructSnapshot when transient=false
+        (FetchStructsLazily<CUR, _>(table, bindBy, false) as Fetch<CUR, CloseableIterator<StructSnapshot<SCH>>>)
+            .collect()
 
     inline fun <CUR> execute(): Exec<CUR, Unit> =
         ExecuteForUnit as Exec<CUR, Unit>
@@ -52,33 +58,43 @@ object Eagerly : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
         ExecuteForRowCount as Exec<CUR, Int>
 
     inline fun <CUR, T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<CUR, T> =
-        ExecuteEagerlyFor(pkType).also { check(pkType !== nothing) }
+        ExecuteEagerlyFor(pkType.also { check(it !== nothing) })
             as Exec<CUR, T>
 }
 
 object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 
-    @JvmOverloads inline fun <CUR, R> cell(
-        returnType: Ilk<out R, *>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, Lazy<R>> = FetchCellLazily(returnType, orElse)
+    @JvmOverloads fun <CUR, R> cell(
+        returnType: Ilk<out R, *>, orElse: () -> R = throwNse,
+    ): Fetch<CUR, Lazy<R>> =
+        FetchCellEagerly<CUR, R>(returnType, orElse).lazy()
 
     inline fun <CUR, R> col(
         elementType: Ilk<out R, *>,
-    ): Fetch<CUR, CloseableIterator<R>> = FetchColLazily(elementType)
+    ): Fetch<CUR, CloseableIterator<R>> =
+        FetchColLazily(elementType)
 
-    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> struct(
-            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH> = throwNse
-    ): Fetch<CUR, CloseableStruct<SCH>> =
-            FetchStructLazily<SCH, CUR>(table, bindBy, orElse) as Fetch<CUR, CloseableStruct<SCH>/*!!*/>
+    @Suppress(
+        "ONLY_ONE_CLASS_BOUND_ALLOWED", "INCONSISTENT_TYPE_PARAMETER_BOUNDS", // https://youtrack.jetbrains.com/issue/KT-209/
+        "UNCHECKED_CAST", // (FetchStructEagerly as Fetch)::R = Struct<SCH> | orElse::R
+    )
+    @JvmOverloads fun <CUR, SCH, R> struct(
+        table: Table<SCH, *>, bindBy: BindBy, orElse: () -> R = throwNse,
+    ): Fetch<CUR, Lazy<R>> where
+            SCH : Schema<SCH>, SCH : DataType.NotNull.Partial<out R, SCH> =
+        Eagerly.struct<CUR, SCH, R>(table, bindBy, orElse)
+            .lazy()
+
+    @Deprecated("Type inference was hacked successfully.", ReplaceWith("this.struct(table, bindBy, orElse)"))
     @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
-            table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = throwNse
-    ): Fetch<CUR, CloseableStruct<SCH>?> =
-            FetchStructLazily(table, bindBy, orElse)
+        table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = just(null),
+    ): Fetch<CUR, Lazy<Struct<SCH>?>> =
+        struct(table, bindBy, orElse)
 
     inline fun <CUR, SCH : Schema<SCH>> structs(
-            table: Table<SCH, *>, bindBy: BindBy
+        table: Table<SCH, *>, bindBy: BindBy
     ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
-            FetchStructListLazily<CUR, SCH>(table, bindBy, false)
+        FetchStructsLazily(table, bindBy, false)
 
     /**
      * A view on ResultSet/Cursor as an iterator over __transient Structs__.
@@ -93,9 +109,9 @@ object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
      * (But consider doing as much work as possible in SQL instead.)
      */
     inline fun <CUR, SCH : Schema<SCH>> transientStructs(
-            table: Table<SCH, *>, bindBy: BindBy
+        table: Table<SCH, *>, bindBy: BindBy,
     ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
-            FetchStructListLazily<CUR, SCH>(table, bindBy, true)
+        FetchStructsLazily(table, bindBy, true)
 }
 
 @Suppress("unused") // all parameters are used to maintain matching signature

@@ -5,8 +5,19 @@ import net.aquadc.persistence.CloseableIterator
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatMapTo
+import net.aquadc.persistence.newMap
+import net.aquadc.persistence.sql.BindBy
+import net.aquadc.persistence.sql.Embedded
+import net.aquadc.persistence.sql.Simple
+import net.aquadc.persistence.sql.Table
+import net.aquadc.persistence.sql.compute
 import net.aquadc.persistence.sql.dialect.foldArrayType
+import net.aquadc.persistence.sql.forceIndexOfManaged
+import net.aquadc.persistence.sql.inflate
+import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
+import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
@@ -146,11 +157,102 @@ private fun errorLocation(type: DataType<*>, index: Int): String = "$type at $in
 @JvmOverloads fun ResultSet.asColumnIterator(type: DataType.Nullable<*, DataType.NotNull.Partial<*, *>>, index: Int = 1): Nothing = throw AssertionError()
 
 
+// structs
+
+fun <SCH : Schema<SCH>> ResultSet.rowAsStruct(
+    type: Table<SCH, *>,
+    bindBy: BindBy = BindBy.Name,
+): StructSnapshot<SCH> {
+    val values = arrayOfNulls<Any>(type.managedColNames.size)
+    unembed(values, this, null, 0, type.managedColNames, type._managedColTypes!!, bindBy)
+    inflate(type._recipe!!, values, 0, 0, 0)
+    @Suppress("UNCHECKED_CAST") // we know that Table<SCH>.recipe will give us StructSnapshot<SCH>
+    return values[0] as StructSnapshot<SCH>
+}
+
+@JvmOverloads
+fun <SCH : Schema<SCH>> ResultSet.asStructIterator(
+    type: Table<SCH, *>,
+    bindBy: BindBy = BindBy.Name,
+    transient: Boolean = false,
+): CloseableIterator<Struct<SCH>> =
+    ResultSetStructIterator(
+        this, type, bindBy,
+        hasArraySupport = true, // hasArraySupport=false is a questionable option using serialized()
+        transient = transient,
+    )
+
+
 // iter impl
+
+internal open class ResultSetStructIterator<SCH : Schema<SCH>>(
+    initial: ResultSet?,
+    private val table: Table<SCH, *>,
+    private val bindBy: BindBy,
+    private val hasArraySupport: Boolean,
+    private val transient: Boolean,
+) : ResultSetIterator<SCH, Struct<SCH>>(table.schema, initial) {
+    private var arr: Array<Any?>? = null
+    private fun arr(size: Int) = arr?.takeIf { it.size >= size } ?: arrayOfNulls<Any>(size).also { arr = it }
+    private var colIndices = if (bindBy == BindBy.Name) newMap<String, Int>(table.managedColNames.size) else null
+    final override fun <T> cell(field: FieldDef<SCH, T, *>): T =
+        when (val delegate = table.delegateFor(field)) {
+            is Simple<SCH, *> -> {
+                val type = table.typeOf(field)
+                cur.cell(
+                    type,
+                    when (bindBy) {
+                        BindBy.Name ->
+                            field.name(table.schema).toString().let { key ->
+                                colIndices!!.getOrPut(key) { cur.findColumn(key) }
+                            }
+                        BindBy.Position ->
+                            forceIndexOfManaged(table, field) + 1
+                    },
+                    hasArraySupport,
+                )
+            }
+            is Embedded<SCH, *> -> {
+                val values = arr(delegate.columnNames.size)
+                unembed(values, cur, colIndices, delegate.myOffset, delegate.columnNames, delegate.columnTypes, bindBy)
+                inflate(delegate.recipe, values, 0, 0, 0)
+                values[0] as T
+            }
+        }
+    final override fun row(cur: ResultSet): Struct<SCH> =
+        if (transient) this else StructSnapshot(this)
+    final override fun onClose() {
+        super.onClose()
+        arr = null
+        colIndices = null
+    }
+}
+
+private fun unembed(
+    into: Array<Any?>, cur: ResultSet, colIndices: MutableMap<String, Int>?,
+    offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy
+) {
+    when (bindBy) {
+        BindBy.Name ->
+            repeat(columnTypes.size) { idx ->
+                into[idx] = cur.cell(
+                    columnTypes[idx],
+                    columnNames[idx].toString().let { key ->
+                        colIndices.compute(key, cur::findColumn)
+                    },
+                )
+            }
+
+        BindBy.Position ->
+            repeat(columnTypes.size) { idx ->
+                into[idx] = cur.cell(columnTypes[idx], offset + idx + 1)
+            }
+    }
+}
 
 internal abstract class ResultSetIterator<SCH : Schema<SCH>, R>(
     schema: SCH, initial: ResultSet?,
 ) : DbIter<ResultSet, SCH, R>(schema, initial) {
-    override fun moveToNext(): Boolean = cur.next()
+    final override fun moveToNext(): Boolean = cur.next()
     override fun onClose() = cur.close()
 }

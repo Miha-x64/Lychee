@@ -1,7 +1,6 @@
 package net.aquadc.persistence.sql.blocking
 
 import net.aquadc.persistence.CloseableIterator
-import net.aquadc.persistence.CloseableStruct
 import net.aquadc.persistence.IteratorAndTransientStruct
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Fetch
@@ -10,22 +9,8 @@ import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.struct.FieldDef
 import net.aquadc.persistence.struct.Schema
 import net.aquadc.persistence.struct.Struct
-import net.aquadc.persistence.struct.StructSnapshot
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
-
-@PublishedApi internal class FetchCellLazily<CUR, R>(
-    private val rt: Ilk<out R, *>,
-    private val orElse: () -> R
-) : Fetch<CUR, Lazy<R>> {
-    override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): Lazy<R> {
-        val rt = rt; val orElse = orElse // don't capture `this`
-        return lazy { from.cell(query, argumentTypes, receiverAndArguments, rt, orElse) }
-    }
-}
 
 @PublishedApi internal class FetchColLazily<CUR, R>(
     private val rt: Ilk<R, *>
@@ -37,59 +22,30 @@ import net.aquadc.persistence.type.Ilk
         from.column(query, argumentTypes, receiverAndArguments, rt)
 }
 
-@PublishedApi internal class FetchStructLazily<SCH : Schema<SCH>, CUR>(
+@PublishedApi internal class FetchStructsLazily<CUR, SCH : Schema<SCH>>(
     private val table: Table<SCH, *>,
     private val bindBy: BindBy,
-    private val orElse: () -> Struct<SCH>?,
-) : Fetch<CUR, CloseableStruct<SCH>?>, CloseableStruct<SCH> {
-
-    private var fallback: Struct<SCH>? = null
-    override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): CloseableStruct<SCH> {
-        val table = table; val bindBy = bindBy; val orElse = orElse // don't capture `this`
-        val lazy = object : DbIter<CUR, SCH, CloseableStruct<SCH>>(table.schema, null) {
-            override fun open(): CUR =
-                from.select(query, argumentTypes, receiverAndArguments, table.managedColNames.size)
-            override fun <T> cell(field: FieldDef<SCH, T, *>): T =
-                table.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
-
-            override fun moveToNext(): Boolean = from.next(cur)
-            override fun onClose() = from.close(cur)
-        }
-
-        return if (lazy.hasNext() /* move to first */) lazy else this.also { fallback = orElse() }
-    }
-
-    override fun <T> get(field: FieldDef<SCH, T, *>): T = fallback!![field]
-    override val schema: SCH get() = fallback!!.schema
-    override fun close() { (fallback as? CloseableStruct)?.close() } // some dirty crap here, but damn, what can I do?
-}
-
-@PublishedApi internal class FetchStructListLazily<CUR, SCH : Schema<SCH>>(
-        private val table: Table<SCH, *>,
-        private val bindBy: BindBy,
-        private val transient: Boolean
+    private val transient: Boolean,
 ) : Fetch<CUR, CloseableIterator<Struct<SCH>>> {
     override fun fetch(
         from: SqlDatabase<CUR>, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
-    ): CloseableIterator<Struct<SCH>> {
-        val transient = transient; val table = table; val bindBy = bindBy // don't capture `this`
-        return object : DbIter<CUR, SCH, Struct<SCH>>(table.schema, null) {
-            override fun open(): CUR =
-                from.select(query, argumentTypes, receiverAndArguments, table.managedColNames.size)
-            override fun row(cur: CUR): Struct<SCH> =
-                if (transient) this else StructSnapshot(this)
-            override fun <T> cell(field: FieldDef<SCH, T, *>): T =
-                table.let { it.delegateFor(field).get(from, it, field, cur, bindBy) }
-
-            override fun moveToNext(): Boolean = from.next(cur)
-            override fun onClose() = from.close(cur)
-        }
-    }
+    ): CloseableIterator<Struct<SCH>> =
+        from.rows(query, argumentTypes, receiverAndArguments, table, bindBy, transient)
 }
+
+internal fun <CUR, R> Fetch<CUR, R>.lazy(): Fetch<CUR, Lazy<R>> =
+    object : Fetch<CUR, Lazy<R>> {
+        override fun fetch(
+            from: SqlDatabase<CUR>,
+            query: String,
+            argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+            receiverAndArguments: Array<out Any>
+        ): Lazy<R> =
+            lazy {
+                this@lazy.fetch(from, query, argumentTypes, receiverAndArguments)
+            }
+    }
 
 internal abstract class DbIter<CUR, SCH : Schema<SCH>, R>(
     schema: SCH,

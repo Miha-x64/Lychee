@@ -3,11 +3,18 @@ package net.aquadc.persistence.android
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import net.aquadc.persistence.extended.tuple.invoke
+import net.aquadc.persistence.extended.tuple.times
+import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.SqlPropTest
 import net.aquadc.persistence.sql.TemplatesTest
 import net.aquadc.persistence.sql.TestTables
 import net.aquadc.persistence.sql.blocking.SqliteSession
+import net.aquadc.persistence.sql.blocking.asStructIterator
+import net.aquadc.persistence.sql.blocking.rowAsStruct
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
+import net.aquadc.persistence.sql.projection
+import net.aquadc.persistence.type.i32
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -72,5 +79,27 @@ class TemplatesRoboTests : TemplatesTest() {
     }
     @After fun close() {
         session.close()
+    }
+    @Test override fun rawRow() {
+        val tuple = i32 * i32 * i32
+        val projection = projection(tuple)
+        val expected = tuple(1, 2, 3)
+
+        var row = (session as SqliteSession)
+            .select("SELECT 1 as first, 2 as second, 3 as third", emptyArray(), emptyArray(), 3)
+            .also { check(it.moveToNext()) }
+            .rowAsStruct(projection, BindBy.Name)
+        assertEquals(expected, row)
+
+        row = (session as SqliteSession)
+            .select("SELECT 1, 2, 3", emptyArray(), emptyArray(), 3)
+            .also { check(it.moveToNext()) }
+            .rowAsStruct(projection, BindBy.Position)
+        assertEquals(expected, row)
+
+        val rows = (session as SqliteSession)
+            .select("SELECT 1, 2, 3", emptyArray(), emptyArray(), 3)
+            .asStructIterator(projection, BindBy.Position)
+        assertEquals(listOf(expected), rows.asSequence().toList())
     }
 }

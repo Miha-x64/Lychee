@@ -231,44 +231,13 @@ private inline fun flattenFieldValues(
 private inline operator fun FieldSet<*, *>?.contains(field: FieldDef<*, *, *>): Boolean =
         this != null && (this as FieldSet<NullSchema, *>).originalContains(field as FieldDef<NullSchema, *, *>)
 
-internal fun <CUR> SqlDatabase<CUR>.row(
-    cursor: CUR, offset: Int, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>, bindBy: BindBy
-): Array<Any?> = when (bindBy) {
-    BindBy.Name -> rowByName(cursor, columnNames, columnTypes)
-    BindBy.Position -> rowByPosition(cursor, offset, columnTypes)
-}
-
-internal fun <SCH : Schema<SCH>, CUR, R> SqlDatabase<CUR>.cell(
-    cursor: CUR, table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>, bindBy: BindBy
-): R {
-    val type = column.type(table.schema) as Ilk<R, *>
-    //   every DataType case implements Ilk ^^^^^^^^^
-    return when (bindBy) {
-        BindBy.Name -> cellByName(cursor, column.name(table.schema), type)
-        BindBy.Position -> cellAt(cursor, forceIndexOfManaged(table, column), type)
-    }
-}
-
-private fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>): Int =
+internal fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, column: StoredNamedLens<SCH, R, out DataType<R>>): Int =
     table.indexOfManaged(column).let { idx ->
         if (idx >= 0) idx
         else throw NoSuchElementException(
             "${table.schema.run { column.name }} !in ${table.managedColNames.contentToString()}"
         )
     }
-
-internal fun <CUR, SCH : Schema<SCH>> SqlDatabase<CUR>.mapRow(
-        bindBy: BindBy,
-        cur: CUR,
-        colNames: Array<out CharSequence>,
-        colTypes: Array<out Ilk<*, *>>,
-        recipe: Array<out Table.StructStart?>
-): StructSnapshot<SCH> {
-    val firstValues = row(cur, 0, colNames, colTypes, bindBy)
-    inflate(recipe, firstValues, 0, 0, 0)
-    @Suppress("UNCHECKED_CAST")
-    return firstValues[0] as StructSnapshot<SCH>
-}
 
 @PublishedApi @JvmField internal val throwNse = { throw NoSuchElementException() }
 
@@ -281,4 +250,15 @@ internal fun <CUR, SCH : Schema<SCH>> SqlDatabase<CUR>.mapRow(
     override fun load(payload: Any?, value: Any?): T = value as T
 
     final override val custom: CustomType<T>? get() = this
+}
+
+internal inline fun <K, V> MutableMap<K, V>?.compute(key: K, defaultValue: (K) -> V): V {
+    val value = this?.get(key)
+    return if (value == null) {
+        val answer = defaultValue(key)
+        this?.put(key, answer)
+        answer
+    } else {
+        value
+    }
 }

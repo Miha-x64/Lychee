@@ -6,14 +6,15 @@ import net.aquadc.persistence.CloseableIterator
 import net.aquadc.persistence.NullSchema
 import net.aquadc.persistence.castNull
 import net.aquadc.persistence.fatAsList
+import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.ExperimentalSql
-import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.InternalTransaction
 import net.aquadc.persistence.sql.ListChanges
+import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.MutableSqlTransaction
-import net.aquadc.persistence.sql.SqlTransaction
 import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.SqlTransaction
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
@@ -29,6 +30,7 @@ import net.aquadc.persistence.sql.mutate
 import net.aquadc.persistence.sql.wordCountForCols
 import net.aquadc.persistence.struct.PartialStruct
 import net.aquadc.persistence.struct.Schema
+import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.struct.minus
 import net.aquadc.persistence.type.AnyCollection
 import net.aquadc.persistence.type.DataType
@@ -91,6 +93,19 @@ abstract class JdbcDb internal constructor(
                 select(query, argumentTypes, sessionAndArguments, 1)
             override fun row(cur: ResultSet): T =
                 cur.cell(type, 0)
+        }
+
+    override fun <SCH : Schema<SCH>> rows(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+        sessionAndArguments: Array<out Any>,
+        table: Table<SCH, *>,
+        bindBy: BindBy,
+        transient: Boolean
+    ): CloseableIterator<Struct<SCH>> =
+        object : ResultSetStructIterator<SCH>(null, table, bindBy, dialect.hasArraySupport, transient) {
+            override fun open(): ResultSet =
+                select(query, argumentTypes, sessionAndArguments, table.managedColNames.size)
         }
 
     protected fun select(
