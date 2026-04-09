@@ -27,7 +27,6 @@ import org.junit.Test
 import org.postgresql.util.PGobject
 import org.postgresql.util.PSQLException
 import java.sql.Connection
-import java.sql.ResultSet
 import java.util.UUID
 
 
@@ -38,7 +37,7 @@ private val db get() = try {
     throw AssumptionViolatedException("no compatible Postgres database found", e)
 }
 
-private inline fun disconnect(session: () -> Session<*>) = try {
+private inline fun disconnect(session: () -> Session) = try {
     session().close()
 } catch (ignored: UninitializedPropertyAccessException) {
     // happens on CI without PostgreSQL
@@ -76,7 +75,7 @@ class TemplatesPostgres : TemplatesTest() {
         it[MoreNumbers] = listOf(intArrayOf(1, 2, 3), intArrayOf(4, 5, 6))
     }
 
-    @Test fun <CUR> `just a table`() {
+    @Test fun `just a table`() {
         val Yuzerz = tableOf(Yoozer, "yoozerz1", "_id", i64) { arrayOf(embed(SnakeCase, Extras)) }
         val schema = PostgresDialect.createTable(Yuzerz, true)
         assertEquals(
@@ -94,13 +93,13 @@ class TemplatesPostgres : TemplatesTest() {
         assertInserts(schema, Yuzerz)
         assertEquals(
             "Some name",
-            (session as Session<CUR>)
-                .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"numbers\" = ?", intCollection, Eagerly.cell<CUR, String>(string)))
+            session
+                .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"numbers\" = ?", intCollection, Eagerly.cell(string)))
                 (intArrayOf(0, 1, 2))
         )
     }
 
-    @Test fun <CUR> `custom table`() {
+    @Test fun `custom table`() {
         val Yuzerz = object : Table<Yoozer, Long>(Yoozer, "yoozerz2", "_id", i64) {
             override fun Yoozer.meta(): Array<out ColMeta<Yoozer>> = arrayOf(
                 type(pkColumn, "serial NOT NULL"), // this.pkColumn would be inaccessible within lambda
@@ -121,13 +120,13 @@ class TemplatesPostgres : TemplatesTest() {
         assertInserts(schema, Yuzerz)
         assertEquals(
             "Some name",
-            (session as Session<CUR>)
-                .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"extras\" = ?", serialized(SomeSchema), Eagerly.cell<CUR, String>(string)))
+            session
+                .(Query("SELECT \"name\" FROM \"${Yuzerz.name}\" WHERE \"extras\" = ?", serialized(SomeSchema), Eagerly.cell(string)))
                 (sampleYoozer[Yoozer.Extras])
         )
     }
 
-    @Test fun <CUR> `very custom table`() {
+    @Test fun `very custom table`() {
         (session as JdbcSession).dataSource.connection.use {
             it.createStatement().use {
                 it.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
@@ -181,11 +180,11 @@ class TemplatesPostgres : TemplatesTest() {
         assertInserts(schema, Yoozerz)
         assertEquals(
             "Some name",
-            (session as Session<CUR>)
+            session
                 .(Query("SELECT \"name\" FROM \"${Yoozerz.name}\" WHERE \"id\" = ? AND \"extras\" = ?",
                 nativeType("uuid", uuid),
                 someJsonb,
-                Eagerly.cell<CUR, String>(string)))
+                Eagerly.cell(string)))
                 (sampleYoozer[Yoozer.Id], sampleYoozer[Yoozer.Extras])
         )
     }
@@ -195,12 +194,12 @@ class TemplatesPostgres : TemplatesTest() {
                 it.execute(create)
             }
         }
-        (session as JdbcSession).mutate {
+        session.mutate {
             val pk = insert(table, sampleYoozer)
-            val rec = (session as Session<ResultSet>)
+            val rec = session
                 .(Query("SELECT ${table.managedColNames.joinToString()} FROM ${table.name} WHERE ${table.idColName} = ?",
                     table.idColType,
-                    Eagerly.struct<ResultSet, Yoozer, Struct<Yoozer>>(table, BindBy.Name)
+                    Eagerly.struct(table, BindBy.Name)
                 ))(pk)
             assertNotSame(sampleYoozer, rec)
             assertEquals(sampleYoozer, rec)

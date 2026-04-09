@@ -58,34 +58,7 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class SqliteDb internal constructor(
     @JvmField protected val connection: SQLiteDatabase,
     @JvmField protected val statements: ConcurrentHashMap<String, SQLiteStatement>,
-) : MutableSqlDatabase<Cursor> {
-
-    // Database
-
-    final override fun sizeHint(cursor: Cursor): Int =
-        cursor.count
-    final override fun next(cursor: Cursor): Boolean =
-        cursor.moveToNext()
-
-    final override fun <T> cellByName(cursor: Cursor, name: CharSequence, type: Ilk<T, *>): T =
-        cellByName(cursor, Integer.MAX_VALUE /* don't even try to guess */, name, type)
-    final override fun <T> cellAt(cursor: Cursor, col: Int, type: Ilk<T, *>): T =
-        cursor.cell(type.type as DataType<T>, col)
-
-    final override fun rowByName(cursor: Cursor, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?> =
-        Array(columnNames.size) { idx ->
-            cellByName(cursor, idx, columnNames[idx], columnTypes[idx])
-        }
-    final override fun rowByPosition(cursor: Cursor, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?> =
-        Array(types.size) { idx ->
-            cursor.cell(types[idx].type, offset + idx)
-        }
-
-    final override fun close(cursor: Cursor) =
-        cursor.close()
-
-    private fun <T> cellByName(cursor: Cursor, guess: Int, name: CharSequence, type: Ilk<T, *>): T =
-        cursor.cell(type.type as DataType<T>, cursor.getColIdx(guess, name))
+) : MutableSqlDatabase {
 
     // SqlDatabase
 
@@ -160,7 +133,7 @@ abstract class SqliteDb internal constructor(
                 select(query, argumentTypes, sessionAndArguments, table.managedColNames.size)
         }
 
-    final override fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =
+    fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =
         connection.rawQueryWithFactory(
             CurFac<Nothing, Nothing>(null, null, argumentTypes, sessionAndArguments),
             query,
@@ -258,7 +231,7 @@ abstract class SqliteDb internal constructor(
 @ExperimentalSql
 class SqliteSession(
         connection: SQLiteDatabase
-) : SqliteDb(connection, ConcurrentHashMap()), Session<Cursor> {
+) : SqliteDb(connection, ConcurrentHashMap()), Session {
 
     init {
         // https://android.googlesource.com/platform/frameworks/support/+/androidx-master-dev/room/runtime/src/main/java/androidx/room/InvalidationTracker.java#176
@@ -305,12 +278,12 @@ class SqliteSession(
 
     // Session
 
-    override fun read(): SqlTransaction<Cursor> {
+    override fun read(): SqlTransaction {
         connection.beginTransactionNonExclusive()
         return SqliteTransaction()
     }
 
-    override fun mutate(): MutableSqlTransaction<Cursor> {
+    override fun mutate(): MutableSqlTransaction {
         connection.beginTransaction()
         return SqliteTransaction()
     }
@@ -407,7 +380,7 @@ class SqliteSession(
         triggers.notifyPending()
     }
 
-    private inner class SqliteTransaction : SqliteDb(connection, statements), InternalTransaction<Cursor> {
+    private inner class SqliteTransaction : SqliteDb(connection, statements), InternalTransaction {
 
         private var thread: Thread? = Thread.currentThread() // null means that this transaction has ended
         private var isSuccessful = false

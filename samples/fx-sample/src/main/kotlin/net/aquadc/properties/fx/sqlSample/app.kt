@@ -89,7 +89,7 @@ fun startSqlSample(stage: Stage) {
     stage.show()
 }
 
-private fun SqlViewModel<*>.createListCell(lv: ListView<Struct<Human>>): JFXListCell<Struct<Human>> {
+private fun SqlViewModel.createListCell(lv: ListView<Struct<Human>>): JFXListCell<Struct<Human>> {
     val cell = object : JFXListCell<Struct<Human>>() {
         override fun updateItem(item: Struct<Human>?, empty: Boolean) {
             textProperty().unbind()

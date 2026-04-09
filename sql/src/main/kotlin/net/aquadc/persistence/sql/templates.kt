@@ -12,58 +12,58 @@ import net.aquadc.persistence.type.Ilk
 import org.intellij.lang.annotations.Language
 
 
-inline fun <SRC, R> Query(
+inline fun <R> Query(
     @Language("SQL") query: String,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.() -> R =
+    fetch: Fetch<R>
+): SqlDatabase.() -> R =
     Template(query, emptyArray(), fetch)
 
-inline fun <SRC, T : Any, R> Query(
+inline fun <T : Any, R> Query(
     @Language("SQL") query: String,
     type: Ilk<T, DataType.NotNull<T>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T) -> R =
     Template(query, arrayOf(type), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, T3 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
     type3: Ilk<T3, DataType.NotNull<T3>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2, T3) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2, T3) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
     type3: Ilk<T3, DataType.NotNull<T3>>,
     type4: Ilk<T4, DataType.NotNull<T4>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2, T3, T4) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2, T3, T4) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
     type3: Ilk<T3, DataType.NotNull<T3>>,
     type4: Ilk<T4, DataType.NotNull<T4>>,
     type5: Ilk<T5, DataType.NotNull<T5>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2, T3, T4, T5) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2, T3, T4, T5) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
@@ -71,11 +71,11 @@ inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, R> 
     type4: Ilk<T4, DataType.NotNull<T4>>,
     type5: Ilk<T5, DataType.NotNull<T5>>,
     type6: Ilk<T6, DataType.NotNull<T6>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2, T3, T4, T5, T6) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2, T3, T4, T5, T6) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5, type6), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
@@ -84,11 +84,11 @@ inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 
     type5: Ilk<T5, DataType.NotNull<T5>>,
     type6: Ilk<T6, DataType.NotNull<T6>>,
     type7: Ilk<T7, DataType.NotNull<T7>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2, T3, T4, T5, T6, T7) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2, T3, T4, T5, T6, T7) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5, type6, type7), fetch)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, T8 : Any, R> Query(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, T8 : Any, R> Query(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
@@ -98,64 +98,64 @@ inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 
     type6: Ilk<T6, DataType.NotNull<T6>>,
     type7: Ilk<T7, DataType.NotNull<T7>>,
     type8: Ilk<T8, DataType.NotNull<T8>>,
-    fetch: Fetch<SRC, R>
-): SqlDatabase<SRC>.(T1, T2, T3, T4, T5, T6, T7, T8) -> R =
+    fetch: Fetch<R>
+): SqlDatabase.(T1, T2, T3, T4, T5, T6, T7, T8) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5, type6, type7, type8), fetch)
 
 
 
-inline fun <SRC, R> Mutation(
+inline fun <R> Mutation(
     @Language("SQL") query: String,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.() -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.() -> R =
     Template(query, emptyArray(), exec)
 
-inline fun <SRC, T : Any, R> Mutation(
+inline fun <T : Any, R> Mutation(
     @Language("SQL") query: String,
     type: Ilk<T, DataType.NotNull<T>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T) -> R =
     Template(query, arrayOf(type), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, T3 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
     type3: Ilk<T3, DataType.NotNull<T3>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2, T3) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2, T3) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
     type3: Ilk<T3, DataType.NotNull<T3>>,
     type4: Ilk<T4, DataType.NotNull<T4>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2, T3, T4) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2, T3, T4) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
     type3: Ilk<T3, DataType.NotNull<T3>>,
     type4: Ilk<T4, DataType.NotNull<T4>>,
     type5: Ilk<T5, DataType.NotNull<T5>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2, T3, T4, T5) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2, T3, T4, T5) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
@@ -163,11 +163,11 @@ inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, R> 
     type4: Ilk<T4, DataType.NotNull<T4>>,
     type5: Ilk<T5, DataType.NotNull<T5>>,
     type6: Ilk<T6, DataType.NotNull<T6>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2, T3, T4, T5, T6) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2, T3, T4, T5, T6) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5, type6), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
@@ -176,11 +176,11 @@ inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 
     type5: Ilk<T5, DataType.NotNull<T5>>,
     type6: Ilk<T6, DataType.NotNull<T6>>,
     type7: Ilk<T7, DataType.NotNull<T7>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2, T3, T4, T5, T6, T7) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2, T3, T4, T5, T6, T7) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5, type6, type7), exec)
 
-inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, T8 : Any, R> Mutation(
+inline fun <T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 : Any, T8 : Any, R> Mutation(
     @Language("SQL") query: String,
     type1: Ilk<T1, DataType.NotNull<T1>>,
     type2: Ilk<T2, DataType.NotNull<T2>>,
@@ -190,21 +190,21 @@ inline fun <SRC, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 : Any, T6 : Any, T7 
     type6: Ilk<T6, DataType.NotNull<T6>>,
     type7: Ilk<T7, DataType.NotNull<T7>>,
     type8: Ilk<T8, DataType.NotNull<T8>>,
-    exec: Exec<SRC, R>
-): MutableSqlDatabase<SRC>.(T1, T2, T3, T4, T5, T6, T7, T8) -> R =
+    exec: Exec<R>
+): MutableSqlDatabase.(T1, T2, T3, T4, T5, T6, T7, T8) -> R =
     Template(query, arrayOf<Ilk<*, DataType.NotNull<*>>>(type1, type2, type3, type4, type5, type6, type7, type8), exec)
 
 
 
 
-@PublishedApi internal class Template<SRC, R>(
+@PublishedApi internal class Template<R>(
     private val query: String,
     private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-    private val fetch: Fetch<SRC, R>
+    private val fetch: Fetch<R>
 ) : FuncXImpl<Any, R>(), FuncN<Any, R> {
 
     override fun invokeUnchecked(vararg args: Any): R =
-        fetch.fetch(args[0] as SqlDatabase<SRC>, query, argumentTypes, args)
+        fetch.fetch(args[0] as SqlDatabase, query, argumentTypes, args)
 
     // for debugging
     override fun toString(): String =

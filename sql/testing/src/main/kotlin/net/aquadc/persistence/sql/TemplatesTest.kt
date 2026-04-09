@@ -33,53 +33,49 @@ import org.junit.Test
 
 abstract class TemplatesTest {
 
-    protected lateinit var session: Session<*>
+    protected lateinit var session: Session
 
-    @Test fun <CUR> cell() {
-        val session = session as Session<CUR>
+    @Test fun cell() {
         Eagerly.run {
-            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String?>(string, orElse = { null }))
+            val kek = Query("SELECT ? || 'kek'", string, cell(string, orElse = { null }))
             assertEquals("lolkek", session.kek("lol")!!) //  just check that we can do this: ^^^^^^^^
         }
         Lazily.run {
-            val kek = Query("SELECT ? || 'kek'", string, cell<CUR, String?>(string, orElse = { null }))
+            val kek = Query("SELECT ? || 'kek'", string, cell(string, orElse = { null }))
             assertEquals("lolkek", session.kek("lol").value)
         }
     }
-    @Test fun <CUR> noCell() {
-        val session = session as Session<CUR>
+    @Test fun noCell() {
         Eagerly.run {
-            try { session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string)))(); fail() }
+            try { session.(Query("SELECT 0 LIMIT 0", cell(string)))(); fail() }
             catch (expected: NoSuchElementException) {}
 
-            assertEquals("fallback", session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" }))())
+            assertEquals("fallback", session.(Query("SELECT 0 LIMIT 0", cell(string) { "fallback" }))())
         }
         Lazily.run {
-            try { session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string)))().value; fail() }
+            try { session.(Query("SELECT 0 LIMIT 0", cell(string)))().value; fail() }
             catch (expected: NoSuchElementException) {}
 
-            assertEquals("fallback", session.(Query("SELECT 0 LIMIT 0", cell<CUR, String>(string) { "fallback" }))().value)
+            assertEquals("fallback", session.(Query("SELECT 0 LIMIT 0", cell(string) { "fallback" }))().value)
         }
     }
 
-    @Test fun <CUR> col() {
-        val session = session as Session<CUR>
+    @Test fun col() {
         Eagerly.run {
-            val one = Query("SELECT 1", col<CUR, Int>(i32))
+            val one = Query("SELECT 1", col(i32))
             assertEquals(listOf(1), session.one())
         }
         Lazily.run {
-            val one = Query("SELECT 1", col<CUR, Int>(i32))
+            val one = Query("SELECT 1", col(i32))
             assertEquals(listOf(1), Sequence { session.one() }.toList())
         }
     }
 
-    @Test fun <CUR> row() {
-        val session = session as Session<CUR>
+    @Test fun row() {
         Eagerly.run {
             val sumAndMul = Query(
                 "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                structNullable<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
+                structNullable<Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>>(projection(i32 * i32), BindBy.Position)
             )
             val (f, s) = session.sumAndMul(80, 4, 6, 8)!!
             assertEquals(Pair(84, 48), Pair(f, s))
@@ -87,7 +83,7 @@ abstract class TemplatesTest {
         Lazily.run {
             val sumAndMul = Query(
                 "SELECT ? + ?, ? * ?", i32, i32, i32, i32,
-                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>, _>(projection(i32 * i32), BindBy.Position)
+                struct<Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>, _>(projection(i32 * i32), BindBy.Position)
             )
             session.sumAndMul(80, 4, 6, 8).value.let {
                 val (f, s) = it
@@ -96,17 +92,16 @@ abstract class TemplatesTest {
         }
     }
 
-    @Test fun <CUR> noRow() {
-        val session = session as Session<CUR>
+    @Test fun noRow() {
         val intPair = i32 * i32
         Eagerly.run {
             try { session.(Query(
                 "SELECT 0, 0 LIMIT 0",
-                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>, _>(projection(intPair), BindBy.Position)
+                struct(projection(intPair), BindBy.Position)
             ))(); fail() } catch (expected: NoSuchElementException) {}
 
             val (f, s) = session.(Query("SELECT 0, 0 LIMIT 0",
-                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>, _>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+                struct(projection(intPair), BindBy.Position) { intPair(1, 2) }
             ))()
             assertEquals(1, f)
             assertEquals(2, s)
@@ -114,14 +109,14 @@ abstract class TemplatesTest {
         Lazily.run {
             try {
                 session.(Query("SELECT 0, 0 LIMIT 0",
-                    struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>, _>(projection(intPair), BindBy.Position)
+                    struct(projection(intPair), BindBy.Position)
                 ))().value
                 fail()
             } catch (expected: NoSuchElementException) {}
 
             session.(Query(
                 "SELECT 0, 0 LIMIT 0",
-                struct<CUR, Tuple<Int, DataType.NotNull.Simple<Int>, Int, DataType.NotNull.Simple<Int>>, _>(projection(intPair), BindBy.Position) { intPair(1, 2) }
+                struct(projection(intPair), BindBy.Position) { intPair(1, 2) }
             ))().value.let {
                 val (f, s) = it
                 assertEquals(1, f)
@@ -130,8 +125,7 @@ abstract class TemplatesTest {
         }
     }
 
-    @Test fun <CUR> join() {
-        val session = session as Session<CUR>
+    @Test fun join() {
         val johnPk = session.mutate {
             val johnPk = insert(UserTable, User("John", "john@doe.com"))
             insert(ContactTable, Contact("@johnDoe", johnPk))
@@ -158,13 +152,13 @@ abstract class TemplatesTest {
         Eagerly.run {
             val userContact = Query(
                 USER_BY_NAME, string,
-                struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, _>(joined, BindBy.Name)
+                struct(joined, BindBy.Name)
             )
             val contact = session.userContact("John")
             assertEquals(expectedJohn, contact)
 
             val userContacts = Query(USERS_BY_NAME_AND_EMAIL_START, string, string,
-                structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+                structs(joined, BindBy.Name)
             )
             val contacts = session.read { userContacts("John", "john") }
             assertEquals(listOf(expectedJohn), contacts)
@@ -172,7 +166,7 @@ abstract class TemplatesTest {
         Lazily.run {
             val userContact = Query(
                 USER_BY_NAME, string,
-                struct<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, _>(joined, BindBy.Name)
+                struct(joined, BindBy.Name)
             )
             session.userContact("John").value.let { he ->
                 assertEquals(expectedJohn, he)
@@ -180,7 +174,7 @@ abstract class TemplatesTest {
 
             val userContacts = Query(
                 USERS_BY_NAME_AND_EMAIL_START, string, string,
-                structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+                structs(joined, BindBy.Name)
             )
             session.read { userContacts("John", "john") }.use { iter ->
                 assertEquals(expectedJohn, iter.next())
@@ -198,7 +192,7 @@ abstract class TemplatesTest {
 
             val transientUserContacts = Query(
                 USERS_BY_NAME_AND_EMAIL_START, string, string,
-                structs<CUR, Tuple<Struct<Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>>, Tuple<String, DataType.NotNull.Simple<String>, String, DataType.NotNull.Simple<String>>, Struct<Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>, Tuple<String, DataType.NotNull.Simple<String>, Long, DataType.NotNull.Simple<Long>>>>(joined, BindBy.Name)
+                structs(joined, BindBy.Name)
             )
             session.read { transientUserContacts("John", "john") }.use { iter -> // don't collect TemporaryStructs!
                 assertEquals(expectedJohn, iter.next())
@@ -218,14 +212,13 @@ abstract class TemplatesTest {
 
     // todo left/right/outer join
 
-    @Test fun <CUR> `same endianness`() {
-        val sqlOr = Query("SELECT ? | ? | ? | ?", i64, i64, i64, i64, Eagerly.cell<CUR, Long>(i64))
-        assertEquals((1L shl 48) or (2L shl 32) or (3L shl 16) or 4L, (session as Session<CUR>).read { sqlOr(1L shl 48, 2L shl 32, 3L shl 16, 4L) })
-        assertEquals(-1, (session as Session<CUR>).read { sqlOr(65535L shl 48, 65535L shl 32, 65535L shl 16, 65535L) })
+    @Test fun `same endianness`() {
+        val sqlOr = Query("SELECT ? | ? | ? | ?", i64, i64, i64, i64, Eagerly.cell(i64))
+        assertEquals((1L shl 48) or (2L shl 32) or (3L shl 16) or 4L, session.read { sqlOr(1L shl 48, 2L shl 32, 3L shl 16, 4L) })
+        assertEquals(-1, session.read { sqlOr(65535L shl 48, 65535L shl 32, 65535L shl 16, 65535L) })
     }
 
-    @Test fun <CUR> triggers() {
-        val session = session as Session<CUR>
+    @Test fun triggers() {
         var called = 0
         val insUpdListener = session.observe(UserTable to TriggerEvent.INSERT, UserTable to TriggerEvent.UPDATE) { report ->
             when (called++) {
@@ -255,17 +248,17 @@ abstract class TemplatesTest {
             /*assertEquals(1L, */insert(UserTable, User("A", "b"))/*)*/
         }
 
-        val insertUser = Mutation<CUR, String, String, Long>(
+        val insertUser = Mutation(
             "INSERT INTO ${UserTable.name} (${User.run { First.name }}, ${User.run { Second.name }}) VALUES (?, ?)",
             string, string,
             executeForInsertedKey(UserTable.idColType)
         )
-        val renameUser4Count = Mutation<CUR, String, String, Int>(
+        val renameUser4Count = Mutation(
             "UPDATE ${UserTable.name} SET ${User.run { First.name }} = ? WHERE ${User.run { Second.name }} = ?",
             string, string,
             executeForRowCount()
         )
-        val renameUser4Unit = Mutation<CUR, String, Unit>("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, execute())
+        val renameUser4Unit = Mutation("UPDATE ${UserTable.name} SET ${User.run { First.name }} = ?", string, execute())
 
         session.mutate {
             assertEquals(2L, insertUser("qwe", "asd"))
@@ -295,7 +288,7 @@ abstract class TemplatesTest {
             }
         }
         session.mutate {
-            Query("SELECT ${UserTable.idColName} FROM ${UserTable.name}", Eagerly.col<CUR, Long>(i64))()
+            Query("SELECT ${UserTable.idColName} FROM ${UserTable.name}", Eagerly.col(i64))()
                 .forEach { id -> delete(UserTable, id) }
         }
         assertEquals(1, called)
@@ -325,11 +318,11 @@ abstract class TemplatesTest {
         assertEquals(listOf(expected), rows.asSequence().toList())
     }
 
-    private fun <CUR, SCH : Schema<SCH>> assertCorrectInference(table: Table<SCH, *>) {
-        val nullable: Fetch<CUR, Struct<SCH>?> = Eagerly.struct(table, BindBy.Name) { null }
-        val any: Fetch<CUR, Any> = Eagerly.struct(table, BindBy.Name) { "lol" }
-        val lazyNullable: Fetch<CUR, Lazy<Struct<SCH>?>> = Lazily.struct(table, BindBy.Name) { null }
-        val lazyAny: Fetch<CUR, Lazy<Any>> = Lazily.struct(table, BindBy.Name) { "lol" }
+    private fun <SCH : Schema<SCH>> assertCorrectInference(table: Table<SCH, *>) {
+        val nullable: Fetch<Struct<SCH>?> = Eagerly.struct(table, BindBy.Name) { null }
+        val any: Fetch<Any> = Eagerly.struct(table, BindBy.Name) { "lol" }
+        val lazyNullable: Fetch<Lazy<Struct<SCH>?>> = Lazily.struct(table, BindBy.Name) { null }
+        val lazyAny: Fetch<Lazy<Any>> = Lazily.struct(table, BindBy.Name) { "lol" }
     }
 
 }

@@ -18,82 +18,82 @@ import net.aquadc.properties.function.just
 
 object Eagerly : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 
-    @JvmOverloads inline fun <CUR, R> cell(
+    @JvmOverloads inline fun <R> cell(
         returnType: Ilk<out R, *>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> =
+    ): Fetch<R> =
         FetchCellEagerly(returnType, orElse)
 
-    fun <CUR, R> col(
+    fun <R> col(
         elementType: Ilk<out R, *>,
-    ): Fetch<CUR, List<R>> =
-        FetchColLazily<CUR, _>(elementType).collect()
+    ): Fetch<List<R>> =
+        FetchColLazily(elementType).collect()
 
     @Suppress(
         "ONLY_ONE_CLASS_BOUND_ALLOWED", "INCONSISTENT_TYPE_PARAMETER_BOUNDS", // https://youtrack.jetbrains.com/issue/KT-209/
         "UNCHECKED_CAST", // (FetchStructEagerly as Fetch)::R = Struct<SCH> | orElse::R
     )
-    @JvmOverloads inline fun <CUR, SCH, R> struct(
+    @JvmOverloads inline fun <SCH, R> struct(
         table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> where
+    ): Fetch<R> where
             SCH : Schema<SCH>, SCH : DataType.NotNull.Partial<out R, SCH> =
-        FetchStructEagerly<SCH, CUR>(table, bindBy, orElse) as Fetch<CUR, R>
+        FetchStructEagerly(table, bindBy, orElse) as Fetch<R>
 
     @Deprecated("Type inference was hacked successfully.", ReplaceWith("this.struct(table, bindBy, orElse)"))
-    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
+    @JvmOverloads inline fun <SCH : Schema<SCH>> structNullable(
         table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = just(null),
-    ): Fetch<CUR, Struct<SCH>?> =
+    ): Fetch<Struct<SCH>?> =
         struct(table, bindBy, orElse)
 
-    fun <CUR, SCH : Schema<SCH>> structs(
+    fun <SCH : Schema<SCH>> structs(
         table: Table<SCH, *>, bindBy: BindBy
-    ): Fetch<CUR, List<StructSnapshot<SCH>>> =
+    ): Fetch<List<StructSnapshot<SCH>>> =
         @Suppress("UNCHECKED_CAST") // FetchStructsLazily::R::T = StructSnapshot when transient=false
-        (FetchStructsLazily<CUR, _>(table, bindBy, false) as Fetch<CUR, CloseableIterator<StructSnapshot<SCH>>>)
+        (FetchStructsLazily(table, bindBy, false) as Fetch<CloseableIterator<StructSnapshot<SCH>>>)
             .collect()
 
-    inline fun <CUR> execute(): Exec<CUR, Unit> =
-        ExecuteForUnit as Exec<CUR, Unit>
+    inline fun execute(): Exec<Unit> =
+        ExecuteForUnit
 
-    inline fun <CUR> executeForRowCount(): Exec<CUR, Int> =
-        ExecuteForRowCount as Exec<CUR, Int>
+    inline fun executeForRowCount(): Exec<Int> =
+        ExecuteForRowCount
 
-    inline fun <CUR, T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<CUR, T> =
+    inline fun <T, DT : DataType.NotNull.Simple<T>> executeForInsertedKey(pkType: Ilk<T, DT>): Exec<T> =
         ExecuteEagerlyFor(pkType.also { check(it !== nothing) })
-            as Exec<CUR, T>
+            as Exec<T>
 }
 
 object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 
-    @JvmOverloads fun <CUR, R> cell(
+    @JvmOverloads fun <R> cell(
         returnType: Ilk<out R, *>, orElse: () -> R = throwNse,
-    ): Fetch<CUR, Lazy<R>> =
-        FetchCellEagerly<CUR, R>(returnType, orElse).lazy()
+    ): Fetch<Lazy<R>> =
+        FetchCellEagerly<R>(returnType, orElse).lazy()
 
-    inline fun <CUR, R> col(
+    inline fun <R> col(
         elementType: Ilk<out R, *>,
-    ): Fetch<CUR, CloseableIterator<R>> =
+    ): Fetch<CloseableIterator<R>> =
         FetchColLazily(elementType)
 
     @Suppress(
         "ONLY_ONE_CLASS_BOUND_ALLOWED", "INCONSISTENT_TYPE_PARAMETER_BOUNDS", // https://youtrack.jetbrains.com/issue/KT-209/
         "UNCHECKED_CAST", // (FetchStructEagerly as Fetch)::R = Struct<SCH> | orElse::R
     )
-    @JvmOverloads fun <CUR, SCH, R> struct(
+    @JvmOverloads fun <SCH, R> struct(
         table: Table<SCH, *>, bindBy: BindBy, orElse: () -> R = throwNse,
-    ): Fetch<CUR, Lazy<R>> where
+    ): Fetch<Lazy<R>> where
             SCH : Schema<SCH>, SCH : DataType.NotNull.Partial<out R, SCH> =
-        Eagerly.struct<CUR, SCH, R>(table, bindBy, orElse)
+        Eagerly.struct<SCH, R>(table, bindBy, orElse)
             .lazy()
 
     @Deprecated("Type inference was hacked successfully.", ReplaceWith("this.struct(table, bindBy, orElse)"))
-    @JvmOverloads inline fun <CUR, SCH : Schema<SCH>> structNullable(
+    @JvmOverloads inline fun <SCH : Schema<SCH>> structNullable(
         table: Table<SCH, *>, bindBy: BindBy, noinline orElse: () -> Struct<SCH>? = just(null),
-    ): Fetch<CUR, Lazy<Struct<SCH>?>> =
+    ): Fetch<Lazy<Struct<SCH>?>> =
         struct(table, bindBy, orElse)
 
-    inline fun <CUR, SCH : Schema<SCH>> structs(
+    inline fun <SCH : Schema<SCH>> structs(
         table: Table<SCH, *>, bindBy: BindBy
-    ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
+    ): Fetch<CloseableIterator<Struct<SCH>>> =
         FetchStructsLazily(table, bindBy, false)
 
     /**
@@ -108,9 +108,9 @@ object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
      * and other stateful one-pass operations are also OK.
      * (But consider doing as much work as possible in SQL instead.)
      */
-    inline fun <CUR, SCH : Schema<SCH>> transientStructs(
+    inline fun <SCH : Schema<SCH>> transientStructs(
         table: Table<SCH, *>, bindBy: BindBy,
-    ): Fetch<CUR, CloseableIterator<Struct<SCH>>> =
+    ): Fetch<CloseableIterator<Struct<SCH>>> =
         FetchStructsLazily(table, bindBy, true)
 }
 
@@ -118,41 +118,41 @@ object Lazily : ProhibitCellsAndColsOfCollectionAndPartialTypes() {
 abstract class ProhibitCellsAndColsOfCollectionAndPartialTypes internal constructor() {
 
     @Deprecated("single cell can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    @JvmOverloads inline fun <CUR, R> cell(
+    @JvmOverloads inline fun <R> cell(
         returnType: DataType.NotNull.Collect<out R, *, *>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> = throw AssertionError()
+    ): Fetch<R> = throw AssertionError()
 
     @Deprecated("single cell can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    @JvmOverloads inline fun <CUR, R> cell(
+    @JvmOverloads inline fun <R> cell(
         returnType: DataType.NotNull.Partial<out R, *>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> = throw AssertionError()
+    ): Fetch<R> = throw AssertionError()
 
     @Deprecated("single cell can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    @JvmOverloads inline fun <CUR, R : Any> cell(
+    @JvmOverloads inline fun <R : Any> cell(
         returnType: DataType.Nullable<out R, DataType.NotNull.Collect<out R, *, *>>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> = throw AssertionError()
+    ): Fetch<R> = throw AssertionError()
 
     @JvmName("nsCell")
     @Deprecated("single cell can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    @JvmOverloads inline fun <CUR, R : Any> cell(
+    @JvmOverloads inline fun <R : Any> cell(
         returnType: DataType.Nullable<out R, DataType.NotNull.Partial<out R, *>>, noinline orElse: () -> R = throwNse,
-    ): Fetch<CUR, R> = throw AssertionError()
+    ): Fetch<R> = throw AssertionError()
 
     @Deprecated("single column can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    inline fun <CUR, R> col(elementType: DataType.NotNull.Collect<out R, *, *>): Fetch<CUR, List<R>> =
+    inline fun <R> col(elementType: DataType.NotNull.Collect<out R, *, *>): Fetch<List<R>> =
         throw AssertionError()
 
     @Deprecated("single column can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    inline fun <CUR, R> col(elementType: DataType.NotNull.Partial<out R, *>): Fetch<CUR, List<R>> =
+    inline fun <R> col(elementType: DataType.NotNull.Partial<out R, *>): Fetch<List<R>> =
         throw AssertionError()
 
     @Deprecated("single column can't hold a Collection unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    inline fun <CUR, R : Any> col(elementType: DataType.Nullable<out R, DataType.NotNull.Collect<out R, *, *>>): Fetch<CUR, List<R>> =
+    inline fun <R : Any> col(elementType: DataType.Nullable<out R, DataType.NotNull.Collect<out R, *, *>>): Fetch<List<R>> =
         throw AssertionError()
 
     @JvmName("nsCol")
     @Deprecated("single column can't hold a Partial/Struct unless nativeType: Ilk is used", level = DeprecationLevel.ERROR)
-    inline fun <CUR, R : Any> col(elementType: DataType.Nullable<out R, DataType.NotNull.Partial<out R, *>>): Fetch<CUR, List<R>> =
+    inline fun <R : Any> col(elementType: DataType.Nullable<out R, DataType.NotNull.Partial<out R, *>>): Fetch<List<R>> =
         throw AssertionError()
 
 }

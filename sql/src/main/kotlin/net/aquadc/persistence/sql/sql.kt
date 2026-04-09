@@ -29,30 +29,12 @@ annotation class ExperimentalSql
 /**
  * A readable database or transaction.
  */
-interface Database<CUR> {
+interface Database {
 
 //    fun <SCH : Schema<SCH>, ID : IdBound> TODO
 //        select(from: Table<SCH, ID>, what: FieldSet<SCH, *>, /*where: String?, whereArgs: Array<Any>?, orderBy: String?*/): CUR
 
     // fun observe()
-
-    fun sizeHint(cursor: CUR): Int
-    fun next(cursor: CUR): Boolean
-
-    fun <T> cellByName(cursor: CUR, name: CharSequence, type: Ilk<T, *>): T
-    fun <T> cellAt(cursor: CUR, col: Int, type: Ilk<T, *>): T
-
-    fun rowByName(cursor: CUR, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?>
-    fun rowByPosition(cursor: CUR, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?>
-
-    /**
-     * Closes the given cursor.
-     * [java.sql.ResultSet] is [AutoCloseable],
-     * while [android.database.Cursor] is [java.io.Closeable].
-     * [AutoCloseable] is more universal but requires Java 7 / Android SDK 19.
-     * Let's support mammoth crap smoothly.
-     */
-    fun close(cursor: CUR)
 }
 
 /**
@@ -60,7 +42,7 @@ interface Database<CUR> {
  *
  * [android.content.ContentResolver] does not, that's why we have simpler [Database].
  */
-interface SqlDatabase<CUR> : Database<CUR> {
+interface SqlDatabase : Database {
 
     fun <T> cell(
         query: String,
@@ -93,24 +75,18 @@ interface SqlDatabase<CUR> : Database<CUR> {
         table: Table<SCH, *>, bindBy: BindBy, transient: Boolean,
     ): CloseableIterator<Struct<SCH>>
 
-    fun select(
-        query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
-        expectedCols: Int
-    ): CUR
-
     fun <ID> execute(
         query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
     ): Any?
 }
 
-interface SqlTransaction<CUR> : SqlDatabase<CUR>, Closeable
+interface SqlTransaction : SqlDatabase, Closeable
 
 /**
  * A writable database or transaction.
  */
-interface MutableDatabase<CUR> : Database<CUR> {
+interface MutableDatabase : Database {
 
     /**
      * Insert [data] into a [table].
@@ -144,13 +120,13 @@ interface MutableDatabase<CUR> : Database<CUR> {
  *
  * [android.content.ContentResolver] does not, that's why we have simpler [Database].
  */
-interface MutableSqlDatabase<CUR> : SqlDatabase<CUR>, MutableDatabase<CUR>
+interface MutableSqlDatabase : SqlDatabase, MutableDatabase
 
-interface MutableSqlTransaction<CUR> : SqlTransaction<CUR>, MutableSqlDatabase<CUR> {
+interface MutableSqlTransaction : SqlTransaction, MutableSqlDatabase {
     fun setSuccessful()
 }
 
-internal interface InternalTransaction<SRC> : MutableSqlTransaction<SRC> {
+internal interface InternalTransaction : MutableSqlTransaction {
     fun addTriggers(newbies: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     fun removeTriggers(victims: Map<Table<*, *>, InlineEnumSet<TriggerEvent>>)
     fun close(deliver: Boolean)
@@ -159,17 +135,17 @@ internal interface InternalTransaction<SRC> : MutableSqlTransaction<SRC> {
 /**
  * A gateway into RDBMS.
  */
-interface Session<CUR> : MutableSqlDatabase<CUR>, MemoryTrimmable, Closeable {
+interface Session : MutableSqlDatabase, MemoryTrimmable, Closeable {
 
     /**
      * Opens a readable transaction.
      */
-    fun read(): SqlTransaction<CUR>
+    fun read(): SqlTransaction
 
     /**
      * Opens a mutable transaction.
      */
-    fun mutate(): MutableSqlTransaction<CUR>
+    fun mutate(): MutableSqlTransaction
 
     /**
      * Registers trigger listener for all [subject]s.
@@ -204,7 +180,7 @@ interface MemoryTrimmable {
 // TODO: observe(DEFERRED)
 
 
-inline fun <SCH : Schema<SCH>, ID : IdBound> MutableSqlTransaction<*>.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
+inline fun <SCH : Schema<SCH>, ID : IdBound> MutableSqlTransaction.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
     insertAll(table, data.iterator())
 
 inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =

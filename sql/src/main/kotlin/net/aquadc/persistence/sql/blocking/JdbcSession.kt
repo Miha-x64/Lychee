@@ -53,30 +53,17 @@ import javax.sql.DataSource
  */
 abstract class JdbcDb internal constructor(
     @JvmField protected val dialect: Dialect,
-) : MutableSqlDatabase<ResultSet> {
-
-    // Database
-
-    final override fun sizeHint(cursor: ResultSet): Int =
-        -1
-    final override fun next(cursor: ResultSet): Boolean =
-        cursor.next()
-
-    final override fun <T> cellByName(cursor: ResultSet, name: CharSequence, type: Ilk<T, *>): T =
-        cursor.cell(type, cursor.findColumn(name.toString()), dialect.hasArraySupport)
-    final override fun <T> cellAt(cursor: ResultSet, col: Int, type: Ilk<T, *>): T =
-        cursor.cell(type, col)
-    final override fun rowByName(cursor: ResultSet, columnNames: Array<out CharSequence>, columnTypes: Array<out Ilk<*, *>>): Array<Any?> =
-        Array(columnNames.size) { idx -> cellByName(cursor, columnNames[idx], columnTypes[idx]) }
-    final override fun rowByPosition(cursor: ResultSet, offset: Int, types: Array<out Ilk<*, *>>): Array<Any?> =
-        Array(types.size) { idx -> cursor.cell(types[idx], offset + idx) }
-
-    final override fun close(cursor: ResultSet) =
-        cursor.close()
+) : MutableSqlDatabase {
 
     @Suppress("NOTHING_TO_INLINE")
     protected inline fun <T> ResultSet.cell(type: Ilk<out T, *>, index: Int): T =
         cell(type, 1 + index, dialect.hasArraySupport)
+
+    abstract fun select(
+        query: String,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        expectedCols: Int
+    ): ResultSet
 
     // SqlDatabase
 
@@ -285,7 +272,7 @@ constructor(
          * to avoid temp table or trigger name clashes.
          */
         nodeName: String = genNodeName()
-) : JdbcDb(dialect), Session<ResultSet> {
+) : JdbcDb(dialect), Session {
 
     private var singleConnection: AutoCloseable? = null
 
@@ -376,12 +363,12 @@ constructor(
 
     // Session
 
-    override fun read(): SqlTransaction<ResultSet> =
+    override fun read(): SqlTransaction =
         JdbcTransaction(newTrConn(), true)
     //       always commit read-only ^^^^ transactions
     //  https://medium.com/javarevisited/spring-never-rollback-readonly-transactions-ffc21958b0d0
 
-    override fun mutate(): MutableSqlTransaction<ResultSet> =
+    override fun mutate(): MutableSqlTransaction =
         JdbcTransaction(newTrConn(), false)
 
     private val triggers = Triggerz()
@@ -431,7 +418,7 @@ constructor(
     private inner class JdbcTransaction(
         private val conn: Connection,
         readOnly: Boolean,
-    ) : JdbcDb(dialect), InternalTransaction<ResultSet> {
+    ) : JdbcDb(dialect), InternalTransaction {
 
         private var isSuccessful = readOnly
 

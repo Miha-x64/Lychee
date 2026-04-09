@@ -48,12 +48,12 @@ import splitties.views.textAppearance
 
 class SqliteActivity : Activity() {
 
-    internal lateinit var vm: SqlViewModel<Cursor>
+    internal lateinit var vm: SqlViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        vm = (lastNonConfigurationInstance as SqlViewModel<Cursor>?) ?:
+        vm = (lastNonConfigurationInstance as SqlViewModel?) ?:
                 SqlViewModel(SqliteSession(Helper(applicationContext).writableDatabase))
 
         if (savedInstanceState == null) {
@@ -122,7 +122,7 @@ class SqliteActivity : Activity() {
 
     class ListFragment : Fragment() {
 
-        val vm: SqlViewModel<Cursor>
+        val vm: SqlViewModel
             get() = (activity as SqliteActivity).vm
 
         override fun onCreate(savedInstanceState: Bundle?) {
@@ -181,7 +181,7 @@ class SqliteActivity : Activity() {
 
     class EditDialogFragment : DialogFragment() {
 
-        val vm: SqlViewModel<Cursor>
+        val vm: SqlViewModel
             get() = (activity as SqliteActivity).vm
 
         override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = with(activity) {

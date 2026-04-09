@@ -4,7 +4,6 @@ import net.aquadc.persistence.sql.*
 import net.aquadc.persistence.sql.blocking.Eagerly.cell
 import net.aquadc.persistence.sql.blocking.Eagerly.execute
 import net.aquadc.persistence.sql.blocking.Eagerly.struct
-import net.aquadc.persistence.sql.blocking.Eagerly.structNullable
 import net.aquadc.persistence.sql.blocking.Eagerly.structs
 import net.aquadc.persistence.sql.template.Mutation
 import net.aquadc.persistence.sql.template.Query
@@ -14,32 +13,33 @@ import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.string
 import net.aquadc.properties.*
 import net.aquadc.properties.function.Objectz
+import net.aquadc.properties.function.just
 import net.aquadc.properties.persistence.ObservableStruct
 import java.io.Closeable
 
 
-class SqlViewModel<CUR>(
-    private val session: Session<CUR>
+class SqlViewModel(
+    private val session: Session
 ): Closeable {
 
-    private val count: SqlDatabase<CUR>.() -> Int =
+    private val count: SqlDatabase.() -> Int =
         Query("SELECT COUNT(*) FROM ${Human.Tbl.name}", cell(i32))
 
-    private val fetch: SqlDatabase<CUR>.() -> List<Struct<Human>> =
+    private val fetch: SqlDatabase.() -> List<Struct<Human>> =
         Query("SELECT * FROM ${Human.Tbl.name}", structs(Human.Tbl, BindBy.Name))
 
-    private val fetchName: SqlDatabase<CUR>.(Long) -> String =
+    private val fetchName: SqlDatabase.(Long) -> String =
         Query("SELECT \"name\" FROM ${Human.Tbl.name} WHERE _id = ?", i64, cell(string))
 
-    private val require: SqlDatabase<CUR>.(Long) -> Struct<Human> =
+    private val require: SqlDatabase.(Long) -> Struct<Human> =
         Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, struct(Human.Tbl, BindBy.Name))
-    private val find: SqlDatabase<CUR>.(Long) -> Struct<Human>? =
-        Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, structNullable(Human.Tbl, BindBy.Name))
+    private val find: SqlDatabase.(Long) -> Struct<Human>? =
+        Query("SELECT * FROM ${Human.Tbl.name} WHERE _id = ?", i64, struct(Human.Tbl, BindBy.Name, just(null)))
 
-    private val updateName: MutableSqlDatabase<CUR>.(String, Long) -> Unit =
+    private val updateName: MutableSqlDatabase.(String, Long) -> Unit =
         Mutation("UPDATE ${Human.Tbl.name} SET ${Human.run { Name.name }} = ? WHERE _id = ?", string, i64, execute())
 
-    private val carsWithConditionersByOwner: SqlDatabase<CUR>.(Long) -> List<Struct<Car>> =
+    private val carsWithConditionersByOwner: SqlDatabase.(Long) -> List<Struct<Car>> =
         Query("SELECT * FROM ${Car.Tbl.name} WHERE ${Car.run { OwnerId.name }} = ? AND ${Car.run { ConditionerModel.name }} IS NOT NULL",
             i64,
             structs(Car.Tbl, BindBy.Name))
@@ -128,7 +128,7 @@ class SqlViewModel<CUR>(
             delete(Human.Tbl, id)
         }
 
-    private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: MutableSqlDatabase<CUR>.() -> Unit): P =
+    private fun <P : MutableProperty<Boolean>> P.clearEachAndTransact(func: MutableSqlDatabase.() -> Unit): P =
         clearEachAnd { session.mutate { func() } }
 
     private fun fillIfEmpty() {

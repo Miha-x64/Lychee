@@ -12,7 +12,7 @@ import kotlin.contracts.contract
  * In future could retry conflicting transaction by calling [block] more than once.
  */
 @OptIn(ExperimentalContracts::class)
-inline fun <SRC, R> Session<SRC>.read(block: SqlDatabase<SRC>.() -> R): R {
+inline fun <R> Session.read(block: SqlDatabase.() -> R): R {
     contract { callsInPlace(block, InvocationKind.AT_LEAST_ONCE) }
 
     val transaction = read()
@@ -24,11 +24,11 @@ inline fun <SRC, R> Session<SRC>.read(block: SqlDatabase<SRC>.() -> R): R {
 }
 
 @RequiresApi(24) @JvmName("acceptRead")
-fun <SRC> Session<SRC>.read4j(block: java.util.function.Consumer<SqlDatabase<SRC>>): Unit =
+fun Session.read4j(block: java.util.function.Consumer<SqlDatabase>): Unit =
     read { block.accept(this) }
 
 @RequiresApi(24) @JvmName("applyRead")
-fun <SRC, R> Session<SRC>.read4j(block: java.util.function.Function<SqlDatabase<SRC>, R>): R =
+fun <R> Session.read4j(block: java.util.function.Function<SqlDatabase, R>): R =
     read { block.apply(this) }
 
 
@@ -37,7 +37,7 @@ fun <SRC, R> Session<SRC>.read4j(block: java.util.function.Function<SqlDatabase<
  * In future could retry conflicting transaction by calling [block] more than once.
  */
 @OptIn(ExperimentalContracts::class)
-inline fun <SRC, R> Session<SRC>.mutate(block: MutableSqlDatabase<SRC>.() -> R): R {
+inline fun <R> Session.mutate(block: MutableSqlDatabase.() -> R): R {
     contract { callsInPlace(block, InvocationKind.AT_LEAST_ONCE) }
 
     val transaction = mutate()
@@ -51,13 +51,13 @@ inline fun <SRC, R> Session<SRC>.mutate(block: MutableSqlDatabase<SRC>.() -> R):
 }
 
 @RequiresApi(24) @JvmName("acceptMutation")
-fun <SRC> Session<SRC>.mutate4j(block: java.util.function.Consumer<MutableSqlDatabase<SRC>>): Unit =
+fun  Session.mutate4j(block: java.util.function.Consumer<MutableSqlDatabase>): Unit =
     mutate { block.accept(this) }
 
 @RequiresApi(24) @JvmName("applyMutation")
-fun <SRC, R> Session<SRC>.mutate4j(block: java.util.function.Function<MutableSqlDatabase<SRC>, R>): R =
+fun <R> Session.mutate4j(block: java.util.function.Function<MutableSqlDatabase, R>): R =
     mutate { block.apply(this) }
 
 @Deprecated("renamed, use read{} and mutate{}", ReplaceWith("this.mutate(block)"))
-inline fun <SRC, R> Session<SRC>.withTransaction(block: MutableSqlDatabase<SRC>.() -> R): R =
+inline fun <R> Session.withTransaction(block: MutableSqlDatabase.() -> R): R =
     mutate(block)

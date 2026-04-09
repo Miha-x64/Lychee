@@ -174,7 +174,7 @@ internal class Triggerz { // @file:JvmName("Triggers")
     // reuse lock-free notification + instant unsubscription machinery
     private val notifier = concurrentDiffPropertyOf<Unit, TriggerReport>(Unit)
 
-    fun addListener(transact: () -> InternalTransaction<*>, subjects: Array<out TriggerSubject>, listener: (TriggerReport) -> Unit): Closeable {
+    fun addListener(transact: () -> InternalTransaction, subjects: Array<out TriggerSubject>, listener: (TriggerReport) -> Unit): Closeable {
         synchronized(activeSubjects) {
             // unfortunately, having AtomicReference<Array<TriggerSubject>> won't help:
             // adding two identical triggers concurrently could lead to such an execution that

@@ -10,12 +10,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.AssumptionViolatedException
 import org.junit.Test
-import java.io.Closeable
 import java.sql.SQLException
 
 
 abstract class SqlPropTest {
-    protected lateinit var session: Session<*>
+    protected lateinit var session: Session
 
     open val duplicatePkExceptionClass: Class<*> = SQLException::class.java
 
@@ -89,8 +88,8 @@ abstract class SqlPropTest {
         session.read {
             assertEquals(
                 "bbb",
-                Query("""SELECT "value" FROM with_id WHERE _id = ?""", i32, Eagerly.cell<Closeable, String>(string))
-                    .invoke(this as SqlDatabase<Closeable>, id)
+                Query("""SELECT "value" FROM with_id WHERE _id = ?""", i32, Eagerly.cell(string))
+                    .invoke(this, id)
             )
         }
     }

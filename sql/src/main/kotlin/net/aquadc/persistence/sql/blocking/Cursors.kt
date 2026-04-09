@@ -180,7 +180,7 @@ private fun unembed(
     }
 }
 
-internal fun Cursor.getColIdx(guess: Int, name: CharSequence): Int { // native `getColumnIndex` wrecks labels with '.'!
+private fun Cursor.getColIdx(guess: Int, name: CharSequence): Int { // native `getColumnIndex` wrecks labels with '.'!
     val columnNames = columnNames!! // FIXME faster
     if (columnNames.size > guess && name.eq(columnNames[guess], false)) return guess
     val idx = columnNames.indexOfFirst { name.eq(it, false) }

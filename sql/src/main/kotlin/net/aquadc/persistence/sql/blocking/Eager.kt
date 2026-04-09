@@ -11,12 +11,12 @@ import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.nothing
 
-@PublishedApi internal class FetchCellEagerly<CUR, R>(
+@PublishedApi internal class FetchCellEagerly<R>(
         private val rt: Ilk<out R, *>,
         private val orElse: () -> R
-) : Fetch<CUR, R> {
+) : Fetch<R> {
     override fun fetch(
-        from: SqlDatabase<CUR>,
+        from: SqlDatabase,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         receiverAndArguments: Array<out Any>
@@ -24,13 +24,13 @@ import net.aquadc.persistence.type.nothing
         from.cell(query, argumentTypes, receiverAndArguments, rt, orElse)
 }
 
-@PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>, CUR>(
+@PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>>(
     private val table: Table<SCH, *>,
     private val bindBy: BindBy,
     private val orElse: () -> Any?,
-) : Fetch<CUR, Any?> {
+) : Fetch<Any?> {
     override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
+        from: SqlDatabase, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Any? {
         val iter = from.rows(query, argumentTypes, receiverAndArguments, table, bindBy, false)
@@ -48,10 +48,10 @@ import net.aquadc.persistence.type.nothing
     }
 }
 
-internal fun <CUR, R> Fetch<CUR, Iterator<R>>.collect(): Fetch<CUR, List<R>> =
-    object : Fetch<CUR, List<R>> {
+internal fun <R> Fetch<Iterator<R>>.collect(): Fetch<List<R>> =
+    object : Fetch<List<R>> {
         override fun fetch(
-            from: SqlDatabase<CUR>,
+            from: SqlDatabase,
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
             receiverAndArguments: Array<out Any>
@@ -72,16 +72,18 @@ private fun <R> Iterator<R>.collect(): List<R> {
     } else emptyList()
 }
 
+@Suppress("UNCHECKED_CAST") // `nothing` has special handling
 @PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerlyFor(nothing)
-    as Fetch<*, Unit>
+    as Fetch<Unit>
+@Suppress("UNCHECKED_CAST") // `null` has special handling
 @PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerlyFor<Nothing>(null)
-    as Fetch<*, Int>
+    as Fetch<Int>
 
 @PublishedApi internal class ExecuteEagerlyFor<ID>(
     private val retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
-) : Exec<Any, Any?> {
+) : Exec<Any?> {
     override fun fetch(
-        from: SqlDatabase<Any>, query: String,
+        from: SqlDatabase, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Any? {
         val ret = from.execute(query, argumentTypes, receiverAndArguments, if (retKeyType === nothing) null else retKeyType)

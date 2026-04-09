@@ -12,32 +12,32 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 
-@PublishedApi internal class FetchColLazily<CUR, R>(
+@PublishedApi internal class FetchColLazily<R>(
     private val rt: Ilk<R, *>
-) : Fetch<CUR, CloseableIterator<R>> {
+) : Fetch<CloseableIterator<R>> {
     override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
+        from: SqlDatabase, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<R> =
         from.column(query, argumentTypes, receiverAndArguments, rt)
 }
 
-@PublishedApi internal class FetchStructsLazily<CUR, SCH : Schema<SCH>>(
+@PublishedApi internal class FetchStructsLazily<SCH : Schema<SCH>>(
     private val table: Table<SCH, *>,
     private val bindBy: BindBy,
     private val transient: Boolean,
-) : Fetch<CUR, CloseableIterator<Struct<SCH>>> {
+) : Fetch<CloseableIterator<Struct<SCH>>> {
     override fun fetch(
-        from: SqlDatabase<CUR>, query: String,
+        from: SqlDatabase, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): CloseableIterator<Struct<SCH>> =
         from.rows(query, argumentTypes, receiverAndArguments, table, bindBy, transient)
 }
 
-internal fun <CUR, R> Fetch<CUR, R>.lazy(): Fetch<CUR, Lazy<R>> =
-    object : Fetch<CUR, Lazy<R>> {
+internal fun <R> Fetch<R>.lazy(): Fetch<Lazy<R>> =
+    object : Fetch<Lazy<R>> {
         override fun fetch(
-            from: SqlDatabase<CUR>,
+            from: SqlDatabase,
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
             receiverAndArguments: Array<out Any>
