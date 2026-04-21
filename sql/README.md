@@ -1,39 +1,36 @@
 
-Given a struct schema, e. g.
+Given a struct schema:
 
 ```kt
 object Player : Schema<Player>() {
     val Name = "name" let string
     val Surname = "surname" let string
-    val Score = "score".mut(int, default = 0)
+    val Score = "score".mut(i32, default = 0)
 }
 ```
 
-Declaring a table is trivial:
+Declaring a table:
 
 ```kt
 // the struct does not know anything about primary key
-val PlayerTable = SimpleTable(
+val PlayerTable = tableOf(
     schema = Player, name = "players",
-    idColName = "_id", idColType = long
+    idColName = "_id", idColType = i64,
 )
 
-// alternatively, when primary key is a part of schema
-val PlayerTable = SimpleTable(
-    schema = Player, name = "players", idCol = Player.Id
+// or primary key is a part of schema
+val PlayerTable = tableOf(
+    schema = Player, name = "players", idCol = Player.Id,
 )
-
-// hold all your tables to create all of them easily
-val Tables = arrayOf(PlayerTable)
 ```
 
-Creating a session:
+Connecting to the database:
 ```kt
-// in-memory SQLite database with JDBC, e. g. for unit-testing:
+// in-memory SQLite database with JDBC, e.g. for unit-testing:
 val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").also { conn ->
     val stmt = conn.createStatement()
     Tables.forEach {
-        stmt.execute(SqliteDialect.createTable(it))
+        stmt.execute("CREATE TABLE ...")
     }
     stmt.close()
 }, SqliteDialect)
@@ -41,7 +38,7 @@ val session = JdbcSession(DriverManager.getConnection("jdbc:sqlite::memory:").al
 // Android SQLite
 val session = SqliteSession(object : SQLiteOpenHelper(context, "app.db", null, 1) {
     override fun onCreate(db: SQLiteDatabase) {
-        Tables.forEach { db.execSQL(SqliteDialect.createTable(it)) }
+        db.execSQL("CREATE TABLE ...")
     }
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
         throw UnsupportedOperationException()
@@ -49,44 +46,81 @@ val session = SqliteSession(object : SQLiteOpenHelper(context, "app.db", null, 1
 }.writableDatabase)
 
 // server setup
-JdbcSession(hikariDataSource, PostgresDialect)
+val session = JdbcSession(hikariDataSource, PostgresDialect)
 ```
 
 Inserting:
 ```kt
 val playerRecord = session.mutate {
     insert(PlayerTable, Player { ... })
+  
+    // from JSON, for example
+    insert(PlayerTable, "{...}".reader().json().tokens().iteratorOfTransient(Player))
 }
 ```
 
 ## SQL templates
+
+Define queries somewhere close to DB schema, invoke them closer to business:
+
 ```kt
 val namesToEmails = Query(
     "SELECT u.name, c.email FROM users u " +
     "INNER JOIN contacts c ON u._id = c.user_id " +
-    "LIMIT ?, ?", /*offset*/ i32, /*rowCount*/ i32,
-    /* fetch as */ structs(string * string, BindBy.Position)
+    "LIMIT ? OFFSET ?", /*limit*/ i32, /*offset*/ i32,
+    /* fetch as */ Lazily.structs(projection(string * string), BindBy.Position),
 )
-namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
+val renameByEmail = Mutation(
+    "UPDATE users SET name = ? WHERE email = ?",
+    string, string,
+    Eagerly.executeForRowCount(),
+)
+
+...
+
+
+session.namesToEmails(/*offset*/ 0, /*rowCount*/ 10).use {
     it.forEach { (name, email) ->
         
     }
 }
 
-val update = Mutation(
-    "UPDATE users SET name = ? WHERE email = ?",
-    string, string,
-    executeForRowCount()
-)
-
 session.mutate { // update in a transaction
-    assertEquals(1, update("java@sun.com", "Java™"))
+    assertEquals(1, renameByEmail("java@sun.com", "Java™"))
 }
-
-// single statement transaction
-session.update(...)
 ```
 
+Bind arguments with Lychee, get a Cursor/ResultSet:
+```kt
+val something = Query(
+    "SELECT something FROM somewhere WHERE a = ? LIMIT ?",
+    /*a*/ string, /*limit*/ i32,
+    JdbcDb.resultSet() or SqliteDb.cursor(),
+)
+
+jdbcOrSqliteSession.something(a, limit) -> ResultSet or Cursor
+```
+
+Execute query on your own, bind result with Lychee:
+```kt
+gimmeResultSetOrCursor()
+    .asStructIterator(PlayerTable, BindBy.Name)
+    .forEach { playa ->
+        println(playa)  
+    }
+```
+
+NB: asking Lychee to separately execute query and bind the result is less efficient.
+```kt
+// <DON'T DO THIS>
+val something = Query("SELECT * FROM players", JdbcDb.resultSet()) // DON'T DO THIS
+jdbcSession.something().asStructIterator(PlayerTable) // DON'T DO THIS
+// </DON'T DO THIS>
+
+// Do this instead:
+val something = Query("SELECT * FROM players", Lazily.structs(PlayerTable))
+jdbcSession.something()
+```
 
 
 #### Thanks
