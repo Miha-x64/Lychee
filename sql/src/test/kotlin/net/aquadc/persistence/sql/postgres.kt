@@ -127,7 +127,7 @@ class TemplatesPostgres : TemplatesTest() {
     }
 
     @Test fun `very custom table`() {
-        (session as JdbcSession).dataSource.connection.use {
+        (session as JdbcSession).getConnection().use {
             it.createStatement().use {
                 it.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
             }
@@ -189,7 +189,7 @@ class TemplatesPostgres : TemplatesTest() {
         )
     }
     private fun <ID : IdBound> assertInserts(create: String, table: Table<Yoozer, ID>) {
-        (session as JdbcSession).dataSource.connection.use {
+        (session as JdbcSession).getConnection().use {
             it.createStatement().use {
                 it.execute(create)
             }

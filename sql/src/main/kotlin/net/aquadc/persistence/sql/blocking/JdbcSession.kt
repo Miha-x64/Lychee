@@ -24,7 +24,6 @@ import net.aquadc.persistence.sql.TriggerSubject
 import net.aquadc.persistence.sql.Triggerz
 import net.aquadc.persistence.sql.appendJoining
 import net.aquadc.persistence.sql.bindInsertionParams
-import net.aquadc.persistence.sql.bindQueryParams
 import net.aquadc.persistence.sql.dialect.Dialect
 import net.aquadc.persistence.sql.dialect.foldArrayType
 import net.aquadc.persistence.sql.mutate
@@ -39,8 +38,8 @@ import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.i32
 import net.aquadc.persistence.type.i64
 import net.aquadc.persistence.type.serialized
+import net.aquadc.properties.function.just
 import java.io.Closeable
-import java.io.PrintWriter
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -157,7 +156,7 @@ abstract class JdbcDb internal constructor(
         if (custom != null) {
             statement.setObject(i, custom.store(statement.connection, value))
         } else {
-            val t = type as DataType<T>
+            val t = type
             val type = if (t is DataType.Nullable<*, *>) {
                 if (value == null) {
                     statement.setNull(i, Types.NULL)
@@ -284,16 +283,23 @@ class JdbcSession
  * SQLite triggers won't work here.
  */
 constructor(
-        @JvmField @JvmSynthetic internal val dataSource: DataSource,
-        dialect: Dialect,
-        /**
-         * If your application is distributed, pass something identifying current node
-         * to avoid temp table or trigger name clashes.
-         */
-        nodeName: String = genNodeName()
+    @JvmField @JvmSynthetic internal val getConnection: () -> Connection,
+    dialect: Dialect,
+    /**
+     * If your application is distributed, pass something identifying current node
+     * to avoid temp table or trigger name clashes.
+     */
+    nodeName: String = genNodeName()
 ) : JdbcDb(dialect), Session {
 
     private var singleConnection: AutoCloseable? = null
+
+    private val triggers = Triggerz()
+    private var triggerConn: Connection? = null // create temp table and set triggers in a single connection
+    private val changesPostfix = '_' + nodeName + "_changes"
+
+    constructor(dataSource: DataSource, dialect: Dialect, nodeName: String = genNodeName()) :
+        this(dataSource::getConnection, dialect, nodeName)
 
     /**
      * Create the session with a single connection.
@@ -303,39 +309,16 @@ constructor(
      * The resulting session won't be thread safe.
      */
     constructor(connection: Connection, dialect: Dialect, nodeName: String = genNodeName()) :
-        this(
-            @Suppress("ABSTRACT_MEMBER_NOT_IMPLEMENTED") object : DataSource {
-                override fun getConnection(): Connection =
-                    object : Connection by connection {
-                        override fun close() {}
-                    }
-                override fun getConnection(username: String?, password: String?): Connection =
-                    throw UnsupportedOperationException()
-                override fun getLogWriter(): PrintWriter =
-                    throw UnsupportedOperationException()
-                override fun setLogWriter(out: PrintWriter?): Unit =
-                    throw UnsupportedOperationException()
-                override fun setLoginTimeout(seconds: Int): Unit =
-                    throw UnsupportedOperationException()
-                override fun getLoginTimeout(): Int =
-                    throw UnsupportedOperationException()
-                override fun <T : Any?> unwrap(iface: Class<T>?): T =
-                    throw UnsupportedOperationException()
-                override fun isWrapperFor(iface: Class<*>?): Boolean =
-                    false
-                override fun toString(): String =
-                    javaClass.name + '(' + connection.toString() + ')'
-            }, dialect, nodeName
-        ) {
+            this(just(object : Connection by connection { override fun close() {} }), dialect, nodeName) {
+        synchronized(triggers) { // ensure safe publication of a var
             singleConnection = connection
         }
+    }
 
     private companion object {
         private fun genNodeName() = // “-” does not seem to be a good identifier, let's be alphanumeric
             java.lang.Double.doubleToLongBits(Math.random()).toString(36).replace('-', 'm')
     }
-
-    private val changesPostfix = '_' + nodeName + "_changes"
 
     // SqlDatabase
 
@@ -344,11 +327,8 @@ constructor(
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         sessionAndArguments: Array<out Any>,
         expectedCols: Int
-    ): ResultSet {
-        val conn = dataSource.connection
-        val rs = select(conn, query, argumentTypes, sessionAndArguments, expectedCols)
-        return rs.closeAlong(conn)
-    }
+    ): ResultSet =
+        select(getConnection(), query, argumentTypes, sessionAndArguments, expectedCols)
 
     override fun <ID> execute(
         query: String,
@@ -356,13 +336,13 @@ constructor(
         transactionAndArguments: Array<out Any>,
         retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
     ): Any? =
-        dataSource.connection.use { execute(it, query, retKeyType, argumentTypes, transactionAndArguments) }
+        getConnection().use { execute(it, query, retKeyType, argumentTypes, transactionAndArguments) }
             .also { deliverTriggeredChanges() }
 
     // MutableDatabase
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insert(table: Table<SCH, ID>, data: PartialStruct<SCH>): ID =
-        dataSource.connection.use { insert(it, table, data) }
+        getConnection().use { insert(it, table, data) }
             .also { deliverTriggeredChanges() }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> insertAll(table: Table<SCH, ID>, data: Iterator<PartialStruct<SCH>>) {
@@ -373,40 +353,34 @@ constructor(
     }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> update(table: Table<SCH, ID>, id: ID, patch: PartialStruct<SCH>): Unit =
-        dataSource.connection.use { update(it, table, id, patch) }
+        getConnection().use { update(it, table, id, patch) }
             .also { deliverTriggeredChanges() }
 
     override fun <SCH : Schema<SCH>, ID : IdBound> delete(table: Table<SCH, ID>, id: ID): Unit =
-        dataSource.connection.use { delete(it, table, id) }
+        getConnection().use { delete(it, table, id) }
             .also { deliverTriggeredChanges() }
 
     // Session
 
     override fun read(): SqlTransaction =
-        JdbcTransaction(newTrConn(), true)
+        JdbcTransaction(getConnection(), true)
     //       always commit read-only ^^^^ transactions
     //  https://medium.com/javarevisited/spring-never-rollback-readonly-transactions-ffc21958b0d0
 
     override fun mutate(): MutableSqlTransaction =
-        JdbcTransaction(newTrConn(), false)
+        JdbcTransaction(getConnection(), false)
 
-    private val triggers = Triggerz()
-    private var triggerConn: Connection? = null // create temp table and set triggers in a single connection
     override fun observe(vararg subject: TriggerSubject, listener: (TriggerReport) -> Unit): Closeable =
         synchronized(triggers) {
-            val conn = triggerConn ?: dataSource.connection.also { triggerConn = it }
+            val conn = triggerConn ?: getConnection().also { triggerConn = it }
             triggers.addListener({
-                conn.autoCommit = false
                 JdbcTransaction(conn, false)
            }, subject, listener)
         }
 
-    private fun newTrConn() =
-        dataSource.connection.also { it.autoCommit = false }
-
     override fun trimMemory(level: Int): Int {
         dialect.trimMemory()?.let { sql ->
-            dataSource.connection.use { conn ->
+            getConnection().use { conn ->
                 conn.createStatement().use { stmt ->
                     stmt.execute(sql)
                 }
@@ -432,7 +406,7 @@ constructor(
     // misc
 
     override fun toString(): String =
-        "JdbcSession(dataSource=$dataSource, dialect=${dialect.javaClass.simpleName})"
+        "JdbcSession(dataSource={$getConnection, $singleConnection}, dialect=${dialect.javaClass.simpleName})"
 
     private inner class JdbcTransaction(
         private val conn: Connection,
@@ -440,8 +414,13 @@ constructor(
     ) : JdbcDb(dialect), InternalTransaction {
 
         private var isSuccessful = readOnly
+        private val restoreAutoCommit = conn.autoCommit
 
-        // FreeSource
+        init {
+            conn.autoCommit = false
+        }
+
+        // SqlDatabase
 
         override fun select(
             query: String,
@@ -476,7 +455,7 @@ constructor(
                     if (successful) conn.commit()
                     else conn.rollback()
                 } finally {
-                    conn.autoCommit = true
+                    conn.autoCommit = restoreAutoCommit
                 }
             } finally {
                 if (deliver)
@@ -548,18 +527,6 @@ constructor(
 
         // misc
 
-        private fun <SCH : Schema<SCH>, ID : IdBound> select(
-            connection: Connection,
-            table: Table<SCH, ID>,
-            id: ID,
-            columns: Array<out CharSequence>
-        ): ResultSet {
-            val query = dialect.run { StringBuilder().selectQuery(table, columns).toString() }
-            val stmt = connection.prepareStatement(query, 0)
-            bindQueryParams(table, id) { type, idx, value -> type.bind(stmt, idx, value) }
-            return stmt.executeQuery().closeAlong(stmt)
-        }
-
         private fun prepareAndCreateTrigger(
             sb: StringBuilder, event: TriggerEvent, table: Table<*, *>, stmt: Statement, create: Boolean
         ): Unit = with(dialect) {
@@ -592,6 +559,7 @@ constructor(
         val activeSubjects = triggers.activeSubjects()
         if (activeSubjects.isEmpty()) return
         val tableToChanges = HashMap<Table<*, *>, ListChanges<*, *>>()
+        val restoreAutoCommit = connection.autoCommit
         connection.autoCommit = false
         val stmt = connection.createStatement()
         try {
@@ -645,7 +613,7 @@ constructor(
             connection.rollback()
             throw t
         } finally {
-            connection.autoCommit = true
+            connection.autoCommit = restoreAutoCommit
         }
 
         triggers.notifyPending()
