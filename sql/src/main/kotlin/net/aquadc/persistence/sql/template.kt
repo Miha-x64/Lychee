@@ -13,16 +13,18 @@ interface FuncN<T, R> {
     fun invokeUnchecked(vararg arg: T): R
 }
 
-interface Fetch<out R> {
+interface SqlInvocation<in DB : SqlDatabase, out R> {
     fun fetch(
-        from: SqlDatabase,
+        from: DB,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         receiverAndArguments: Array<out Any>
     ): R
 }
 
-typealias Exec<R> = Fetch<R>
+typealias Fetch<R> = SqlInvocation<SqlDatabase, R>
+
+typealias Exec<R> = SqlInvocation<MutableSqlDatabase, R>
 
 enum class BindBy {
     Name,

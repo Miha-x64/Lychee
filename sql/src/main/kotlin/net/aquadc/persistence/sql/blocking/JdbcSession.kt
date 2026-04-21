@@ -14,6 +14,7 @@ import net.aquadc.persistence.sql.ListChanges
 import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.MutableSqlTransaction
 import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.SqlInvocation
 import net.aquadc.persistence.sql.SqlTransaction
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
@@ -59,7 +60,7 @@ abstract class JdbcDb internal constructor(
     protected inline fun <T> ResultSet.cell(type: Ilk<out T, *>, index: Int): T =
         cell(type, 1 + index, dialect.hasArraySupport)
 
-    abstract fun select(
+    internal abstract fun select(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
         expectedCols: Int
@@ -98,17 +99,19 @@ abstract class JdbcDb internal constructor(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
         sessionAndArguments: Array<out Any>,
-        expectedCols: Int
+        expectedCols: Int,
     ): ResultSet = connection.prepareStatement(query, 0).let { stmt ->
         for (idx in argumentTypes.indices) {
             (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, sessionAndArguments[idx + 1])
         }
         stmt.executeQuery().also {
-            val meta = stmt.metaData
-            val actualCols = meta.columnCount
-            if (actualCols != expectedCols) {
-                val cols = Array(actualCols) { meta.getColumnLabel(it + 1) }.contentToString()
-                throw IllegalArgumentException("Expected $expectedCols cols, got $cols") // todo relax, bro
+            if (expectedCols >= 0) {
+                val meta = stmt.metaData
+                val actualCols = meta.columnCount
+                if (actualCols != expectedCols) {
+                    val cols = Array(actualCols) { meta.getColumnLabel(it + 1) }.contentToString()
+                    throw IllegalArgumentException("Expected $expectedCols cols, got $cols")
+                }
             }
         }.closeAlong(stmt)
     }
@@ -250,6 +253,22 @@ abstract class JdbcDb internal constructor(
         }
     }
 
+    companion object {
+        private val fetchRS =
+            object : SqlInvocation<JdbcDb, ResultSet> {
+                override fun fetch(
+                    from: JdbcDb,
+                    query: String,
+                    argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+                    receiverAndArguments: Array<out Any>,
+                ): ResultSet =
+                    from.select(query, argumentTypes, receiverAndArguments, -1)
+            }
+
+        @JvmStatic
+        fun resultSet(): SqlInvocation<JdbcDb, ResultSet> =
+            fetchRS
+    }
 }
 
 /**

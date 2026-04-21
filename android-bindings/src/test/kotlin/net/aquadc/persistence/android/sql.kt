@@ -9,11 +9,13 @@ import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.SqlPropTest
 import net.aquadc.persistence.sql.TemplatesTest
 import net.aquadc.persistence.sql.TestTables
+import net.aquadc.persistence.sql.blocking.SqliteDb
 import net.aquadc.persistence.sql.blocking.SqliteSession
 import net.aquadc.persistence.sql.blocking.asStructIterator
 import net.aquadc.persistence.sql.blocking.rowAsStruct
 import net.aquadc.persistence.sql.dialect.sqlite.SqliteDialect
 import net.aquadc.persistence.sql.projection
+import net.aquadc.persistence.sql.template.Query
 import net.aquadc.persistence.type.i32
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -57,7 +59,7 @@ class SqlPropRoboTest : SqlPropTest() {
     @Test fun `assert robolectric works`() {
         db.execSQL("CREATE TABLE test(value STRING)")
         db.execSQL("INSERT INTO test VALUES ('test value')")
-        db.query("test", arrayOf("COUNT(*)"), null, null, null, null, null).use{
+        db.query("test", arrayOf("COUNT(*)"), null, null, null, null, null).use {
             check(it.moveToFirst())
             assertEquals(1, it.getInt(0))
         }
@@ -84,21 +86,23 @@ class TemplatesRoboTests : TemplatesTest() {
         val tuple = i32 * i32 * i32
         val projection = projection(tuple)
         val expected = tuple(1, 2, 3)
+        val namedQuery = Query("SELECT 1 as first, 2 as second, 3 as third", SqliteDb.cursor())
+        val positionalQuery = Query("SELECT 1, 2, 3", SqliteDb.cursor())
 
         var row = (session as SqliteSession)
-            .select("SELECT 1 as first, 2 as second, 3 as third", emptyArray(), emptyArray(), 3)
+            .namedQuery()
             .also { check(it.moveToNext()) }
             .rowAsStruct(projection, BindBy.Name)
         assertEquals(expected, row)
 
         row = (session as SqliteSession)
-            .select("SELECT 1, 2, 3", emptyArray(), emptyArray(), 3)
+            .positionalQuery()
             .also { check(it.moveToNext()) }
             .rowAsStruct(projection, BindBy.Position)
         assertEquals(expected, row)
 
         val rows = (session as SqliteSession)
-            .select("SELECT 1, 2, 3", emptyArray(), emptyArray(), 3)
+            .positionalQuery()
             .asStructIterator(projection, BindBy.Position)
         assertEquals(listOf(expected), rows.asSequence().toList())
     }

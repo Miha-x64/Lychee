@@ -10,6 +10,7 @@ import net.aquadc.persistence.sql.blocking.Eagerly
 import net.aquadc.persistence.sql.blocking.Eagerly.execute
 import net.aquadc.persistence.sql.blocking.Eagerly.executeForInsertedKey
 import net.aquadc.persistence.sql.blocking.Eagerly.executeForRowCount
+import net.aquadc.persistence.sql.blocking.JdbcDb
 import net.aquadc.persistence.sql.blocking.JdbcSession
 import net.aquadc.persistence.sql.blocking.Lazily
 import net.aquadc.persistence.sql.blocking.asStructIterator
@@ -299,21 +300,23 @@ abstract class TemplatesTest {
         val tuple = i32 * i32 * i32
         val projection = projection(tuple)
         val expected = tuple(1, 2, 3)
+        val namedQuery = Query("SELECT 1 as first, 2 as second, 3 as third", JdbcDb.resultSet())
+        val positionalQuery = Query("SELECT 1, 2, 3", JdbcDb.resultSet())
 
         var row = (session as JdbcSession)
-            .select("SELECT 1 as first, 2 as second, 3 as third", emptyArray(), emptyArray(), 3)
+            .namedQuery()
             .also { check(it.next()) }
             .rowAsStruct(projection, BindBy.Name)
         assertEquals(expected, row)
 
         row = (session as JdbcSession)
-            .select("SELECT 1, 2, 3", emptyArray(), emptyArray(), 3)
+            .positionalQuery()
             .also { check(it.next()) }
             .rowAsStruct(projection, BindBy.Position)
         assertEquals(expected, row)
 
         val rows = (session as JdbcSession)
-            .select("SELECT 1, 2, 3", emptyArray(), emptyArray(), 3)
+            .positionalQuery()
             .asStructIterator(projection, BindBy.Position)
         assertEquals(listOf(expected), rows.asSequence().toList())
     }

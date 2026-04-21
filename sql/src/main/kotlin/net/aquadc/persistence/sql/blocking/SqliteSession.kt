@@ -24,6 +24,7 @@ import net.aquadc.persistence.sql.ListChanges
 import net.aquadc.persistence.sql.MutableSqlTransaction
 import net.aquadc.persistence.sql.SqlTransaction
 import net.aquadc.persistence.sql.Session
+import net.aquadc.persistence.sql.SqlInvocation
 import net.aquadc.persistence.sql.SqlTypeName
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.TriggerEvent
@@ -133,13 +134,16 @@ abstract class SqliteDb internal constructor(
                 select(query, argumentTypes, sessionAndArguments, table.managedColNames.size)
         }
 
-    fun select(query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>, expectedCols: Int): Cursor =
+    internal fun select(
+        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        expectedCols: Int,
+    ): Cursor =
         connection.rawQueryWithFactory(
             CurFac<Nothing, Nothing>(null, null, argumentTypes, sessionAndArguments),
             query,
             null, null, null
         ).also {
-            if (it.columnCount != expectedCols) {
+            if (expectedCols >= 0 && it.columnCount != expectedCols) {
                 val cols = it.columnNames.contentToString()
                 it.close()
                 throw IllegalArgumentException("Expected $expectedCols cols, got $cols")
@@ -221,6 +225,20 @@ abstract class SqliteDb internal constructor(
             table.idColType.type.bind(statement, 0, id)
             check(statement.executeUpdateDelete() == 1)
         }
+    }
+
+    companion object {
+        private val fetchCursor = object : SqlInvocation<SqliteDb, Cursor> {
+            override fun fetch(
+                from: SqliteDb,
+                query: String,
+                argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
+                receiverAndArguments: Array<out Any>,
+            ): Cursor =
+                from.select(query, argumentTypes, receiverAndArguments, -1)
+        }
+        @JvmStatic fun cursor(): SqlInvocation<SqliteDb, Cursor> =
+            fetchCursor
     }
 
 }

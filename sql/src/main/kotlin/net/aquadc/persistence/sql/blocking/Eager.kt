@@ -4,6 +4,7 @@ import net.aquadc.persistence.SizedIterator
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Exec
 import net.aquadc.persistence.sql.Fetch
+import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.SqlDatabase
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.struct.Schema
@@ -74,16 +75,16 @@ private fun <R> Iterator<R>.collect(): List<R> {
 
 @Suppress("UNCHECKED_CAST") // `nothing` has special handling
 @PublishedApi @JvmField internal val ExecuteForUnit = ExecuteEagerlyFor(nothing)
-    as Fetch<Unit>
+    as Exec<Unit>
 @Suppress("UNCHECKED_CAST") // `null` has special handling
 @PublishedApi @JvmField internal val ExecuteForRowCount = ExecuteEagerlyFor<Nothing>(null)
-    as Fetch<Int>
+    as Exec<Int>
 
 @PublishedApi internal class ExecuteEagerlyFor<ID>(
     private val retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
 ) : Exec<Any?> {
     override fun fetch(
-        from: SqlDatabase, query: String,
+        from: MutableSqlDatabase, query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
     ): Any? {
         val ret = from.execute(query, argumentTypes, receiverAndArguments, if (retKeyType === nothing) null else retKeyType)
