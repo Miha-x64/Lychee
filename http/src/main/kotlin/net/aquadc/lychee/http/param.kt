@@ -3,7 +3,6 @@
 package net.aquadc.lychee.http.param
 // Many declarations, let them ^^^^^ be in a separate package
 
-import net.aquadc.lychee.http.Get
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.string
 import java.io.InputStream
@@ -15,12 +14,13 @@ sealed class Param<T>
 
 /**
  * “Extracorporeal” parameter is sent not within request body.
- * Some methods such as [Get] require all parameters to be “extracorporeal”.
+ * @see net.aquadc.lychee.http.GET
  */
 sealed class ExtracorpParam<T> : Param<T>()
 
 /**
  * “Link” parameters can be expressed through HTML links. No headers or bodies allowed.
+ * @see net.aquadc.lychee.http.GET
  * @see Path
  * @see Query
  * @see QueryParams
@@ -31,7 +31,6 @@ sealed class LinkParam<T> : ExtracorpParam<T>()
  * HTML forms can send fields and multipart
  * but cannot send headers and request body.
  */
-//interface HtmlFormParam TODO HTML forms
 
 // copy-paste of Retrofit2 parameters https://square.github.io/retrofit/2.x/retrofit/
 

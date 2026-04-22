@@ -4,6 +4,9 @@ package net.aquadc.lychee.http
 
 import net.aquadc.lychee.http.param.Param
 import net.aquadc.lychee.http.param.ExtracorpParam
+import net.aquadc.lychee.http.param.Header
+import net.aquadc.lychee.http.param.Headers
+import net.aquadc.lychee.http.param.LinkParam
 import net.aquadc.lychee.http.param.Resp
 
 @JvmField val GET: Get = Get()
@@ -11,11 +14,12 @@ import net.aquadc.lychee.http.param.Resp
 @JvmField val PUT: HttpMethod<Param<*>> = HttpMethod("PUT")
 @JvmField val PATCH: HttpMethod<Param<*>> = HttpMethod("PATCH")
 @JvmField val DELETE: HttpMethod<ExtracorpParam<*>> = HttpMethod("DELETE")
-// TODO HEAD, OPTIONS? Hmm…
+// HEAD, OPTIONS, TRACE do not seem very useful in a context of HTTP API
 
 /**
  * HTTP method (verb).
- * @param P allowed parameter type. [Param] for methods with body, [ExtracorpParam] for methods without it.
+ * @param P allowed parameter type.
+ *          [Param] for methods with body, [ExtracorpParam] for methods without it, [LinkParam] for links.
  */
 open class HttpMethod<in P : Param<*>>
 // you can instantiate custom methods for exotic DELETE with body, OPTIONS, whatever
@@ -24,8 +28,9 @@ constructor(
 )
 
 // we need Get and Post as separate types for type-safe linking and HTTP forms
-class Get internal constructor() : HttpMethod<ExtracorpParam<*>>("GET")
-class Post internal constructor() : HttpMethod<Param<*>>("POST")
+abstract class FormMethod<in P : Param<*>> internal constructor(name: String) : HttpMethod<P>(name)
+class Get internal constructor() : FormMethod<ExtracorpParam<*>>("GET")
+class Post internal constructor() : FormMethod<Param<*>>("POST")
 
 /**
  * Describes Endpoint: an HTTP RPC gateway.
@@ -36,6 +41,17 @@ interface Endpoint<M : HttpMethod<*>, R> {
     val params: Array<out Param<*>>
     val response: Resp<R>
 }
+
+val Endpoint<*, *>.vary: List<CharSequence>
+    get() =
+        params.mapNotNull {
+            when (it) {
+                is Header -> it.name
+                is Headers -> return listOf("*")
+                else -> null
+            }
+        }
+
 interface Endpoint0<M : HttpMethod<*>, R> : Endpoint<M, R>
 interface Endpoint1<M : HttpMethod<P>, P : Param<*>, R> : Endpoint<M, R>
 interface Endpoint2<M : HttpMethod<P>, P : Param<*>, P1 : P, P2 : P, R> : Endpoint<M, R>
