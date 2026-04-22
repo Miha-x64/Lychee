@@ -2,7 +2,6 @@
 package net.aquadc.persistence.sql.template
 
 import net.aquadc.persistence.FuncXImpl
-import net.aquadc.persistence.sql.FuncN
 import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.SqlDatabase
 import net.aquadc.persistence.sql.SqlInvocation
@@ -210,7 +209,7 @@ inline fun <DB : MutableSqlDatabase, T1 : Any, T2 : Any, T3 : Any, T4 : Any, T5 
     private val query: String,
     private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
     private val fetch: SqlInvocation<DB, R>
-) : FuncXImpl<Any, R>(), FuncN<Any, R> {
+) : FuncXImpl<Any, R>() {
 
     override fun invokeUnchecked(vararg args: Any): R =
         fetch.fetch(args[0] as DB, query, argumentTypes, args)
