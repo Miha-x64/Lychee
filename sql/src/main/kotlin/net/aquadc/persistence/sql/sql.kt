@@ -14,6 +14,8 @@ import net.aquadc.persistence.struct.Struct
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import java.io.Closeable
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 
 
 /**
@@ -183,28 +185,46 @@ interface MemoryTrimmable {
 inline fun <SCH : Schema<SCH>, ID : IdBound> MutableSqlTransaction.insertAll(table: Table<SCH, ID>, data: Iterable<Struct<SCH>>): Unit =
     insertAll(table, data.iterator())
 
-inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT): Ilk<T, DT> =
-    NativeType(name, type)
+fun <T, DT : DataType<T>> nativeType(
+    name: CharSequence,
+    type: DT,
+//    loadAs: Class<T>? = null,
+//    storeAs: SQLType? = null,
+): Ilk<T, DT> =
+    /*if (loadAs == null && storeAs == null)*/ JdbcType(name, type)
+    /*else object : JdbcType<T, DT>(name, type) { FIXME can't compile with JDBC 4.1 features for some reason
+        override fun load(payload: ResultSet, index: Int): T =
+            if (loadAs == null) super.load(payload, index) else payload.getObject(index, loadAs) as T
+        override fun store(payload: PreparedStatement, index: Int, value: T): Unit =
+            if (storeAs == null) super.store(payload, index, value) else payload.setObject(index, value, storeAs)
+    }*/
 
-inline fun <T, DT : DataType<T>> nativeType(name: CharSequence, type: DT, sqlType: Class<T>): Ilk<T, DT> =
-    TODO()
-
+/**
+ * JDBC type mapped by [load] right after [ResultSet.getObject] and by [store] right before [PreparedStatement.setObject].
+ */
 inline fun <T, DT : DataType<T>, S> nativeType(
     name: CharSequence,
     type: DT,
-    crossinline store: (T) -> S,
-    crossinline load: (S) -> T
+    crossinline load: (S) -> T,
+    crossinline store: (T) -> S
 ): Ilk<T, DT> =
-    nativeType<Any?, T, DT, S>(name, type, { _, v -> store(v) }, { _, v -> load(v) })
+    nativeType(name, type, { _, v -> load(v) }, { _, v -> store(v) })
 
-inline fun <PL, T, DT : DataType<T>, S> nativeType(
+/**
+ * JDBC type mapped by [load] right after [ResultSet.getObject] and by [store] right before [PreparedStatement.setObject].
+ * Useful for calling [java.sql.Connection.createArrayOf] and similar functions
+ * where you can't perform the mapping out of thin air.
+ */
+inline fun <T, DT : DataType<T>, S> nativeType(
     name: CharSequence,
     type: DT,
-    crossinline store: (PL, T) -> S,
-    crossinline load: (PL, S) -> T
+    crossinline load: (ResultSet, S) -> T,
+    crossinline store: (PreparedStatement, T) -> S
 ): Ilk<T, DT> =
     @Suppress("UNCHECKED_CAST")
-    object : NativeType<T, DT>(name, type) {
-        override fun store(payload: Any?, value: T): Any? = store.invoke(payload as PL, value)
-        override fun load(payload: Any?, value: Any?): T = load.invoke(payload as PL, value as S)
+    object : JdbcType<T, DT>(name, type) {
+        override fun load(payload: ResultSet, index: Int): T =
+            load(payload, payload.getObject(index) as S)
+        override fun store(payload: PreparedStatement, index: Int, value: T): Unit =
+            payload.setObject(index, store(payload, value))
     }

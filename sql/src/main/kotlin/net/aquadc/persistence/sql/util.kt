@@ -12,10 +12,12 @@ import net.aquadc.persistence.struct.forEach
 import net.aquadc.persistence.struct.indexOf
 import net.aquadc.persistence.struct.ordinal
 import net.aquadc.persistence.struct.size
-import net.aquadc.persistence.type.CustomType
+import net.aquadc.persistence.type.PlatformType
 import net.aquadc.persistence.type.DataType
 import net.aquadc.persistence.type.Ilk
 import net.aquadc.persistence.type.serialized
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import net.aquadc.persistence.struct.contains as originalContains
 
 
@@ -241,15 +243,16 @@ internal fun <R, SCH : Schema<SCH>> forceIndexOfManaged(table: Table<SCH, *>, co
 
 @PublishedApi @JvmField internal val throwNse = { throw NoSuchElementException() }
 
-@PublishedApi internal open class NativeType<T, DT : DataType<T>>(
+@PublishedApi internal open class JdbcType<T, DT : DataType<T>>(
     name: CharSequence,
-    final override val type: DT
-) : CustomType<T>(name), Ilk<T, DT> {
-    override fun store(payload: Any?, value: T): Any? = value
-    @Suppress("UNCHECKED_CAST")
-    override fun load(payload: Any?, value: Any?): T = value as T
+    final override val type: DT,
+) : PlatformType<ResultSet, PreparedStatement, T>(name), Ilk<T, DT> {
+    override fun load(payload: ResultSet, index: Int): T =
+        payload.getObject(index) as T
+    override fun store(payload: PreparedStatement, index: Int, value: T): Unit =
+        payload.setObject(index, value)
 
-    final override val custom: CustomType<T>? get() = this
+    final override val platformType: PlatformType<*, *, T>? get() = this
 }
 
 internal inline fun <K, V> MutableMap<K, V>?.compute(key: K, defaultValue: (K) -> V): V {

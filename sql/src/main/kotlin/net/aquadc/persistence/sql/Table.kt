@@ -122,7 +122,7 @@ private constructor(
     }
 
     @JvmSynthetic internal fun overrideIdType(type: ColMeta.Type<SCH, *>) {
-        (type.typeName ?: type.override?.custom?.name ?: type.override?.type)?.let { _idColTypeName = it }
+        (type.typeName ?: type.override?.platformType?.name ?: type.override?.type)?.let { _idColTypeName = it }
         type.override?.let { _idColType = it as Ilk<ID, DataType.NotNull.Simple<ID>> }
     }
 
@@ -238,7 +238,7 @@ private constructor(
         val t = path.type(this.schema) as Ilk<*, *>
         outColumns.add(path, path.name(schema))
         outColumnTypes.add(tOverr?.override ?: t)
-        outColumnTypeNames.add(tOverr?.typeName ?: tOverr?.override?.custom?.name ?: tOverr?.override?.type ?: t)
+        outColumnTypeNames.add(tOverr?.typeName ?: tOverr?.override?.platformType?.name ?: tOverr?.override?.type ?: t)
     }
 
     class StructStart(

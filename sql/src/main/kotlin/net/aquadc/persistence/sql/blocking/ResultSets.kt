@@ -8,6 +8,7 @@ import net.aquadc.persistence.fatMapTo
 import net.aquadc.persistence.newMap
 import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.Embedded
+import net.aquadc.persistence.sql.JdbcType
 import net.aquadc.persistence.sql.Simple
 import net.aquadc.persistence.sql.Table
 import net.aquadc.persistence.sql.compute
@@ -56,8 +57,8 @@ import java.sql.ResultSet
     index: Int,
     hasArraySupport: Boolean,
 ): T {
-    type.custom?.let {
-        return it.load(this.statement.connection, getObject(index))
+    (type.platformType as? JdbcType<T, *>)?.let {
+        return it.load(this, index)
     }
 
     val unwrapped = type.type as DataType<T>

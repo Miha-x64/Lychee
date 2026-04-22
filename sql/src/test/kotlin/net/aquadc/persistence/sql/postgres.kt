@@ -26,7 +26,8 @@ import org.junit.Before
 import org.junit.Test
 import org.postgresql.util.PGobject
 import org.postgresql.util.PSQLException
-import java.sql.Connection
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.util.UUID
 
 
@@ -135,16 +136,16 @@ class TemplatesPostgres : TemplatesTest() {
 
         val someJsonb: Ilk<Struct<SomeSchema>, SomeSchema> = nativeType(
             "jsonb NOT NULL", SomeSchema,
-            { p1 -> PGobject("jsonb", """["${p1[SomeSchema.A]}", ${p1[SomeSchema.B]}, ${p1[SomeSchema.C]}]""") },
             { p ->
-                (p as PGobject).value!!.trim('[', ']').split(", ").let { tokens ->
+                p.value!!.trim('[', ']').split(", ").let { tokens ->
                     SomeSchema {
                         it[A] = tokens[0].trim('"')
                         it[B] = tokens[1].toInt()
                         it[C] = tokens[2].toLong()
                     }
                 }
-            }
+            },
+            { p1 -> PGobject("jsonb", """["${p1[SomeSchema.A]}", ${p1[SomeSchema.B]}, ${p1[SomeSchema.C]}]""") },
         )
         val intMatrix: Ilk<
             List<IntArray>,
@@ -156,9 +157,9 @@ class TemplatesPostgres : TemplatesTest() {
             >
             = nativeType(
             "int[][] NOT NULL", collection(intCollection),
-            { conn: Connection, p1 -> conn.createArrayOf("int", p1.toTypedArray()) },
-            { conn: Connection, p -> ((p as java.sql.Array).array as Array<*>).map { (it as Array<Int>).toIntArray() } }
-            // never cast to Array<Array<Int>>: ^^^^^^^^^^^ empty array will be returned as Array<Int>
+            { _: ResultSet, p: java.sql.Array -> (p.array as Array<*>).map { (it as Array<Int>).toIntArray() } },
+            //   never cast to Array<Array<Int>>: ^^^^^^^^^^ empty array will be returned as Array<Int>
+            { ps: PreparedStatement, p1 -> ps.connection.createArrayOf("int", p1.toTypedArray()) },
         )
         val Yoozerz = tableOf(Yoozer, "yoozerz3", Yoozer.Id) { arrayOf(
             nativeType(Id, "uuid NOT NULL DEFAULT uuid_generate_v4()"),

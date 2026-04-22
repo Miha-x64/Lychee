@@ -78,10 +78,10 @@ sealed class ColMeta<S : Schema<S>>(
         inline fun <S : Schema<S>, T> S.nativeType(
             path: StoredLens<S, T, out DataType<T>>, typeName: CharSequence
         ): ColMeta<S> =
-            Type(path, null, NativeType(typeName, path.type(this)))
+            Type(path, null, JdbcType(typeName, path.type(this)))
     }
 
-    @PublishedApi internal class Type<S : Schema<S>, T> constructor(
+    @PublishedApi internal class Type<S : Schema<S>, T>(
         path: StoredLens<S, T, *>,
         @JvmField val typeName: CharSequence?,
         @JvmField val override: Ilk<T, *>?

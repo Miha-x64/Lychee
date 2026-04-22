@@ -10,6 +10,7 @@ import net.aquadc.persistence.sql.BindBy
 import net.aquadc.persistence.sql.ExperimentalSql
 import net.aquadc.persistence.sql.IdBound
 import net.aquadc.persistence.sql.InternalTransaction
+import net.aquadc.persistence.sql.JdbcType
 import net.aquadc.persistence.sql.ListChanges
 import net.aquadc.persistence.sql.MutableSqlDatabase
 import net.aquadc.persistence.sql.MutableSqlTransaction
@@ -152,9 +153,10 @@ abstract class JdbcDb internal constructor(
     protected fun <T> Ilk<T, *>.bind(statement: PreparedStatement, index: Int, value: T) {
         // TODO try-catch-rethrow with cause, request, index
         val i = 1 + index
-        val custom = this.custom
-        if (custom != null) {
-            statement.setObject(i, custom.store(statement.connection, value))
+        val custom = this.platformType
+        if (custom is JdbcType<*, *>) {
+            custom as JdbcType<T, *>
+            custom.store(statement, i, value)
         } else {
             val t = type
             val type = if (t is DataType.Nullable<*, *>) {

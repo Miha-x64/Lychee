@@ -12,7 +12,7 @@ import net.aquadc.persistence.struct.Schema
  */
 interface Ilk<T, out DT : DataType<T>> {
     val type: DT
-    val custom: CustomType<T>?
+    val platformType: PlatformType<*, *, T>?
 }
 
 /**
@@ -40,7 +40,7 @@ interface Ilk<T, out DT : DataType<T>> {
 sealed class DataType<T> {
 
     // “accidental” override for Ilk.custom
-    val custom: CustomType<T>? get() = null
+    val platformType: PlatformType<*, *, T>? get() = null
 
     /**
      * Adds nullability to both runtime and stored representation of [actualType].
@@ -240,9 +240,9 @@ sealed class DataType<T> {
  * A custom type.
  * Used by :sql to take advantage of native types (e.g. Postgres `uuid`, `point` etc) directly.
  */
-abstract class CustomType<T>(
+abstract class PlatformType<in SRC, in DST, T>(
     @JvmField val name: CharSequence
 ) {
-    abstract fun store(payload: Any?, value: T): Any?
-    abstract fun load(payload: Any?, value: Any?): T
+    abstract fun load(payload: SRC, index: Int): T
+    abstract fun store(payload: DST, index: Int, value: T)
 }
