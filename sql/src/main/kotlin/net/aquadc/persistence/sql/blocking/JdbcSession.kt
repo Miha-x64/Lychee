@@ -62,7 +62,7 @@ abstract class JdbcDb internal constructor(
 
     internal abstract fun select(
         query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
         expectedCols: Int
     ): ResultSet
 
@@ -71,12 +71,12 @@ abstract class JdbcDb internal constructor(
     override fun <T> column(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         type: Ilk<out T, *>
     ): CloseableIterator<T> =
         object : ResultSetIterator<NullSchema, T>(NullSchema, null) {
             override fun open(): ResultSet =
-                select(query, argumentTypes, sessionAndArguments, 1)
+                select(query, argumentTypes, arguments, 1)
             override fun row(cur: ResultSet): T =
                 cur.cell(type, 0)
         }
@@ -84,25 +84,25 @@ abstract class JdbcDb internal constructor(
     override fun <SCH : Schema<SCH>> rows(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         table: Table<SCH, *>,
         bindBy: BindBy,
         transient: Boolean
     ): CloseableIterator<Struct<SCH>> =
         object : ResultSetStructIterator<SCH>(null, table, bindBy, dialect.hasArraySupport, transient) {
             override fun open(): ResultSet =
-                select(query, argumentTypes, sessionAndArguments, table.managedColNames.size)
+                select(query, argumentTypes, arguments, table.managedColNames.size)
         }
 
     protected fun select(
         connection: Connection,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         expectedCols: Int,
     ): ResultSet = connection.prepareStatement(query, 0).let { stmt ->
         for (idx in argumentTypes.indices) {
-            (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, sessionAndArguments[idx + 1])
+            (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, arguments[idx])
         }
         stmt.executeQuery().also {
             if (expectedCols >= 0) {
@@ -131,12 +131,12 @@ abstract class JdbcDb internal constructor(
         query: String,
         retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        transactionAndArguments: Array<out Any>
+        arguments: Array<out Any>
     ): Any? = connection.prepareStatement(query, if (retKeyType != null) RETURN_GENERATED_KEYS else 0).use { statement ->
         val altered = statement
             .also { stmt ->
                 for (idx in argumentTypes.indices) {
-                    (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, transactionAndArguments[idx + 1])
+                    (argumentTypes[idx] as Ilk<Any?, *>).bind(stmt, idx, arguments[idx])
                 }
             }
             .executeUpdate()
@@ -261,9 +261,9 @@ abstract class JdbcDb internal constructor(
                     from: JdbcDb,
                     query: String,
                     argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-                    receiverAndArguments: Array<out Any>,
+                    arguments: Array<out Any>,
                 ): ResultSet =
-                    from.select(query, argumentTypes, receiverAndArguments, -1)
+                    from.select(query, argumentTypes, arguments, -1)
             }
 
         @JvmStatic
@@ -327,18 +327,18 @@ constructor(
     override fun select(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         expectedCols: Int
     ): ResultSet =
-        select(getConnection(), query, argumentTypes, sessionAndArguments, expectedCols)
+        select(getConnection(), query, argumentTypes, arguments, expectedCols)
 
     override fun <ID> execute(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        transactionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
     ): Any? =
-        getConnection().use { execute(it, query, retKeyType, argumentTypes, transactionAndArguments) }
+        getConnection().use { execute(it, query, retKeyType, argumentTypes, arguments) }
             .also { deliverTriggeredChanges() }
 
     // MutableDatabase
@@ -427,18 +427,18 @@ constructor(
         override fun select(
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-            sessionAndArguments: Array<out Any>,
+            arguments: Array<out Any>,
             expectedCols: Int
         ): ResultSet =
-            select(conn, query, argumentTypes, sessionAndArguments, expectedCols)
+            select(conn, query, argumentTypes, arguments, expectedCols)
 
         override fun <ID> execute(
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-            transactionAndArguments: Array<out Any>,
+            arguments: Array<out Any>,
             retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
         ): Any? =
-            execute(conn, query, retKeyType, argumentTypes, transactionAndArguments)
+            execute(conn, query, retKeyType, argumentTypes, arguments)
 
         // Transaction
 

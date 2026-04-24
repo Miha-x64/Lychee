@@ -65,7 +65,7 @@ abstract class SqliteDb internal constructor(
 
     final override fun <T> cell(
         query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
         type: Ilk<out T, *>, orElse: () -> T
     ): T {
         val tt = type.type
@@ -73,12 +73,12 @@ abstract class SqliteDb internal constructor(
             (tt.kind == DataType.NotNull.Simple.Kind.I32 || tt.kind == DataType.NotNull.Simple.Kind.I64)
         return if (isIntOrLong || tt.isStringInclNullable) {
             try {
-                simpleQueryForCell(query, argumentTypes, sessionAndArguments, isIntOrLong, tt)
+                simpleQueryForCell(query, argumentTypes, arguments, isIntOrLong, tt)
             } catch (e: SQLiteDoneException) {
                 orElse()
             }
         } else {
-            super.cell(query, argumentTypes, sessionAndArguments, type, orElse)
+            super.cell(query, argumentTypes, arguments, type, orElse)
         }
     }
     private val DataType<*>.isStringInclNullable
@@ -88,11 +88,11 @@ abstract class SqliteDb internal constructor(
     private fun <T> simpleQueryForCell(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         isIntOrLong: Boolean,
         tt: DataType<*>
     ) = statement(query) { statement ->
-        bindParams(argumentTypes, statement, sessionAndArguments)
+        bindParams(argumentTypes, statement, arguments)
         if (isIntOrLong) {
             val long = statement.simpleQueryForLong()
             if ((tt as DataType.NotNull.Simple).kind == DataType.NotNull.Simple.Kind.I32)
@@ -111,12 +111,12 @@ abstract class SqliteDb internal constructor(
     final override fun <T> column(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         type: Ilk<out T, *>
     ): CloseableSizedIterator<T> = // covariant return
         object : CursorIterator<NullSchema, T>(NullSchema, null) {
             override fun open(): Cursor =
-                select(query, argumentTypes, sessionAndArguments, 1)
+                select(query, argumentTypes, arguments, 1)
             override fun row(cur: Cursor): T =
                 cur.cell(type.type, 0)
         }
@@ -124,22 +124,22 @@ abstract class SqliteDb internal constructor(
     override fun <SCH : Schema<SCH>> rows(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        sessionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         table: Table<SCH, *>,
         bindBy: BindBy,
         transient: Boolean
     ): CloseableSizedIterator<Struct<SCH>> = // covariant return
         object : CursorStructIterator<SCH>(null, table, bindBy, transient) {
             override fun open(): Cursor =
-                select(query, argumentTypes, sessionAndArguments, table.managedColNames.size)
+                select(query, argumentTypes, arguments, table.managedColNames.size)
         }
 
     internal fun select(
-        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
         expectedCols: Int,
     ): Cursor =
         connection.rawQueryWithFactory(
-            CurFac<Nothing, Nothing>(null, null, argumentTypes, sessionAndArguments),
+            CurFac<Nothing, Nothing>(null, null, argumentTypes, arguments),
             query,
             null, null, null
         ).also {
@@ -166,9 +166,9 @@ abstract class SqliteDb internal constructor(
 
     override fun <ID> execute(
         query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
+        arguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?,
     ): Any? = statement(query) { statement ->
-        bindParams(argumentTypes, statement, transactionAndArguments)
+        bindParams(argumentTypes, statement, arguments)
 
         if (retKeyType == null) statement.executeUpdateDelete()
         else statement.executeInsert().coercePk(retKeyType)
@@ -233,9 +233,9 @@ abstract class SqliteDb internal constructor(
                 from: SqliteDb,
                 query: String,
                 argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-                receiverAndArguments: Array<out Any>,
+                arguments: Array<out Any>,
             ): Cursor =
-                from.select(query, argumentTypes, receiverAndArguments, -1)
+                from.select(query, argumentTypes, arguments, -1)
         }
         @JvmStatic fun cursor(): SqlInvocation<SqliteDb, Cursor> =
             fetchCursor
@@ -267,10 +267,10 @@ class SqliteSession(
     override fun <ID> execute(
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        transactionAndArguments: Array<out Any>,
+        arguments: Array<out Any>,
         retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
     ): Any? =
-        super.execute(query, argumentTypes, transactionAndArguments, retKeyType)
+        super.execute(query, argumentTypes, arguments, retKeyType)
             .also { deliverTriggeredChanges() }
 
     // MutableDatabase
@@ -510,7 +510,7 @@ private class CurFac<ID : IdBound, SCH : Schema<SCH>>(
     private val table: Table<SCH, ID>?,
     private val pk: ID?,
     private val argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>?,
-    private val sessionAndArguments: Array<out Any>?
+    private val arguments: Array<out Any>?,
 ) : SQLiteDatabase.CursorFactory {
 
     override fun newCursor(db: SQLiteDatabase?, masterQuery: SQLiteCursorDriver?, editTable: String?, query: SQLiteQuery): Cursor {
@@ -519,7 +519,7 @@ private class CurFac<ID : IdBound, SCH : Schema<SCH>>(
                 bindQueryParams(table!!, pk) { type, idx, value ->
                     (type.type as DataType<Any?>).bind(query, idx, value)
                 }
-            argumentTypes != null -> sessionAndArguments!!.let { args ->
+            argumentTypes != null -> arguments!!.let { args ->
                 bindParams(argumentTypes, query, args)
             }
             else ->
@@ -532,10 +532,10 @@ private class CurFac<ID : IdBound, SCH : Schema<SCH>>(
 private fun bindParams(
     argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
     statement: SQLiteProgram,
-    transactionAndArguments: Array<out Any>,
+    arguments: Array<out Any>,
 ) {
     argumentTypes.forEachIndexed { idx, type ->
-        (type as DataType<Any?>).bind(statement, idx, transactionAndArguments[idx + 1])
+        (type as DataType<Any?>).bind(statement, idx, arguments[idx])
     }
 }
 private fun <T> DataType<T>.bind(statement: SQLiteProgram, index: Int, value: T) {

@@ -48,10 +48,10 @@ interface SqlDatabase : Database {
 
     fun <T> cell(
         query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
         type: Ilk<out T, *>, orElse: () -> T,
     ): T {
-        val iter = column(query, argumentTypes, sessionAndArguments, type)
+        val iter = column(query, argumentTypes, arguments, type)
         try {
             return if (iter.hasNext()) {
                 val value = iter.next()
@@ -67,19 +67,19 @@ interface SqlDatabase : Database {
 
     fun <T> column(
         query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
         type: Ilk<out T, *>,
     ): CloseableIterator<T>
 
     fun <SCH : Schema<SCH>> rows(
         query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, sessionAndArguments: Array<out Any>,
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>,
         table: Table<SCH, *>, bindBy: BindBy, transient: Boolean,
     ): CloseableIterator<Struct<SCH>>
 
     fun <ID> execute(
         query: String, argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        transactionAndArguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?
+        arguments: Array<out Any>, retKeyType: Ilk<ID, DataType.NotNull.Simple<ID>>?,
     ): Any?
 }
 

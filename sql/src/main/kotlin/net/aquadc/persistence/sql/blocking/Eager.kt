@@ -20,9 +20,9 @@ import net.aquadc.persistence.type.nothing
         from: SqlDatabase,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        receiverAndArguments: Array<out Any>
+        arguments: Array<out Any>
     ): R =
-        from.cell(query, argumentTypes, receiverAndArguments, rt, orElse)
+        from.cell(query, argumentTypes, arguments, rt, orElse)
 }
 
 @PublishedApi internal class FetchStructEagerly<SCH : Schema<SCH>>(
@@ -32,9 +32,9 @@ import net.aquadc.persistence.type.nothing
 ) : Fetch<Any?> {
     override fun fetch(
         from: SqlDatabase, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): Any? {
-        val iter = from.rows(query, argumentTypes, receiverAndArguments, table, bindBy, false)
+        val iter = from.rows(query, argumentTypes, arguments, table, bindBy, false)
         return try {
             if (iter.hasNext()) {
                 iter.next().also {
@@ -55,9 +55,9 @@ internal fun <R> Fetch<Iterator<R>>.collect(): Fetch<List<R>> =
             from: SqlDatabase,
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-            receiverAndArguments: Array<out Any>
+            arguments: Array<out Any>
         ): List<R> =
-            this@collect.fetch(from, query, argumentTypes, receiverAndArguments).collect()
+            this@collect.fetch(from, query, argumentTypes, arguments).collect()
     }
 
 private fun <R> Iterator<R>.collect(): List<R> {
@@ -85,9 +85,9 @@ private fun <R> Iterator<R>.collect(): List<R> {
 ) : Exec<Any?> {
     override fun fetch(
         from: MutableSqlDatabase, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): Any? {
-        val ret = from.execute(query, argumentTypes, receiverAndArguments, if (retKeyType === nothing) null else retKeyType)
+        val ret = from.execute(query, argumentTypes, arguments, if (retKeyType === nothing) null else retKeyType)
         return if (retKeyType === nothing) Unit else ret // if (retKeyType == null) affected else insertedPrimaryKey
     }
 }

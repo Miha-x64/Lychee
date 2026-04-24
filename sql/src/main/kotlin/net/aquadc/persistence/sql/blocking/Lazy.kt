@@ -17,9 +17,9 @@ import net.aquadc.persistence.type.Ilk
 ) : Fetch<CloseableIterator<R>> {
     override fun fetch(
         from: SqlDatabase, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): CloseableIterator<R> =
-        from.column(query, argumentTypes, receiverAndArguments, rt)
+        from.column(query, argumentTypes, arguments, rt)
 }
 
 @PublishedApi internal class FetchStructsLazily<SCH : Schema<SCH>>(
@@ -29,9 +29,9 @@ import net.aquadc.persistence.type.Ilk
 ) : Fetch<CloseableIterator<Struct<SCH>>> {
     override fun fetch(
         from: SqlDatabase, query: String,
-        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, receiverAndArguments: Array<out Any>
+        argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>, arguments: Array<out Any>
     ): CloseableIterator<Struct<SCH>> =
-        from.rows(query, argumentTypes, receiverAndArguments, table, bindBy, transient)
+        from.rows(query, argumentTypes, arguments, table, bindBy, transient)
 }
 
 internal fun <R> Fetch<R>.lazy(): Fetch<Lazy<R>> =
@@ -40,10 +40,10 @@ internal fun <R> Fetch<R>.lazy(): Fetch<Lazy<R>> =
             from: SqlDatabase,
             query: String,
             argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-            receiverAndArguments: Array<out Any>
+            arguments: Array<out Any>
         ): Lazy<R> =
             lazy {
-                this@lazy.fetch(from, query, argumentTypes, receiverAndArguments)
+                this@lazy.fetch(from, query, argumentTypes, arguments)
             }
     }
 

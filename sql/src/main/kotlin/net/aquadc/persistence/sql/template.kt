@@ -8,7 +8,7 @@ interface SqlInvocation<in DB : SqlDatabase, out R> {
         from: DB,
         query: String,
         argumentTypes: Array<out Ilk<*, DataType.NotNull<*>>>,
-        receiverAndArguments: Array<out Any>
+        arguments: Array<out Any>,
     ): R
 }
 

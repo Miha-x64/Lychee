@@ -12,7 +12,6 @@ import net.aquadc.lychee.http.Endpoint5
 import net.aquadc.lychee.http.Endpoint6
 import net.aquadc.lychee.http.Endpoint7
 import net.aquadc.lychee.http.Endpoint8
-import net.aquadc.lychee.http.noCharSeqs
 import net.aquadc.lychee.http.param.Field
 import net.aquadc.lychee.http.param.Fields
 import net.aquadc.lychee.http.param.Header
@@ -25,7 +24,6 @@ import net.aquadc.lychee.http.param.Headers
 import net.aquadc.lychee.http.param.Param
 import net.aquadc.lychee.http.param.Body
 import net.aquadc.lychee.http.param.Resp
-//import net.aquadc.lychee.http.param.Url
 import net.aquadc.persistence.FuncXImpl
 import net.aquadc.persistence.fatAsList
 import net.aquadc.persistence.type.DataType
@@ -45,88 +43,68 @@ import java.util.concurrent.Future
 import java.util.concurrent.FutureTask
 
 
-inline fun <B, R> Call.Factory.template(
+inline fun <B, R> Endpoint0<*, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint0<*, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): () -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.() -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T, R> Call.Factory.template(
+inline fun <B, T, R> Endpoint1<*, out Param<T>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint1<*, out Param<T>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, R> Call.Factory.template(
+inline fun <B, T1, T2, R> Endpoint2<*, *, out Param<T1>, out Param<T2>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint2<*, *, out Param<T1>, out Param<T2>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, T3, R> Call.Factory.template(
+inline fun <B, T1, T2, T3, R> Endpoint3<*, *, out Param<T1>, out Param<T2>, out Param<T3>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint3<*, *, out Param<T1>, out Param<T2>, out Param<T3>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2, T3) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2, T3) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, T3, T4, R> Call.Factory.template(
+inline fun <B, T1, T2, T3, T4, R> Endpoint4<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint4<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2, T3, T4) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2, T3, T4) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, R> Call.Factory.template(
+inline fun <B, T1, T2, T3, T4, T5, R> Endpoint5<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint5<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2, T3, T4, T5) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2, T3, T4, T5) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, T6, R> Call.Factory.template(
+inline fun <B, T1, T2, T3, T4, T5, T6, R> Endpoint6<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint6<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2, T3, T4, T5, T6) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2, T3, T4, T5, T6) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, T6, T7, R> Call.Factory.template(
+inline fun <B, T1, T2, T3, T4, T5, T6, T7, R> Endpoint7<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint7<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2, T3, T4, T5, T7) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2, T3, T4, T5, T6, T7) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
-inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
+inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Endpoint8<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, out Param<T8>, B>.on(
     baseUrl: CharSequence?,
-    endpoint: Endpoint8<*, *, out Param<T1>, out Param<T2>, out Param<T3>, out Param<T4>, out Param<T5>, out Param<T6>, out Param<T7>, out Param<T8>, B>,
     noinline adapt: (Call.Factory, Request, Resp<B>) -> R,
-    headers: Array<out CharSequence> = noCharSeqs
-): (T1, T2, T3, T4, T5, T7, T8) -> R =
-    OkHttpMethod(this, baseUrl, endpoint, headers, adapt)
+): Call.Factory.(T1, T2, T3, T4, T5, T7, T8) -> R =
+    OkHttpMethod(baseUrl, this, adapt)
 
 
 @PublishedApi internal class OkHttpMethod<B, R>(
-    private val client: Call.Factory,
     private val baseUrl: CharSequence?,
     private val endpoint: Endpoint<*, B>,
-    private val headers: Array<out CharSequence>,
     private val adapt: (Call.Factory, Request, Resp<B>) -> R
-) : FuncXImpl<Any?, R>() {
+) : FuncXImpl<Call.Factory, Any?, R>() {
     private val multipart = endpoint.params.any { it is Part<*> || it is Parts<*> }
-    override fun invokeUnchecked(vararg args: Any?): R {
+    override fun invokeUnchecked(receiver: Call.Factory, vararg args: Any?): R {
         val url = url(baseUrl, endpoint, args, guessProto = false)
         var urlBldr: HttpUrl.Builder? = null
 
@@ -138,6 +116,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
 
         endpoint.params.forEachIndexed { index, param ->
             val value = args[index]
+            @Suppress("UNCHECKED_CAST")
             when (param) {
                 /*is Url, */is Path -> {} // already handled
                 is Query ->
@@ -158,13 +137,13 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
                     addPart(multipart!!, param as Part<Any?>, value)
                 is Parts<*> ->
                     addParts(multipart!!, param as Parts<Any?>, value as Collection<Pair<CharSequence, Any?>>)
-            }!!
+            }
         }
 
         if (fields != null) {
             check(body == null)
             check(multipart == null) // if multipart, fields are added as Parts
-            body = fields!!.build()
+            body = fields.build()
             fields = null
         } else if (multipart != null) {
             check(body == null)
@@ -172,15 +151,11 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
             multipart = null
         }
 
-        for (i in headers.indices step 2) {
-            request.addHeader(headers[i].toString(), headers[i + 1].toString())
-        }
-
         return adapt(
-            client,
+            receiver,
             request
                 .method(endpoint.method.name, body)
-                .url(urlBldr?.let { it.build()!! } ?: url!!)
+                .url(urlBldr?.let { it.build()!! } ?: url)
                 .build(),
             endpoint.response
         )
@@ -205,7 +180,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
     private fun addField(dest: Any, param: Field<*>, value: Any?) {
         when (val type = param.type) {
             is DataType.Nullable<*, *> ->
-                if (value != null) addField(dest, param.name, type as DataType.NotNull.Simple<Any?>, value)
+                if (value != null) addField(dest, param.name, type.actualType as DataType.NotNull.Simple<Any?>, value)
             is DataType.NotNull.Simple<*> ->
                 addField(dest, param.name, type as DataType.NotNull.Simple<Any?>, value)
             is DataType.NotNull.Collect<*, *, *> ->
@@ -215,7 +190,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Call.Factory.template(
                     .takeIf(List<*>::isNotEmpty) // don't instantiate iterator if not necessary
                     ?.let { values ->
                         values.forEach { value ->
-                            addField(dest, param.name, type as DataType.NotNull.Simple<Any?>, value)
+                            addField(dest, param.name, type.elementType as DataType.NotNull.Simple<Any?>, value)
                         }
                     }
             is DataType.NotNull.Partial<*, *> ->

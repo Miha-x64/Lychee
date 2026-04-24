@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalHttp::class)
 package net.aquadc.lychee.http
 
 import io.undertow.Undertow
@@ -7,7 +8,7 @@ import net.aquadc.lychee.http.client.okhttp3.blocking
 import net.aquadc.lychee.http.client.okhttp3.completable
 import net.aquadc.lychee.http.client.okhttp3.defer
 import net.aquadc.lychee.http.client.okhttp3.future
-import net.aquadc.lychee.http.client.okhttp3.template
+import net.aquadc.lychee.http.client.okhttp3.on
 import net.aquadc.lychee.http.param.Field
 import net.aquadc.lychee.http.param.Fields
 import net.aquadc.lychee.http.param.Header
@@ -34,12 +35,12 @@ import java.util.concurrent.Executors
 
 class UndertowOkHttpE2E {
 
-    val host = "127.0.0.1"
-    val port = 8182
-    val baseUrl = "http://$host:$port/"
+    private val host = "127.0.0.1"
+    private val port = 8182
+    private val baseUrl = "http://$host:$port/"
 
-    val client = OkHttpClient()
-    var server: Undertow? = null
+    private val client = OkHttpClient()
+    private var server: Undertow? = null
     @After fun cleanup() {
         server?.let { it.stop(); server = null }
     }
@@ -58,11 +59,11 @@ class UndertowOkHttpE2E {
             rqXxx = xxx
             "Access granted."
         } }
-        val func = client.template(baseUrl, getUser, blocking { body!!.use { it.string() } })
+        val func = getUser.on(baseUrl, blocking { body!!.use { it.string() } })
 
         val id = UUID.randomUUID()
         val authorizedFunc = func("sooper secred")
-        val response = authorizedFunc("admin", id, byteArrayOf(1, 1, 2, 3, 5))
+        val response = client.authorizedFunc("admin", id, byteArrayOf(1, 1, 2, 3, 5))
 
         assertEquals("sooper secred", rqToken)
         assertEquals("admin", rqRole)
@@ -83,20 +84,23 @@ class UndertowOkHttpE2E {
         var rqBirth: Int? = null
         lateinit var rqRest: Collection<Pair<CharSequence, CharSequence>>
         lateinit var rsId: UUID
-        server = undertow { add(updateUser,
-            { rsId = it; responseSender.send(it.toString()) }, { _, e -> throw e }
-        ) { isAdmin, params, name, email, birth, rest ->
-            rqAdmin = isAdmin
-            rqParams = params
-            rqName = name
-            rqEmail = email
-            rqBirth = birth
-            rqRest = rest
-            UUID.randomUUID()
-        } }
+        server = undertow {
+            add(
+                updateUser,
+                { rsId = it; responseSender.send(it.toString()) }, { _, e -> throw e }
+            ) { isAdmin, params, name, email, birth, rest ->
+                rqAdmin = isAdmin
+                rqParams = params
+                rqName = name
+                rqEmail = email
+                rqBirth = birth
+                rqRest = rest
+                UUID.randomUUID()
+            }
+        }
 
-        val doUpdateUser = client.template(baseUrl, updateUser, blocking { UUID.fromString(body!!.use { it.string() }) })
-        var id = doUpdateUser(true, listOf("whatever" to "brrrr"), "John", "john@", 1736,
+        val doUpdateUser = updateUser.on(baseUrl, blocking { UUID.fromString(body!!.use { it.string() }) })
+        var id = client.doUpdateUser(true, listOf("whatever" to "brrrr"), "John", "john@", 1736,
             listOf("blah" to "whatever1", "blah" to "whatever2", "zzz" to "xxx"))
         assertEquals(true, rqAdmin)
         assertEquals(listOf("whatever" to "brrrr"), rqParams)
@@ -106,7 +110,7 @@ class UndertowOkHttpE2E {
         assertEquals(listOf("blah" to "whatever1", "blah" to "whatever2", "zzz" to "xxx"), rqRest)
         assertEquals(rsId, id)
 
-        id = doUpdateUser(false, listOf<Nothing>(), "Jane", "jane@", 1824, listOf())
+        id = client.doUpdateUser(false, listOf<Nothing>(), "Jane", "jane@", 1824, listOf())
         assertEquals(false, rqAdmin)
         assertEquals(listOf<Nothing>(), rqParams)
         assertEquals("Jane", rqName)
@@ -125,8 +129,8 @@ class UndertowOkHttpE2E {
             204
         } }
 
-        val doUpload = client.template(baseUrl, upload, blocking { body?.close(); code })
-        assertEquals(204, doUpload { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1)) })
+        val doUpload = upload.on(baseUrl, blocking { body?.close(); code })
+        assertEquals(204, client.doUpload { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1)) })
         assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1), rqBytes)
     }
 
@@ -138,7 +142,7 @@ class UndertowOkHttpE2E {
         lateinit var rqId: UUID
         lateinit var rqBytes: ByteArray
         lateinit var rqFiles: Collection<Pair<CharSequence, CharSequence>>
-        server = undertow { add(upload, { statusCode = it }, { _, e -> throw e}) {
+        server = undertow { add(upload, { statusCode = it }, { _, e -> throw e }) {
             name, id, photo, files ->
 
             rqName = name
@@ -149,9 +153,9 @@ class UndertowOkHttpE2E {
             204
         } }
 
-        val doUpload = client.template(baseUrl, upload, blocking { body?.close(); code })
+        val doUpload = upload.on(baseUrl, blocking { body?.close(); code })
         val id = UUID.randomUUID()
-        assertEquals(204, doUpload("Unnamed", id, { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1)) }, listOf("qwe" to "asd")))
+        assertEquals(204, client.doUpload("Unnamed", id, { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1)) }, listOf("qwe" to "asd")))
         assertEquals("Unnamed", rqName)
         assertEquals(id, rqId)
         assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5, 4, 3, 2, 1), rqBytes)
@@ -162,31 +166,31 @@ class UndertowOkHttpE2E {
         val get = GET("/", Response<Unit>())
         server = undertow { add(get, { responseSender.send("ok") }) { } }
         val executor = Executors.newSingleThreadExecutor()
-        val doGet = client.template(baseUrl, get, future(executor) { body?.close(); Unit })
-        doGet().get()
+        val doGet = get.on(baseUrl, future(executor) { body?.close(); })
+        client.doGet().get()
         executor.shutdown()
     }
 
     @Test fun cf() {
         val get = GET("/", Response<Unit>())
         server = undertow { add(get, { responseSender.send("ok") }) { } }
-        val doGet = client.template(baseUrl, get, completable { body?.close(); Unit })
-        doGet().get()
+        val doGet = get.on(baseUrl, completable { body?.close(); })
+        client.doGet().get()
     }
 
     @Test fun coroutine() {
         val get = GET("/", Response<Unit>())
         server = undertow { add(get, { responseSender.send("ok") }) { } }
-        val doGet = client.template(baseUrl, get, defer { body?.close(); Unit })
+        val doGet = get.on(baseUrl, defer { body?.close(); })
         runBlocking {
-            doGet().await()
+            client.doGet().await()
         }
     }
 
     private inline fun undertow(register: RoutingHandler.() -> RoutingHandler): Undertow =
         Undertow.builder().addHttpListener(port, host, RoutingHandler().register()).build().also { it.start() }
 
-    operator fun <T, U, V, W, R> ((T, U, V, W) -> R).invoke(t: T): (U, V, W) -> R =
-        { u, v, w -> this(t, u, v, w) }
+    operator fun <S, T, U, V, W, R> (S.(T, U, V, W) -> R).invoke(t: T): S.(U, V, W) -> R =
+        { u, v, w -> this@invoke(t, u, v, w) }
 
 }
