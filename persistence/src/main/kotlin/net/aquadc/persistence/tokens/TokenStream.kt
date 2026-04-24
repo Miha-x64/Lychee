@@ -28,13 +28,13 @@ enum class Token(internal val delta: Int) {
         override fun coerce(value: Any?): Any? = when (value) {
             is Boolean, is Number -> value.toString()
             is CharSequence -> value
-            is ByteArray -> toBase64(value)
+            is ByteArray -> toBase64(value, urlSafe = false)
             else -> throw IllegalArgumentException("value $value cannot be coerced to $Str")
         }
     },
     Blob(0) {
         override fun coerce(value: Any?): Any? = when (value) {
-            is CharSequence -> fromBase64(value.toString())
+            is CharSequence -> fromBase64(value.toString(), urlSafe = false)
             is ByteArray -> value
             else -> throw IllegalArgumentException("value $value cannot be coerced to $this")
         }

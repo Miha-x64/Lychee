@@ -254,11 +254,12 @@ private fun splitQueryParameter(it: String): Pair<String, String> {
             args[index] = when (param) {
                 is Path -> param.type.loadFromStr(
                     exchange.getAttachment(PathTemplateMatch.ATTACHMENT_KEY).parameters[param.name.toString()]
-                        ?: throw NoSuchElementException()
+                        ?: throw NoSuchElementException(),
+                    urlSafe = true,
                 )
-                is Query -> parse(exchange.queryParameters[param.name.toString()], param.type)
+                is Query -> parse(exchange.queryParameters[param.name.toString()], param.type, urlSafe = true)
                 is QueryParams -> null.also { hasQParamsOrHeaders = true }
-                is Header -> parse(exchange.requestHeaders[param.name.toString()], param.type)
+                is Header -> parse(exchange.requestHeaders[param.name.toString()], param.type, urlSafe = false)
                 is Headers -> null.also { hasQParamsOrHeaders = true }
                 is Field -> null.also { hasField = true }
                 is Fields -> null.also { hasFields = true }
@@ -425,30 +426,30 @@ private fun <T> gather(params: FormData, body: Body<T>): List<Pair<String, T>> {
     return out
 }
 
-private fun parse(values: Deque<String>?, type: DataType<*>?): Any? = when (type) {
+private fun parse(values: Deque<String>?, type: DataType<*>?, urlSafe: Boolean): Any? = when (type) {
     null -> // interpret empty query parameter presence as boolean
         values?.remove("") == true // (unfortunately, ?q and ?q= are indistinguishable here)
     is DataType.NotNull.Simple<*> ->
-        type.loadFromStr((values ?: throw NoSuchElementException()).remove())
+        type.loadFromStr((values ?: throw NoSuchElementException()).remove(), urlSafe)
     is DataType.Nullable<*, *> ->
-        values?.poll()?.let { (type.actualType as DataType.NotNull.Simple<*>).loadFromStr(it) }
+        values?.poll()?.let { (type.actualType as DataType.NotNull.Simple<*>).loadFromStr(it, urlSafe) }
     is DataType.NotNull.Collect<*, *, *> ->
-        type.load(values?.map { (type.elementType as DataType.NotNull.Simple<*>).loadFromStr(it) } ?: emptyList<Any?>())
+        type.load(values?.map { (type.elementType as DataType.NotNull.Simple<*>).loadFromStr(it, urlSafe) } ?: emptyList<Any?>())
     else ->
         throw AssertionError()
 }
 private fun parseField(values: Deque<FormData.FormValue>?, type: DataType<*>): Any? = when (type) {
     is DataType.NotNull.Simple<*> ->
-        type.loadFromStr((values ?: throw NoSuchElementException()).remove().value)
+        type.loadFromStr((values ?: throw NoSuchElementException()).remove().value, urlSafe = true)
     is DataType.Nullable<*, *> ->
-        values?.poll()?.value?.let { (type.actualType as DataType.NotNull.Simple<*>).loadFromStr(it) }
+        values?.poll()?.value?.let { (type.actualType as DataType.NotNull.Simple<*>).loadFromStr(it, urlSafe = true) }
     is DataType.NotNull.Collect<*, *, *> ->
-        type.load(values?.map { (type.elementType as DataType.NotNull.Simple<*>).loadFromStr(it.value) } ?: emptyList<Any?>())
+        type.load(values?.map { (type.elementType as DataType.NotNull.Simple<*>).loadFromStr(it.value, urlSafe = true) } ?: emptyList<Any?>())
     else ->
         throw AssertionError()
 }
 
-private fun <T> DataType.NotNull.Simple<T>.loadFromStr(value: String): T =
+private fun <T> DataType.NotNull.Simple<T>.loadFromStr(value: String, urlSafe: Boolean): T =
     if (hasStringRepresentation) load(value) else load(when (kind) {
         DataType.NotNull.Simple.Kind.Bool -> value.toBoolean() // == value.equalsIgnoreCase("true"), unfailable
         DataType.NotNull.Simple.Kind.I32 -> value.toInt()
@@ -456,7 +457,7 @@ private fun <T> DataType.NotNull.Simple<T>.loadFromStr(value: String): T =
         DataType.NotNull.Simple.Kind.F32 -> value.toFloat()
         DataType.NotNull.Simple.Kind.F64 -> value.toDouble()
         DataType.NotNull.Simple.Kind.Str -> value
-        DataType.NotNull.Simple.Kind.Blob -> fromBase64(value)
+        DataType.NotNull.Simple.Kind.Blob -> fromBase64(value, urlSafe)
     })
 
 // Kotlin provides 1..5

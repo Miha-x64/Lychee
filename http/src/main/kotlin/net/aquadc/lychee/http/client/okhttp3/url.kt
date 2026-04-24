@@ -128,7 +128,7 @@ private fun String.maybeStripProto(baseUrl: CharSequence?, endpoint: Endpoint<*,
 //          Url -> urlArg = value as CharSequence
             is Path -> {
                 val type = param.type as DataType.NotNull.Simple<Any?>
-                urlTemplate.replacePathSegm(param.name, type.storeAsStr(value))
+                urlTemplate.replacePathSegm(param.name, type.storeAsStr(value, urlSafe = true))
             }
             else -> {}
         }
@@ -179,11 +179,11 @@ private fun HttpUrl.Builder.parameterized(endpoint: Endpoint<*, *>, args: Array<
         is DataType.Nullable<*, *> ->
             if (value == null) dest // value == null, return builder unchanged
             else (dest ?: url.newBuilder()).also { builder ->
-                builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
+                builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value, urlSafe = true))
             }
         is DataType.NotNull.Simple<*> ->
             (dest ?: url.newBuilder()).also { builder ->
-                builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
+                builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value, urlSafe = true))
             }
         is DataType.NotNull.Collect<*, *, *> ->
             (type as DataType.NotNull.Collect<Any?, *, *>)
@@ -193,7 +193,7 @@ private fun HttpUrl.Builder.parameterized(endpoint: Endpoint<*, *>, args: Array<
                 ?.let { values ->
                     (dest ?: url.newBuilder()).also { builder ->
                         values.forEach { value ->
-                            builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value))
+                            builder.addQueryParameter(param.name.toString(), (type as DataType.NotNull.Simple<Any?>).storeAsStr(value, urlSafe = true))
                         }
                     }
                 } ?: dest // empty collection, return builder as is
@@ -210,9 +210,9 @@ private fun HttpUrl.Builder.parameterized(endpoint: Endpoint<*, *>, args: Array<
     return builder
 }
 
-@JvmSynthetic internal fun <T> DataType.NotNull.Simple<T>.storeAsStr(value: T): String =
+@JvmSynthetic internal fun <T> DataType.NotNull.Simple<T>.storeAsStr(value: T, urlSafe: Boolean): String =
     when {
         hasStringRepresentation -> storeAsString(value!!).toString()
-        kind == DataType.NotNull.Simple.Kind.Blob -> toBase64(store(value) as ByteArray)
+        kind == DataType.NotNull.Simple.Kind.Blob -> toBase64(store(value) as ByteArray, urlSafe)
         else -> store(value!!).toString()
     }

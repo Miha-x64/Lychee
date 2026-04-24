@@ -167,7 +167,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Endpoint8<*, *, out Param<T1>,
             if (value == null) return
             type.actualType as DataType.NotNull.Simple<T>
         } else type as DataType.NotNull.Simple<T>
-        dest.addHeader(param.name.toString(), unwrappedType.storeAsStr(value))
+        dest.addHeader(param.name.toString(), unwrappedType.storeAsStr(value, urlSafe = false))
     }
     private fun addHeaders(dest: Request.Builder, value: Collection<Pair<CharSequence, CharSequence>>) {
         // many collections are dumb enough to create iterator even for empty contents
@@ -199,7 +199,7 @@ inline fun <B, T1, T2, T3, T4, T5, T6, T7, T8, R> Endpoint8<*, *, out Param<T1>,
     }
     private fun <T> addField(dest: Any, name: CharSequence, type: DataType.NotNull.Simple<T>, value: T) {
         val name = name.toString()
-        val value = type.storeAsStr(value)
+        val value = type.storeAsStr(value, urlSafe = true)
         if (dest is MultipartBody.Builder) {
             dest.addFormDataPart(name, value)
         } else {

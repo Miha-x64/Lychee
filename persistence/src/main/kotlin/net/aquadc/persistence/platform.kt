@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import androidx.annotation.RestrictTo
 import java.util.Collections.newSetFromMap
 import kotlin.collections.HashMap
+import android.util.Base64 as AndroidB64
+import java.util.Base64 as JavaB64
 
 private val andro: Boolean = try {
     android.os.Build.VERSION.SDK_INT >= 0; true
@@ -49,12 +51,14 @@ fun <E> newSet(copyFrom: Collection<E>): MutableSet<E> =
 
 @SuppressLint("NewApi") // false-positive: we won't use java.util.Base64 branch on Android
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun fromBase64(str: String): ByteArray =
-    if (andro) android.util.Base64.decode(str, android.util.Base64.DEFAULT)
-    else java.util.Base64.getDecoder().decode(str)
+fun fromBase64(str: String, urlSafe: Boolean): ByteArray =
+    if (andro) AndroidB64.decode(str, if (urlSafe) AndroidB64.URL_SAFE else AndroidB64.DEFAULT)
+    else (if (urlSafe) JavaB64.getUrlDecoder() else JavaB64.getDecoder()).decode(str)
 
 @SuppressLint("NewApi")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun toBase64(bytes: ByteArray): String =
-    if (andro) android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
-    else java.util.Base64.getEncoder().encodeToString(bytes)
+fun toBase64(bytes: ByteArray, urlSafe: Boolean): String =
+    if (andro)
+        AndroidB64.encodeToString(bytes, if (urlSafe) AndroidB64.URL_SAFE else AndroidB64.DEFAULT)
+    else
+        (if (urlSafe) JavaB64.getUrlEncoder() else JavaB64.getEncoder()).encodeToString(bytes)
