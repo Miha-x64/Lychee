@@ -3,7 +3,9 @@ package net.aquadc.persistence.struct
 import net.aquadc.persistence.type.string
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -38,6 +40,22 @@ class SchemaPropsTest {
         }
     }
 
+    @Test fun `field def exposes name and type`() {
+        assertEquals("a", SomeSchema.A.name)
+        assertSame(string, SomeSchema.A.type)
+    }
+
+    @Test fun `field def equality includes name and type`() {
+        assertNotEquals(SomeSchema.A, DifferentSchema.A)
+    }
+
+    @Test fun `field def toString includes name and type`() {
+        val text = SomeSchema.A.toString()
+
+        assertTrue(text.contains("name=a"))
+        assertTrue(text.contains("type=$string"))
+    }
+
     @Test fun `initialization order trolling`() {
         assertEquals("a1", InitTroll.run { Second.name })
         assertSame(string, InitTroll.run { Second.type })
@@ -55,4 +73,8 @@ class SchemaPropsTest {
 object InitTroll : Schema<InitTroll>() {
     val First = "a".let(string, default = "qwe")
     val Second = "${First.name}1".let(First.type, default = defaultOrElse(First) { "unexpected" } + "r")
+}
+
+object DifferentSchema : Schema<DifferentSchema>() {
+    val A = "different" let string
 }

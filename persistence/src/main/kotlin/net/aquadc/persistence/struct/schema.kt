@@ -57,7 +57,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
         val mfb = mutableFieldBits
         val ord = fields.size
-        val field = MutableField<SELF, T, DT>(ord, java.lang.Long.bitCount(mfb))
+        val field = MutableField<SELF, T, DT>(this, dataType, ord, java.lang.Long.bitCount(mfb))
         mutableFieldBits = mfb or (1L shl ord)
 
         internals.add(this)
@@ -88,7 +88,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
         val fields = fieldInstances as ArrayList<FieldDef<SELF, *, *>>
 
         val total = fields.size
-        val field = ImmutableField<SELF, T, DT>(total, total - java.lang.Long.bitCount(mutableFieldBits))
+        val field = ImmutableField<SELF, T, DT>(this, dataType, total, total - java.lang.Long.bitCount(mutableFieldBits))
 
         internals.add(this)
         internals.add(dataType)
@@ -108,12 +108,10 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
     fun fieldAt(ordinal: Int): FieldDef<SELF, *, *> = fieldInstances.arrOrAlAt(ordinal) as FieldDef<SELF, *, *>
 
-    inline val FieldDef<SELF, *, *>.name: CharSequence get() = nameAt(ordinal)
     inline val Named<SELF>.name: CharSequence get() = name(this as SELF)  // @implNote:
     // (Mutable|Immutable)Field(Def) gonna call our `nameAt()`, custom lenses just return a stored value
     @PublishedApi internal fun nameAt(ordinal: Byte) = fieldInternals.arrOrAlAt(3 * ordinal) as CharSequence
 
-    inline val <T, DT : DataType<T>> FieldDef<SELF, T, DT>.type: DT get() = typeAt(ordinal)
     @PublishedApi internal fun <T, DT : DataType<T>> typeAt(ordinal: Byte) =
         fieldInternals.arrOrAlAt(3 * ordinal + 1) as DT
 
@@ -278,6 +276,8 @@ interface NamedLens<SCH : Schema<SCH>, in PRT : PartialStruct<SCH>, in STR : Str
  * @see ImmutableField
  */
 sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
+    val name: CharSequence,
+    val type: DT,
     ordinal: Int,
     specialOrdinal: Int,
     mutable: Boolean
@@ -317,10 +317,10 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
     }
 
     override fun name(mySchema: SCH): CharSequence =
-        mySchema.nameAt(ordinal)
+        name
 
     override fun type(mySchema: SCH): DT =
-        mySchema.typeAt(ordinal)
+        type
 
     override fun hasValue(struct: PartialStruct<SCH>): Boolean =
         this in struct.fields
@@ -338,13 +338,18 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
         if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
 
     override fun hashCode(): Int =
-        value
+        31 * (31 * value + name.hashCode()) + type.hashCode()
 
     override fun equals(other: Any?): Boolean =
-        javaClass === other?.javaClass && value == (other as FieldDef<*, *, *>).value
+        javaClass === other?.javaClass &&
+                value == (other as FieldDef<*, *, *>).value &&
+                name == other.name &&
+                type == other.type
 
     override fun toString(): String = StringBuilder("field(#").append(value and 63).append(' ')
         .append(if ((value and 65536) == 0) "let" else "mut").append('#').append((value shr 8) and 63)
+        .append(", name=").append(name)
+        .append(", type=").append(type)
         .append(')')
         .toString()
 }
@@ -360,8 +365,8 @@ inline val FieldDef<*, *, *>.ordinal: Byte
  * Represents a mutable field of a [Struct]: its value can be changed.
  */
 /*wannabe inline*/ class MutableField<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-    ordinal: Int, specialOrdinal: Int
-) : FieldDef<SCH, T, DT>(ordinal, specialOrdinal, true)
+    name: CharSequence, type: DT, ordinal: Int, specialOrdinal: Int
+) : FieldDef<SCH, T, DT>(name, type, ordinal, specialOrdinal, true)
 
 inline val MutableField<*, *, *>.mutableOrdinal: Byte
     get() = ((value shr 8) and 63).toByte()
@@ -370,8 +375,8 @@ inline val MutableField<*, *, *>.mutableOrdinal: Byte
  * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
  */
 /*wannabe inline*/ class ImmutableField<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-    ordinal: Int, specialOrdinal: Int
-) : FieldDef<SCH, T, DT>(ordinal, specialOrdinal, false)
+    name: CharSequence, type: DT, ordinal: Int, specialOrdinal: Int
+) : FieldDef<SCH, T, DT>(name, type, ordinal, specialOrdinal, false)
 
 inline val ImmutableField<*, *, *>.immutableOrdinal: Byte
     get() = ((value shr 8) and 63).toByte()
