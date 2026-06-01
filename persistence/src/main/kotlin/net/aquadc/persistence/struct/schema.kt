@@ -23,9 +23,6 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
     // region values changed during subclass initialization
 
-    // if ArrayList, a temporary list of Field internals; if Array, a final list of 'em
-    private var fieldInternals: Any = ArrayList<Any?>(16/*=round(name*type*def*avg.6fields)*/)
-
     // if ArrayList, a temporary list of Field instances; if Array, a final list of 'em
     private var fieldInstances: Any = ArrayList<FieldDef<SELF, *, *>>(8/*=round(avg.6fields)*/)
 
@@ -52,17 +49,15 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     protected fun <T, DT : DataType<T>> CharSequence.mut(dataType: DT, default: T): MutableField<SELF, T, DT> {
-        val internals = fieldInternals()
-        val fields = fieldInstances as ArrayList<FieldDef<SELF, *, *>>
+        val fields = fieldInstances()
 
         val mfb = mutableFieldBits
         val ord = fields.size
-        val field = MutableField<SELF, T, DT>(this, dataType, ord, java.lang.Long.bitCount(mfb))
+        val field = MutableField<SELF, T, DT>(
+            this@Schema as SELF, this, dataType, default, ord, java.lang.Long.bitCount(mfb)
+        )
         mutableFieldBits = mfb or (1L shl ord)
 
-        internals.add(this)
-        internals.add(dataType)
-        internals.add(default)
         fields.add(field)
         return field
     }
@@ -84,21 +79,19 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
      * otherwise [Struct]s with different instances of this [Schema] will become incompatible.
      */
     protected fun <T, DT : DataType<T>> CharSequence.let(dataType: DT, default: T): ImmutableField<SELF, T, DT> {
-        val internals = fieldInternals()
-        val fields = fieldInstances as ArrayList<FieldDef<SELF, *, *>>
+        val fields = fieldInstances()
 
         val total = fields.size
-        val field = ImmutableField<SELF, T, DT>(this, dataType, total, total - java.lang.Long.bitCount(mutableFieldBits))
+        val field = ImmutableField<SELF, T, DT>(
+            this@Schema as SELF, this, dataType, default, total, total - java.lang.Long.bitCount(mutableFieldBits)
+        )
 
-        internals.add(this)
-        internals.add(dataType)
-        internals.add(default)
         fields.add(field)
         return field
     }
 
-    private fun fieldInternals() =
-        fieldInternals as? ArrayList<Any?>
+    private fun fieldInstances() =
+        fieldInstances as? ArrayList<FieldDef<SELF, *, *>>
             ?: throw IllegalStateException("schema `${javaClass.simpleName}` is already initialized")
 
     // endregion initialization interface for subclasses
@@ -108,16 +101,20 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
     fun fieldAt(ordinal: Int): FieldDef<SELF, *, *> = fieldInstances.arrOrAlAt(ordinal) as FieldDef<SELF, *, *>
 
+    @Deprecated("Use FieldDef.name instead.", ReplaceWith("name"))
+    inline val FieldDef<SELF, *, *>.name: CharSequence get() = this.name
     inline val Named<SELF>.name: CharSequence get() = name(this as SELF)  // @implNote:
     // (Mutable|Immutable)Field(Def) gonna call our `nameAt()`, custom lenses just return a stored value
-    @PublishedApi internal fun nameAt(ordinal: Byte) = fieldInternals.arrOrAlAt(3 * ordinal) as CharSequence
+    @PublishedApi internal fun nameAt(ordinal: Byte) = fieldAt(ordinal.toInt()).name
 
+    @Deprecated("Use FieldDef.type instead.", ReplaceWith("type"))
+    inline val <T, DT : DataType<T>> FieldDef<SELF, T, DT>.type: DT get() = this.type
     @PublishedApi internal fun <T, DT : DataType<T>> typeAt(ordinal: Byte) =
-        fieldInternals.arrOrAlAt(3 * ordinal + 1) as DT
+        (fieldAt(ordinal.toInt()) as FieldDef<SELF, T, DT>).type
 
     inline fun <T> defaultOrElse(field: FieldDef<SELF, T, *>, orElse: () -> T): T =
         defaultAt(field.ordinal.toInt()).let { def -> if (def !== Unset) def as T else orElse() }
-    @PublishedApi internal fun defaultAt(ordinal: Int): Any? = fieldInternals.arrOrAlAt(3 * ordinal + 2)
+    @PublishedApi internal fun defaultAt(ordinal: Int): Any? = fieldAt(ordinal).default
 
     private fun Any.arrOrAlAt(index: Int): Any? {
         (this as? ArrayList<*>)?.let { return it[index] }
@@ -155,33 +152,32 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
         return if (idx >= 0) ifFound(fieldAt(idx)) else ifNot()
     }
     @PublishedApi internal fun indexByName(name: CharSequence): Int {
-        val array = (fieldInternals as? Array<out Any?>) ?: freeze().let { fieldInternals as Array<out Any?> }
+        val array = fields()
 
-        for (i in 0 .. (array.size-3) step 3)
-            if ((array[i] as CharSequence).eq(name, false))
-                return i/3
+        for (i in array.indices)
+            if (array[i].name.eq(name, false))
+                return i
         return -1
     }
 
     private fun fields() = ((fieldInstances as? Array<FieldDef<SELF, *, *>>)
         ?: freeze().let { fieldInstances as Array<FieldDef<SELF, *, *>> })
     @Synchronized private fun freeze() {
-        if (fieldInternals is Array<*>) return // initialized concurrently
+        if (fieldInstances is Array<*>) return // initialized concurrently
 
-        val fieldList = fieldInternals as ArrayList<Any?>
+        val fieldList = fieldInstances as ArrayList<FieldDef<SELF, *, *>>
         check(fieldList.isNotEmpty()) { "Struct must have at least one field." }
 
-        val fieldCount = fieldList.size / 3
+        val fieldCount = fieldList.size
         val nameSet = newSet<String>(fieldCount)
-        for (i in fieldList.indices step 3) {
-            val name = (fieldList[i] as CharSequence).toString()
+        for (field in fieldList) {
+            val name = field.name.toString()
             if (!nameSet.add(name)) {
                 throw IllegalStateException("duplicate field: `${this@Schema.javaClass.simpleName}`.`${name}`")
             }
         }
 
-        fieldInternals = fieldList.toArray()
-        fieldInstances = (fieldInstances as ArrayList<FieldDef<SELF, *, *>>).toTypedArray()
+        fieldInstances = fieldList.toTypedArray()
     }
 
     // endregion interface which ends initialization
@@ -206,6 +202,7 @@ abstract class Schema<SELF : Schema<SELF>> : DataType.NotNull.Partial<Struct<SEL
 
 
 interface Named<SCH : Schema<SCH>> {
+    @Deprecated("Use name instead.", ReplaceWith("name"))
     fun name(mySchema: SCH): CharSequence
 }
 
@@ -220,6 +217,7 @@ interface StoredLens<SCH : Schema<SCH>, T, DT : DataType<T>> {
     /**
      * Type of values stored within a field/column represented by this lens.
      */
+    @Deprecated("Use type instead.", ReplaceWith("type"))
     fun type(mySchema: SCH): DT
 
     val size: Int
@@ -276,8 +274,10 @@ interface NamedLens<SCH : Schema<SCH>, in PRT : PartialStruct<SCH>, in STR : Str
  * @see ImmutableField
  */
 sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
-    val name: CharSequence,
-    val type: DT,
+    @JvmField val schema: SCH,
+    @JvmField val name: CharSequence,
+    @JvmField val type: DT,
+    @JvmField val default: T,
     ordinal: Int,
     specialOrdinal: Int,
     mutable: Boolean
@@ -316,9 +316,11 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
         value = ordinal or (specialOrdinal shl 8) or (if (mutable) 65536 else 0)
     }
 
+    @Deprecated("Use name instead.", ReplaceWith("name"))
     override fun name(mySchema: SCH): CharSequence =
         name
 
+    @Deprecated("Use type instead.", ReplaceWith("type"))
     override fun type(mySchema: SCH): DT =
         type
 
@@ -338,19 +340,21 @@ sealed class FieldDef<SCH : Schema<SCH>, T, DT : DataType<T>>(
         if (index == 0) this else throw IndexOutOfBoundsException(index.toString())
 
     override fun hashCode(): Int =
-        31 * (31 * value + name.hashCode()) + type.hashCode()
+        31 * (31 * (31 * value + schema.hashCode()) + name.hashCode()) + type.hashCode()
 
     override fun equals(other: Any?): Boolean =
         javaClass === other?.javaClass &&
                 value == (other as FieldDef<*, *, *>).value &&
+                schema == other.schema &&
                 name == other.name &&
                 type == other.type
 
-    override fun toString(): String = StringBuilder("field(#").append(value and 63).append(' ')
-        .append(if ((value and 65536) == 0) "let" else "mut").append('#').append((value shr 8) and 63)
-        .append(", name=").append(name)
-        .append(", type=").append(type)
-        .append(')')
+    override fun toString(): String = StringBuilder()
+        .append(if ((value and 65536) == 0) "let" else "mut")
+        .append(' ')
+        .append(schema.javaClass.simpleName)
+        .append("[#").append(value and 63).append("].")
+        .append(name).append(": ").append(type)
         .toString()
 }
 
@@ -365,8 +369,8 @@ inline val FieldDef<*, *, *>.ordinal: Byte
  * Represents a mutable field of a [Struct]: its value can be changed.
  */
 /*wannabe inline*/ class MutableField<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-    name: CharSequence, type: DT, ordinal: Int, specialOrdinal: Int
-) : FieldDef<SCH, T, DT>(name, type, ordinal, specialOrdinal, true)
+    schema: SCH, name: CharSequence, type: DT, default: T, ordinal: Int, specialOrdinal: Int
+) : FieldDef<SCH, T, DT>(schema, name, type, default, ordinal, specialOrdinal, true)
 
 inline val MutableField<*, *, *>.mutableOrdinal: Byte
     get() = ((value shr 8) and 63).toByte()
@@ -375,8 +379,8 @@ inline val MutableField<*, *, *>.mutableOrdinal: Byte
  * Represents an immutable field of a [Struct]: its value must be set during construction and cannot be changed.
  */
 /*wannabe inline*/ class ImmutableField<SCH : Schema<SCH>, T, DT : DataType<T>> internal constructor(
-    name: CharSequence, type: DT, ordinal: Int, specialOrdinal: Int
-) : FieldDef<SCH, T, DT>(name, type, ordinal, specialOrdinal, false)
+    schema: SCH, name: CharSequence, type: DT, default: T, ordinal: Int, specialOrdinal: Int
+) : FieldDef<SCH, T, DT>(schema, name, type, default, ordinal, specialOrdinal, false)
 
 inline val ImmutableField<*, *, *>.immutableOrdinal: Byte
     get() = ((value shr 8) and 63).toByte()
