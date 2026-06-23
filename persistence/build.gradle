@@ -11,7 +11,7 @@ dependencies {
     compileOnly "com.google.android:android:$android_artifact_version"
 
     testImplementation "junit:junit:$junit_version"
-    testImplementation project(':etc:testing')
+    testImplementation projects.etc.testing
     testImplementation "com.squareup.okio:okio:$okio_version"
 }
 

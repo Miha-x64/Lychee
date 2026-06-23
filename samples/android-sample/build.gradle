@@ -79,11 +79,11 @@ dependencies {
     implNoX(it, "com.louiscad.splitties:splitties-resources:$splitties_version")
     implNoX(it, "com.louiscad.splitties:splitties-views-dsl-recyclerview:$splitties_version")
     
-    implementation project(':properties')
-    implementation project(':android-bindings')
-    implementation project(':sql') // required for SQLite sample
-    implementation project(':persistence') // required for saving state — ParcelPropertiesMemento is there
-    implementation project(':samples:logic-sample') // ViewModels are here
+    implementation projects.properties
+    implementation projects.androidBindings
+    implementation projects.sql // required for SQLite sample
+    implementation projects.persistence // required for saving state — ParcelPropertiesMemento is there
+    implementation projects.samples.logicSample // ViewModels are here
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
 }

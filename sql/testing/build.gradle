@@ -8,8 +8,8 @@ repositories {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    implementation project(':persistence')
-    implementation project(':extended-persistence')
-    implementation project(':sql')
+    implementation projects.persistence
+    implementation projects.extendedPersistence
+    implementation projects.sql
     implementation "junit:junit:$junit_version"
 }

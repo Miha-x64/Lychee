@@ -2,8 +2,8 @@ apply plugin: 'kotlin'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation project(':properties')
-    implementation project(':persistence')
-    implementation project(':extended-persistence')
-    implementation project(':sql')
+    implementation projects.properties
+    implementation projects.persistence
+    implementation projects.extendedPersistence
+    implementation projects.sql
 }

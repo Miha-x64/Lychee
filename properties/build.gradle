@@ -5,13 +5,13 @@ apply plugin: 'kotlin'
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
-    compileOnly project(':etc:fake-bindings')
-    compileOnly project(':persistence') // ManagedProperty uses FieldDef from :persistence
+    compileOnly projects.etc.fakeBindings
+    compileOnly projects.persistence // ManagedProperty uses FieldDef from :persistence
     compileOnly 'androidx.annotation:annotation:1.2.0'
 
     testImplementation "junit:junit:$junit_version"
-    testImplementation project(':persistence')
-    testImplementation project(':etc:testing')
+    testImplementation projects.persistence
+    testImplementation projects.etc.testing
 }
 
 /*jacocoTestReport {

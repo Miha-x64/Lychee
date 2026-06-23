@@ -41,21 +41,21 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
-    implementation project(':properties') // subscriptions & reactivity
-    implementation project(':persistence') // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
+    implementation projects.properties // subscriptions & reactivity
+    implementation projects.persistence // saving/restoring state, tools for wrapping SharedPreferences, JSON, Parcel
 
     testImplementation "junit:junit:$junit_version"
     testImplementation "com.squareup.okio:okio:$okio_version"
-    testImplementation project(':etc:testing')
-    testImplementation project(':extended-persistence') // partial(Struct) is here
+    testImplementation projects.etc.testing
+    testImplementation projects.extendedPersistence // partial(Struct) is here
     testImplementation 'org.robolectric:robolectric:4.16.1'
-    testImplementation project(':sql')
-    testImplementation project(':sql:testing')
-    testImplementation project(':android-json')
+    testImplementation projects.sql
+    testImplementation projects.sql.testing
+    testImplementation projects.androidJson
 
-    // Adding project(':android-json-on-jvm') output as a jar overrides pesky mockable android.jar for some reason.
+    // Adding projects.androidJsonOnJvm output as a jar overrides pesky mockable android.jar for some reason.
     // Get it built first:
-    testImplementation project(':android-json-on-jvm')
+    testImplementation projects.androidJsonOnJvm
     // then add:
     testImplementation files("../android-json-on-jvm/build/libs/android-json-on-jvm-${PUBLISH_VERSION}.jar")
 

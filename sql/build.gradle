@@ -7,17 +7,17 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation "com.github.Miha-x64.Kotlin-MPP_Collection_utils:Collection-utils-jvm:$collection_utils_version"
-    implementation project(':properties')
-    implementation project(':persistence')
+    implementation projects.properties
+    implementation projects.persistence
 
     compileOnly 'androidx.annotation:annotation:1.2.0'
     compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0'
 
     testImplementation "junit:junit:$junit_version"
-    testImplementation project(':sql:testing')
+    testImplementation projects.sql.testing
     testImplementation "org.xerial:sqlite-jdbc:$sqlite_jdbc_version"
     testImplementation 'org.postgresql:postgresql:42.7.7'
-    testImplementation project(':extended-persistence')
+    testImplementation projects.extendedPersistence
 }
 
 ext {
