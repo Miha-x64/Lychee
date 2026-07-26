@@ -9,12 +9,18 @@ import net.aquadc.lychee.http.param.Headers
 import net.aquadc.lychee.http.param.LinkParam
 import net.aquadc.lychee.http.param.Resp
 
-@JvmField val GET: Get = Get()
-@JvmField val POST: Post = Post()
-@JvmField val PUT: HttpMethod<Param<*>> = HttpMethod("PUT")
-@JvmField val PATCH: HttpMethod<Param<*>> = HttpMethod("PATCH")
-@JvmField val DELETE: HttpMethod<ExtracorpParam<*>> = HttpMethod("DELETE")
-// HEAD, OPTIONS, TRACE do not seem very useful in a context of HTTP API
+// Original methods defined by https://datatracker.ietf.org/doc/html/rfc7231
+@JvmField val GET: Get = Get() // Safe, Idempotent, Cacheable
+@JvmField val POST: Post = Post() // Unsafe, Non-Idempotent, Conditionally Cacheable
+@JvmField val PUT: HttpMethod<Param<*>> = HttpMethod("PUT") // Unsafe, Idempotent, Uncacheable
+@JvmField val DELETE: HttpMethod<ExtracorpParam<*>> = HttpMethod("DELETE") // Unsafe, Idempotent, Uncacheable
+// skipped HEAD, OPTIONS, TRACE, CONNECT do not seem very useful in a context of HTTP API
+
+// Defined by https://datatracker.ietf.org/doc/html/rfc10008
+@JvmField val QUERY: HttpMethod<Param<*>> = HttpMethod("QUERY") // Safe, Idempotent, Cacheable
+
+// Defined by https://datatracker.ietf.org/doc/html/rfc5789
+@JvmField val PATCH: HttpMethod<Param<*>> = HttpMethod("PATCH") // Unsafe, Non-Idempotent (e.g. version++, lastModified=now()), Conditionally Cacheable
 
 /**
  * HTTP method (verb).
